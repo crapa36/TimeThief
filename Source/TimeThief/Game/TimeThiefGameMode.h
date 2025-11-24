@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -7,18 +5,12 @@
 #include "TimeThiefGameMode.generated.h"
 
 /**
- *  Simple GameMode for a third person game
+ * 게임의 규칙을 총괄하는 게임 모드 클래스
  */
-UCLASS(abstract)
-class ATimeThiefGameMode : public AGameModeBase
-{
+UCLASS(minimalapi)
+class ATimeThiefGameMode : public AGameModeBase {
 	GENERATED_BODY()
 
 public:
-	
-	/** Constructor */
 	ATimeThiefGameMode();
 };
-
-
-

@@ -1,8 +1,10 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+#include "Game/TimeThiefGameMode.h"
+#include "Character/TimeThiefPlayerController.h"
+#include "Character/TimeThiefCharacter.h"
+#include "UObject/ConstructorHelpers.h"
 
-#include "TimeThiefGameMode.h"
+ATimeThiefGameMode::ATimeThiefGameMode() {
+	// 기본 플레이어 컨트롤러 설정
+	PlayerControllerClass = ATimeThiefPlayerController::StaticClass();
 
-ATimeThiefGameMode::ATimeThiefGameMode()
-{
-	// stub
 }
