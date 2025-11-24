@@ -25,19 +25,7 @@ public class TimeThief : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"TimeThief",
-			"TimeThief/Variant_Platforming",
-			"TimeThief/Variant_Platforming/Animation",
-			"TimeThief/Variant_Combat",
-			"TimeThief/Variant_Combat/AI",
-			"TimeThief/Variant_Combat/Animation",
-			"TimeThief/Variant_Combat/Gameplay",
-			"TimeThief/Variant_Combat/Interfaces",
-			"TimeThief/Variant_Combat/UI",
-			"TimeThief/Variant_SideScrolling",
-			"TimeThief/Variant_SideScrolling/AI",
-			"TimeThief/Variant_SideScrolling/Gameplay",
-			"TimeThief/Variant_SideScrolling/Interfaces",
-			"TimeThief/Variant_SideScrolling/UI"
+			
 		});
 
         PrivateDependencyModuleNames.AddRange(new string[] {
