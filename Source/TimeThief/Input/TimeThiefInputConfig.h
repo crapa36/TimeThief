@@ -15,7 +15,7 @@ struct FTimeThiefInputAction {
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	const UInputAction* InputAction = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (Categories = "InputTag"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Meta = (Categories = "Input"))
 	FGameplayTag InputTag;
 };
 
