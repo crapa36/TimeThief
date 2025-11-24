@@ -19,7 +19,7 @@ public:
 	void BindAbilityActions(const UTimeThiefInputConfig* InputConfig, UserClass* Object, PressedFuncType PressedFunc, ReleasedFuncType ReleasedFunc, TArray<uint32>& BindHandles);
 };
 
-// 템플릿 함수 구현 (헤더에 있어야 함)
+// 템플릿 함수 구현
 
 template<class UserClass, typename FuncType>
 void UTimeThiefInputComponent::BindNativeAction(const UTimeThiefInputConfig* InputConfig, const FGameplayTag& InputTag, ETriggerEvent TriggerEvent, UserClass* Object, FuncType Func) {
