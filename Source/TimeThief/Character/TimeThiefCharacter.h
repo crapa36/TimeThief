@@ -1,19 +1,20 @@
-// TimeThiefCharacter.h
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "GameplayTagContainer.h" // 태그 헤더 추가
+#include "GameplayTagContainer.h"
+#include "AbilitySystemInterface.h"
 #include "TimeThiefCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
-class UTimeThiefInputConfig; // 전방 선언 변경
+class UTimeThiefInputConfig;
+class UTimeThiefAbilitySystemComponent;
+class UTimeThiefAttributeSet;
 struct FInputActionValue;
 
 UCLASS(config = Game)
-class ATimeThiefCharacter : public ACharacter {
+class ATimeThiefCharacter : public ACharacter, public IAbilitySystemInterface {
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -22,21 +23,33 @@ class ATimeThiefCharacter : public ACharacter {
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTimeThiefAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTimeThiefAttributeSet> AttributeSet;
+
 public:
 	ATimeThiefCharacter();
+
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
+
+	FORCEINLINE class UTimeThiefAttributeSet* GetAttributeSet() const { return AttributeSet; }
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UTimeThiefInputConfig> InputConfig;
 
+	void InitAbilityActorInfo();
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	/** 네이티브 액션 핸들러 */
 	void Input_Move(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
 
-	/** GAS 어빌리티 입력 핸들러 */
 	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
 	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
 
