@@ -3,9 +3,10 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
 #include "GameplayTagContainer.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefAnimInstance.generated.h"
 
-class ATimeThiefCharacter;
+class ATimeThiefCharacterBase;
 class UAbilitySystemComponent;
 class UCharacterMovementComponent;
 
@@ -23,7 +24,7 @@ public:
 protected:
 	// --- 참조 변수 ---
 	UPROPERTY(BlueprintReadOnly, Category = "Character")
-	TObjectPtr<ATimeThiefCharacter> Character;
+	TObjectPtr<ATimeThiefCharacterBase> Character;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Character")
 	TObjectPtr<UCharacterMovementComponent> MovementComponent;

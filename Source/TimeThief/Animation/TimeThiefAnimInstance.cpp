@@ -1,15 +1,15 @@
 #include "Animation/TimeThiefAnimInstance.h"
-#include "../Character/TimeThiefCharacter.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
-#include "../TimeThiefGameplayTags.h" // 태그 매니저 헤더 필요
+#include "TimeThiefGameplayTags.h" 
 
 void UTimeThiefAnimInstance::NativeInitializeAnimation() {
 	Super::NativeInitializeAnimation();
 
-	Character = Cast<ATimeThiefCharacter>(TryGetPawnOwner());
+	Character = Cast<ATimeThiefCharacterBase>(TryGetPawnOwner());
 	if (Character) {
 		MovementComponent = Character->GetCharacterMovement();
 		// ASC 가져오기 (IAbilitySystemInterface를 통해)
@@ -21,7 +21,7 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaTime) {
 	Super::NativeUpdateAnimation(DeltaTime);
 
 	if (Character == nullptr) {
-		Character = Cast<ATimeThiefCharacter>(TryGetPawnOwner());
+		Character = Cast<ATimeThiefCharacterBase>(TryGetPawnOwner());
 		if (Character) {
 			MovementComponent = Character->GetCharacterMovement();
 			ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Character);
