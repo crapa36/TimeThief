@@ -11,6 +11,7 @@ class UAttributeSet;
 class UTimeThiefAbilitySystemComponent;
 class UTimeThiefAttributeSet;
 class ATimeThiefWeaponBase;
+class UTimeThiefAbilitySet;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter, public IAbilitySystemInterface {
@@ -20,8 +21,6 @@ public:
 	ATimeThiefCharacterBase();
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-
-	
 	UAttributeSet* GetAttributeSet() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
@@ -33,6 +32,9 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void InitAbilityActorInfo();
+
+	UPROPERTY(EditAnywhere, Category = "GAS|Abilities")
+	TObjectPtr<UTimeThiefAbilitySet> StartupAbilitySet;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")

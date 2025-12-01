@@ -21,6 +21,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input")
 	ETimeThiefAbilityInputID AbilityInputID;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	FGameplayTag StartupInputTag;
+
 	UFUNCTION(BlueprintPure, Category = "Ability")
 	class ATimeThiefCharacterBase* GetTimeThiefCharacterFromActorInfo() const;
 };

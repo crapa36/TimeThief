@@ -9,10 +9,6 @@ class TIMETHIEF_API UTimeThiefAbilitySystemComponent : public UAbilitySystemComp
 	GENERATED_BODY()
 
 public:
-	bool bCharacterAbilitiesGiven = false;
-
-	void AddCharacterAbilities(const TArray<TSubclassOf<class UGameplayAbility>>& StartupAbilities);
-
 	void AbilityInputTagPressed(const FGameplayTag& InputTag);
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 

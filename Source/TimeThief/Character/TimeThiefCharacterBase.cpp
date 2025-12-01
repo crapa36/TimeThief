@@ -5,6 +5,7 @@
 #include "GAS/TimeThiefAttributeSet.h"
 #include "Weapon/TimeThiefWeaponBase.h"
 #include "Net/UnrealNetwork.h"
+#include "GAS/TimeThiefAbilitySet.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase() {
 	PrimaryActorTick.bCanEverTick = false;
@@ -39,6 +40,9 @@ void ATimeThiefCharacterBase::BeginPlay() {
 }
 
 void ATimeThiefCharacterBase::InitAbilityActorInfo() {
+	if (HasAuthority() && StartupAbilitySet) {
+		StartupAbilitySet->GiveToAbilitySystem(AbilitySystemComponent, this);
+	}
 }
 
 void ATimeThiefCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
