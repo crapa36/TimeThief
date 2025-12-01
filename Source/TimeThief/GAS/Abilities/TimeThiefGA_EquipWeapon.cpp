@@ -2,6 +2,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Weapon/TimeThiefWeaponBase.h"
 #include "AbilitySystemComponent.h"
+#include "Components/Combat/TimeThiefPawnCombatComponent.h"
 
 UTimeThiefGA_EquipWeapon::UTimeThiefGA_EquipWeapon() {
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
@@ -17,7 +18,6 @@ void UTimeThiefGA_EquipWeapon::ActivateAbility(const FGameplayAbilitySpecHandle 
 		return;
 	}
 
-	// 1. 무기 스폰
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = Character;
 	SpawnParams.Instigator = Character;
@@ -25,10 +25,10 @@ void UTimeThiefGA_EquipWeapon::ActivateAbility(const FGameplayAbilitySpecHandle 
 	ATimeThiefWeaponBase* NewWeapon = GetWorld()->SpawnActor<ATimeThiefWeaponBase>(WeaponClass, Character->GetActorTransform(), SpawnParams);
 
 	if (NewWeapon) {
-		// 2. 캐릭터에게 무기 장착 요청 (소켓 부착 및 애니메이션 레이어 링크)
-		Character->SetCurrentWeapon(NewWeapon);
+		if (UTimeThiefPawnCombatComponent* CombatComp = Character->GetPawnCombatComponent()) {
+			CombatComp->RegisterSpawnedWeapon(NewWeapon->GetWeaponTag(), NewWeapon, true);
+		}
 
-		// 3. 무기가 가진 어빌리티 부여 (Grant Abilities)
 		UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
 		if (ASC) {
 			for (const TSubclassOf<UGameplayAbility>& Ability : NewWeapon->GetDefaultAbilities()) {

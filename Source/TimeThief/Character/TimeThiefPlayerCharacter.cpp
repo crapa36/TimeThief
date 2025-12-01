@@ -1,14 +1,14 @@
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h" 
+#include "Camera/CameraComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputSubsystems.h"
 #include "Input/TimeThiefInputComponent.h"
 #include "GAS/TimeThiefAbilitySystemComponent.h"
+#include "Components/Combat/TimeThiefHeroCombatComponent.h"
 #include "TimeThiefGameplayTags.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter() {
-	// 카메라 설정
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f;
@@ -18,10 +18,11 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter() {
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// 플레이어는 컨트롤러 회전을 따르지 않음 (카메라가 따름)
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+
+	HeroCombatComponent = CreateDefaultSubobject<UTimeThiefHeroCombatComponent>(TEXT("HeroCombatComponent"));
 }
 
 void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController) {
@@ -34,10 +35,14 @@ void ATimeThiefPlayerCharacter::OnRep_PlayerState() {
 	InitAbilityActorInfo();
 }
 
+UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent() const {
+	return HeroCombatComponent;
+}
+
 void ATimeThiefPlayerCharacter::InitAbilityActorInfo() {
 	if (AbilitySystemComponent) {
-		// Owner와 Avatar가 모두 Character인 경우
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+		Super::InitAbilityActorInfo();
 	}
 }
 

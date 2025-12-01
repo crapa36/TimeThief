@@ -3,7 +3,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS/TimeThiefAbilitySystemComponent.h"
 #include "GAS/TimeThiefAttributeSet.h"
-#include "Weapon/TimeThiefWeaponBase.h"
 #include "Net/UnrealNetwork.h"
 #include "GAS/TimeThiefAbilitySet.h"
 
@@ -42,25 +41,5 @@ void ATimeThiefCharacterBase::BeginPlay() {
 void ATimeThiefCharacterBase::InitAbilityActorInfo() {
 	if (HasAuthority() && StartupAbilitySet) {
 		StartupAbilitySet->GiveToAbilitySystem(AbilitySystemComponent, this);
-	}
-}
-
-void ATimeThiefCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ATimeThiefCharacterBase, CurrentWeapon);
-}
-
-void ATimeThiefCharacterBase::SetCurrentWeapon(ATimeThiefWeaponBase* NewWeapon) {
-	if (CurrentWeapon) {
-		CurrentWeapon->Destroy();
-	}
-
-	CurrentWeapon = NewWeapon;
-
-	if (CurrentWeapon) {
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, CurrentWeapon->GetSocketName());
-		if (CurrentWeapon->GetEquipAnimLayer()) {
-			GetMesh()->LinkAnimClassLayers(CurrentWeapon->GetEquipAnimLayer());
-		}
 	}
 }

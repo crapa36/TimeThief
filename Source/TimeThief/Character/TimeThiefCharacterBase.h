@@ -12,6 +12,7 @@ class UTimeThiefAbilitySystemComponent;
 class UTimeThiefAttributeSet;
 class ATimeThiefWeaponBase;
 class UTimeThiefAbilitySet;
+class UTimeThiefPawnCombatComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter, public IAbilitySystemInterface {
@@ -23,11 +24,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	UAttributeSet* GetAttributeSet() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	void SetCurrentWeapon(ATimeThiefWeaponBase* NewWeapon);
-
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	ATimeThiefWeaponBase* GetCurrentWeapon() const { return CurrentWeapon; }
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const { return nullptr; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -42,7 +40,4 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UTimeThiefAttributeSet> AttributeSet;
-
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
 };

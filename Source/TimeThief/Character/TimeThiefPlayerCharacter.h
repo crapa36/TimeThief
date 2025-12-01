@@ -8,6 +8,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefInputConfig;
+class UTimeThiefHeroCombatComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefCharacterBase {
@@ -19,11 +20,12 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 
+	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
+
 protected:
 	virtual void InitAbilityActorInfo() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// Input Actions
 	void Input_Move(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
 	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
@@ -36,6 +38,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<UCameraComponent> FollowCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
+	TObjectPtr<UTimeThiefHeroCombatComponent> HeroCombatComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UTimeThiefInputConfig> InputConfig;
+
+public:
+	FORCEINLINE UTimeThiefHeroCombatComponent* GetHeroCombatComponent() const { return HeroCombatComponent; }
 };
