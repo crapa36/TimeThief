@@ -2,9 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "AttributeSet.h"
-#include "AbilitySystemComponent.h"
-#include "TimeThiefAttributeSet.generated.h"
+#include "AbilitySystemComponent.h" 
+#include "TimeThiefAttributeSet.generated.h" 
 
+// 매크로 정의
 #define ATTRIBUTE_ACCESSORS(ClassName, PropertyName) \
 	GAMEPLAYATTRIBUTE_PROPERTY_GETTER(ClassName, PropertyName) \
 	GAMEPLAYATTRIBUTE_VALUE_GETTER(PropertyName) \

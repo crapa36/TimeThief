@@ -3,9 +3,10 @@
 #include "Weapon/TimeThiefWeaponBase.h"
 #include "AbilitySystemComponent.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Logging/StructuredLog.h"
 
 UTimeThiefGA_EquipWeapon::UTimeThiefGA_EquipWeapon() {
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
+	
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
@@ -13,9 +14,28 @@ void UTimeThiefGA_EquipWeapon::ActivateAbility(const FGameplayAbilitySpecHandle 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	ATimeThiefCharacterBase* Character = GetTimeThiefCharacterFromActorInfo();
+
 	if (!Character || !WeaponClass) {
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		UE_LOGFMT(LogTemp, Error, "EquipWeapon Ability Failed: Invalid Character or WeaponClass.");
+		EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
 		return;
+	}
+
+	UTimeThiefPawnCombatComponent* CombatComp = Character->GetPawnCombatComponent();
+	if (!CombatComp) {
+		UE_LOGFMT(LogTemp, Error, "EquipWeapon Ability Failed: CombatComponent missing.");
+		EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
+		return;
+	}
+
+	const ATimeThiefWeaponBase* WeaponCDO = Cast<ATimeThiefWeaponBase>(WeaponClass->GetDefaultObject());
+	if (WeaponCDO) {
+		FGameplayTag WeaponTag = WeaponCDO->GetWeaponTag();
+
+		if (CombatComp->GetCharacterCarriedWeaponByTag(WeaponTag)) {
+			EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
+			return;
+		}
 	}
 
 	FActorSpawnParameters SpawnParams;
@@ -25,22 +45,25 @@ void UTimeThiefGA_EquipWeapon::ActivateAbility(const FGameplayAbilitySpecHandle 
 	ATimeThiefWeaponBase* NewWeapon = GetWorld()->SpawnActor<ATimeThiefWeaponBase>(WeaponClass, Character->GetActorTransform(), SpawnParams);
 
 	if (NewWeapon) {
-		if (UTimeThiefPawnCombatComponent* CombatComp = Character->GetPawnCombatComponent()) {
-			CombatComp->RegisterSpawnedWeapon(NewWeapon->GetWeaponTag(), NewWeapon, true);
-		}
+		CombatComp->RegisterSpawnedWeapon(NewWeapon->GetWeaponTag(), NewWeapon, true);
 
 		UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
 		if (ASC) {
 			for (const TSubclassOf<UGameplayAbility>& Ability : NewWeapon->GetDefaultAbilities()) {
-				FGameplayAbilitySpec Spec(Ability, 1, -1, Character);
-				ASC->GiveAbility(Spec);
+				if (Ability) {
+					FGameplayAbilitySpec Spec(Ability, 1, INDEX_NONE, Character);
+					ASC->GiveAbility(Spec);
+				}
 			}
 		}
 	}
+	else {
+		UE_LOGFMT(LogTemp, Error, "EquipWeapon Ability Failed: SpawnActor returned null.");
+	}
 
-	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);
 }
 
 void UTimeThiefGA_EquipWeapon::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) {
-	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, false, bWasCancelled);
 }

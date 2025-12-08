@@ -2,6 +2,12 @@
 #include "Weapon/TimeThiefWeaponBase.h"
 #include "GameFramework/Character.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Logging/StructuredLog.h"
+
+UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent() {
+	PrimaryComponentTick.bCanEverTick = false;
+	CurrentEquippedWeapon = nullptr;
+}
 
 void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister, ATimeThiefWeaponBase* InWeaponToRegister, bool bRegisterAsEquippedWeapon) {
 	if (CharacterCarriedWeaponMap.Contains(InWeaponTagToRegister)) {
@@ -12,17 +18,18 @@ void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponT
 
 	if (bRegisterAsEquippedWeapon) {
 		CurrentEquippedWeaponTag = InWeaponTagToRegister;
+		CurrentEquippedWeapon = InWeaponToRegister;
 
-		// [수정된 부분] 무기가 유효하다면 캐릭터 손에 붙이고 애니메이션 레이어를 적용합니다.
 		if (InWeaponToRegister) {
 			if (ACharacter* OwningCharacter = GetOwningPawn<ACharacter>()) {
-				// 1. 무기를 캐릭터 메시의 소켓에 부착
 				InWeaponToRegister->AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, InWeaponToRegister->GetSocketName());
 
-				// 2. 무기에 설정된 애니메이션 레이어(AnimBP)를 캐릭터에 적용
+				// 이 로직을 AnimInstance로 이전하여 중복을 제거합니다.
+				/*
 				if (TSubclassOf<UAnimInstance> AnimLayer = InWeaponToRegister->GetEquipAnimLayer()) {
 					OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
 				}
+				*/
 			}
 		}
 	}
@@ -30,14 +37,27 @@ void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponT
 
 ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const {
 	if (CharacterCarriedWeaponMap.Contains(InWeaponTagToGet)) {
-		return *CharacterCarriedWeaponMap.Find(InWeaponTagToGet);
+		return CharacterCarriedWeaponMap.FindRef(InWeaponTagToGet);
 	}
 	return nullptr;
 }
 
 ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const {
-	if (!CurrentEquippedWeaponTag.IsValid()) {
-		return nullptr;
+	return CurrentEquippedWeapon;
+}
+
+void UTimeThiefPawnCombatComponent::ToggleWeaponCollision(bool bShouldEnable, EToggleDamageType ToggleDamageType) {
+	if (ToggleDamageType == EToggleDamageType::CurrentEquippedWeapon) {
+		if (IsValid(CurrentEquippedWeapon)) {
+			USkeletalMeshComponent* WeaponMesh = CurrentEquippedWeapon->GetWeaponMesh();
+			if (IsValid(WeaponMesh)) {
+				if (bShouldEnable) {
+					WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+				}
+				else {
+					WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				}
+			}
+		}
 	}
-	return GetCharacterCarriedWeaponByTag(CurrentEquippedWeaponTag);
 }

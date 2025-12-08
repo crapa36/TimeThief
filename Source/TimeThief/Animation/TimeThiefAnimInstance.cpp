@@ -1,53 +1,104 @@
-#include "Animation/TimeThiefAnimInstance.h"
-#include "Character/TimeThiefCharacterBase.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "AbilitySystemComponent.h"
-#include "AbilitySystemGlobals.h"
-#include "TimeThiefGameplayTags.h" 
+#include "TimeThiefAnimInstance.h"
+#include "GameFramework/Character.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Logging/StructuredLog.h"
+
+#include "TimeThief/Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "TimeThief/Weapon/TimeThiefWeaponBase.h"
+
+UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer) {
+}
 
 void UTimeThiefAnimInstance::NativeInitializeAnimation() {
 	Super::NativeInitializeAnimation();
 
-	Character = Cast<ATimeThiefCharacterBase>(TryGetPawnOwner());
-	if (Character) {
-		MovementComponent = Character->GetCharacterMovement();
-		// ASC 가져오기 (IAbilitySystemInterface를 통해)
-		ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Character);
-	}
+	// Init Log
+	UE_LOGFMT(LogAnimation, Warning, "TimeThiefAnimInstance: NativeInitializeAnimation Called on {0}", GetName());
+
+	CharacterOwner = Cast<ACharacter>(TryGetPawnOwner());
+	UpdateCombatComponent();
 }
 
-void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaTime) {
-	Super::NativeUpdateAnimation(DeltaTime);
+void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
+	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (Character == nullptr) {
-		Character = Cast<ATimeThiefCharacterBase>(TryGetPawnOwner());
-		if (Character) {
-			MovementComponent = Character->GetCharacterMovement();
-			ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Character);
+	// 1. Check if Function is running (Log every 3 seconds)
+	DebugLogTimer += DeltaSeconds;
+	if (DebugLogTimer > 3.0f) {
+		DebugLogTimer = 0.0f;
+		if (!IsValid(CharacterOwner)) {
+			UE_LOGFMT(LogAnimation, Error, "TimeThiefAnimInstance: CharacterOwner is NULL. Reparent Check OK?");
+		}
+		else if (!IsValid(CombatComponent)) {
+			UE_LOGFMT(LogAnimation, Error, "TimeThiefAnimInstance: Character Found ({0}), but CombatComponent MISSING.", GetNameSafe(CharacterOwner));
+		}
+		else {
+			// Normal operation ping
+			// UE_LOGFMT(LogAnimation, Log, "TimeThiefAnimInstance: Running OK. Current Weapon: {0}", GetNameSafe(CurrentWeapon));
 		}
 	}
 
-	if (Character == nullptr || MovementComponent == nullptr) return;
+	if (!IsValid(CharacterOwner)) {
+		CharacterOwner = Cast<ACharacter>(TryGetPawnOwner());
+	}
 
-	// 1. 이동 변수 업데이트
-	Velocity = Character->GetVelocity();
-	GroundSpeed = UKismetMathLibrary::VSizeXY(Velocity);
-	bShouldMove = (GroundSpeed > 3.0f) && (MovementComponent->GetCurrentAcceleration() != FVector::ZeroVector);
-	bIsFalling = MovementComponent->IsFalling();
-	bIsCrouching = Character->bIsCrouched;
+	if (IsValid(CharacterOwner) && !IsValid(CombatComponent)) {
+		UpdateCombatComponent();
+	}
 
-	// 2. GAS 상태 업데이트
-	if (ASC) {
-		FGameplayTagContainer OwnedTags;
-		ASC->GetOwnedGameplayTags(OwnedTags);
+	ProcessWeaponLayerUpdate();
+}
 
-		const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
+void UTimeThiefAnimInstance::UpdateCombatComponent() {
+	if (!IsValid(CharacterOwner)) {
+		return;
+	}
 
-		// 예: Aiming 태그가 있는지 확인 (태그는 나중에 등록해야 함)
-		// bIsAiming = OwnedTags.HasTagExact(Tags.State_Combat_Aiming);
+	// Try finding component
+	CombatComponent = CharacterOwner->FindComponentByClass<UTimeThiefPawnCombatComponent>();
 
-		// 무기 태그 확인 로직 (예시)
-		// if (OwnedTags.HasTag(Tags.Weapon_Rifle)) CurrentWeaponTag = Tags.Weapon_Rifle;
+	if (IsValid(CombatComponent)) {
+		UE_LOGFMT(LogAnimation, Display, "TimeThiefAnimInstance: CombatComponent Successfully Found on {0}", GetNameSafe(CharacterOwner));
+	}
+}
+
+void UTimeThiefAnimInstance::ProcessWeaponLayerUpdate() {
+	if (!IsValid(CombatComponent)) {
+		return;
+	}
+
+	ATimeThiefWeaponBase* NewWeapon = CombatComponent->GetCharacterCurrentEquippedWeapon();
+
+	// Force log if weapon state changes
+	if (CurrentWeapon != NewWeapon) {
+		UE_LOGFMT(LogAnimation, Warning, "TimeThiefAnimInstance: Weapon Switch Detected! Old: {0} -> New: {1}", GetNameSafe(CurrentWeapon), GetNameSafe(NewWeapon));
+
+		CurrentWeapon = NewWeapon;
+
+		TSubclassOf<UAnimInstance> NewLayerClass = nullptr;
+		if (IsValid(CurrentWeapon)) {
+			NewLayerClass = CurrentWeapon->GetEquipAnimLayer();
+			if (!NewLayerClass) {
+				UE_LOGFMT(LogAnimation, Error, "TimeThiefAnimInstance: Weapon {0} has NO AnimLayer set!", GetNameSafe(CurrentWeapon));
+			}
+		}
+
+		if (CurrentLinkedLayerClass != NewLayerClass) {
+			if (CurrentLinkedLayerClass) {
+				UnlinkAnimClassLayers(CurrentLinkedLayerClass);
+				UE_LOGFMT(LogAnimation, Display, "TimeThiefAnimInstance: Unlinked {0}", GetNameSafe(CurrentLinkedLayerClass));
+			}
+
+			if (NewLayerClass) {
+				LinkAnimClassLayers(NewLayerClass);
+				UE_LOGFMT(LogAnimation, Display, "TimeThiefAnimInstance: LINKED {0}", GetNameSafe(NewLayerClass));
+			}
+
+			CurrentLinkedLayerClass = NewLayerClass;
+		}
+		else {
+			UE_LOGFMT(LogAnimation, Warning, "TimeThiefAnimInstance: Layer Class did not change (Both are {0}). Check BP_Rifle settings.", GetNameSafe(NewLayerClass));
+		}
 	}
 }

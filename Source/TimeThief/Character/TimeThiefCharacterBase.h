@@ -10,7 +10,6 @@ class UAbilitySystemComponent;
 class UAttributeSet;
 class UTimeThiefAbilitySystemComponent;
 class UTimeThiefAttributeSet;
-class ATimeThiefWeaponBase;
 class UTimeThiefAbilitySet;
 class UTimeThiefPawnCombatComponent;
 
@@ -29,12 +28,14 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_PlayerState() override;
+
 	virtual void InitAbilityActorInfo();
 
-	UPROPERTY(EditAnywhere, Category = "GAS|Abilities")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS|Abilities")
 	TObjectPtr<UTimeThiefAbilitySet> StartupAbilitySet;
 
-protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAS")
 	TObjectPtr<UTimeThiefAbilitySystemComponent> AbilitySystemComponent;
 

@@ -2,61 +2,39 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "GameplayTagContainer.h"
-#include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefAnimInstance.generated.h"
 
-class ATimeThiefCharacterBase;
-class UAbilitySystemComponent;
-class UCharacterMovementComponent;
+class ACharacter;
+class UTimeThiefPawnCombatComponent;
+class ATimeThiefWeaponBase;
 
-/**
- * GAS 태그와 캐릭터 상태를 애니메이션 변수로 변환하는 클래스
- */
-UCLASS()
+UCLASS(Config = Game)
 class TIMETHIEF_API UTimeThiefAnimInstance : public UAnimInstance {
 	GENERATED_BODY()
 
 public:
+	UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer);
+
 	virtual void NativeInitializeAnimation() override;
-	virtual void NativeUpdateAnimation(float DeltaTime) override;
+	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
-	// --- 참조 변수 ---
-	UPROPERTY(BlueprintReadOnly, Category = "Character")
-	TObjectPtr<ATimeThiefCharacterBase> Character;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ACharacter> CharacterOwner;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Character")
-	TObjectPtr<UCharacterMovementComponent> MovementComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UTimeThiefPawnCombatComponent> CombatComponent;
 
-	UPROPERTY(BlueprintReadOnly, Category = "GAS")
-	TObjectPtr<UAbilitySystemComponent> ASC;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
 
-	// --- 이동 관련 변수 (Locomotion) ---
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Movement")
-	FVector Velocity;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UAnimInstance> CurrentLinkedLayerClass;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Movement")
-	float GroundSpeed;
+private:
+	void UpdateCombatComponent();
+	void ProcessWeaponLayerUpdate();
 
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Movement")
-	bool bShouldMove;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Movement")
-	bool bIsFalling;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Movement")
-	bool bIsCrouching;
-
-	// --- 전투 관련 변수 (Combat) ---
-	// GAS 태그를 기반으로 업데이트됨
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Combat")
-	bool bIsAiming;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Combat")
-	bool bIsFiring;
-
-	// 현재 장착된 무기 타입 (태그로 구분)
-	UPROPERTY(BlueprintReadOnly, Category = "Anim|Combat")
-	FGameplayTag CurrentWeaponTag;
+	// Debug helper to prevent log spam
+	float DebugLogTimer = 0.0f;
 };

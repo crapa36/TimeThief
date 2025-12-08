@@ -11,6 +11,5 @@ class TIMETHIEF_API UTimeThiefAssetManager : public UAssetManager {
 public:
 	static UTimeThiefAssetManager& Get();
 
-protected:
 	virtual void StartInitialLoading() override;
 };

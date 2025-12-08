@@ -1,10 +1,11 @@
 #include "GAS/TimeThiefGameplayAbility.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "AbilitySystemComponent.h"
 
 UTimeThiefGameplayAbility::UTimeThiefGameplayAbility() {
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+	AbilityInputID = ETimeThiefAbilityInputID::None;
 }
 
 ATimeThiefCharacterBase* UTimeThiefGameplayAbility::GetTimeThiefCharacterFromActorInfo() const {
-	return Cast<ATimeThiefCharacterBase>(GetAvatarActorFromActorInfo());
+	return (CurrentActorInfo ? Cast<ATimeThiefCharacterBase>(CurrentActorInfo->AvatarActor) : nullptr);
 }

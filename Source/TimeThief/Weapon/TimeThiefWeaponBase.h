@@ -3,11 +3,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
+#include "GameplayAbilitySpecHandle.h"
 #include "TimeThiefWeaponBase.generated.h"
 
 class USkeletalMeshComponent;
 class UGameplayAbility;
 class UAnimInstance;
+class UAbilitySystemComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefWeaponBase : public AActor {
@@ -16,7 +18,16 @@ class TIMETHIEF_API ATimeThiefWeaponBase : public AActor {
 public:
 	ATimeThiefWeaponBase();
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	void Equip(USceneComponent* InParent, FName InSocketName, AActor* NewOwner, APawn* NewInstigator);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	void Unequip();
+
 protected:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
 
@@ -31,6 +42,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
 	FName SocketName;
+
+private:
+	UPROPERTY()
+	TArray<FGameplayAbilitySpecHandle> GrantedAbilityHandles;
 
 public:
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }

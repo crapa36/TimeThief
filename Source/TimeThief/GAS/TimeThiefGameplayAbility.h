@@ -4,6 +4,8 @@
 #include "Abilities/GameplayAbility.h"
 #include "TimeThiefGameplayAbility.generated.h"
 
+class ATimeThiefCharacterBase;
+
 UENUM(BlueprintType)
 enum class ETimeThiefAbilityInputID : uint8 {
 	None,
@@ -25,5 +27,5 @@ public:
 	FGameplayTag StartupInputTag;
 
 	UFUNCTION(BlueprintPure, Category = "Ability")
-	class ATimeThiefCharacterBase* GetTimeThiefCharacterFromActorInfo() const;
+	ATimeThiefCharacterBase* GetTimeThiefCharacterFromActorInfo() const;
 };

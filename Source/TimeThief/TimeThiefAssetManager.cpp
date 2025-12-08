@@ -2,14 +2,20 @@
 #include "TimeThiefGameplayTags.h"
 
 UTimeThiefAssetManager& UTimeThiefAssetManager::Get() {
+	check(GEngine);
+
 	if (UTimeThiefAssetManager* Singleton = Cast<UTimeThiefAssetManager>(GEngine->AssetManager)) {
 		return *Singleton;
 	}
-	return *NewObject<UTimeThiefAssetManager>();
+
+	// [FATAL] AssetManager config missmatch. Check DefaultEngine.ini
+	UE_LOG(LogTemp, Fatal, TEXT("Invalid AssetManagerClassName in DefaultEngine.ini. It must be UTimeThiefAssetManager!"));
+	return *NewObject<UTimeThiefAssetManager>(); // Dummy return to satisfy compiler
 }
 
 void UTimeThiefAssetManager::StartInitialLoading() {
 	Super::StartInitialLoading();
-	// 여기서 태그 초기화 실행
+
+	// Load Native Tags
 	FTimeThiefGameplayTags::InitializeNativeGameplayTags();
 }

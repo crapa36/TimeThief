@@ -48,6 +48,7 @@ void ATimeThiefPlayerCharacter::InitAbilityActorInfo() {
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
 	UTimeThiefInputComponent* TimeThiefInputComp = CastChecked<UTimeThiefInputComponent>(PlayerInputComponent);
+
 	if (TimeThiefInputComp && InputConfig) {
 		const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
 

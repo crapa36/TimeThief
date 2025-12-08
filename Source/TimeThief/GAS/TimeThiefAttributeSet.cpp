@@ -1,5 +1,6 @@
 #include "GAS/TimeThiefAttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "GameplayEffect.h"
 #include "GameplayEffectExtension.h"
 
 UTimeThiefAttributeSet::UTimeThiefAttributeSet() {
@@ -33,7 +34,6 @@ void UTimeThiefAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModC
 	Super::PostGameplayEffectExecute(Data);
 
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute()) {
-		// 체력 변경 시 추가 로직 (UI 갱신, 피격 모션 등)
 	}
 }
 

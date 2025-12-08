@@ -12,7 +12,8 @@ void UTimeThiefAbilitySet::GiveToAbilitySystem(UAbilitySystemComponent* ASC, UOb
 		AbilitySpec.SourceObject = SourceObject;
 
 		if (AbilityToGrant.InputTag.IsValid()) {
-			AbilitySpec.DynamicAbilityTags.AddTag(AbilityToGrant.InputTag);
+			
+			AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilityToGrant.InputTag);
 		}
 
 		ASC->GiveAbility(AbilitySpec);

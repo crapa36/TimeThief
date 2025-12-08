@@ -15,7 +15,8 @@ void UTimeThiefAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTa
 
 void UTimeThiefAbilitySystemComponent::ProcessAbilityInput(const FGameplayTag& InputTag, bool bPressed) {
 	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities()) {
-		if (AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag)) {
+		
+		if (AbilitySpec.Ability && AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag)) {
 			if (bPressed) {
 				AbilitySpecInputPressed(AbilitySpec);
 				if (!AbilitySpec.IsActive()) {

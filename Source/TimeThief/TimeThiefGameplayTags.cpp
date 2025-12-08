@@ -24,5 +24,6 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags() {
 }
 
 void FTimeThiefGameplayTags::AddTag(FGameplayTag& OutTag, const ANSICHAR* TagName, const ANSICHAR* TagComment) {
-	OutTag = UGameplayTagsManager::Get().AddNativeGameplayTag(FName(TagName), FString(ANSI_TO_TCHAR(TagComment)));
+	
+	OutTag = UGameplayTagsManager::Get().AddNativeGameplayTag(FName(TagName), FString(TagComment));
 }
