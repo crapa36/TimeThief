@@ -9,6 +9,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefInputConfig;
 class UTimeThiefHeroCombatComponent;
+class UCharacterTrajectoryComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefCharacterBase {
@@ -21,6 +22,9 @@ public:
 	virtual void OnRep_PlayerState() override;
 
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|MotionMatching")
+	UCharacterTrajectoryComponent* GetCharacterTrajectoryComponent() const { return CharacterTrajectoryComponent; }
 
 protected:
 	virtual void InitAbilityActorInfo() override;
@@ -43,6 +47,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UTimeThiefInputConfig> InputConfig;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching")
+	TObjectPtr<UCharacterTrajectoryComponent> CharacterTrajectoryComponent;
 
 public:
 	FORCEINLINE UTimeThiefHeroCombatComponent* GetHeroCombatComponent() const { return HeroCombatComponent; }

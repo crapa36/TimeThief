@@ -19,6 +19,8 @@ public class TimeThief : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
+            "MotionTrajectory",
+            "PoseSearch",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
@@ -33,13 +35,5 @@ public class TimeThief : ModuleRules
             "GameplayTags",
             "GameplayTasks"
         });
-
-        // Uncomment if you are using Slate UI
-        // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-
-        // Uncomment if you are using online features
-        // PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-        // To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
     }
 }
