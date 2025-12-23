@@ -6,6 +6,7 @@
 
 class UCharacterTrajectoryComponent;
 class ATimeThiefPlayerCharacter;
+class UAbilitySystemComponent;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerAnimInstance : public UTimeThiefAnimInstance {
@@ -24,12 +25,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|MotionMatching")
 	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
 
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|GAS")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
 	bool bIsMoving;
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
-	bool bHasWeapon;
-
+	bool bHasWeapon; 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
 	FVector Velocity;
 

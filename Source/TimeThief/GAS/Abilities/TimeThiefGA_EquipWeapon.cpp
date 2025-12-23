@@ -6,7 +6,6 @@
 #include "Logging/StructuredLog.h"
 
 UTimeThiefGA_EquipWeapon::UTimeThiefGA_EquipWeapon() {
-	
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 }
 
@@ -16,14 +15,12 @@ void UTimeThiefGA_EquipWeapon::ActivateAbility(const FGameplayAbilitySpecHandle 
 	ATimeThiefCharacterBase* Character = GetTimeThiefCharacterFromActorInfo();
 
 	if (!Character || !WeaponClass) {
-		UE_LOGFMT(LogTemp, Error, "EquipWeapon Ability Failed: Invalid Character or WeaponClass.");
 		EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
 		return;
 	}
 
 	UTimeThiefPawnCombatComponent* CombatComp = Character->GetPawnCombatComponent();
 	if (!CombatComp) {
-		UE_LOGFMT(LogTemp, Error, "EquipWeapon Ability Failed: CombatComponent missing.");
 		EndAbility(Handle, ActorInfo, ActivationInfo, false, true);
 		return;
 	}
@@ -56,9 +53,6 @@ void UTimeThiefGA_EquipWeapon::ActivateAbility(const FGameplayAbilitySpecHandle 
 				}
 			}
 		}
-	}
-	else {
-		UE_LOGFMT(LogTemp, Error, "EquipWeapon Ability Failed: SpawnActor returned null.");
 	}
 
 	EndAbility(Handle, ActorInfo, ActivationInfo, false, false);

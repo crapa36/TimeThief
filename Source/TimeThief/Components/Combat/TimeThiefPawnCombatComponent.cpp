@@ -24,12 +24,20 @@ void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponT
 			if (ACharacter* OwningCharacter = GetOwningPawn<ACharacter>()) {
 				InWeaponToRegister->AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, InWeaponToRegister->GetSocketName());
 
-				// 이 로직을 AnimInstance로 이전하여 중복을 제거합니다.
-				/*
-				if (TSubclassOf<UAnimInstance> AnimLayer = InWeaponToRegister->GetEquipAnimLayer()) {
+				// --- [디버깅] 애니메이션 레이어 링크 시도 ---
+				TSubclassOf<UAnimInstance> AnimLayer = InWeaponToRegister->GetEquipAnimLayer();
+
+				if (AnimLayer) {
+					UE_LOG(LogTemp, Warning, TEXT("[CombatComp] Found AnimLayer in Weapon: %s. Trying to Link..."), *AnimLayer->GetName());
+
 					OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
+
+					UE_LOG(LogTemp, Warning, TEXT("[CombatComp] LinkAnimClassLayers called successfully."));
 				}
-				*/
+				else {
+					UE_LOG(LogTemp, Error, TEXT("[CombatComp] !!! AnimLayer is NULL in Weapon BP !!! Check 'Equip Anim Layer' in BP_Rifle."));
+				}
+				// ------------------------------------------
 			}
 		}
 	}

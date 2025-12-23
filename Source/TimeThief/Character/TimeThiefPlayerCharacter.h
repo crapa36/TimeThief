@@ -8,7 +8,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefInputConfig;
-class UTimeThiefHeroCombatComponent;
+class UTimeThiefPlayerCombatComponent;
 class UCharacterTrajectoryComponent;
 
 UCLASS()
@@ -43,7 +43,7 @@ protected:
 	TObjectPtr<UCameraComponent> FollowCamera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
-	TObjectPtr<UTimeThiefHeroCombatComponent> HeroCombatComponent;
+	TObjectPtr<UTimeThiefPlayerCombatComponent> PlayerCombatComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UTimeThiefInputConfig> InputConfig;
@@ -52,5 +52,5 @@ protected:
 	TObjectPtr<UCharacterTrajectoryComponent> CharacterTrajectoryComponent;
 
 public:
-	FORCEINLINE UTimeThiefHeroCombatComponent* GetHeroCombatComponent() const { return HeroCombatComponent; }
+	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }
 };

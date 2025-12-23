@@ -3,13 +3,13 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Input/TimeThiefInputConfig.h"
-#include "Components/Combat/TimeThiefHeroCombatComponent.h"
+#include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "EnhancedInputComponent.h"
 #include "TimeThiefGameplayTags.h"
 #include "AbilitySystemComponent.h"
 #include "GAS/TimeThiefAbilitySystemComponent.h"
 #include "CharacterTrajectoryComponent.h"
-#include "Input/TimeThiefInputComponent.h" 
+#include "Input/TimeThiefInputComponent.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter() {
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -21,7 +21,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter() {
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	HeroCombatComponent = CreateDefaultSubobject<UTimeThiefHeroCombatComponent>(TEXT("HeroCombatComponent"));
+	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -34,7 +34,6 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter() {
 	CharacterTrajectoryComponent->SetAutoActivate(true);
 	CharacterTrajectoryComponent->PrimaryComponentTick.bCanEverTick = true;
 	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
-
 }
 
 void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController) {
@@ -48,26 +47,27 @@ void ATimeThiefPlayerCharacter::OnRep_PlayerState() {
 }
 
 UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent() const {
-	return HeroCombatComponent;
+	return PlayerCombatComponent;
 }
 
 void ATimeThiefPlayerCharacter::InitAbilityActorInfo() {
 	Super::InitAbilityActorInfo();
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent()) {
+		ASC->InitAbilityActorInfo(this, this);
+	}
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	
 	if (UTimeThiefInputComponent* TimeThiefInputComp = Cast<UTimeThiefInputComponent>(PlayerInputComponent)) {
 		if (InputConfig) {
 			const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
 
-			// Native Actions
 			TimeThiefInputComp->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move);
 			TimeThiefInputComp->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this, &ThisClass::Input_Look);
 
-			// Ability Actions
 			TArray<uint32> BindHandles;
 			TimeThiefInputComp->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 		}
