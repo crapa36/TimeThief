@@ -2,15 +2,15 @@
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "CharacterTrajectoryComponent.h"
-#include "AbilitySystemGlobals.h"
-#include "AbilitySystemComponent.h"
-#include "TimeThiefGameplayTags.h" // [필수] 네이티브 태그 헤더 추가
+#include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Weapon/TimeThiefWeaponBase.h"
 
 UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
 	bIsMoving = false;
 	bHasWeapon = false;
 	GroundSpeed = 0.0f;
+	LeftHandIKTransform = FTransform::Identity;
 }
 
 void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
@@ -19,7 +19,6 @@ void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
 	PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
 	if (PlayerCharacter) {
 		TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
-		AbilitySystemComponent = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(PlayerCharacter);
 	}
 }
 
@@ -30,26 +29,34 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
 	}
 
-	if (PlayerCharacter && !TrajectoryComponent) {
-		TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
-	}
-
-	if (PlayerCharacter && !AbilitySystemComponent) {
-		AbilitySystemComponent = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(PlayerCharacter);
-	}
-
 	if (PlayerCharacter) {
+		if (!TrajectoryComponent) {
+			TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
+		}
+
 		Velocity = PlayerCharacter->GetVelocity();
 		GroundSpeed = Velocity.Size2D();
 		bIsMoving = GroundSpeed > 3.0f && !PlayerCharacter->GetCharacterMovement()->GetCurrentAcceleration().IsZero();
 
-		
-		if (AbilitySystemComponent) {
-			
-			bHasWeapon = AbilitySystemComponent->HasMatchingGameplayTag(FTimeThiefGameplayTags::Get().State_Combat_Rifle);
-		}
-		else {
-			bHasWeapon = false;
+		if (UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetPawnCombatComponent()) {
+			ATimeThiefWeaponBase* EquippedWeapon = CombatComp->GetCharacterCurrentEquippedWeapon();
+
+			if (EquippedWeapon) {
+				bHasWeapon = true;
+				EquippedWeaponTag = EquippedWeapon->GetWeaponTag();
+
+				if (USkeletalMeshComponent* WeaponMesh = EquippedWeapon->GetWeaponMesh()) {
+					if (WeaponMesh->DoesSocketExist(FName("LeftHandSocket"))) {
+						FTransform SocketTransform = WeaponMesh->GetSocketTransform(FName("LeftHandSocket"), RTS_World);
+						FTransform MeshTransform = PlayerCharacter->GetMesh()->GetComponentTransform();
+						LeftHandIKTransform = SocketTransform.GetRelativeTransform(MeshTransform);
+					}
+				}
+			}
+			else {
+				bHasWeapon = false;
+				EquippedWeaponTag = FGameplayTag();
+			}
 		}
 	}
 }

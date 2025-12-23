@@ -27,7 +27,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter() {
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 
 	CharacterTrajectoryComponent = CreateDefaultSubobject<UCharacterTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));
@@ -78,8 +78,14 @@ void ATimeThiefPlayerCharacter::Input_Move(const FInputActionValue& Value) {
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
 	if (Controller != nullptr) {
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		const FRotator ControlRotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, ControlRotation.Yaw, 0);
+
+		FRotator CurrentRotation = GetActorRotation();
+		FRotator TargetRotation = YawRotation;
+
+		FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 15.0f);
+		SetActorRotation(NewRotation);
 
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);

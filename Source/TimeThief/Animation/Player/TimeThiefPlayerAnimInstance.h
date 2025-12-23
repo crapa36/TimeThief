@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "Animation/TimeThiefAnimInstance.h"
+#include "GameplayTagContainer.h"
 #include "TimeThiefPlayerAnimInstance.generated.h"
 
-class UCharacterTrajectoryComponent;
 class ATimeThiefPlayerCharacter;
-class UAbilitySystemComponent;
+class UCharacterTrajectoryComponent;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerAnimInstance : public UTimeThiefAnimInstance {
@@ -19,23 +19,27 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Ref")
+	UPROPERTY(BlueprintReadOnly, Category = "Character")
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
 
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|MotionMatching")
+	UPROPERTY(BlueprintReadOnly, Category = "Character")
 	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
 
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|GAS")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	FGameplayTag EquippedWeaponTag;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
-	bool bIsMoving;
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	FTransform LeftHandIKTransform;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
-	bool bHasWeapon; 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	FVector Velocity;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "TimeThief|MotionMatching")
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	float GroundSpeed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	uint8 bIsMoving : 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	uint8 bHasWeapon : 1;
 };
