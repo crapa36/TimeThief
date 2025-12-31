@@ -16,15 +16,19 @@
 			"Enabled": true
 		},
 		{
+			"Name": "GameFeatures",
+			"Enabled": true
+		},
+		{
+			"Name": "ModularGameplay",
+			"Enabled": true
+		},
+		{
 			"Name": "StateTree",
 			"Enabled": true
 		},
 		{
 			"Name": "GameplayStateTree",
-			"Enabled": true
-		},
-		{
-			"Name": "GameplayAbilities",
 			"Enabled": true
 		},
 		{

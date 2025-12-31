@@ -7,9 +7,7 @@
 
 UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
-	bIsMoving = false;
 	bHasWeapon = false;
-	GroundSpeed = 0.0f;
 	LeftHandIKTransform = FTransform::Identity;
 }
 
@@ -27,36 +25,48 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 
 	if (!PlayerCharacter) {
 		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
+		if (!PlayerCharacter) {
+			return;
+		}
 	}
 
-	if (PlayerCharacter) {
-		if (!TrajectoryComponent) {
-			TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
-		}
+	if (!TrajectoryComponent) {
+		TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
+	}
 
-		Velocity = PlayerCharacter->GetVelocity();
-		GroundSpeed = Velocity.Size2D();
-		bIsMoving = GroundSpeed > 3.0f && !PlayerCharacter->GetCharacterMovement()->GetCurrentAcceleration().IsZero();
+	UpdateWeaponData();
+}
 
-		if (UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetPawnCombatComponent()) {
-			ATimeThiefWeaponBase* EquippedWeapon = CombatComp->GetCharacterCurrentEquippedWeapon();
+void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
+	if (!PlayerCharacter) {
+		CurrentWeapon = nullptr;
+		bHasWeapon = false;
+		EquippedWeaponTag = FGameplayTag();
+		return;
+	}
 
-			if (EquippedWeapon) {
-				bHasWeapon = true;
-				EquippedWeaponTag = EquippedWeapon->GetWeaponTag();
+	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetPawnCombatComponent();
+	if (!CombatComp) {
+		CurrentWeapon = nullptr;
+		bHasWeapon = false;
+		EquippedWeaponTag = FGameplayTag();
+		return;
+	}
 
-				if (USkeletalMeshComponent* WeaponMesh = EquippedWeapon->GetWeaponMesh()) {
-					if (WeaponMesh->DoesSocketExist(FName("LeftHandSocket"))) {
-						FTransform SocketTransform = WeaponMesh->GetSocketTransform(FName("LeftHandSocket"), RTS_World);
-						FTransform MeshTransform = PlayerCharacter->GetMesh()->GetComponentTransform();
-						LeftHandIKTransform = SocketTransform.GetRelativeTransform(MeshTransform);
-					}
-				}
-			}
-			else {
-				bHasWeapon = false;
-				EquippedWeaponTag = FGameplayTag();
-			}
-		}
+	CurrentWeapon = CombatComp->GetCharacterCurrentEquippedWeapon();
+	if (!CurrentWeapon) {
+		bHasWeapon = false;
+		EquippedWeaponTag = FGameplayTag();
+		return;
+	}
+
+	bHasWeapon = true;
+	EquippedWeaponTag = CurrentWeapon->GetWeaponTag();
+
+	USkeletalMeshComponent* WeaponMesh = CurrentWeapon->GetWeaponMesh();
+	if (WeaponMesh && WeaponMesh->DoesSocketExist(LeftHandIKSocketName)) {
+		FTransform SocketTransform = WeaponMesh->GetSocketTransform(LeftHandIKSocketName, RTS_World);
+		FTransform MeshTransform = PlayerCharacter->GetMesh()->GetComponentTransform();
+		LeftHandIKTransform = SocketTransform.GetRelativeTransform(MeshTransform);
 	}
 }

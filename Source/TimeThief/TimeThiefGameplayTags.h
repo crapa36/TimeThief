@@ -14,20 +14,22 @@ public:
 	FGameplayTag InputTag_Action_Move;
 	FGameplayTag InputTag_Action_Look;
 	FGameplayTag InputTag_Action_Jump;
+	FGameplayTag InputTag_Action_Fire;
+	FGameplayTag InputTag_Action_Reload;
+	FGameplayTag InputTag_Action_Aim;
+	FGameplayTag InputTag_Action_Melee;
+	FGameplayTag InputTag_Action_EquipRifle;
 
-	// Weapon Tags
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Pistol;
 
-	// Ability Tags
-	FGameplayTag Ability_Weapon_Equip;
-	FGameplayTag Ability_Weapon_Equip_Rifle;
-	FGameplayTag Ability_Weapon_Equip_Pistol;
-	FGameplayTag Ability_Weapon_Fire;
-
-	// State Tags
 	FGameplayTag State_Combat_Rifle;
 	FGameplayTag State_Combat_Pistol;
+
+	FGameplayTag InitState_Spawned;
+	FGameplayTag InitState_DataAvailable;
+	FGameplayTag InitState_DataInitialized;
+	FGameplayTag InitState_GameplayReady;
 
 protected:
 	void AddTag(FGameplayTag& OutTag, const ANSICHAR* TagName, const ANSICHAR* TagComment);

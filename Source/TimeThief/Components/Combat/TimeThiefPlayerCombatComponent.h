@@ -11,6 +11,15 @@ class TIMETHIEF_API UTimeThiefPlayerCombatComponent : public UTimeThiefPawnComba
 	GENERATED_BODY()
 
 public:
+	virtual void BeginPlay() override;
+
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	ATimeThiefWeaponBase* GetPlayerCarriedWeaponByTag(FGameplayTag InWeaponTag) const;
+	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false);
+
+	virtual void HandleInputPressed(FGameplayTag InputTag) override;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	TArray<TSubclassOf<ATimeThiefWeaponBase>> DefaultWeaponClasses;
 };

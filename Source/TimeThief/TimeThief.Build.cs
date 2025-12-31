@@ -21,19 +21,15 @@ public class TimeThief : ModuleRules
 			"Slate",
             "MotionTrajectory",
             "PoseSearch",
+            "GameplayTags",
+            "ModularGameplay",
+            "GameFeatures",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"TimeThief",
-			
 		});
-
-        PrivateDependencyModuleNames.AddRange(new string[] {
-            "GameplayAbilities",
-            "GameplayTags",
-            "GameplayTasks"
-        });
     }
 }

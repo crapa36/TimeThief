@@ -7,6 +7,7 @@
 
 class ATimeThiefPlayerCharacter;
 class UCharacterTrajectoryComponent;
+class ATimeThiefWeaponBase;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerAnimInstance : public UTimeThiefAnimInstance {
@@ -26,20 +27,20 @@ protected:
 	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FGameplayTag EquippedWeaponTag;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FTransform LeftHandIKTransform;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Movement")
-	FVector Velocity;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Movement")
-	float GroundSpeed;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Movement")
-	uint8 bIsMoving : 1;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	FName LeftHandIKSocketName = FName("LeftHandSocket");
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
-	uint8 bHasWeapon : 1;
+	bool bHasWeapon;
+
+private:
+	void UpdateWeaponData();
 };

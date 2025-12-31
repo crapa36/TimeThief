@@ -2,38 +2,41 @@
 
 #include "CoreMinimal.h"
 #include "Character/TimeThiefCharacterBase.h"
-#include "InputActionValue.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
-class UTimeThiefInputConfig;
+class UTimeThiefHeroComponent;
 class UTimeThiefPlayerCombatComponent;
 class UCharacterTrajectoryComponent;
+class UTimeThiefPawnData;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefCharacterBase {
 	GENERATED_BODY()
 
 public:
-	ATimeThiefPlayerCharacter();
+	ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 
 	virtual void PossessedBy(AController* NewController) override;
+	virtual void UnPossessed() override;
 	virtual void OnRep_PlayerState() override;
 
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Character")
+	UTimeThiefHeroComponent* GetHeroComponent() const { return HeroComponent; }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|MotionMatching")
 	UCharacterTrajectoryComponent* GetCharacterTrajectoryComponent() const { return CharacterTrajectoryComponent; }
 
 protected:
-	virtual void InitAbilityActorInfo() override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void BeginPlay() override;
 
-	void Input_Move(const FInputActionValue& Value);
-	void Input_Look(const FInputActionValue& Value);
-	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
-	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
+	void OnPawnDataSet();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -42,14 +45,22 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<UCameraComponent> FollowCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Character")
+	TObjectPtr<UTimeThiefHeroComponent> HeroComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
 	TObjectPtr<UTimeThiefPlayerCombatComponent> PlayerCombatComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UTimeThiefInputConfig> InputConfig;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching")
 	TObjectPtr<UCharacterTrajectoryComponent> CharacterTrajectoryComponent;
+
+	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
+	TObjectPtr<const UTimeThiefPawnData> PawnData;
+
+private:
+	UFUNCTION()
+	void OnRep_PawnData();
 
 public:
 	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }

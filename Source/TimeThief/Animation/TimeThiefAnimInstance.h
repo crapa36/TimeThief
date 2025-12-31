@@ -5,8 +5,7 @@
 #include "TimeThiefAnimInstance.generated.h"
 
 class ACharacter;
-class UTimeThiefPawnCombatComponent;
-class ATimeThiefWeaponBase;
+class UCharacterMovementComponent;
 
 UCLASS(Config = Game)
 class TIMETHIEF_API UTimeThiefAnimInstance : public UAnimInstance {
@@ -19,22 +18,34 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<ACharacter> CharacterOwner;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UTimeThiefPawnCombatComponent> CombatComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
+	TObjectPtr<UCharacterMovementComponent> CharacterMovement;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
+	FVector Velocity;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<UAnimInstance> CurrentLinkedLayerClass;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
+	float GroundSpeed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
+	bool bHasVelocity;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
+	bool bIsMoving;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
+	bool bIsFalling;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
+	bool bIsJumping;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
+	float VerticalVelocity;
 
 private:
-	void UpdateCombatComponent();
-	void ProcessWeaponLayerUpdate();
-
-	// Debug helper to prevent log spam
-	float DebugLogTimer = 0.0f;
+	void UpdateCharacterState();
+	void UpdateLocomotionData();
 };

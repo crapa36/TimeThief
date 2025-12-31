@@ -6,6 +6,7 @@
 #include "TimeThiefPawnCombatComponent.generated.h"
 
 class ATimeThiefWeaponBase;
+class UAnimMontage;
 
 UENUM(BlueprintType)
 enum class EToggleDamageType : uint8 {
@@ -31,15 +32,32 @@ public:
 	ATimeThiefWeaponBase* GetCharacterCurrentEquippedWeapon() const;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	void EquipWeapon(FGameplayTag WeaponTag);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	void UnequipCurrentWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	void ToggleWeaponCollision(bool bShouldEnable, EToggleDamageType ToggleDamageType = EToggleDamageType::CurrentEquippedWeapon);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	virtual void HandleInputPressed(FGameplayTag InputTag);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	virtual void HandleInputReleased(FGameplayTag InputTag);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	void AttachWeaponToSocket(ATimeThiefWeaponBase* Weapon);
 
 	UPROPERTY(BlueprintReadWrite, Category = "TimeThief|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
 
-private:
+protected:
 	UPROPERTY()
 	TMap<FGameplayTag, TObjectPtr<ATimeThiefWeaponBase>> CharacterCarriedWeaponMap;
 
 	UPROPERTY()
 	TObjectPtr<ATimeThiefWeaponBase> CurrentEquippedWeapon;
+
+	void PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
 };
