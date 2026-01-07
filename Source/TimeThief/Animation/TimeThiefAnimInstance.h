@@ -17,13 +17,6 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
-	TObjectPtr<ACharacter> CharacterOwner;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
-	TObjectPtr<UCharacterMovementComponent> CharacterMovement;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	FVector Velocity;
 
@@ -40,10 +33,14 @@ protected:
 	bool bIsFalling;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
-	bool bIsJumping;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
 	float VerticalVelocity;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
+	TObjectPtr<ACharacter> CharacterOwner;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
+	TObjectPtr<UCharacterMovementComponent> CharacterMovement;
 
 private:
 	void UpdateCharacterState();

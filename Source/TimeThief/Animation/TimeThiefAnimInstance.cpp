@@ -36,7 +36,6 @@ void UTimeThiefAnimInstance::UpdateCharacterState() {
 	}
 
 	bIsFalling = CharacterMovement->IsFalling();
-	bIsJumping = bIsFalling && (Velocity.Z > 0.0f);
 }
 
 void UTimeThiefAnimInstance::UpdateLocomotionData() {
