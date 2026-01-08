@@ -123,8 +123,7 @@ ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquipped
 	return CurrentEquippedWeapon;
 }
 
-void UTimeThiefPawnCombatComponent::ToggleWeaponCollision(bool bShouldEnable, EToggleDamageType ToggleDamageType) {
-}
+
 
 void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag) {
 }

@@ -18,6 +18,12 @@ void UTimeThiefWireComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	CachedCharacter = GetPawn<ACharacter>();
+	if (IsValid(CachedCharacter))
+	{
+		CachedMovementComponent = CachedCharacter->GetCharacterMovement();
+	}
+
 	if (WireCollisionObjectTypes.IsEmpty())
 	{
 		WireCollisionObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_WorldStatic));
@@ -89,14 +95,10 @@ void UTimeThiefWireComponent::ReleaseWire()
 
 	if (CurrentState == EWireState::Attached)
 	{
-		ACharacter* Character = GetPawn<ACharacter>();
-		if (Character)
+		if (IsValid(CachedMovementComponent))
 		{
-			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
-			{
-				Movement->GravityScale = CachedGravityScale;
-				Movement->AirControl = CachedAirControl;
-			}
+			CachedMovementComponent->GravityScale = CachedGravityScale;
+			CachedMovementComponent->AirControl = CachedAirControl;
 		}
 	}
 
@@ -120,11 +122,10 @@ void UTimeThiefWireComponent::SetWireState(EWireState NewState)
 
 FVector UTimeThiefWireComponent::GetAimDirection() const
 {
-	const ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) return FVector::ForwardVector;
+	if (!IsValid(CachedCharacter)) return FVector::ForwardVector;
 
-	const APlayerController* PC = Cast<APlayerController>(Character->GetController());
-	if (!PC) return Character->GetActorForwardVector();
+	const APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController());
+	if (!PC) return CachedCharacter->GetActorForwardVector();
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
@@ -134,10 +135,9 @@ FVector UTimeThiefWireComponent::GetAimDirection() const
 
 FVector UTimeThiefWireComponent::GetWireStartLocation() const
 {
-	const ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) return GetOwner()->GetActorLocation();
+	if (!IsValid(CachedCharacter)) return GetOwner()->GetActorLocation();
 
-	FVector Location = Character->GetActorLocation();
+	FVector Location = CachedCharacter->GetActorLocation();
 	Location.Z += WireStartZOffset;
 	return Location;
 }
@@ -173,24 +173,20 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 
 void UTimeThiefWireComponent::OnAnchorAttached()
 {
-	ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) return;
+	if (!IsValid(CachedMovementComponent)) return;
 
-	UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
-	if (!Movement) return;
+	CachedGravityScale = CachedMovementComponent->GravityScale;
+	CachedAirControl = CachedMovementComponent->AirControl;
 
-	CachedGravityScale = Movement->GravityScale;
-	CachedAirControl = Movement->AirControl;
-
-	Movement->GravityScale = WireGravityScale;
-	Movement->AirControl = 1.0f;
-	Movement->SetMovementMode(MOVE_Falling);
+	CachedMovementComponent->GravityScale = WireGravityScale;
+	CachedMovementComponent->AirControl = 1.0f;
+	CachedMovementComponent->SetMovementMode(MOVE_Falling);
 
 	const FVector WireDirection = (AnchorPoint - GetWireStartLocation()).GetSafeNormal();
-	const float VelocityTowardAnchor = FVector::DotProduct(Movement->Velocity, WireDirection);
+	const float VelocityTowardAnchor = FVector::DotProduct(CachedMovementComponent->Velocity, WireDirection);
 	if (VelocityTowardAnchor < 0)
 	{
-		Movement->Velocity -= WireDirection * VelocityTowardAnchor;
+		CachedMovementComponent->Velocity -= WireDirection * VelocityTowardAnchor;
 	}
 }
 
@@ -237,15 +233,15 @@ void UTimeThiefWireComponent::HandleInputPressed(FGameplayTag InputTag)
 
 void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
 {
-	ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) return;
-	
-	UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
-	if (!Movement) return;
-
-	if (Movement->IsMovingOnGround())
+	if (!IsValid(CachedCharacter) || !IsValid(CachedMovementComponent))
 	{
-		Movement->SetMovementMode(MOVE_Falling);
+		ReleaseWire();
+		return;
+	}
+	
+	if (CachedMovementComponent->IsMovingOnGround())
+	{
+		CachedMovementComponent->SetMovementMode(MOVE_Falling);
 	}
 
 	const FVector WireStartLocation = GetWireStartLocation();
@@ -259,19 +255,26 @@ void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
 		return;
 	}
 
-	if (ShouldReleaseByObstruction(Movement, WireDirection, CurrentDistance, DeltaTime))
+	if (ShouldReleaseByObstruction(WireDirection, CurrentDistance, DeltaTime))
 	{
 		ReleaseWire();
 		return;
 	}
 
-	ApplyPendulumPhysics(Movement, WireDirection, CurrentDistance, DeltaTime);
-	ConstrainToWireLength(Character, Movement);
+	// Shorten the wire to pull the player
+	const float TangentSpeed = GetTangentVelocity(CachedMovementComponent->Velocity, WireDirection).Size();
+	const float PullAmount = FMath::Max(0.f, PullSpeed - TangentSpeed);
+	AttachedWireLength = FMath::Max(ArrivalDistance, AttachedWireLength - PullAmount * DeltaTime);
+
+	ApplyPendulumPhysics(WireDirection, DeltaTime);
+	ConstrainToWireLength();
 }
 
-void UTimeThiefWireComponent::ApplyPendulumPhysics(UCharacterMovementComponent* Movement, const FVector& WireDirection, float WireLength, float DeltaTime)
+void UTimeThiefWireComponent::ApplyPendulumPhysics(const FVector& WireDirection, float DeltaTime)
 {
-	FVector Velocity = Movement->Velocity;
+	if (!IsValid(CachedMovementComponent)) return;
+
+	FVector Velocity = CachedMovementComponent->Velocity;
 
 	const float WorldGravity = FMath::Abs(GetWorld()->GetGravityZ());
 	const FVector GravityVector(0.0f, 0.0f, -WorldGravity);
@@ -280,37 +283,25 @@ void UTimeThiefWireComponent::ApplyPendulumPhysics(UCharacterMovementComponent* 
 	const FVector GravityTangent = GravityVector - WireDirection * GravityAlongWire;
 	Velocity += GravityTangent * DeltaTime;
 
-	const FVector TangentVelocity = GetTangentVelocity(Velocity, WireDirection);
-	const float TangentSpeed = TangentVelocity.Size();
-
-	if (TangentSpeed < PullSpeed)
-	{
-		Velocity += WireDirection * (PullSpeed - TangentSpeed) * DeltaTime;
-	}
-
 	if (!MoveInput.IsNearlyZero())
 	{
 		Velocity += GetPlayerInputAcceleration(DeltaTime);
 	}
 
-
-	Movement->Velocity = Velocity;
+	CachedMovementComponent->Velocity = Velocity;
 }
 
 FVector UTimeThiefWireComponent::GetPlayerInputAcceleration(float DeltaTime) const
 {
-	const ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character || MoveInput.IsNearlyZero()) return FVector::ZeroVector;
+	if (!IsValid(CachedCharacter) || MoveInput.IsNearlyZero()) return FVector::ZeroVector;
 
-	const APlayerController* PC = Cast<APlayerController>(Character->GetController());
+	const APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController());
 	if (!PC) return FVector::ZeroVector;
 
-	FRotator ControlRotation = PC->GetControlRotation();
-	ControlRotation.Pitch = 0.0f;
-	ControlRotation.Roll = 0.0f;
-
-	const FVector ForwardDir = ControlRotation.Vector();
-	const FVector RightDir = FRotationMatrix(ControlRotation).GetScaledAxis(EAxis::Y);
+	const FRotator ControlRotation = PC->GetControlRotation();
+	const FVector ForwardDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::Y);
+	
 	const FVector InputDirection = (ForwardDir * MoveInput.Y + RightDir * MoveInput.X).GetSafeNormal();
 
 	if (InputDirection.IsNearlyZero()) return FVector::ZeroVector;
@@ -324,9 +315,11 @@ FVector UTimeThiefWireComponent::GetTangentVelocity(const FVector& Velocity, con
 	return Velocity - WireDirection * VelocityAlongWire;
 }
 
-bool UTimeThiefWireComponent::ShouldReleaseByObstruction(UCharacterMovementComponent* Movement, const FVector& WireDirection, float CurrentDistance, float DeltaTime)
+bool UTimeThiefWireComponent::ShouldReleaseByObstruction(const FVector& WireDirection, float CurrentDistance, float DeltaTime)
 {
-	const float CurrentSpeed = Movement->Velocity.Size();
+	if (!IsValid(CachedMovementComponent)) return true;
+
+	const float CurrentSpeed = CachedMovementComponent->Velocity.Size();
 	
 	if (CurrentSpeed < StuckSpeedThreshold)
 	{
@@ -345,18 +338,14 @@ bool UTimeThiefWireComponent::ShouldReleaseByObstruction(UCharacterMovementCompo
 	
 	if (bWireTight && !MoveInput.IsNearlyZero())
 	{
-		const ACharacter* Character = GetPawn<ACharacter>();
-		if (!Character) return false;
+		if (!IsValid(CachedCharacter)) return false;
 
-		const APlayerController* PC = Cast<APlayerController>(Character->GetController());
+		const APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController());
 		if (!PC) return false;
 
-		FRotator ControlRotation = PC->GetControlRotation();
-		ControlRotation.Pitch = 0.0f;
-		ControlRotation.Roll = 0.0f;
-
-		const FVector ForwardDir = ControlRotation.Vector();
-		const FVector RightDir = FRotationMatrix(ControlRotation).GetScaledAxis(EAxis::Y);
+		const FRotator ControlRotation = PC->GetControlRotation();
+		const FVector ForwardDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::X);
+		const FVector RightDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::Y);
 		const FVector InputDirection = (ForwardDir * MoveInput.Y + RightDir * MoveInput.X).GetSafeNormal();
 
 		const float InputDotWire = FVector::DotProduct(InputDirection, WireDirection);
@@ -382,9 +371,9 @@ bool UTimeThiefWireComponent::ShouldReleaseByObstruction(UCharacterMovementCompo
 	return false;
 }
 
-void UTimeThiefWireComponent::ConstrainToWireLength(ACharacter* Character, UCharacterMovementComponent* Movement)
+void UTimeThiefWireComponent::ConstrainToWireLength()
 {
-	if (AttachedWireLength <= 0.0f) return;
+	if (!IsValid(CachedCharacter) || !IsValid(CachedMovementComponent) || AttachedWireLength <= 0.0f) return;
 
 	const FVector WireStartLocation = GetWireStartLocation();
 	const FVector ToAnchor = AnchorPoint - WireStartLocation;
@@ -398,13 +387,12 @@ void UTimeThiefWireComponent::ConstrainToWireLength(ACharacter* Character, UChar
 	FVector NewActorLocation = ConstrainedLocation;
 	NewActorLocation.Z -= WireStartZOffset;
 	
-	Character->SetActorLocation(NewActorLocation, true);
+	CachedCharacter->SetActorLocation(NewActorLocation, true, nullptr, ETeleportType::TeleportPhysics);
 
-	FVector Velocity = Movement->Velocity;
+	FVector Velocity = CachedMovementComponent->Velocity;
 	const float VelocityAwayFromAnchor = FVector::DotProduct(Velocity, -WireDirection);
 	if (VelocityAwayFromAnchor > 0)
 	{
-		Movement->Velocity = Velocity + WireDirection * VelocityAwayFromAnchor;
+		CachedMovementComponent->Velocity = Velocity + WireDirection * VelocityAwayFromAnchor;
 	}
 }
-
