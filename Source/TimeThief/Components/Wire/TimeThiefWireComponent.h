@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "GameplayTagContainer.h"
+#include "UObject/ObjectPtr.h"
 #include "TimeThiefWireComponent.generated.h"
 
 class UCharacterMovementComponent;
@@ -76,10 +77,10 @@ private:
 	void UpdateCooldown(float DeltaTime);
 	
 	void OnAnchorAttached();
-	void ApplyPendulumPhysics(UCharacterMovementComponent* Movement, const FVector& WireDirection, float WireLength, float DeltaTime);
-	void ConstrainToWireLength(ACharacter* Character, UCharacterMovementComponent* Movement);
+	void ApplyPendulumPhysics(const FVector& WireDirection, float DeltaTime);
+	void ConstrainToWireLength();
 	
-	bool ShouldReleaseByObstruction(UCharacterMovementComponent* Movement, const FVector& WireDirection, float CurrentDistance, float DeltaTime);
+	bool ShouldReleaseByObstruction(const FVector& WireDirection, float CurrentDistance, float DeltaTime);
 	
 	FVector GetAimDirection() const;
 	FVector GetWireStartLocation() const;
@@ -125,6 +126,12 @@ protected:
 #endif
 
 private:
+	UPROPERTY()
+	TObjectPtr<ACharacter> CachedCharacter;
+
+	UPROPERTY()
+	TObjectPtr<UCharacterMovementComponent> CachedMovementComponent;
+	
 	EWireState CurrentState = EWireState::Idle;
 	FVector AnchorPoint = FVector::ZeroVector;
 	FVector FireDirection = FVector::ZeroVector;
@@ -144,4 +151,3 @@ private:
 	static constexpr float InputAgainstWireThreshold = 0.5f;
 	static constexpr float InputAgainstWireDelay = 0.2f;
 };
-

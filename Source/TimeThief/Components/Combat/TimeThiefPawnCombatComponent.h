@@ -36,10 +36,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	void UnequipCurrentWeapon();
-
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	void ToggleWeaponCollision(bool bShouldEnable, EToggleDamageType ToggleDamageType = EToggleDamageType::CurrentEquippedWeapon);
-
+	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual void HandleInputPressed(FGameplayTag InputTag);
 
