@@ -3,7 +3,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer) {
+	: Super(ObjectInitializer)
+{
 	PrimaryActorTick.bCanEverTick = false;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -15,16 +16,4 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	GetCharacterMovement()->MaxWalkSpeed = 500.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
-}
-
-void ATimeThiefCharacterBase::BeginPlay() {
-	Super::BeginPlay();
-}
-
-void ATimeThiefCharacterBase::PossessedBy(AController* NewController) {
-	Super::PossessedBy(NewController);
-}
-
-void ATimeThiefCharacterBase::OnRep_PlayerState() {
-	Super::OnRep_PlayerState();
 }

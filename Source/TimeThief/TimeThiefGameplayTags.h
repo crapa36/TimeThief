@@ -19,6 +19,7 @@ public:
 	FGameplayTag InputTag_Action_Aim;
 	FGameplayTag InputTag_Action_Melee;
 	FGameplayTag InputTag_Action_EquipRifle;
+	FGameplayTag InputTag_Action_Wire;
 
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Pistol;

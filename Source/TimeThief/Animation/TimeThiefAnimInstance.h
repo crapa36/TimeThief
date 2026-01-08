@@ -8,7 +8,8 @@ class ACharacter;
 class UCharacterMovementComponent;
 
 UCLASS(Config = Game)
-class TIMETHIEF_API UTimeThiefAnimInstance : public UAnimInstance {
+class TIMETHIEF_API UTimeThiefAnimInstance : public UAnimInstance
+{
 	GENERATED_BODY()
 
 public:
@@ -16,6 +17,14 @@ public:
 
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
+
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
+	TObjectPtr<ACharacter> CharacterOwner;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
+	TObjectPtr<UCharacterMovementComponent> CharacterMovement;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	FVector Velocity;
@@ -34,15 +43,4 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
 	float VerticalVelocity;
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
-	TObjectPtr<ACharacter> CharacterOwner;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
-	TObjectPtr<UCharacterMovementComponent> CharacterMovement;
-
-private:
-	void UpdateCharacterState();
-	void UpdateLocomotionData();
 };
