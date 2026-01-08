@@ -10,6 +10,7 @@ class UTimeThiefHeroComponent;
 class UTimeThiefPlayerCombatComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
+class UTimeThiefWireComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefCharacterBase {
@@ -31,6 +32,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|MotionMatching")
 	UCharacterTrajectoryComponent* GetCharacterTrajectoryComponent() const { return CharacterTrajectoryComponent; }
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
+	UTimeThiefWireComponent* GetWireComponent() const { return WireComponent; }
 
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -54,6 +58,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching")
 	TObjectPtr<UCharacterTrajectoryComponent> CharacterTrajectoryComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wire")
+	TObjectPtr<UTimeThiefWireComponent> WireComponent;
 
 	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
 	TObjectPtr<const UTimeThiefPawnData> PawnData;

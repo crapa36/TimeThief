@@ -6,6 +6,7 @@
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "CharacterTrajectoryComponent.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 #include "Net/UnrealNetwork.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -22,6 +23,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
 	HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
 	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
+	WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
 
 	CharacterTrajectoryComponent = CreateDefaultSubobject<UCharacterTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));
 	CharacterTrajectoryComponent->SetAutoActivate(true);

@@ -12,6 +12,7 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags() {
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Aim, "InputTag.Action.Aim", "Aim Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Melee, "InputTag.Action.Melee", "Melee Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_EquipRifle, "InputTag.Action.EquipRifle", "Equip Rifle Input");
+	GameplayTags.AddTag(GameplayTags.InputTag_Action_Wire, "InputTag.Action.Wire", "Wire Action Input");
 
 	GameplayTags.AddTag(GameplayTags.Weapon_Rifle, "Weapon.Rifle", "Rifle Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_Pistol, "Weapon.Pistol", "Pistol Weapon Type");

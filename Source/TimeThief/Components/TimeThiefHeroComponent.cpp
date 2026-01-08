@@ -5,150 +5,167 @@
 #include "TimeThiefGameplayTags.h"
 #include "Components/GameFrameworkComponentManager.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputSubsystems.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer) {
+	: Super(ObjectInitializer)
+{
 	bWantsInitializeComponent = true;
 }
 
-UTimeThiefHeroComponent* UTimeThiefHeroComponent::FindHeroComponent(const AActor* Actor) {
-	return (Actor ? Actor->FindComponentByClass<UTimeThiefHeroComponent>() : nullptr);
+UTimeThiefHeroComponent* UTimeThiefHeroComponent::FindHeroComponent(const AActor* Actor)
+{
+	return Actor ? Actor->FindComponentByClass<UTimeThiefHeroComponent>() : nullptr;
 }
 
-void UTimeThiefHeroComponent::SetPawnData(const UTimeThiefPawnData* InPawnData) {
+void UTimeThiefHeroComponent::SetPawnData(const UTimeThiefPawnData* InPawnData)
+{
 	check(InPawnData);
-
-	if (PawnData) {
-		return;
-	}
+	if (PawnData) return;
 
 	PawnData = InPawnData;
-
 	CheckDefaultInitialization();
 }
 
-void UTimeThiefHeroComponent::OnRegister() {
+void UTimeThiefHeroComponent::OnRegister()
+{
 	Super::OnRegister();
 
-	const APawn* Pawn = GetPawn<APawn>();
-	if (!ensure(Pawn)) {
-		return;
-	}
+	if (!ensure(GetPawn<APawn>())) return;
 
 	UGameFrameworkComponentManager::AddGameFrameworkComponentReceiver(GetOwner());
 }
 
-void UTimeThiefHeroComponent::BeginPlay() {
+void UTimeThiefHeroComponent::BeginPlay()
+{
 	Super::BeginPlay();
-
 	BindOnActorInitStateChanged(NAME_None, FGameplayTag(), false);
-
 	CheckDefaultInitialization();
 }
 
-void UTimeThiefHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason) {
+void UTimeThiefHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
 	UGameFrameworkComponentManager::RemoveGameFrameworkComponentReceiver(GetOwner());
 	Super::EndPlay(EndPlayReason);
 }
 
-void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputComponent) {
+void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputComponent)
+{
 	check(PlayerInputComponent);
+	if (!PawnData || bReadyToBindInputs) return;
 
-	if (!PawnData) {
-		return;
-	}
+	UTimeThiefInputComponent* TimeThiefIC = Cast<UTimeThiefInputComponent>(PlayerInputComponent);
+	if (!TimeThiefIC) return;
 
-	if (bReadyToBindInputs) {
-		return;
-	}
+	const UTimeThiefInputConfig* InputConfig = PawnData->InputConfig;
+	if (!InputConfig) return;
 
-	if (UTimeThiefInputComponent* TimeThiefIC = Cast<UTimeThiefInputComponent>(PlayerInputComponent)) {
-		if (const UTimeThiefInputConfig* InputConfig = PawnData->InputConfig) {
-			const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
+	const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
 
-			TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Triggered, this, &UTimeThiefHeroComponent::Input_Move);
-			TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this, &UTimeThiefHeroComponent::Input_Look);
-			TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this, &UTimeThiefHeroComponent::Input_Jump);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Completed, this, &ThisClass::Input_MoveCompleted);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this, &ThisClass::Input_Look);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this, &ThisClass::Input_Jump);
 
-			TArray<uint32> BindHandles;
-			TimeThiefIC->BindAbilityActions(InputConfig, this, &UTimeThiefHeroComponent::Input_AbilityInputTagPressed, &UTimeThiefHeroComponent::Input_AbilityInputTagReleased, BindHandles);
-		}
-	}
+	TArray<uint32> BindHandles;
+	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
-	if (!bReadyToBindInputs) {
-		bReadyToBindInputs = true;
-		OnReadyToBindInputs.Broadcast(this);
-	}
+	bReadyToBindInputs = true;
+	OnReadyToBindInputs.Broadcast(this);
 }
 
-void UTimeThiefHeroComponent::AddAdditionalInputConfig(const UTimeThiefInputConfig* InputConfig) {
-}
-
-void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value) {
+void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
+{
 	ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) {
-		return;
-	}
+	if (!Character) return;
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (AController* Controller = Character->GetController()) {
-		const FRotator ControlRotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, ControlRotation.Yaw, 0);
+	AController* Controller = Character->GetController();
+	if (!Controller) return;
 
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+	const FRotator ControlRotation = Controller->GetControlRotation();
+	const FRotator YawRotation(0, ControlRotation.Yaw, 0);
 
-		Character->AddMovementInput(ForwardDirection, MovementVector.Y);
-		Character->AddMovementInput(RightDirection, MovementVector.X);
+	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-		if (!FMath::IsNearlyZero(MovementVector.SizeSquared())) {
-			const FRotator CurrentRotation = Character->GetActorRotation();
-			const FRotator TargetRotation = FMath::RInterpTo(CurrentRotation, YawRotation, GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
-			Character->SetActorRotation(TargetRotation);
-		}
+	Character->AddMovementInput(ForwardDirection, MovementVector.Y);
+	Character->AddMovementInput(RightDirection, MovementVector.X);
+
+	if (!FMath::IsNearlyZero(MovementVector.SizeSquared()))
+	{
+		const FRotator CurrentRotation = Character->GetActorRotation();
+		const FRotator TargetRotation = FMath::RInterpTo(CurrentRotation, YawRotation, GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
+		Character->SetActorRotation(TargetRotation);
+	}
+
+	if (UTimeThiefWireComponent* WireComp = Character->FindComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComp->SetMoveInput(MovementVector);
 	}
 }
 
-void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value) {
-	APawn* Pawn = GetPawn<APawn>();
-	if (!Pawn) {
-		return;
+void UTimeThiefHeroComponent::Input_MoveCompleted(const FInputActionValue& Value)
+{
+	ACharacter* Character = GetPawn<ACharacter>();
+	if (!Character) return;
+
+	if (UTimeThiefWireComponent* WireComp = Character->FindComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComp->SetMoveInput(FVector2D::ZeroVector);
 	}
+}
+
+void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
 
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-	if (APlayerController* PlayerController = Cast<APlayerController>(Pawn->GetController())) {
-		PlayerController->AddYawInput(LookAxisVector.X);
-		PlayerController->AddPitchInput(LookAxisVector.Y);
+	if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+	{
+		PC->AddYawInput(LookAxisVector.X);
+		PC->AddPitchInput(LookAxisVector.Y);
 	}
 }
 
-void UTimeThiefHeroComponent::Input_Jump(const FInputActionValue& Value) {
-	ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) {
-		return;
-	}
-
-	Character->Jump();
-}
-
-void UTimeThiefHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag) {
-	if (APawn* Pawn = GetPawn<APawn>()) {
-		if (UTimeThiefPawnCombatComponent* CombatComp = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>()) {
-			CombatComp->HandleInputPressed(InputTag);
-		}
+void UTimeThiefHeroComponent::Input_Jump(const FInputActionValue& Value)
+{
+	if (ACharacter* Character = GetPawn<ACharacter>())
+	{
+		Character->Jump();
 	}
 }
 
-void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag) {
-	if (APawn* Pawn = GetPawn<APawn>()) {
-		if (UTimeThiefPawnCombatComponent* CombatComp = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>()) {
-			CombatComp->HandleInputReleased(InputTag);
-		}
+void UTimeThiefHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
+
+	if (UTimeThiefPawnCombatComponent* CombatComp = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>())
+	{
+		CombatComp->HandleInputPressed(InputTag);
+	}
+	
+	if (UTimeThiefWireComponent* WireComp = Pawn->FindComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComp->HandleInputPressed(InputTag);
+	}
+}
+
+void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
+
+	if (UTimeThiefPawnCombatComponent* CombatComp = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>())
+	{
+		CombatComp->HandleInputReleased(InputTag);
 	}
 }
 
