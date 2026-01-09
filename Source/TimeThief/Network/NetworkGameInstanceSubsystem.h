@@ -12,7 +12,7 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
-class SendBuffer;;
+class SendBuffer;
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -31,19 +31,18 @@ public:
 	virtual void Deinitialize() override;
 	
 public:
-	UFUNCTION(BLueprintCallable, Category = "Network", meta = (WorldContext="WorldContextObject"))
+	UFUNCTION(BlueprintCallable, Category = "Network", meta = (WorldContext="WorldContextObject"))
 	static UNetworkGameInstanceSubsystem* Get(UObject* WorldContextObject);
 	
 public:
-	UFUNCTION(BLueprintCallable, Category = "Network")
 	void SendPacket(const SendBuffer& Buffer);
 	
 private:
-	void COnnectToServer(const FString& IPAddress, int32 Port);
+	void ConnectToServer(const FString& IPAddress, int32 Port);
 	
-	void SpawnProcessMessagesTimer();
+	void SpawnProcessPacketTimer();
 	
-	void Send(const class SendBuffer& Buffer);
+	void Send(const SendBuffer& Buffer);
 	
 	void ProcessPacket();
 	
