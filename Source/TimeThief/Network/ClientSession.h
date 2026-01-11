@@ -18,7 +18,7 @@ class SendBuffer;
 class TIMETHIEF_API ClientSession : public TSharedFromThis<ClientSession>
 {
 public:
-	ClientSession(class FSocket* Socket);
+	ClientSession(FSocket* Socket);
 	~ClientSession();
 	
 public:
