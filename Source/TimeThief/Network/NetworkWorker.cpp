@@ -31,7 +31,7 @@ uint32 RecvWorker::Run()
 		{
 			if (TSharedPtr<ClientSession> Session = SessionRef.Pin())
 			{
-				Session->RecvWorkerQueue.Enqueue(Packet);
+				Session->RecvPacketQueue.Enqueue(Packet);
 			}
 		}
 	}
@@ -133,7 +133,7 @@ uint32 SendWorker::Run()
 		
 		if (TSharedPtr<ClientSession> Session = SessionRef.Pin())
 		{
-			if (Session->SendWorkerQueue.Dequeue(OUT SendBuffer))
+			if (Session->SendPacketQueue.Dequeue(OUT SendBuffer))
 			{
 				SendPacket(SendBuffer);
 			}
