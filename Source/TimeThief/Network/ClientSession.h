@@ -39,7 +39,7 @@ public:
 	TSharedPtr<class SendWorker>	SendWorkerThread;
 	
 	// SPSC Queue (Single Producer Single Consumer)
-	TQueue<TArray<uint8>>			RecvWorkerQueue;
-	TQueue<TSharedPtr<SendBuffer>>	SendWorkerQueue;
+	TQueue<TArray<uint8>>			RecvPacketQueue;
+	TQueue<TSharedPtr<SendBuffer>>	SendPacketQueue;
 	
 };
