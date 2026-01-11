@@ -1,4 +1,5 @@
 ﻿#include "NetworkWorker.h"
+#include "TempHeader.h"
 
 /*--------------
    RecvWorker
@@ -50,18 +51,32 @@ void RecvWorker::Destroy()
 
 bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 {
-	// TEMP: PacketHeader Size는 4라고 정의
-	const int32 HeaderSize = 4;
+	// TEMP: PacketHeader Size는 FTempHeader size라고 정의
+	const int32 HeaderSize = sizeof(FTempHeader);
 	TArray<uint8> HeaderBuffer;
 	HeaderBuffer.AddZeroed(HeaderSize);
 	
 	if (not ReceiveDesiredBytes(HeaderBuffer.GetData(), HeaderSize))
 		return false;
 	
-	// TODO: PacketHeader를 먼저 작성하고 진행
-	// 1. PacketHeader를 읽어서 로그를 찍기
-	// 2. PayloadSize를 계산해서 Payload를 읽기
-	// 3. 성공했다면 OutPacket에 Header + Payload를 합쳐서 반환하기
+	FTempHeader Header;
+	{
+		FMemoryReader Reader(HeaderBuffer);
+		Reader << Header;
+		UE_LOG(LogTemp, Log, TEXT("PacketId: %d, PacketSize: %d"), Header.PacketId, Header.PacketSize);
+	}
+	
+	OutPacket = HeaderBuffer;
+	
+	TArray<uint8> PayloadBuffer;
+	const int32 PayloadSize = Header.PacketSize - HeaderSize;
+	if (PayloadSize == 0)
+		return true;
+	
+	OutPacket.AddZeroed(PayloadSize);
+	
+	if (ReceiveDesiredBytes(&OutPacket[HeaderSize], PayloadSize))
+		return true;
 	
 	return false;
 }
