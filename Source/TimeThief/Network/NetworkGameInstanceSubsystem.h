@@ -9,10 +9,12 @@
 #include "Engine/World.h"
 
 #include "SendBuffer.h"
+#include "ClientSession.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
 class SendBuffer;
+class ClientSession;
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -35,14 +37,12 @@ public:
 	static UNetworkGameInstanceSubsystem* Get(UObject* WorldContextObject);
 	
 public:
-	void SendPacket(const SendBuffer& Buffer);
+	void SendPacket(TSharedPtr<SendBuffer> Buffer);
 	
 private:
 	void ConnectToServer(const FString& IPAddress, int32 Port);
 	
 	void SpawnProcessPacketTimer();
-	
-	void Send(const SendBuffer& Buffer);
 	
 	void ProcessPacket();
 	
@@ -53,8 +53,7 @@ private:
 	FString ServerAddress = TEXT("127.0.0.1");	// 기본값 localhost(loopback)
 	int ServerPort = 8252;						// TimeThiefServer 포트
 	
-	// TODO: ClientSession을 먼저 작성하기
-	// TSharedPtr<class ClientSession> ClientSession;
+	TSharedPtr<ClientSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
 	
