@@ -75,21 +75,24 @@ private:
 	void UpdateFiringAnchor(float DeltaTime);
 	void UpdateAttachedWire(float DeltaTime);
 	void UpdateCooldown(float DeltaTime);
-	
 	void OnAnchorAttached();
-	void ApplyPendulumPhysics(const FVector& WireDirection, float DeltaTime);
-	void ConstrainToWireLength();
-	
-	bool ShouldReleaseByObstruction(const FVector& WireDirection, float CurrentDistance, float DeltaTime);
+
+	FVector CalculateWireConstraintForce() const;
+	FVector CalculatePullForce() const;
+	FVector CalculateSwingInputForce() const;
+	FVector CalculateDragForce() const;
+
+	bool ShouldRelease(float DeltaTime);
+	bool IsStuck(float DeltaTime);
+	bool IsPushingAgainstWire(float DeltaTime);
+	bool IsOnGroundTooLong(float DeltaTime);
+	bool IsWireSnapping() const;
 	
 	FVector GetAimDirection() const;
 	FVector GetWireStartLocation() const;
-	FVector GetPlayerInputAcceleration(float DeltaTime) const;
 	FVector GetTangentVelocity(const FVector& Velocity, const FVector& WireDirection) const;
-	
 	bool ShouldTickComponent() const;
 	bool CheckAnchorCollision(const FVector& Start, const FVector& End, FHitResult& OutHit);
-	
 	void DrawWireLine() const;
 
 protected:
@@ -97,25 +100,52 @@ protected:
 	float MaxWireLength = 2000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float WireFireSpeed = 5000.0f;
+	float WireFireSpeed = 4000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	float WireCooldown = 0.3f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float PullSpeed = 1000.0f;
+	float ArrivalDistance = 200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float ArrivalDistance = 150.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float SwingInputAcceleration = 1500.0f;
+	float SwingInputForce = 150000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	float WireStartZOffset = 50.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Collision")
 	TArray<TEnumAsByte<EObjectTypeQuery>> WireCollisionObjectTypes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float PullInForce = 300000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float MaxSwingSpeedMultiplier = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float MaxGroundTime = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float WireBreakSpeedThreshold = 1000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float WireBreakAngleThreshold = -0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float WireStiffness = 5000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float WireDamping = 500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float GravityMultiplierOnWire = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float WireLengthUpdateTolerance = 5.0f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float SwingDragCoefficient = 0.1f;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
@@ -140,14 +170,19 @@ private:
 	float CooldownRemaining = 0.0f;
 	float AttachedWireLength = 0.0f;
 	float CachedGravityScale = 1.0f;
-	float CachedAirControl = 0.35f;
+	float CachedAirControl = 0.0f;
 	float StuckCheckTimer = 0.0f;
 	float InputAgainstWireTimer = 0.0f;
+	float GroundCheckTimer = 0.0f;
+
+	FVector CurrentWireDirection = FVector::ZeroVector;
+	float CurrentWireDistance = 0.0f;
 
 	static constexpr float StuckSpeedThreshold = 30.0f;
 	static constexpr float StuckCheckDelay = 0.3f;
-	static constexpr float WireGravityScale = 0.0f;
 	static constexpr float WireTightThreshold = 0.95f;
 	static constexpr float InputAgainstWireThreshold = 0.5f;
 	static constexpr float InputAgainstWireDelay = 0.2f;
+	static constexpr float MinWireLengthForPhysics = 1.0f;
+	static constexpr float AirControlOnWire = 1.0f;
 };
