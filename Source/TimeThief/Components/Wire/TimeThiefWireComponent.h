@@ -60,14 +60,9 @@ public:
 	void HandleInputPressed(FGameplayTag InputTag);
 	void SetMoveInput(const FVector2D& Input) { MoveInput = Input; }
 
-	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
-	FOnWireStateChanged OnWireStateChanged;
-
-	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
-	FOnWireAttached OnWireAttached;
-
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
@@ -77,23 +72,29 @@ private:
 	void UpdateCooldown(float DeltaTime);
 	void OnAnchorAttached();
 
-	FVector CalculateWireConstraintForce() const;
 	FVector CalculatePullForce() const;
 	FVector CalculateSwingInputForce() const;
-	FVector CalculateDragForce() const;
 
 	bool ShouldRelease(float DeltaTime);
 	bool IsStuck(float DeltaTime);
-	bool IsPushingAgainstWire(float DeltaTime);
 	bool IsOnGroundTooLong(float DeltaTime);
 	bool IsWireSnapping() const;
+	bool IsFacingAwayFromWire() const;
 	
 	FVector GetAimDirection() const;
 	FVector GetWireStartLocation() const;
 	FVector GetTangentVelocity(const FVector& Velocity, const FVector& WireDirection) const;
 	bool ShouldTickComponent() const;
 	bool CheckAnchorCollision(const FVector& Start, const FVector& End, FHitResult& OutHit);
+	bool FindBestAnchorTarget(FVector& OutTargetLocation);
 	void DrawWireLine() const;
+
+public:
+	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
+	FOnWireStateChanged OnWireStateChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
+	FOnWireAttached OnWireAttached;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
@@ -106,25 +107,40 @@ protected:
 	float WireCooldown = 0.3f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float ArrivalDistance = 200.0f;
+	float ArrivalDistance = 400.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	float SwingInputForce = 150000.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|AutoAim")
+	float AutoAimRadius = 200.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|AutoAim")
+	float AutoAimMaxAngle = 20.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|AutoAim")
+	float MinTargetDistance = 400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|AutoAim")
+	bool bAllowFloorAttachment = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float WireStartZOffset = 50.0f;
+	FName WireStartSocketName = FName("WireSocket");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Collision")
 	TArray<TEnumAsByte<EObjectTypeQuery>> WireCollisionObjectTypes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float PullInForce = 300000.0f;
+	float PullInForce = 150000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float MaxSwingSpeedMultiplier = 5.0f;
+	float CentrifugalMassMultiplier = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float MaxGroundTime = 0.5f;
+	float MaxSwingSpeedMultiplier = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float MaxGroundTime = 0.3f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float WireBreakSpeedThreshold = 1000.0f;
@@ -136,16 +152,31 @@ protected:
 	float WireStiffness = 5000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float WireDamping = 500.0f;
+	float WireDamping = 1000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float GravityMultiplierOnWire = 0.2f;
+	float GravityMultiplierOnWire = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float WireLengthUpdateTolerance = 5.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float SwingDragCoefficient = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
+	float StuckSpeedThreshold = 30.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
+	float StuckCheckDelay = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
+	float MinWireLengthForPhysics = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
+	float AirControlOnWire = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
+	float WireReleaseLookDotThreshold = -0.2f;
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
@@ -162,9 +193,15 @@ private:
 	UPROPERTY()
 	TObjectPtr<UCharacterMovementComponent> CachedMovementComponent;
 	
+	UPROPERTY()
 	EWireState CurrentState = EWireState::Idle;
+
+	UPROPERTY()
 	FVector AnchorPoint = FVector::ZeroVector;
+
+	UPROPERTY()
 	FVector FireDirection = FVector::ZeroVector;
+
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	float CurrentFireDistance = 0.0f;
 	float CooldownRemaining = 0.0f;
@@ -172,17 +209,8 @@ private:
 	float CachedGravityScale = 1.0f;
 	float CachedAirControl = 0.0f;
 	float StuckCheckTimer = 0.0f;
-	float InputAgainstWireTimer = 0.0f;
 	float GroundCheckTimer = 0.0f;
 
 	FVector CurrentWireDirection = FVector::ZeroVector;
 	float CurrentWireDistance = 0.0f;
-
-	static constexpr float StuckSpeedThreshold = 30.0f;
-	static constexpr float StuckCheckDelay = 0.3f;
-	static constexpr float WireTightThreshold = 0.95f;
-	static constexpr float InputAgainstWireThreshold = 0.5f;
-	static constexpr float InputAgainstWireDelay = 0.2f;
-	static constexpr float MinWireLengthForPhysics = 1.0f;
-	static constexpr float AirControlOnWire = 1.0f;
 };
