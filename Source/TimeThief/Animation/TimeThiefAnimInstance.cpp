@@ -22,17 +22,10 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (CharacterMovement)
+	if (!CharacterOwner || !CharacterMovement)
 	{
-		bIsFalling = CharacterMovement->IsFalling();
+		return;
 	}
-}
-
-void UTimeThiefAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
-{
-	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
-
-	if (!CharacterOwner) return;
 
 	Velocity = CharacterOwner->GetVelocity();
 	VerticalVelocity = Velocity.Z;
@@ -41,5 +34,6 @@ void UTimeThiefAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 	GroundSpeed = LateralVelocity.Size();
 
 	bHasVelocity = !FMath::IsNearlyZero(GroundSpeed);
+	bIsFalling = CharacterMovement->IsFalling();
 	bIsMoving = bHasVelocity && !bIsFalling;
 }

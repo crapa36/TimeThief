@@ -31,6 +31,12 @@ void UTimeThiefWireComponent::BeginPlay()
 	}
 }
 
+void UTimeThiefWireComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ReleaseWire();
+	Super::EndPlay(EndPlayReason);
+}
+
 void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -41,15 +47,15 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 	case EWireState::Firing:
 		UpdateFiringAnchor(DeltaTime);
-		DrawWireLine();
 		break;
 	case EWireState::Attached:
 		UpdateAttachedWire(DeltaTime);
-		DrawWireLine();
 		break;
 	default:
 		break;
 	}
+
+	DrawWireLine();
 
 	if (!ShouldTickComponent())
 	{
@@ -79,11 +85,21 @@ void UTimeThiefWireComponent::FireWire()
 {
 	if (!CanFireWire()) return;
 
-	FireDirection = GetAimDirection().GetSafeNormal();
-	AnchorPoint = GetWireStartLocation();
+	const FVector StartLocation = GetWireStartLocation();
+	FVector TargetLocation;
+	
+	if (FindBestAnchorTarget(TargetLocation))
+	{
+		FireDirection = (TargetLocation - StartLocation).GetSafeNormal();
+	}
+	else
+	{
+		FireDirection = GetAimDirection();
+	}
+
+	AnchorPoint = StartLocation;
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
-	InputAgainstWireTimer = 0.0f;
 	GroundCheckTimer = 0.0f;
 
 	SetComponentTickEnabled(true);
@@ -104,12 +120,13 @@ void UTimeThiefWireComponent::ReleaseWire()
 	}
 
 	CooldownRemaining = WireCooldown;
+
+	SetWireState(EWireState::Idle);
+
 	AnchorPoint = FVector::ZeroVector;
 	FireDirection = FVector::ZeroVector;
 	CurrentFireDistance = 0.0f;
 	AttachedWireLength = 0.0f;
-
-	SetWireState(EWireState::Idle);
 }
 
 void UTimeThiefWireComponent::SetWireState(EWireState NewState)
@@ -119,26 +136,32 @@ void UTimeThiefWireComponent::SetWireState(EWireState NewState)
 	const EWireState OldState = CurrentState;
 	CurrentState = NewState;
 	OnWireStateChanged.Broadcast(OldState, NewState);
+
+	if (CurrentState == EWireState::Attached)
+	{
+		OnAnchorAttached();
+	}
 }
 
 void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 {
+	const FVector StartLocation = GetWireStartLocation();
 	const FVector PreviousAnchorPoint = AnchorPoint;
 	const float MoveDistance = WireFireSpeed * DeltaTime;
+	
 	CurrentFireDistance += MoveDistance;
 	AnchorPoint += FireDirection * MoveDistance;
 
 	if (CurrentFireDistance > MaxWireLength)
 	{
-		AnchorPoint = GetWireStartLocation() + FireDirection * MaxWireLength;
+		AnchorPoint = StartLocation + FireDirection * MaxWireLength;
 	}
 
 	FHitResult HitResult;
 	if (CheckAnchorCollision(PreviousAnchorPoint, AnchorPoint, HitResult))
 	{
 		AnchorPoint = HitResult.ImpactPoint;
-		AttachedWireLength = FVector::Dist(GetWireStartLocation(), AnchorPoint);
-		OnAnchorAttached();
+		AttachedWireLength = FVector::Dist(StartLocation, AnchorPoint);
 		SetWireState(EWireState::Attached);
 		OnWireAttached.Broadcast(AnchorPoint);
 		return;
@@ -182,7 +205,8 @@ void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
 		CachedMovementComponent->SetMovementMode(MOVE_Falling);
 	}
 
-	const FVector ToAnchor = AnchorPoint - GetWireStartLocation();
+	const FVector WireStart = GetWireStartLocation();
+	const FVector ToAnchor = AnchorPoint - WireStart;
 	CurrentWireDistance = ToAnchor.Size();
 	CurrentWireDirection = ToAnchor.GetSafeNormal();
 
@@ -197,12 +221,55 @@ void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
 		AttachedWireLength = CurrentWireDistance;
 	}
 
-	const FVector ConstraintForce = CalculateWireConstraintForce();
+	if (CurrentWireDistance > AttachedWireLength)
+	{
+		const FVector Velocity = CachedMovementComponent->Velocity;
+		const float RadialSpeed = FVector::DotProduct(Velocity, CurrentWireDirection);
+
+		if (RadialSpeed < 0.0f)
+		{
+			CachedMovementComponent->Velocity -= CurrentWireDirection * RadialSpeed;
+		}
+
+		const float DistanceError = CurrentWireDistance - AttachedWireLength;
+		if (DistanceError > KINDA_SMALL_NUMBER)
+		{
+			const float CorrectionSpeed = DistanceError * 10.0f;
+			CachedMovementComponent->Velocity += CurrentWireDirection * CorrectionSpeed;
+		}
+	}
+
+	const float HeightDifference = AnchorPoint.Z - WireStart.Z;
+	
+	if (HeightDifference > 0 && HeightDifference < 200.0f) 
+	{
+		if (CachedMovementComponent->Velocity.Z > 0)
+		{
+			CachedMovementComponent->Velocity.Z *= 0.98f;
+		}
+	}
+	else if (HeightDifference <= 0)
+	{
+		if (CachedMovementComponent->Velocity.Z > 0)
+		{
+			CachedMovementComponent->Velocity.Z *= 0.9f;
+		}
+	}
+
 	const FVector PullForce = CalculatePullForce();
 	const FVector InputForce = CalculateSwingInputForce();
-	const FVector DragForce = CalculateDragForce();
 
-	const FVector TotalForce = ConstraintForce + PullForce + InputForce + DragForce;
+	FVector TotalForce = PullForce + InputForce;
+
+	const FVector Velocity = CachedMovementComponent->Velocity;
+	const float SpeedSq = Velocity.SizeSquared();
+	const float MaxSpeed = CachedMovementComponent->MaxWalkSpeed * MaxSwingSpeedMultiplier;
+
+	if (SpeedSq > FMath::Square(MaxSpeed))
+	{
+		const FVector DragForce = -Velocity.GetSafeNormal() * (SpeedSq * SwingDragCoefficient);
+		TotalForce += DragForce;
+	}
 	
 	CachedMovementComponent->AddForce(TotalForce);
 }
@@ -223,33 +290,21 @@ void UTimeThiefWireComponent::HandleInputPressed(FGameplayTag InputTag)
 	}
 }
 
-FVector UTimeThiefWireComponent::CalculateWireConstraintForce() const
+FVector UTimeThiefWireComponent::CalculatePullForce() const
 {
 	if (!IsValid(CachedMovementComponent)) return FVector::ZeroVector;
 
-	if (CurrentWireDistance <= AttachedWireLength)
-	{
-		return FVector::ZeroVector;
-	}
+	const FVector TangentVelocity = GetTangentVelocity(CachedMovementComponent->Velocity, CurrentWireDirection);
+	const float TangentSpeedSq = TangentVelocity.SizeSquared();
+	
+	const float CentrifugalForceMagnitude = CachedMovementComponent->Mass * CentrifugalMassMultiplier * TangentSpeedSq / FMath::Max(CurrentWireDistance, MinWireLengthForPhysics);
 
-	const float Displacement = CurrentWireDistance - AttachedWireLength;
-	const FVector SpringForce = CurrentWireDirection * (WireStiffness * Displacement);
+	float TotalPullMagnitude = CentrifugalForceMagnitude + PullInForce;
+	
+	const float MaxPullForce = PullInForce * 2.0f;
+	TotalPullMagnitude = FMath::Min(TotalPullMagnitude, MaxPullForce);
 
-	const FVector Velocity = CachedMovementComponent->Velocity;
-	const float VelocityAlongWire = FVector::DotProduct(Velocity, CurrentWireDirection);
-	const FVector DampingForce = -CurrentWireDirection * (WireDamping * VelocityAlongWire);
-
-	return SpringForce + DampingForce;
-}
-
-FVector UTimeThiefWireComponent::CalculatePullForce() const
-{
-	if (MoveInput.IsNearlyZero())
-	{
-		return CurrentWireDirection * PullInForce;
-	}
-
-	return FVector::ZeroVector;
+	return CurrentWireDirection * TotalPullMagnitude;
 }
 
 FVector UTimeThiefWireComponent::CalculateSwingInputForce() const
@@ -262,45 +317,39 @@ FVector UTimeThiefWireComponent::CalculateSwingInputForce() const
 	const FRotator ControlRotation = PC->GetControlRotation();
 	const FVector ForwardDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::Y);
-	
 	const FVector InputDirection = (ForwardDir * MoveInput.Y + RightDir * MoveInput.X).GetSafeNormal();
 
 	if (InputDirection.IsNearlyZero()) return FVector::ZeroVector;
 
-	const float InputAlongWire = FVector::DotProduct(InputDirection, CurrentWireDirection);
-	const FVector RadialInputComponent = CurrentWireDirection * InputAlongWire;
+	const FVector TangentVelocity = GetTangentVelocity(CachedMovementComponent->Velocity, CurrentWireDirection);
+	const float TangentSpeedSq = TangentVelocity.SizeSquared();
 
-	const FVector TangentialInputDirection = (InputDirection - RadialInputComponent).GetSafeNormal();
+	FVector ForceDirection = FVector::ZeroVector;
 
-	if (!TangentialInputDirection.IsNearlyZero())
+	if (TangentSpeedSq > FMath::Square(100.0f))
 	{
-		return TangentialInputDirection * SwingInputForce;
+		const FVector SwingDir = TangentVelocity.GetSafeNormal();
+		const float Projection = FVector::DotProduct(InputDirection, SwingDir);
+		ForceDirection = SwingDir * Projection;
+	}
+	else
+	{
+		const float InputAlongWire = FVector::DotProduct(InputDirection, CurrentWireDirection);
+		const FVector RadialInputComponent = CurrentWireDirection * InputAlongWire;
+		const FVector RawTangentInput = InputDirection - RadialInputComponent;
+
+		if (RawTangentInput.SizeSquared() > KINDA_SMALL_NUMBER)
+		{
+			ForceDirection = RawTangentInput.GetSafeNormal();
+		}
 	}
 
-	return FVector::ZeroVector;
-}
-
-FVector UTimeThiefWireComponent::CalculateDragForce() const
-{
-	if (!IsValid(CachedMovementComponent)) return FVector::ZeroVector;
-
-	const FVector Velocity = CachedMovementComponent->Velocity;
-	const float SpeedSq = Velocity.SizeSquared();
-	
-	if (SpeedSq < KINDA_SMALL_NUMBER) return FVector::ZeroVector;
-
-	const float MaxSpeed = CachedMovementComponent->MaxWalkSpeed * MaxSwingSpeedMultiplier;
-	if (Velocity.Size() > MaxSpeed)
-	{
-		return -Velocity.GetSafeNormal() * (SpeedSq * SwingDragCoefficient);
-	}
-
-	return FVector::ZeroVector;
+	return ForceDirection * SwingInputForce;
 }
 
 bool UTimeThiefWireComponent::ShouldRelease(float DeltaTime)
 {
-	return IsStuck(DeltaTime) || IsPushingAgainstWire(DeltaTime) || IsOnGroundTooLong(DeltaTime) || IsWireSnapping();
+	return IsStuck(DeltaTime) || IsOnGroundTooLong(DeltaTime) || IsWireSnapping() || IsFacingAwayFromWire();
 }
 
 bool UTimeThiefWireComponent::IsStuck(float DeltaTime)
@@ -319,41 +368,6 @@ bool UTimeThiefWireComponent::IsStuck(float DeltaTime)
 	{
 		StuckCheckTimer = 0.0f;
 	}
-	return false;
-}
-
-bool UTimeThiefWireComponent::IsPushingAgainstWire(float DeltaTime)
-{
-	const bool bWireTight = CurrentWireDistance >= AttachedWireLength * WireTightThreshold;
-	if (!bWireTight || MoveInput.IsNearlyZero() || !IsValid(CachedCharacter))
-	{
-		InputAgainstWireTimer = 0.0f;
-		return false;
-	}
-
-	const APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController());
-	if (!PC) return false;
-
-	const FRotator ControlRotation = PC->GetControlRotation();
-	const FVector ForwardDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDir = FRotationMatrix(ControlRotation).GetUnitAxis(EAxis::Y);
-	const FVector InputDirection = (ForwardDir * MoveInput.Y + RightDir * MoveInput.X).GetSafeNormal();
-
-	const float InputDotWire = FVector::DotProduct(InputDirection, CurrentWireDirection);
-	
-	if (InputDotWire < -InputAgainstWireThreshold)
-	{
-		InputAgainstWireTimer += DeltaTime;
-		if (InputAgainstWireTimer >= InputAgainstWireDelay)
-		{
-			return true;
-		}
-	}
-	else
-	{
-		InputAgainstWireTimer = 0.0f;
-	}
-
 	return false;
 }
 
@@ -402,26 +416,36 @@ bool UTimeThiefWireComponent::IsWireSnapping() const
 	return false;
 }
 
+bool UTimeThiefWireComponent::IsFacingAwayFromWire() const
+{
+	if (!IsValid(CachedCharacter)) return false;
+
+	const FVector LookDirection = GetAimDirection();
+	const float DotProduct = FVector::DotProduct(LookDirection, CurrentWireDirection);
+
+	return DotProduct < WireReleaseLookDotThreshold;
+}
+
 FVector UTimeThiefWireComponent::GetAimDirection() const
 {
 	if (!IsValid(CachedCharacter)) return FVector::ForwardVector;
 
-	const APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController());
-	if (!PC) return CachedCharacter->GetActorForwardVector();
-
-	FVector CameraLocation;
-	FRotator CameraRotation;
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-	return CameraRotation.Vector();
+	FVector Loc;
+	FRotator Rot;
+	CachedCharacter->GetActorEyesViewPoint(Loc, Rot);
+	return Rot.Vector();
 }
 
 FVector UTimeThiefWireComponent::GetWireStartLocation() const
 {
 	if (!IsValid(CachedCharacter)) return GetOwner()->GetActorLocation();
 
-	FVector Location = CachedCharacter->GetActorLocation();
-	Location.Z += WireStartZOffset;
-	return Location;
+	if (CachedCharacter->GetMesh()->DoesSocketExist(WireStartSocketName))
+	{
+		return CachedCharacter->GetMesh()->GetSocketLocation(WireStartSocketName);
+	}
+
+	return CachedCharacter->GetActorLocation();
 }
 
 FVector UTimeThiefWireComponent::GetTangentVelocity(const FVector& Velocity, const FVector& WireDirection) const
@@ -445,9 +469,85 @@ bool UTimeThiefWireComponent::CheckAnchorCollision(const FVector& Start, const F
 	);
 }
 
+bool UTimeThiefWireComponent::FindBestAnchorTarget(FVector& OutTargetLocation)
+{
+	UWorld* World = GetWorld();
+	if (!World || !IsValid(CachedCharacter)) return false;
+
+	FVector Start;
+	FRotator Rot;
+	CachedCharacter->GetActorEyesViewPoint(Start, Rot);
+
+	const FVector AimDir = Rot.Vector();
+	const FVector End = Start + AimDir * MaxWireLength;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	FHitResult DirectHit;
+	bool bHit = World->LineTraceSingleByObjectType(
+		DirectHit, Start, End,
+		FCollisionObjectQueryParams(WireCollisionObjectTypes),
+		QueryParams
+	);
+
+	if (bHit)
+	{
+		if (DirectHit.Distance >= MinTargetDistance)
+		{
+			if (bAllowFloorAttachment || DirectHit.ImpactNormal.Z < 0.7f)
+			{
+				OutTargetLocation = DirectHit.ImpactPoint;
+				return true;
+			}
+		}
+	}
+
+	TArray<FHitResult> HitResults;
+	bool bFoundAny = World->SweepMultiByObjectType(
+		HitResults, Start, End, FQuat::Identity,
+		FCollisionObjectQueryParams(WireCollisionObjectTypes),
+		FCollisionShape::MakeSphere(AutoAimRadius),
+		QueryParams
+	);
+
+	if (!bFoundAny) return false;
+
+	float BestDistSq = FLT_MAX;
+	FVector BestLocation = FVector::ZeroVector;
+	bool bFoundCandidate = false;
+
+	for (const FHitResult& Hit : HitResults)
+	{
+		float DistanceToPlayer = FVector::Dist(Start, Hit.ImpactPoint);
+		if (DistanceToPlayer < MinTargetDistance) continue;
+
+		if (!bAllowFloorAttachment && Hit.ImpactNormal.Z >= 0.7f) continue;
+
+		const float DistSq = FMath::PointDistToLine(Hit.ImpactPoint, AimDir, Start);
+
+		if (DistSq < BestDistSq)
+		{
+			BestDistSq = DistSq;
+			BestLocation = Hit.ImpactPoint;
+			bFoundCandidate = true;
+		}
+	}
+
+	if (bFoundCandidate)
+	{
+		OutTargetLocation = BestLocation;
+		return true;
+	}
+
+	return false;
+}
+
 void UTimeThiefWireComponent::DrawWireLine() const
 {
 #if WITH_EDITOR
+	if (CurrentState == EWireState::Idle || AnchorPoint.IsNearlyZero()) return;
+
 	const UWorld* World = GetWorld();
 	if (!World) return;
 
