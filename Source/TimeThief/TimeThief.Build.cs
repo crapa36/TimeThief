@@ -26,7 +26,11 @@ public class TimeThief : ModuleRules
             "GameFeatures",
         });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"Sockets",
+			"Networking",
+		});
 
 		PublicIncludePaths.AddRange(new string[] {
 			"TimeThief",
