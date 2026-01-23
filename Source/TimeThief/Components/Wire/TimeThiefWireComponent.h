@@ -33,6 +33,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	void ReleaseWire();
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
+	void Jump();
+
 	void HandleInputPressed(FGameplayTag InputTag);
 	void SetMoveInput(const FVector2D& Input) { MoveInput = Input; }
 

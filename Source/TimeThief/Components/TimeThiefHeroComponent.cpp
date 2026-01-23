@@ -136,9 +136,21 @@ void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value)
 
 void UTimeThiefHeroComponent::Input_Jump(const FInputActionValue& Value)
 {
-	if (ACharacter* Character = GetPawn<ACharacter>())
+	if (APawn* Pawn = GetPawn<APawn>())
 	{
-		Character->Jump();
+		if (UTimeThiefWireComponent* WireComp = Pawn->FindComponentByClass<UTimeThiefWireComponent>())
+		{
+			if (WireComp->IsWireAttached())
+			{
+				WireComp->Jump();
+				return;
+			}
+		}
+
+		if (ACharacter* Character = Cast<ACharacter>(Pawn))
+		{
+			Character->Jump();
+		}
 	}
 }
 
@@ -168,4 +180,3 @@ void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTa
 		CombatComp->HandleInputReleased(InputTag);
 	}
 }
-
