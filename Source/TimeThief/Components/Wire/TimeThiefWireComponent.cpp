@@ -26,6 +26,11 @@ UTimeThiefWireComponent::UTimeThiefWireComponent(const FObjectInitializer& Objec
 	WireMeshComponent->SetCastShadow(false);
 	WireMeshComponent->SetVisibility(false);
 
+	AnchorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AnchorMeshComponent"));
+	AnchorMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AnchorMeshComponent->SetCastShadow(false);
+	AnchorMeshComponent->SetVisibility(false);
+
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMeshAsset(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 	if (CylinderMeshAsset.Succeeded())
 	{
@@ -55,10 +60,26 @@ void UTimeThiefWireComponent::BeginPlay()
 		{
 			WireMeshComponent->AttachToComponent(CachedCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
 			
+			if (WireMeshTemplate)
+			{
+				WireMeshComponent->SetStaticMesh(WireMeshTemplate);
+			}
+			
 			if (WireMaterial)
 			{
 				WireMeshComponent->SetMaterial(0, WireMaterial);
 			}
+		}
+
+		if (AnchorMeshComponent)
+		{
+			AnchorMeshComponent->AttachToComponent(CachedCharacter->GetMesh(), FAttachmentTransformRules::KeepWorldTransform);
+			
+			if (AnchorMeshTemplate)
+			{
+				AnchorMeshComponent->SetStaticMesh(AnchorMeshTemplate);
+			}
+			AnchorMeshComponent->SetWorldScale3D(AnchorMeshScale);
 		}
 	}
 }
@@ -130,6 +151,7 @@ void UTimeThiefWireComponent::FireWire()
 	}
 
 	AnchorPoint = StartLocation;
+	AnchorNormal = -FireDirection;
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
 	GroundCheckTimer = 0.0f;
@@ -193,6 +215,7 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 	if (WireTargeting && WireTargeting->CheckAnchorCollision(PreviousAnchorPoint, AnchorPoint, HitResult, GetOwner()))
 	{
 		AnchorPoint = HitResult.ImpactPoint;
+		AnchorNormal = HitResult.ImpactNormal;
 		AttachedWireLength = FVector::Dist(StartLocation, AnchorPoint);
 		SetWireState(EWireState::Attached);
 		OnWireAttached.Broadcast(AnchorPoint);
@@ -382,15 +405,17 @@ FVector UTimeThiefWireComponent::GetWireStartLocation() const
 
 void UTimeThiefWireComponent::UpdateWireVisuals()
 {
-	if (!WireMeshComponent) return;
+	if (!WireMeshComponent || !AnchorMeshComponent) return;
 
 	if (CurrentState == EWireState::Idle)
 	{
 		WireMeshComponent->SetVisibility(false);
+		AnchorMeshComponent->SetVisibility(false);
 		return;
 	}
 
 	WireMeshComponent->SetVisibility(true);
+	AnchorMeshComponent->SetVisibility(true);
 
 	const FVector Start = GetWireStartLocation();
 	const FVector End = AnchorPoint;
@@ -398,9 +423,7 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 	const float Distance = FVector::Dist(Start, End);
 
 	const FVector CenterLocation = (Start + End) * 0.5f;
-	
 	const FRotator Rotation = Direction.Rotation() + FRotator(-90.0f, 0.0f, 0.0f);
-	
 	const float LengthScale = Distance / 100.0f;
 	const float ThicknessScale = WireThickness / 100.0f;
 	const FVector Scale = FVector(ThicknessScale, ThicknessScale, LengthScale);
@@ -408,4 +431,9 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 	WireMeshComponent->SetWorldLocation(CenterLocation);
 	WireMeshComponent->SetWorldRotation(Rotation);
 	WireMeshComponent->SetWorldScale3D(Scale);
+
+	AnchorMeshComponent->SetWorldLocation(AnchorPoint);
+	
+	const FRotator AnchorRotation = FRotationMatrix::MakeFromZ(AnchorNormal).Rotator();
+	AnchorMeshComponent->SetWorldRotation(AnchorRotation);
 }
