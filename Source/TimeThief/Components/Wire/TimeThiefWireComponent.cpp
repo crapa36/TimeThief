@@ -183,6 +183,23 @@ void UTimeThiefWireComponent::ReleaseWire()
 	AttachedWireLength = 0.0f;
 }
 
+void UTimeThiefWireComponent::Jump()
+{
+	if (IsWireAttached())
+	{
+		ReleaseWire();
+		
+		if (IsValid(CachedCharacter))
+		{
+			if (UCharacterMovementComponent* MoveComp = CachedCharacter->GetCharacterMovement())
+			{
+				float JumpZ = MoveComp->JumpZVelocity;
+				CachedCharacter->LaunchCharacter(FVector(0.0f, 0.0f, JumpZ), false, true);
+			}
+		}
+	}
+}
+
 void UTimeThiefWireComponent::SetWireState(EWireState NewState)
 {
 	if (CurrentState == NewState) return;
@@ -296,6 +313,10 @@ void UTimeThiefWireComponent::HandleInputPressed(FGameplayTag InputTag)
 	if (InputTag == Tags.InputTag_Action_Wire)
 	{
 		CurrentState == EWireState::Idle ? FireWire() : ReleaseWire();
+	}
+	else if (InputTag == Tags.InputTag_Action_Jump)
+	{
+		Jump();
 	}
 }
 
@@ -423,7 +444,9 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 	const float Distance = FVector::Dist(Start, End);
 
 	const FVector CenterLocation = (Start + End) * 0.5f;
+	
 	const FRotator Rotation = Direction.Rotation() + FRotator(-90.0f, 0.0f, 0.0f);
+	
 	const float LengthScale = Distance / 100.0f;
 	const float ThicknessScale = WireThickness / 100.0f;
 	const FVector Scale = FVector(ThicknessScale, ThicknessScale, LengthScale);
