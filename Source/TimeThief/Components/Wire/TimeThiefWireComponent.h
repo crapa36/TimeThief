@@ -125,7 +125,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
 	float WireReleaseLookDotThreshold = -0.2f;
 
-	// Visuals
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UStaticMesh> WireMeshTemplate;
 
@@ -134,6 +133,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UMaterialInterface> WireMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
+	TObjectPtr<UStaticMesh> AnchorMeshTemplate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
+	FVector AnchorMeshScale = FVector(1.0f);
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
@@ -152,12 +157,18 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> WireMeshComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMeshComponent> AnchorMeshComponent;
 	
 	UPROPERTY()
 	EWireState CurrentState = EWireState::Idle;
 
 	UPROPERTY()
 	FVector AnchorPoint = FVector::ZeroVector;
+
+	UPROPERTY()
+	FVector AnchorNormal = FVector::UpVector;
 
 	UPROPERTY()
 	FVector FireDirection = FVector::ZeroVector;
