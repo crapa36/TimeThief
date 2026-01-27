@@ -1,6 +1,7 @@
 ﻿#include "Components/Wire/TimeThiefWireTargeting.h"
 #include "GameFramework/Character.h"
 #include "Engine/World.h"
+#include "Components/PrimitiveComponent.h"
 
 UTimeThiefWireTargeting::UTimeThiefWireTargeting()
 {
@@ -41,6 +42,12 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 
 	for (const FHitResult& Hit : HitResults)
 	{
+		
+		if (Hit.Component.IsValid() && Hit.Component->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Overlap)
+		{
+			continue;
+		}
+
 		float DistanceToPlayer = FVector::Dist(StartLocation, Hit.ImpactPoint);
 		if (DistanceToPlayer < MinTargetDistance) continue;
 
@@ -95,9 +102,28 @@ bool UTimeThiefWireTargeting::CheckAnchorCollision(const FVector& Start, const F
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(IgnoredActor);
 
-	return World->LineTraceSingleByObjectType(
-		OutHit, Start, End,
+	
+	TArray<FHitResult> HitResults;
+	bool bHit = World->LineTraceMultiByObjectType(
+		HitResults, Start, End,
 		FCollisionObjectQueryParams(CollisionObjectTypes),
 		QueryParams
 	);
+
+	if (bHit)
+	{
+		for (const FHitResult& Hit : HitResults)
+		{
+			if (Hit.Component.IsValid() && Hit.Component->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Overlap)
+			{
+				continue;
+			}
+
+			
+			OutHit = Hit;
+			return true;
+		}
+	}
+
+	return false;
 }
