@@ -4,6 +4,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Character/TimeThiefCharacterBase.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent() {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -52,6 +53,12 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag) {
 
 	if (TSubclassOf<UAnimInstance> AnimLayer = WeaponToEquip->GetEquipAnimLayer()) {
 		OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
+		
+		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
+			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
+				FirstPersonMesh->LinkAnimClassLayers(AnimLayer);
+			}
+		}
 	}
 
 	PlayEquipMontage(WeaponToEquip);
@@ -71,6 +78,12 @@ void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon() {
 
 	if (TSubclassOf<UAnimInstance> AnimLayer = CurrentEquippedWeapon->GetEquipAnimLayer()) {
 		OwningCharacter->GetMesh()->UnlinkAnimClassLayers(AnimLayer);
+
+		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
+			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
+				FirstPersonMesh->UnlinkAnimClassLayers(AnimLayer);
+			}
+		}
 	}
 
 	CurrentEquippedWeaponTag = FGameplayTag();
@@ -88,7 +101,17 @@ void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* W
 	}
 
 	FName SocketToUse = Weapon->GetSocketName();
-	Weapon->AttachToComponent(OwningCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketToUse);
+	USkeletalMeshComponent* TargetMesh = OwningCharacter->GetMesh();
+
+	if (OwningCharacter->IsLocallyControlled()) {
+		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
+			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
+				TargetMesh = FirstPersonMesh;
+			}
+		}
+	}
+
+	Weapon->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketToUse);
 }
 
 void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon) {
@@ -109,6 +132,16 @@ void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapo
 	UAnimInstance* AnimInstance = OwningCharacter->GetMesh()->GetAnimInstance();
 	if (AnimInstance) {
 		AnimInstance->Montage_Play(EquipMontage);
+	}
+
+	if (OwningCharacter->IsLocallyControlled()) {
+		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
+			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
+				if (UAnimInstance* FPAnimInstance = FirstPersonMesh->GetAnimInstance()) {
+					FPAnimInstance->Montage_Play(EquipMontage);
+				}
+			}
+		}
 	}
 }
 

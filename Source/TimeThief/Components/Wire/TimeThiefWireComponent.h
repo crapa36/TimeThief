@@ -60,6 +60,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
 	float GetCooldownRemaining() const { return CooldownRemaining; }
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
+	FVector GetWireStartLocation() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -81,7 +84,6 @@ private:
 	bool IsFacingAwayFromWire() const;
 	
 	FVector GetAimDirection() const;
-	FVector GetWireStartLocation() const;
 	void UpdateWireVisuals();
 
 public:

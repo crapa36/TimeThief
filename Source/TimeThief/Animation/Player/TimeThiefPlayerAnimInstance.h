@@ -8,6 +8,7 @@
 class ATimeThiefPlayerCharacter;
 class UCharacterTrajectoryComponent;
 class ATimeThiefWeaponBase;
+class UTimeThiefWireComponent;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerAnimInstance : public UTimeThiefAnimInstance {
@@ -26,6 +27,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
+	TObjectPtr<UTimeThiefWireComponent> WireComponent;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
 
@@ -41,6 +45,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 
+	// 와이어 액션 데이터
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	bool bIsWireAttached;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	FVector AnchorDirection;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	FVector SwingVelocity;
+
 private:
 	void UpdateWeaponData();
+	void UpdateWireData();
 };

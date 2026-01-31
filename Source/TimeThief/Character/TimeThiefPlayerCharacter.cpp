@@ -16,10 +16,11 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f;
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	FollowCamera->bUsePawnControlRotation = false;
+	FollowCamera->bUsePawnControlRotation = false; 
 
 	HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
 	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
@@ -31,11 +32,12 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 }
 
 void ATimeThiefPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
@@ -87,6 +89,11 @@ UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent
 
 void ATimeThiefPlayerCharacter::BeginPlay() {
 	Super::BeginPlay();
+
+	if (FirstPersonMesh && FollowCamera)
+	{
+		FirstPersonMesh->AttachToComponent(FollowCamera, FAttachmentTransformRules::SnapToTargetIncludingScale);
+	}
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

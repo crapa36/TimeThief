@@ -4,10 +4,12 @@
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
+#include "Components/Wire/TimeThiefWireTypes.h"
 #include "TimeThiefHeroComponent.generated.h"
 
 class UTimeThiefPawnData;
 class UTimeThiefInputConfig;
+class UInputMappingContext;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeThiefHero_ReadyDelegate, UTimeThiefHeroComponent*, HeroComponent);
 
@@ -28,6 +30,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	bool IsReadyToBindInputs() const { return bReadyToBindInputs; }
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Input")
+	void AddInputMappingContext(const UInputMappingContext* MappingContext, int32 Priority);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Input")
+	void RemoveInputMappingContext(const UInputMappingContext* MappingContext);
+
 	UPROPERTY(BlueprintAssignable)
 	FTimeThiefHero_ReadyDelegate OnReadyToBindInputs;
 
@@ -43,6 +51,7 @@ private:
 	void Input_MoveCompleted(const FInputActionValue& Value);
 	void Input_Look(const FInputActionValue& Value);
 	void Input_Jump(const FInputActionValue& Value);
+	void Input_TogglePerspective(const FInputActionValue& Value);
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")
@@ -53,4 +62,3 @@ protected:
 
 	bool bReadyToBindInputs = false;
 };
-
