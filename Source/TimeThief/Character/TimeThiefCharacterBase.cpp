@@ -1,19 +1,66 @@
 #include "Character/TimeThiefCharacterBase.h"
+#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PrimaryActorTick.bCanEverTick = false;
+	FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+	FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
+	FirstPersonCamera->bUsePawnControlRotation = true;
+	FirstPersonCamera->SetActive(false);
 
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	FirstPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+	FirstPersonMesh->SetupAttachment(FirstPersonCamera);
+	FirstPersonMesh->SetOnlyOwnerSee(true);
+	FirstPersonMesh->bCastDynamicShadow = false;
+	FirstPersonMesh->CastShadow = false;
+	FirstPersonMesh->SetVisibility(false);
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
-	GetCharacterMovement()->JumpZVelocity = 700.f;
-	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
-	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
-	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+	GetMesh()->SetOwnerNoSee(false);
+	GetMesh()->bCastHiddenShadow = true;
+	
+	bIsFirstPerson = false;
+}
+
+void ATimeThiefCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (bIsFirstPerson)
+	{
+		FirstPersonCamera->SetActive(true);
+		FirstPersonMesh->SetVisibility(true);
+		FirstPersonMesh->SetOnlyOwnerSee(true);
+		GetMesh()->SetOwnerNoSee(true);
+	}
+	else
+	{
+		FirstPersonCamera->SetActive(false);
+		FirstPersonMesh->SetVisibility(false);
+		GetMesh()->SetOwnerNoSee(false);
+	}
+}
+
+void ATimeThiefCharacterBase::TogglePerspective()
+{
+	bIsFirstPerson = !bIsFirstPerson;
+
+	if (bIsFirstPerson)
+	{
+		FirstPersonCamera->SetActive(true);
+		FirstPersonMesh->SetVisibility(true);
+		FirstPersonMesh->SetOnlyOwnerSee(true);
+		
+		GetMesh()->SetOwnerNoSee(true);
+	}
+	else
+	{
+		FirstPersonCamera->SetActive(false);
+		FirstPersonMesh->SetVisibility(false);
+		
+		GetMesh()->SetOwnerNoSee(false);
+	}
 }

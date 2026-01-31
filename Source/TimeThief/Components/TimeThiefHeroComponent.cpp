@@ -9,6 +9,8 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
+#include "Character/TimeThiefCharacterBase.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -69,12 +71,45 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Completed, this, &ThisClass::Input_MoveCompleted);
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this, &ThisClass::Input_Look);
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this, &ThisClass::Input_Jump);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_TogglePerspective, ETriggerEvent::Started, this, &ThisClass::Input_TogglePerspective);
 
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
 	bReadyToBindInputs = true;
 	OnReadyToBindInputs.Broadcast(this);
+}
+
+void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext* MappingContext, int32 Priority)
+{
+	if (!MappingContext) return;
+
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
+
+	if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(MappingContext, Priority);
+		}
+	}
+}
+
+void UTimeThiefHeroComponent::RemoveInputMappingContext(const UInputMappingContext* MappingContext)
+{
+	if (!MappingContext) return;
+
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
+
+	if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		{
+			Subsystem->RemoveMappingContext(MappingContext);
+		}
+	}
 }
 
 void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
@@ -151,6 +186,14 @@ void UTimeThiefHeroComponent::Input_Jump(const FInputActionValue& Value)
 		{
 			Character->Jump();
 		}
+	}
+}
+
+void UTimeThiefHeroComponent::Input_TogglePerspective(const FInputActionValue& Value)
+{
+	if (ATimeThiefCharacterBase* Character = Cast<ATimeThiefCharacterBase>(GetPawn()))
+	{
+		Character->TogglePerspective();
 	}
 }
 
