@@ -152,14 +152,15 @@ ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponBy
 	return nullptr;
 }
 
-ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const {
+ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const
+{
 	return CurrentEquippedWeapon;
 }
 
-
-
-void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag) {
+void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag)
+{
 }
 
-void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag) {
+void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag)
+{
 }

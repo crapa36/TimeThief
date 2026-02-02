@@ -45,7 +45,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 
-	// 와이어 액션 데이터
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	bool bIsWireAttached;
 

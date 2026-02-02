@@ -145,14 +145,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	FVector AnchorMeshScale = FVector(1.0f);
 
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
-	FColor DebugWireColor = FColor::Cyan;
-
-	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
-	float DebugWireThickness = 2.0f;
-#endif
-
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<ACharacter> CachedCharacter;
@@ -182,7 +174,6 @@ private:
 	float CurrentFireDistance = 0.0f;
 	float CooldownRemaining = 0.0f;
 	float AttachedWireLength = 0.0f;
-	float CachedGravityScale = 1.0f;
 	float CachedAirControl = 0.0f;
 	float StuckCheckTimer = 0.0f;
 	float GroundCheckTimer = 0.0f;
