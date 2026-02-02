@@ -32,7 +32,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 
-	// 1인칭 시점 흔들림 (Sway) 처리를 위한 변수
 	UPROPERTY(BlueprintReadOnly, Category = "FirstPerson|Sway")
 	FRotator SwayRotation;
 

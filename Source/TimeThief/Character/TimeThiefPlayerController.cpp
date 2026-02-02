@@ -17,11 +17,10 @@ void ATimeThiefPlayerController::BeginPlay()
 		if (MobileControlsWidget)
 		{
 			MobileControlsWidget->AddToPlayerScreen(0);
-
-		} else {
-
+		}
+		else
+		{
 			UE_LOG(LogTimeThief, Error, TEXT("Could not spawn mobile controls widget."));
-
 		}
 
 	}
