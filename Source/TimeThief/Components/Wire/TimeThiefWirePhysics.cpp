@@ -67,22 +67,45 @@ void UTimeThiefWirePhysics::ApplyWirePhysics(float DeltaTime, const FVector& Anc
 			TotalForce += WireRight * SwingProjection * SwingInputForce;
 		}
 	}
+	else if (WireResistance > 0.0f)
+	{
+		TotalForce -= Velocity * WireResistance;
+	}
 
 	const float HeightDifference = AnchorPoint.Z - WireStartLocation.Z;
-	const float NormalizedHeight = HeightDifference / FMath::Max(WireLength, 1.0f);
-	const float SpeedFactor = FMath::Min(Velocity.Size() / CachedMovementComponent->MaxWalkSpeed, 1.0f);
-	const float VerticalDampingForce = NormalizedHeight * SpeedFactor * VerticalDamping;
-	TotalForce.Z += VerticalDampingForce;
+	
+	if (HeightDifference > 0.0f)
+	{
+		const float NormalizedHeight = HeightDifference / FMath::Max(WireLength, 1.0f);
+		
+
+		float SpeedRatio = Velocity.Size() / CachedMovementComponent->MaxWalkSpeed;
+		float SpeedFactor = FMath::Square(FMath::Min(SpeedRatio, 1.0f));
+		
+		if (Input.IsNearlyZero())
+		{
+			SpeedFactor *= 0.5f;
+		}
+
+		const float HeightFactor = FMath::Square(FMath::Clamp(NormalizedHeight, 0.0f, 1.0f));
+
+		const float VerticalDampingForce = HeightFactor * SpeedFactor * VerticalDamping;
+		TotalForce.Z += VerticalDampingForce;
+	}
 
 	const float MaxSpeed = CachedMovementComponent->MaxWalkSpeed * MaxSwingSpeedMultiplier;
 	const float SpeedSq = Velocity.SizeSquared();
-	
+
 	if (SpeedSq > FMath::Square(MaxSpeed))
 	{
-		const FVector DragForce = -Velocity.GetSafeNormal() * SpeedSq * DragCoefficient;
-		TotalForce += DragForce;
+		const FVector VelocityDir = Velocity.GetSafeNormal();
+		CachedMovementComponent->Velocity = VelocityDir * MaxSpeed;
+		const float ForceDot = FVector::DotProduct(TotalForce, VelocityDir);
+		if (ForceDot > 0.0f)
+		{
+			TotalForce -= VelocityDir * ForceDot;
+		}
 	}
 
 	CachedMovementComponent->AddForce(TotalForce);
 }
-
