@@ -90,9 +90,11 @@ UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent
 void ATimeThiefPlayerCharacter::BeginPlay() {
 	Super::BeginPlay();
 
-	if (FirstPersonMesh && FollowCamera)
+	if (IsLocallyControlled() && bIsFirstPerson)
 	{
-		FirstPersonMesh->AttachToComponent(FollowCamera, FAttachmentTransformRules::SnapToTargetIncludingScale);
+		GetMesh()->HideBoneByName(FName("head"), EPhysBodyOp::PBO_None);
+		FollowCamera->SetActive(false);
+		FirstPersonCamera->SetActive(true);
 	}
 }
 

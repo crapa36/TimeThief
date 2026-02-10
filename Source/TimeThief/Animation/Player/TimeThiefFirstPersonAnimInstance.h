@@ -47,9 +47,49 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
 	float MaxSwayDistance = 2.0f;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	float ProceduralSpeed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	FVector ProceduralVelocity;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	FRotator DeltaRotation;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	float AccumulatedTime;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Breathing")
+	float BreathingSpeed = 1.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Breathing")
+	float BreathingAmplitude = 0.8f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float IdleBobAmplitude = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float WalkBobAmplitude = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float RunBobAmplitude = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float WalkSpeedThreshold = 200.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float RunSpeedThreshold = 500.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural|Bobbing")
+	float CurrentBobAmplitude;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float BobAmplitudeInterpSpeed = 8.0f;
+
 private:
 	void UpdateWeaponData();
 	void UpdateSway(float DeltaSeconds);
+	void UpdateProceduralData(float DeltaSeconds);
 
 	FRotator LastRotation;
 };
