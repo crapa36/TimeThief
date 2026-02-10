@@ -7,6 +7,7 @@
 class UTimeThiefPawnCombatComponent;
 class UCameraComponent;
 class USkeletalMeshComponent;
+class USpringArmComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
@@ -19,21 +20,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const { return nullptr; }
 
-	UFUNCTION(BlueprintPure, Category = "TimeThief|Character")
-	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
-
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	void TogglePerspective();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
+	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
 
 protected:
 	virtual void BeginPlay() override;
 
 protected:
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+	TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+	TObjectPtr<USpringArmComponent> FirstPersonSpringArm;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Mesh")
-	TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
 
 	bool bIsFirstPerson = false;
 };
