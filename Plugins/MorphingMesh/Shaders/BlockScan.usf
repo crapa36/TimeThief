@@ -1,0 +1,54 @@
+#include "/Engine/Public/Platform.ush"
+
+#ifndef BlockSize
+#define BlockSize 256
+#endif
+
+StructuredBuffer<uint> InputBuffer;
+RWStructuredBuffer<uint> BlockScanBuffer;
+RWStructuredBuffer<uint> OffsetBuffer;
+
+groupshared uint PrefixSum_Wave[64];
+groupshared uint PrefixSum_Block[BlockSize];
+
+[numthreads(BlockSize, 1, 1)]
+void MainCS(
+	uint3 DTid : SV_DispatchThreadID, 
+	uint3 GTid : SV_GroupThreadID,
+	uint3 Gid : SV_GroupID)
+{
+	uint GlobalIndex = DTid.x;
+	uint LocalIndex = GTid.x;
+	
+	uint LaneSize = WaveGetLaneCount(); // 32
+	uint Value = InputBuffer[GlobalIndex]; // 6
+	uint WaveSum = WaveActiveSum(Value); // 36
+	uint LaneIndex = WaveGetLaneIndex();
+	uint WaveIndex = LocalIndex / LaneSize;
+	
+	if (WaveIsFirstLane())
+	{
+		PrefixSum_Wave[WaveIndex] = WaveSum;
+	}
+	
+	GroupMemoryBarrierWithGroupSync();
+	
+	if (WaveIndex == 0)
+	{
+		uint WaveCnt = ( BlockSize + LaneSize - 1 ) / LaneSize; // 1
+		uint WaveSumToScan = (LaneIndex < WaveCnt) ? PrefixSum_Wave[LaneIndex] : 0; // 0만 36
+		
+		PrefixSum_Wave[LaneIndex] = WavePrefixSum(WaveSumToScan);
+	}
+	
+	GroupMemoryBarrierWithGroupSync();
+	
+	PrefixSum_Block[LocalIndex] = PrefixSum_Wave[WaveIndex] + WavePrefixSum(Value);
+	
+	
+	BlockScanBuffer[GlobalIndex] = PrefixSum_Block[LocalIndex];
+	if (LocalIndex == BlockSize - 1)
+	{
+		OffsetBuffer[Gid.x] = PrefixSum_Block[LocalIndex] + Value;
+	}
+}

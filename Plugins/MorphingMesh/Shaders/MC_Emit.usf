@@ -1,0 +1,140 @@
+﻿// MC_Emit.usf
+#include "/Engine/Public/Platform.ush"
+#include "MC_Tables.ush"
+#include "MC_Common.ush"
+
+StructuredBuffer<uint> CubeCase;              // cubeIndex per voxel
+StructuredBuffer<uint> TriCount;              // tri count per voxel
+StructuredBuffer<uint> OffsetBuffer;          // per-dispatch-group offset
+StructuredBuffer<uint> PrefixBuffer;       // global exclusive prefix (tri units)
+
+RWStructuredBuffer<float3> PositionBuffer;      // size = TotalTris*3
+RWStructuredBuffer<float3> TangentsBuffer;        // optional, same size
+RWStructuredBuffer<uint> IndirectArgsBuffer;
+
+// edge endpoints corner indices (0..7)
+static const uint2 EdgeCorner[12] =
+{
+    uint2(0,1), uint2(1,2), uint2(2,3), uint2(3,0),
+    uint2(4,5), uint2(5,6), uint2(6,7), uint2(7,4),
+    uint2(0,4), uint2(1,5), uint2(2,6), uint2(3,7)
+};
+
+float3 CornerPosWS(uint x, uint y, uint z)
+{
+    return BoxMin + float3(x, y, z) * VoxelSize;
+}
+
+float3 VertexInterp(float iso, float3 p1, float3 p2, float v1, float v2)
+{
+    if (abs(iso - v1) < 0.0000001)
+    {
+        return p1;
+    }
+    if (abs(iso - v2) < 0.0000001)
+    {
+        return p2;
+    }
+    if (abs(v1 - v2) < 0.0000001)
+    {
+        return p1;
+    }
+    
+    const float t = (iso - v1) / (v2 - v1);
+    return p1 + t * (p2 - p1);
+}
+
+float3 ComputeNormalFromVerts(float3 v0, float3 v1, float3 v2)
+{
+    float3 e1 = v1 - v0;
+    float3 e2 = v2 - v0;
+    return normalize(cross(e2, e1));
+}
+
+[numthreads(256,1,1)]
+void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
+{
+    uint vid = DTid.x;
+    if (vid >= NumVoxels) return;
+    
+    uint TriBase = PrefixBuffer[vid] + OffsetBuffer[Gid.x]; // triangle index base
+    
+    if (vid == NumVoxels - 1)
+    {
+        IndirectArgsBuffer[0] = (TriBase + TriCount[vid] - 1) * 3; // vertex count
+        IndirectArgsBuffer[1] = 1;
+        IndirectArgsBuffer[2] = 0;
+        IndirectArgsBuffer[3] = 0;
+        IndirectArgsBuffer[4] = 0;
+    }
+    uint triCount = TriCount[vid];
+    if (triCount == 0) return;
+
+    uint cubeIndex = CubeCase[vid];
+    uint edgeMask = MC_EdgeTable[cubeIndex];
+    if (edgeMask == 0) return;
+
+    uint3 cellSize = uint3(GridSize.x - 1, GridSize.y - 1, GridSize.z - 1);
+
+    uint x,y,z;
+    VoxelCoord(vid, cellSize, x,y,z);
+
+    // corner positions + densities
+    float3 p[8];
+    float  d[8];
+    
+    p[0] = CornerPosWS(x,   y,   z  ); d[0] = SampleDensity(int4(x  , y,   z  , 0));
+    p[1] = CornerPosWS(x+1, y,   z  ); d[1] = SampleDensity(int4(x+1, y,   z  , 0));
+    p[2] = CornerPosWS(x+1, y+1, z  ); d[2] = SampleDensity(int4(x+1, y+1, z  , 0));
+    p[3] = CornerPosWS(x,   y+1, z  ); d[3] = SampleDensity(int4(x,   y+1, z  , 0));
+    p[4] = CornerPosWS(x,   y,   z+1); d[4] = SampleDensity(int4(x,   y,   z+1, 0));
+    p[5] = CornerPosWS(x+1, y,   z+1); d[5] = SampleDensity(int4(x+1, y,   z+1, 0));
+    p[6] = CornerPosWS(x+1, y+1, z+1); d[6] = SampleDensity(int4(x+1, y+1, z+1, 0));
+    p[7] = CornerPosWS(x,   y+1, z+1); d[7] = SampleDensity(int4(x,   y+1, z+1, 0));
+
+    // interpolated vertices on edges (0..11)
+    float3 vertList[12];
+
+    [unroll]
+    for (uint e = 0; e < 12; ++e)
+    {
+        if ((edgeMask & (1u << e)) != 0)
+        {
+            uint2 c = EdgeCorner[e];
+            vertList[e] = VertexInterp(IsoLevel, p[c.x], p[c.y], d[c.x], d[c.y]);
+        }
+    }
+    
+    // For each triangle: output 3 verts
+    // TriTable stores edge indices for each vertex
+    [unroll]
+    for (uint t = 0; t < 5; ++t)
+    {
+        // each tri uses 3 entries; stop at -1
+        int e0 = MC_TriTable[cubeIndex][t*3 + 0];
+        if (e0 < 0) break;
+
+        int e1 = MC_TriTable[cubeIndex][t*3 + 1];
+        int e2 = MC_TriTable[cubeIndex][t*3 + 2];
+
+        uint outTri = TriBase + t;
+        uint vbase = outTri * 3;
+
+        float3 v0 = vertList[e0];
+        float3 v1 = vertList[e1];
+        float3 v2 = vertList[e2];
+
+        PositionBuffer[vbase + 0] = v0;
+        PositionBuffer[vbase + 1] = v1;
+        PositionBuffer[vbase + 2] = v2;
+        
+        float3 n = ComputeNormalFromVerts(v0, v1, v2);
+        
+        [unroll]
+        for (int i = 0; i < 3; ++i)
+		{
+			uint NBase = (vbase + i) * 2;
+            TangentsBuffer[NBase + 1] = n;
+		}
+    }
+}
