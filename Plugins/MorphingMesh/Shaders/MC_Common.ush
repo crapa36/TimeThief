@@ -1,0 +1,34 @@
+cbuffer Constants
+{
+	uint3 GridSize;
+	float IsoLevel;
+	float3 BoxMin;
+	uint NumVoxels;
+	float3 VoxelSize;
+	float MC_Padding0;
+	float3 Alpha;
+	float MC_Padding1;
+}
+
+// 개별 텍스처로 선언 (D3D12 SM6 호환)
+Texture3D<float> Density0;
+Texture3D<float> Density1;
+Texture3D<float> Density2;
+
+void VoxelCoord(uint VoxelIndex, uint3 CellSize, out uint X, out uint Y, out uint Z)
+{
+	uint XY = CellSize.x * CellSize.y;
+	Z = VoxelIndex / XY;
+	uint Remain = VoxelIndex - Z * XY;
+	Y = Remain / CellSize.x;
+	X = Remain - Y * CellSize.x;
+}
+
+float SampleDensity(int4 Coord)
+{
+	float ret = 0;
+	ret += Density0.Load(Coord) * Alpha.x;
+	ret += Density1.Load(Coord) * Alpha.y;
+	ret += Density2.Load(Coord) * Alpha.z;
+	return ret;
+}
