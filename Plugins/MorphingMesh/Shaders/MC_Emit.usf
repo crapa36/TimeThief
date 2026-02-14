@@ -61,7 +61,7 @@ void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
     
     if (vid == NumVoxels - 1)
     {
-        IndirectArgsBuffer[0] = (TriBase + TriCount[vid] - 1) * 3; // vertex count
+        IndirectArgsBuffer[0] = (TriBase + TriCount[vid]) * 3; // vertex count
         IndirectArgsBuffer[1] = 1;
         IndirectArgsBuffer[2] = 0;
         IndirectArgsBuffer[3] = 0;

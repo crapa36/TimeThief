@@ -18,7 +18,7 @@ public:
 
 	// BeginPlay 이후 플레이어 여부 캐시
 	bool bIsPlayerControlled = false;
-
+	bool bRenderingEnable = false;
 public:
 	ULiquidMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
@@ -39,6 +39,9 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual void DestroyRenderState_Concurrent() override;
 	
 	FBox GetBound() const;
+	FVector3f GetAlpha() const;
+	TArray<TObjectPtr<UVolumeTexture>> GetDensityTextures() const;
 };

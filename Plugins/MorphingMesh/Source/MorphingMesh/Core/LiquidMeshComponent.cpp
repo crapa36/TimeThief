@@ -3,9 +3,10 @@
 
 #include "LiquidMeshComponent.h"
 #include "LiquidMeshProxy.h"
+#include "MorphingMeshSubsystem.h"
+#include "MorphingMeshViewExtension.h"
 #include "../MorphingMeshComponent.h"
 #include "MorphingMesh/MorphingMeshData.h"
-#include "RenderGraphBuilder.h"
 #include "../Settings.h"
 // Sets default values for this component's properties
 ULiquidMeshComponent::ULiquidMeshComponent(const FObjectInitializer& ObjectInitializer)
@@ -33,30 +34,6 @@ void ULiquidMeshComponent::BeginPlay()
 	{
 		MarkRenderStateDirty();
 	}
-
-	const FBox Bound = GetBound();
-	const FVector3f Alpha = ParentComponent->Alpha;
-	TArray<TObjectPtr<UVolumeTexture>> DensityTextures;
-	if (IsPlayerControlled())
-	{
-		DensityTextures = ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::High);
-	}
-	else
-	{
-		DensityTextures = ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::Middle);
-	}
-
-	if (FLiquidMeshProxy* Proxy = static_cast<FLiquidMeshProxy*>(GetSceneProxy()))
-	{
-		ENQUEUE_RENDER_COMMAND(Liquid)(
-			[Bound, Alpha, DensityTextures, Proxy](FRHICommandListImmediate& RHICmdList)
-			{
-				FRDGBuilder GraphBuilder{RHICmdList};
-				Proxy->UpdateRenderResource(GraphBuilder, Bound, Alpha, DensityTextures);
-				GraphBuilder.Execute();
-			}
-		);
-	}
 }
 
 void ULiquidMeshComponent::OnRegister()
@@ -75,56 +52,15 @@ void ULiquidMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                          FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	UpdateBounds();
-
 	if (ParentComponent == nullptr || !ParentComponent->MorphingMeshData->IsValid())
 	{
 		return;
 	}
-	const FBox Bound = GetBound();
-	const FVector3f Alpha = ParentComponent->Alpha;
-	TArray<TObjectPtr<UVolumeTexture>> DensityTextures;
-
-	if (IsPlayerControlled())
+	if (FLiquidMeshProxy* Proxy = static_cast<FLiquidMeshProxy*>(SceneProxy))
 	{
-		DensityTextures = ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::High);
+		Proxy->CachingData();
 	}
-	else
-	{
-		if (APlayerController* PlayerController = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
-		{
-			FVector CameraLocation;
-			FRotator CameraRotation;
-			PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-			float Dist = FVector::Dist(CameraLocation, GetComponentLocation());
-			if (Dist > 7500)
-			{
-				return;
-			}
-			if (Dist > 1000)
-			{
-				DensityTextures = ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::Low);
-			}
-			else
-			{
-				DensityTextures = ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::Middle);
-			}
-		}
-	}
-
-	if (FLiquidMeshProxy* Proxy = static_cast<FLiquidMeshProxy*>(GetSceneProxy()))
-	{
-		ENQUEUE_RENDER_COMMAND(Liquid)(
-			[Bound, Alpha, DensityTextures, Proxy](FRHICommandListImmediate& RHICmdList)
-			{
-				FRDGBuilder GraphBuilder{RHICmdList};
-				Proxy->UpdateRenderResource(GraphBuilder, Bound, Alpha, DensityTextures);
-				GraphBuilder.Execute();
-			}
-		);
-	}
+	UpdateBounds();
 }
 
 FBoxSphereBounds ULiquidMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -140,24 +76,97 @@ FPrimitiveSceneProxy* ULiquidMeshComponent::CreateSceneProxy()
 		return nullptr;
 	}
 	FLiquidMeshProxy* Proxy = new FLiquidMeshProxy(this);
-
+	if (UMorphingMeshSubsystem* Subsystem = GetWorld()->GetSubsystem<UMorphingMeshSubsystem>())
+	{
+		if (Subsystem->ViewExtension.IsValid())
+		{
+			Subsystem->ViewExtension->AddProxy(Proxy);
+		}
+	}
 	return Proxy;
+}
+
+void ULiquidMeshComponent::DestroyRenderState_Concurrent()
+{
+	if (UMorphingMeshSubsystem* Subsystem = GetWorld()->GetSubsystem<UMorphingMeshSubsystem>())
+	{
+		if (Subsystem->ViewExtension.IsValid())
+		{
+			if (FLiquidMeshProxy* Proxy = static_cast<FLiquidMeshProxy*>(SceneProxy))
+			{
+				Subsystem->ViewExtension->RemoveProxy(Proxy);
+			}
+		}
+	}
+	
+	Super::DestroyRenderState_Concurrent();
 }
 
 FBox ULiquidMeshComponent::GetBound() const
 {
-	if (ParentComponent != nullptr && ParentComponent->MorphingMeshData->IsValid())
+	if (!ParentComponent || !IsValid(ParentComponent))
 	{
-		const FVector3f& Alpha = ParentComponent->Alpha;
-		const TArray<FBox>& Bound = ParentComponent->MorphingMeshData->GetBounds();
-
-		FBox ResultBox(ForceInitToZero);
-		for (int i = 0; i < 3; ++i)
-		{
-			ResultBox.Min += Bound[i].Min * Alpha[i];
-			ResultBox.Max += Bound[i].Max * Alpha[i];
-		}
-		return ResultBox;
+		return FBox(ForceInit);
 	}
-	return FBox(ForceInit);
+
+	const UMorphingMeshData* Data = ParentComponent->MorphingMeshData;
+	if (!Data || !IsValid(Data) || !Data->IsValid())
+	{
+		return FBox(ForceInit);
+	}
+
+	const FVector3f& Alpha = ParentComponent->Alpha;
+	const TArray<FBox>& Bound = Data->GetBounds();
+
+	// Bounds는 3개라는 전제를 깰 수 있으니 방어
+	if (Bound.Num() < 3)
+	{
+		return Bound.Num() > 0 ? Bound[0] : FBox(ForceInit);
+	}
+
+	FBox ResultBox(ForceInitToZero);
+	for (int32 i = 0; i < 3; ++i)
+	{
+		ResultBox.Min += Bound[i].Min * Alpha[i];
+		ResultBox.Max += Bound[i].Max * Alpha[i];
+	}
+	return ResultBox;
+}
+
+FVector3f ULiquidMeshComponent::GetAlpha() const
+{
+	return ParentComponent ? ParentComponent->Alpha : FVector3f::ZeroVector;
+}
+
+TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() const
+{
+	if (ParentComponent == nullptr || ParentComponent->MorphingMeshData == nullptr || !ParentComponent->MorphingMeshData->IsValid())
+	{
+		return TArray<TObjectPtr<UVolumeTexture>>{};
+	}
+	if (IsPlayerControlled())
+	{
+		return ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::High);
+	}
+
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
+	{
+		FVector CameraLocation;
+		FRotator CameraRotation;
+		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+		float Dist = FVector::Dist(CameraLocation, GetComponentLocation());
+		if (Dist > 7500)
+		{
+			return TArray<TObjectPtr<UVolumeTexture>>{};
+		}
+		if (Dist > 1000)
+		{
+			return ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::Low);
+		}
+
+		return ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::Middle);
+	}
+	
+	return TArray<TObjectPtr<UVolumeTexture>>{};
 }

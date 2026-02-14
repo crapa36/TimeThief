@@ -4,25 +4,31 @@
 
 #include "PrimitiveSceneProxy.h"
 #include "MarchingCubesRenderResource.h"
+#include <mutex>
 
 class ULiquidMeshComponent;
 // FStaticMeshSceneProxy;
 class MORPHINGMESH_API FLiquidMeshProxy : public FPrimitiveSceneProxy
 {
+	const ULiquidMeshComponent* RenderComponent;
+	
+	mutable std::mutex CachingMutex;
+	FBox CachedBound;
+	FVector3f CachedAlpha;
+	TArray<TObjectPtr<UVolumeTexture>> CachedDensityTextures;
+	bool bRenderingEnable = false;
 public:
 	FMaterialRelevance MaterialRelevance;
 	FMaterialRenderProxy* MaterialRenderProxy = nullptr;
 	
 	TUniquePtr<FMarchingCubesRenderResource> RenderResource = {nullptr};
-	
+
 public:
 	FLiquidMeshProxy(const ULiquidMeshComponent* InComponent);
 	virtual ~FLiquidMeshProxy() override;
 	
-	void UpdateRenderResource(FRDGBuilder& GraphicBuilder, 
-		const FBox& InBound,
-		const FVector3f& Alpha,
-		const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures);
+	void CachingData();
+	void UpdateRenderResource(FRDGBuilder& GraphicBuilder);
 	
 	virtual void CreateRenderThreadResources(FRHICommandListBase& RHICmdList) override;
 	virtual void DestroyRenderThreadResources() override;
