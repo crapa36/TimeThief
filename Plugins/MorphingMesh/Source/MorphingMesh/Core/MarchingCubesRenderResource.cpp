@@ -43,6 +43,11 @@ void FMarchingCubesRenderResource::RunComputeShader(
 {
 	using namespace UE::HLSL;
 	
+	if (VolumeTextures.Num() == 0)
+	{
+		return;
+	}
+	
 	FRDGBufferRef PositionRDG = GraphBuilder.RegisterExternalBuffer(PositionBuffer->Buffer);
 	FRDGBufferRef TangentsRDG = GraphBuilder.RegisterExternalBuffer(TangentsBuffer->Buffer);
 	FRDGBufferRef IndirectArgsRDG = GraphBuilder.RegisterExternalBuffer(IndirectArgsBuffer);
@@ -52,7 +57,6 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	                  VolumeTextures[0]->GetSizeY() *
 	                  VolumeTextures[0]->GetSizeZ();
 	
-	UE_LOG(LogTemp, Warning, TEXT("FMarchingCubesRenderResource::RunComputeShader - NumVoxels: %d"), NumVoxels);
 	ConstBufferData->GridSize = uint3(VolumeTextures[0]->GetSizeX());
 	ConstBufferData->IsoLevel = 0.0f;
 	ConstBufferData->BoxMin = float3(InBound.Min);

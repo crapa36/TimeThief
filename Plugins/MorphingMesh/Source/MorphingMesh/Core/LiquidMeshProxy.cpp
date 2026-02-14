@@ -12,6 +12,8 @@
 FLiquidMeshProxy::FLiquidMeshProxy(const ULiquidMeshComponent* InComponent)
 	: FPrimitiveSceneProxy{InComponent}
 {
+	RenderComponent = InComponent;
+	UE_LOG(LogTemp, Warning, TEXT("FLiquidMeshProxy::FLiquidMeshProxy - RenderComponent: %s"), *RenderComponent->GetName());
 	MaterialRelevance = UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance_Concurrent(
 		GetScene().GetShaderPlatform());
 	MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy();
@@ -47,14 +49,38 @@ FLiquidMeshProxy::~FLiquidMeshProxy()
 	RenderResource->ReleaseResource();
 }
 
-void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder,
-                                            const FBox& InBound,
-                                            const FVector3f& Alpha,
-                                            const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures)
+void FLiquidMeshProxy::CachingData()
 {
-	if (RenderResource)
+	if (!RenderComponent)
 	{
-		RenderResource->RunComputeShader(GraphicBuilder, InBound, Alpha, VolumeTextures);
+		return;
+	}
+
+	std::lock_guard Lock(CachingMutex);
+	CachedBound = RenderComponent->GetBound();
+	CachedAlpha = RenderComponent->GetAlpha();
+	CachedDensityTextures = RenderComponent->GetDensityTextures();
+	bRenderingEnable = RenderComponent->bRenderingEnable;
+}
+
+void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
+{
+	if (!bRenderingEnable)
+	{
+		return;
+	}
+	if (RenderResource && RenderResource->IsReady())
+	{
+		FBox ParamBound;
+		FVector3f ParamAlpha;
+		TArray<TObjectPtr<UVolumeTexture>> ParamDensityTextures;
+		{
+			std::lock_guard Lock(CachingMutex);
+			ParamBound = CachedBound;
+			ParamAlpha = CachedAlpha;
+			ParamDensityTextures = CachedDensityTextures;
+		}
+		RenderResource->RunComputeShader(GraphicBuilder, ParamBound, ParamAlpha, ParamDensityTextures);
 	}
 }
 
@@ -72,11 +98,10 @@ void FLiquidMeshProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& V
                                               const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
                                               FMeshElementCollector& Collector) const
 {
-	if (!RenderResource || !RenderResource->IsReady())
+	if (!RenderResource || !RenderResource->IsReady() || !bRenderingEnable)
 	{
 		return;
 	}
-	
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 	{
 		if ((VisibilityMap & (1u << ViewIndex)) == 0)

@@ -27,11 +27,9 @@ UMorphingMeshComponent::UMorphingMeshComponent(const FObjectInitializer& ObjectI
 
 	LiquidMeshComponent = CreateDefaultSubobject<ULiquidMeshComponent>("LiquidMeshComponent");
 	LiquidMeshComponent->SetupAttachment(this);
-	LiquidMeshComponent->SetVisibility(false);
 	
 	BaseMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("BaseMeshComponent");
 	BaseMeshComponent->SetupAttachment(this);
-	BaseMeshComponent->SetVisibility(true);
 }
 
 
@@ -63,7 +61,7 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		ElapsedTime = 0;
 	
 		BaseMeshComponent->SetVisibility(true);
-		LiquidMeshComponent->SetVisibility(false);
+		LiquidMeshComponent->bRenderingEnable = false;
 		
 		SetComponentTickEnabled(false);
 	}
@@ -92,7 +90,7 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	BaseMeshComponent->SetStaticMesh(MorphingMeshData->GetBaseMeshes()[Index]);
 	
 	BaseMeshComponent->SetVisibility(false);
-	LiquidMeshComponent->SetVisibility(true);
+	LiquidMeshComponent->bRenderingEnable = true;
 	
 	SetComponentTickEnabled(true);
 }
