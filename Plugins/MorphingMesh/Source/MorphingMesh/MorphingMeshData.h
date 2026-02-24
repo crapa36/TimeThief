@@ -38,11 +38,15 @@ class MORPHINGMESH_API UMorphingMeshData : public UDataAsset
 	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
 	TArray<FBox> Bounds;
 	
+	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
+	TArray<TObjectPtr<UVolumeTexture>> UVVolumeTextures;
 public:
 	UMorphingMeshData();
 	
 	const TArray<TObjectPtr<UStaticMesh>>& GetBaseMeshes() const { return BaseMeshes; }
 	const TArray<TObjectPtr<UVolumeTexture>>& GetDensityTextures(int Index) const { return DensityTextures[Index].DensityTexture; }
+	const TArray<FDensitySet>& GetDensityTextureSets() const { return DensityTextures; }
+	const TArray<TObjectPtr<UVolumeTexture>>& GetUVVolumeTextures() const { return UVVolumeTextures; }
 	const TArray<FBox>& GetBounds() const { return Bounds; }
 	
 	void UpdateBox();

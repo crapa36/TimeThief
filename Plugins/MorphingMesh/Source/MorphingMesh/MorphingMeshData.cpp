@@ -20,6 +20,7 @@ UMorphingMeshData::UMorphingMeshData()
 	BaseMeshes.SetNum(3);
 	DensityTextures.SetNum(3);
 	Bounds.SetNum(3);
+	UVVolumeTextures.SetNum(3);
 }
 
 void UMorphingMeshData::UpdateBox()

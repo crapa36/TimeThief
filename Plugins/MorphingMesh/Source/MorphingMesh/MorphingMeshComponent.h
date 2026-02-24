@@ -33,7 +33,7 @@ public:
 	TObjectPtr<ULiquidMeshComponent> LiquidMeshComponent;
 	
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<UMaterial> LiquidMaterial;
+	TObjectPtr<UMaterialInterface> LiquidMaterial;
 public:
 	// Sets default values for this component's properties
 	UMorphingMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
