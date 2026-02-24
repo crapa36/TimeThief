@@ -122,3 +122,6 @@ LocalDerivedDataCache/
 .vsconfig
 .editorconfig
 /Plugins/VisualStudioTools
+
+# Protobuf build filse
+External/ProtobufBuild/
