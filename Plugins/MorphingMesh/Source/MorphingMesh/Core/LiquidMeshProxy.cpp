@@ -13,7 +13,8 @@ FLiquidMeshProxy::FLiquidMeshProxy(const ULiquidMeshComponent* InComponent)
 	: FPrimitiveSceneProxy{InComponent}
 {
 	RenderComponent = InComponent;
-	UE_LOG(LogTemp, Warning, TEXT("FLiquidMeshProxy::FLiquidMeshProxy - RenderComponent: %s"), *RenderComponent->GetName());
+	UE_LOG(LogTemp, Warning, TEXT("FLiquidMeshProxy::FLiquidMeshProxy - RenderComponent: %s"),
+	       *RenderComponent->GetName());
 	MaterialRelevance = UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance_Concurrent(
 		GetScene().GetShaderPlatform());
 	MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy();
@@ -23,25 +24,13 @@ FLiquidMeshProxy::FLiquidMeshProxy(const ULiquidMeshComponent* InComponent)
 	bCastDeepShadow = true;
 	bEvaluateWorldPositionOffset = true;
 	bHasWorldPositionOffsetVelocity = true;
-	
+
 	const int32 GridSize = InComponent->IsPlayerControlled()
 		                       ? NumVoxelsTable[EVoxelResolution::High]
 		                       : NumVoxelsTable[EVoxelResolution::Middle];
 
 	RenderResource = MakeUnique<FMarchingCubesRenderResource>(InComponent->GetWorld()->GetFeatureLevel(),
 	                                                          FIntVector{GridSize});
-
-
-	if (InComponent->ParentComponent)
-	{
-		if (InComponent->ParentComponent->LiquidMaterial)
-		{
-			MaterialRelevance = InComponent->ParentComponent->LiquidMaterial->GetRelevance_Concurrent(
-				GetScene().GetShaderPlatform());
-			MaterialRenderProxy = InComponent->ParentComponent->LiquidMaterial->GetRenderProxy();
-			bVerifyUsedMaterials = false;
-		}
-	}
 }
 
 FLiquidMeshProxy::~FLiquidMeshProxy()
@@ -98,7 +87,7 @@ void FLiquidMeshProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& V
                                               const FSceneViewFamily& ViewFamily, uint32 VisibilityMap,
                                               FMeshElementCollector& Collector) const
 {
-	if (!RenderResource || !RenderResource->IsReady() || !bRenderingEnable)
+	if (!RenderResource || !RenderResource->IsReady() || !bRenderingEnable || !MaterialRenderProxy)
 	{
 		return;
 	}
@@ -121,13 +110,13 @@ void FLiquidMeshProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& V
 		Mesh.LODIndex = 0;
 		Mesh.bUseAsOccluder = true;
 		Mesh.CastRayTracedShadow = false;
-		
+
 		FMeshBatchElement& Elem = Mesh.Elements[0];
 		Elem.PrimitiveUniformBuffer = GetUniformBuffer();
 		Elem.IndirectArgsBuffer = RenderResource->IndirectArgsBuffer->GetRHI();
 		Elem.IndirectArgsOffset = 0;
 		Elem.NumPrimitives = 0;
-		
+
 		Collector.AddMesh(ViewIndex, Mesh);
 	}
 }
@@ -143,8 +132,18 @@ FPrimitiveViewRelevance FLiquidMeshProxy::GetViewRelevance(const FSceneView* Vie
 	Relevance.bRenderInDepthPass = true;
 	Relevance.bVelocityRelevance = true;
 	Relevance.bRenderInSecondStageDepthPass = true;
-	
+
 	MaterialRelevance.SetPrimitiveViewRelevance(Relevance);
 
 	return Relevance;
+}
+
+void FLiquidMeshProxy::SetMaterial(UMaterialInterface* Material)
+{
+	if (Material)
+	{
+		MaterialRelevance = Material->GetRelevance_Concurrent(GetScene().GetShaderPlatform());
+		MaterialRenderProxy = Material->GetRenderProxy();
+		bVerifyUsedMaterials = false;
+	}
 }

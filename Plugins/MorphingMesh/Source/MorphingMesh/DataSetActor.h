@@ -20,6 +20,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="DataSet")
 	TObjectPtr<UMorphingMeshData> MorphingMeshData;
 	
+	UPROPERTY(EditAnywhere, Category="Settings")
+	int Resolution = 128;
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

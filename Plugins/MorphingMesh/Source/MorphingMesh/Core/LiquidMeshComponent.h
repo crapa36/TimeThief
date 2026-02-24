@@ -18,7 +18,7 @@ public:
 
 	// BeginPlay 이후 플레이어 여부 캐시
 	bool bIsPlayerControlled = false;
-	bool bRenderingEnable = false;
+	bool bRenderingEnable = true;
 public:
 	ULiquidMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
@@ -36,6 +36,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
+	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* InMaterial) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;

@@ -16,7 +16,7 @@ class MORPHINGMESH_API FLiquidMeshProxy : public FPrimitiveSceneProxy
 	FBox CachedBound;
 	FVector3f CachedAlpha;
 	TArray<TObjectPtr<UVolumeTexture>> CachedDensityTextures;
-	bool bRenderingEnable = false;
+	bool bRenderingEnable = true;
 public:
 	FMaterialRelevance MaterialRelevance;
 	FMaterialRenderProxy* MaterialRenderProxy = nullptr;
@@ -40,6 +40,7 @@ public:
 		FMeshElementCollector& Collector) const override;
 	
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+	void SetMaterial(UMaterialInterface* Material);
 	
 	virtual SIZE_T GetTypeHash() const override
 	{

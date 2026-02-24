@@ -63,6 +63,17 @@ void ULiquidMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	UpdateBounds();
 }
 
+void ULiquidMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial)
+{
+	if (FLiquidMeshProxy* Proxy = static_cast<FLiquidMeshProxy*>(SceneProxy))
+	{
+		ENQUEUE_RENDER_COMMAND(SetMaterial)([InMaterial, Proxy](FRHICommandListImmediate& RHICmdList)
+		{
+			Proxy->SetMaterial(InMaterial);
+		});
+	}
+}
+
 FBoxSphereBounds ULiquidMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	return FBoxSphereBounds(GetBound().ExpandBy(2)).TransformBy(LocalToWorld);
@@ -98,7 +109,7 @@ void ULiquidMeshComponent::DestroyRenderState_Concurrent()
 			}
 		}
 	}
-	
+
 	Super::DestroyRenderState_Concurrent();
 }
 
@@ -140,7 +151,8 @@ FVector3f ULiquidMeshComponent::GetAlpha() const
 
 TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() const
 {
-	if (ParentComponent == nullptr || ParentComponent->MorphingMeshData == nullptr || !ParentComponent->MorphingMeshData->IsValid())
+	if (ParentComponent == nullptr || ParentComponent->MorphingMeshData == nullptr || !ParentComponent->MorphingMeshData
+		->IsValid())
 	{
 		return TArray<TObjectPtr<UVolumeTexture>>{};
 	}
@@ -167,6 +179,6 @@ TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() co
 
 		return ParentComponent->MorphingMeshData->GetDensityTextures(EVoxelResolution::Middle);
 	}
-	
+
 	return TArray<TObjectPtr<UVolumeTexture>>{};
 }

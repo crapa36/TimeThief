@@ -61,7 +61,7 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	ConstBufferData->IsoLevel = 0.0f;
 	ConstBufferData->BoxMin = float3(InBound.Min);
 	ConstBufferData->NumVoxels = NumVoxels;
-	ConstBufferData->VoxelSize = float3(InBound.GetSize()) / float3(VolumeTextures[0]->GetSizeX()) ;
+	ConstBufferData->VoxelSize = float3(InBound.GetSize()) / float3(VolumeTextures[0]->GetSizeX() - 1) ;
 	ConstBufferData->Alpha = float3(Alpha);
 	TUniformBufferRef<FConstBuffer> ConstBufferRDG = TUniformBufferRef<FConstBuffer>::CreateUniformBufferImmediate(*ConstBufferData, UniformBuffer_SingleFrame);
 	int GroupCount = NumVoxels / 256;
@@ -163,33 +163,50 @@ void FMarchingCubesRenderResource::InitRHI(FRHICommandListBase& RHICmdList)
 	{
 		return;
 	}
+	
+	FRDGBuilder GraphBuilder{static_cast<FRHICommandListImmediate&>(RHICmdList)};
 
 	// Create Position Buffer - RDG PooledBuffer 사용
 	{
 		PositionBuffer = MakeUnique<FVertexBufferWithRDG>();
+		
 		FRDGBufferDesc Desc = FRDGBufferDesc::CreateStructuredDesc(sizeof(float3), NumVertex);
-
-		PositionBuffer->Buffer = AllocatePooledBuffer(Desc, TEXT("PositionBuffer"));
-
-		PositionBuffer->InitResource(RHICmdList);
+		
+		FRDGBufferRef RDGBuffer = GraphBuilder.CreateBuffer(Desc,TEXT("PositionBuffer"));
+		
+		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(RDGBuffer), 0);
+		
+		GraphBuilder.QueueBufferExtraction(RDGBuffer, &PositionBuffer->Buffer);
 	}
 
 	// Create Tangents Buffer - RDG PooledBuffer 사용
 	{
 		TangentsBuffer = MakeUnique<FVertexBufferWithRDG>();
+		
 		FRDGBufferDesc Desc = FRDGBufferDesc::CreateStructuredDesc(sizeof(float3) * 2, NumVertex);
-
-		TangentsBuffer->Buffer = AllocatePooledBuffer(Desc, TEXT("TangentsBuffer"));
-
-		TangentsBuffer->InitResource(RHICmdList);
+		
+		FRDGBufferRef RDGBuffer = GraphBuilder.CreateBuffer(Desc,TEXT("TangentsBuffer"));
+		
+		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(RDGBuffer), 0);
+		
+		GraphBuilder.QueueBufferExtraction(RDGBuffer, &TangentsBuffer->Buffer);
 	}
 
 	// Create Indirect Args Buffer
 	{
+		
 		FRDGBufferDesc Desc = FRDGBufferDesc::CreateIndirectDesc(sizeof(uint32), 5);
-
-		IndirectArgsBuffer = AllocatePooledBuffer(Desc, TEXT("IndirectArgsBuffer"));
+		
+		FRDGBufferRef RDGBuffer = GraphBuilder.CreateBuffer(Desc,TEXT("IndirectArgsBuffer"));
+		
+		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(RDGBuffer), 0);
+		
+		GraphBuilder.QueueBufferExtraction(RDGBuffer, &IndirectArgsBuffer);
 	}
+	
+	GraphBuilder.Execute();
+	PositionBuffer->InitResource(RHICmdList);
+	TangentsBuffer->InitResource(RHICmdList);
 
 	// Initialize Vertex Factory
 	{
