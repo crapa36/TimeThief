@@ -24,6 +24,7 @@ public class TimeThief : ModuleRules
             "GameplayTags",
             "ModularGameplay",
             "GameFeatures",
+            "Protobuf"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]

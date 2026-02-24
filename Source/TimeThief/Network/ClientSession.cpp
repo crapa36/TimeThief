@@ -1,5 +1,6 @@
 ﻿#include "ClientSession.h"
 #include "NetworkWorker.h"
+#include <google/protobuf/message.h>
 
 /*-----------------
    ClientSession
@@ -23,6 +24,8 @@ void ClientSession::Run()
 
 void ClientSession::HandleRecvPackets()
 {
+   google::protobuf::Message* Message = nullptr;
+   
    while (true)
    {
       TArray<uint8> Packet;
