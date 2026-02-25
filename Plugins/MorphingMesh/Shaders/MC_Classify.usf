@@ -1,0 +1,59 @@
+﻿// MC_Classify.usf
+#include "/Engine/Public/Platform.ush"
+#include "MC_Tables.ush"
+#include "MC_Common.ush"
+
+
+RWStructuredBuffer<uint> TriCount;         // size = NumVoxels, per-voxel triangle count (0..5)
+RWStructuredBuffer<uint> CubeCase;         // size = NumVoxels, cubeIndex 0..255
+
+
+uint CountTrisFromCase(uint cubeIndex)
+{
+    // TriTable entries are triplets until -1
+    uint c = 0;
+    [unroll]
+    for (int i = 0; i < 16; i += 3)
+    {
+        int e0 = MC_TriTable[cubeIndex][i];
+        if (e0 < 0) break;
+        c++;
+    }
+    return c; // 0..5
+}
+
+[numthreads(256,1,1)]
+void MainCS(uint3 DTid : SV_DispatchThreadID)
+{
+    uint vid = DTid.x;
+    if (vid >= NumVoxels) return;
+
+    uint3 cellSize = uint3(GridSize.x - 1, GridSize.y - 1, GridSize.z - 1);
+
+    uint x,y,z;
+    VoxelCoord(vid, cellSize, x,y,z);
+
+    // 8 corners: (x,y,z) to (x+1,y+1,z+1)
+
+    float d0 = SampleDensity(int4(x  , y,   z, 0));
+    float d1 = SampleDensity(int4(x+1, y,   z, 0));
+    float d2 = SampleDensity(int4(x+1, y+1, z, 0));
+    float d3 = SampleDensity(int4(x,   y+1, z, 0));
+    float d4 = SampleDensity(int4(x,   y,   z+1, 0));
+    float d5 = SampleDensity(int4(x+1, y,   z+1, 0));
+    float d6 = SampleDensity(int4(x+1, y+1, z+1, 0));
+    float d7 = SampleDensity(int4(x,   y+1, z+1, 0));
+
+    uint cubeIndex = 0;
+    cubeIndex |= (d0 < IsoLevel) ? 1u   : 0u;
+    cubeIndex |= (d1 < IsoLevel) ? 2u   : 0u;
+    cubeIndex |= (d2 < IsoLevel) ? 4u   : 0u;
+    cubeIndex |= (d3 < IsoLevel) ? 8u   : 0u;
+    cubeIndex |= (d4 < IsoLevel) ? 16u  : 0u;
+    cubeIndex |= (d5 < IsoLevel) ? 32u  : 0u;
+    cubeIndex |= (d6 < IsoLevel) ? 64u  : 0u;
+    cubeIndex |= (d7 < IsoLevel) ? 128u : 0u;
+
+    CubeCase[vid] = cubeIndex;
+    TriCount[vid] = CountTrisFromCase(cubeIndex);
+}

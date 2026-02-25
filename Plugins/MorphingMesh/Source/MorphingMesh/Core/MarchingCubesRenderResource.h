@@ -1,0 +1,47 @@
+﻿// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "RenderResource.h"
+#include "RHI.h"
+/**
+ * 
+ */
+class FMarchingCubesRenderResource : public FRenderResource
+{
+	class FVertexBufferWithRDG : public FVertexBuffer
+	{
+		public:
+			TRefCountPtr<FRDGPooledBuffer> Buffer;
+			FShaderResourceViewRHIRef ShaderResourceViewRHI;
+			
+			virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
+			virtual void ReleaseRHI() override;
+	};
+
+public:
+	TUniquePtr<FVertexBufferWithRDG> PositionBuffer;
+	TUniquePtr<FVertexBufferWithRDG> TangentsBuffer;
+	TRefCountPtr<FRDGPooledBuffer> IndirectArgsBuffer;
+	
+	FLocalVertexFactory VertexFactory;
+	
+	int32 NumVertex = 0;
+	
+	FMarchingCubesRenderResource(ERHIFeatureLevel::Type InFeatureLevel, const FIntVector3& InDimensions = FIntVector3::ZeroValue);
+	
+	void RunComputeShader(FRDGBuilder& GraphBuilder, 
+	const FBox& InBound,
+	const FVector3f& Alpha,
+	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures);
+	
+	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
+	virtual void ReleaseRHI() override;
+	
+	
+	bool IsReady() const
+	{
+		return PositionBuffer.IsValid() && TangentsBuffer.IsValid() && IndirectArgsBuffer.IsValid() && VertexFactory.IsInitialized();
+	}
+};
+
