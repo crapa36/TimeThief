@@ -4,6 +4,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHeroComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/TimeThiefHealthComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "CharacterTrajectoryComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
@@ -32,7 +33,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = true;
+	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -90,12 +91,21 @@ UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent
 void ATimeThiefPlayerCharacter::BeginPlay() {
 	Super::BeginPlay();
 
+	if (UTimeThiefHealthComponent* Health = GetHealthComponent()) {
+		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
+	}
+
 	if (IsLocallyControlled() && bIsFirstPerson)
 	{
 		GetMesh()->HideBoneByName(FName("head"), EPhysBodyOp::PBO_None);
 		FollowCamera->SetActive(false);
 		FirstPersonCamera->SetActive(true);
 	}
+}
+
+void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
+	DisableInput(Cast<APlayerController>(GetController()));
+	GetCharacterMovement()->DisableMovement();
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

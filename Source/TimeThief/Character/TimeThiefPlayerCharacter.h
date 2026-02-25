@@ -42,6 +42,9 @@ protected:
 
 	void OnPawnDataSet();
 
+	UFUNCTION()
+	void OnDeath(AActor* OwningActor);
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<USpringArmComponent> CameraBoom;
