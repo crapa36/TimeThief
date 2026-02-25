@@ -10,8 +10,12 @@ UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitiali
 	bHasWeapon = false;
 	LeftHandIKTransform = FTransform::Identity;
 	bIsWireAttached = false;
+	bIsWireActive = false;
 	AnchorDirection = FVector::ForwardVector;
 	SwingVelocity = FVector::ZeroVector;
+	WireLeftHandIKTransform = FTransform::Identity;
+	WireLeftHandIKAlpha = 0.0f;
+	WireAnchorDirectionWorld = FVector::ForwardVector;
 }
 
 void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
@@ -41,6 +45,7 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 
 	UpdateWeaponData();
 	UpdateWireData();
+	UpdateWireHandIK(DeltaSeconds);
 	UpdateRecoil(DeltaSeconds);
 	UpdateSpreadAndAim(DeltaSeconds);
 	UpdateAimDirection();
@@ -86,16 +91,20 @@ void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
 void UTimeThiefPlayerAnimInstance::UpdateWireData() {
 	if (!WireComponent) {
 		bIsWireAttached = false;
+		bIsWireActive = false;
 		SwingVelocity = FVector::ZeroVector;
+		WireAnchorDirectionWorld = FVector::ForwardVector;
 		return;
 	}
 
 	bIsWireAttached = WireComponent->IsWireAttached();
+	bIsWireActive = WireComponent->IsWireActive();
 
-	if (bIsWireAttached) {
+	if (bIsWireActive) {
 		FVector AnchorPoint = WireComponent->GetAnchorPoint();
 		FVector StartLocation = WireComponent->GetWireStartLocation();
-		AnchorDirection = (AnchorPoint - StartLocation).GetSafeNormal();
+		WireAnchorDirectionWorld = (AnchorPoint - StartLocation).GetSafeNormal();
+		AnchorDirection = WireAnchorDirectionWorld;
 		
 		if (USkeletalMeshComponent* Mesh = GetOwningComponent())
 		{
@@ -105,12 +114,47 @@ void UTimeThiefPlayerAnimInstance::UpdateWireData() {
 		if (PlayerCharacter) {
 			SwingVelocity = PlayerCharacter->GetVelocity();
 		}
+	} else {
+		WireAnchorDirectionWorld = FVector::ForwardVector;
 	}
 }
 
 void UTimeThiefPlayerAnimInstance::TriggerRecoil(float Intensity)
 {
 	TargetRecoilAlpha = FMath::Clamp(Intensity, 0.0f, 1.0f);
+}
+
+void UTimeThiefPlayerAnimInstance::UpdateWireHandIK(float DeltaSeconds)
+{
+	const float TargetAlpha = bIsWireActive ? 1.0f : 0.0f;
+	WireLeftHandIKAlpha = FMath::FInterpTo(WireLeftHandIKAlpha, TargetAlpha, DeltaSeconds, WireHandIKInterpSpeed);
+
+	if (WireLeftHandIKAlpha < KINDA_SMALL_NUMBER)
+	{
+		WireLeftHandIKTransform = FTransform::Identity;
+		return;
+	}
+
+	USkeletalMeshComponent* OwningMesh = GetOwningComponent();
+	if (!OwningMesh || !WireComponent)
+	{
+		return;
+	}
+
+	if (OwningMesh->GetBoneIndex(WireHandBoneName) == INDEX_NONE)
+	{
+		return;
+	}
+
+	const FTransform MeshWorldTransform = OwningMesh->GetComponentTransform();
+	const FVector WireStartWorld = WireComponent->GetWireStartLocation();
+	const FVector TargetWorldLocation = WireStartWorld + WireAnchorDirectionWorld * WireHandReachDistance;
+	const FVector TargetCS = MeshWorldTransform.InverseTransformPosition(TargetWorldLocation);
+
+	const FVector AnchorDirCS = MeshWorldTransform.InverseTransformVectorNoScale(WireAnchorDirectionWorld);
+	const FQuat LookAtRotation = AnchorDirCS.ToOrientationQuat();
+
+	WireLeftHandIKTransform = FTransform(LookAtRotation, TargetCS, FVector::OneVector);
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateRecoil(float DeltaSeconds)
