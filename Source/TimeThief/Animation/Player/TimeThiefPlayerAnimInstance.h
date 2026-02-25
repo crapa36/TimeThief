@@ -58,10 +58,31 @@ protected:
 	bool bIsWireAttached;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	bool bIsWireActive;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	FVector AnchorDirection;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	FVector SwingVelocity;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	FTransform WireLeftHandIKTransform;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	float WireLeftHandIKAlpha = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Wire")
+	FVector WireAnchorDirectionWorld;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wire|Settings")
+	float WireHandIKInterpSpeed = 12.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wire|Settings")
+	float WireHandReachDistance = 30.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wire|Settings")
+	FName WireHandBoneName = FName("hand_l");
 
 	UPROPERTY(BlueprintReadWrite, Category = "Combat|Recoil")
 	float RecoilAlpha = 0.0f;
@@ -103,6 +124,7 @@ public:
 private:
 	void UpdateWeaponData();
 	void UpdateWireData();
+	void UpdateWireHandIK(float DeltaSeconds);
 	void UpdateRecoil(float DeltaSeconds);
 	void UpdateSpreadAndAim(float DeltaSeconds);
 	void UpdateAimDirection();
