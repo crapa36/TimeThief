@@ -5,6 +5,7 @@
 #include "TimeThiefCharacterBase.generated.h"
 
 class UTimeThiefPawnCombatComponent;
+class UTimeThiefHealthComponent;
 class UCameraComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
@@ -20,6 +21,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const { return nullptr; }
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
+	UTimeThiefHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	void TogglePerspective();
 
@@ -30,6 +34,9 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+	TObjectPtr<UTimeThiefHealthComponent> HealthComponent;
+
 	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
 	TObjectPtr<USkeletalMeshComponent> FirstPersonMesh;
 

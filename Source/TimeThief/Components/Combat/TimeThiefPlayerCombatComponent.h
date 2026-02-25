@@ -5,6 +5,7 @@
 #include "TimeThiefPlayerCombatComponent.generated.h"
 
 class ATimeThiefWeaponBase;
+class ATimeThiefRifle;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerCombatComponent : public UTimeThiefPawnCombatComponent {
@@ -18,6 +19,7 @@ public:
 	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false);
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
+	virtual void HandleInputReleased(FGameplayTag InputTag) override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")

@@ -4,10 +4,13 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/TimeThiefHealthComponent.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	HealthComponent = CreateDefaultSubobject<UTimeThiefHealthComponent>(TEXT("HealthComponent"));
+
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bCastHiddenShadow = true;
 
@@ -55,6 +58,9 @@ void ATimeThiefCharacterBase::BeginPlay()
 			{
 				FirstPersonMesh->SetVisibility(true);
 			}
+			
+			bUseControllerRotationYaw = true;
+			GetCharacterMovement()->bOrientRotationToMovement = false;
 		}
 		else
 		{
@@ -64,6 +70,9 @@ void ATimeThiefCharacterBase::BeginPlay()
 			{
 				FirstPersonMesh->SetVisibility(false);
 			}
+			
+			bUseControllerRotationYaw = false;
+			GetCharacterMovement()->bOrientRotationToMovement = true;
 		}
 	}
 }
@@ -82,6 +91,9 @@ void ATimeThiefCharacterBase::TogglePerspective()
 			{
 				FirstPersonMesh->SetVisibility(true);
 			}
+			
+			bUseControllerRotationYaw = true;
+			GetCharacterMovement()->bOrientRotationToMovement = false;
 		}
 		else
 		{
@@ -91,6 +103,9 @@ void ATimeThiefCharacterBase::TogglePerspective()
 			{
 				FirstPersonMesh->SetVisibility(false);
 			}
+			
+			bUseControllerRotationYaw = false;
+			GetCharacterMovement()->bOrientRotationToMovement = true;
 		}
 	}
 }

@@ -20,6 +20,9 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
+	void TriggerRecoil(float Intensity = 1.0f);
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
@@ -45,6 +48,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	float AimPitch = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	float AimYaw = 0.0f;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	bool bIsWireAttached;
 
@@ -54,7 +63,53 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	FVector SwingVelocity;
 
+	UPROPERTY(BlueprintReadWrite, Category = "Combat|Recoil")
+	float RecoilAlpha = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
+	float MaxSpreadAngle = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
+	float SpreadIncreasePerShot = 0.15f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
+	float SpreadRecoverySpeed = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
+	float HorizontalRecoilRange = 0.3f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
+	float VerticalRecoilAmount = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
+	float AimRecoverySpeed = 3.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
+	float CurrentSpreadRatio = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
+	FVector2D AimOffset = FVector2D::ZeroVector;
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "Combat|Spread")
+	void ApplyFireSpread();
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
+	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle; }
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
+	FVector2D GetAimOffset() const { return AimOffset; }
+
 private:
 	void UpdateWeaponData();
 	void UpdateWireData();
+	void UpdateRecoil(float DeltaSeconds);
+	void UpdateSpreadAndAim(float DeltaSeconds);
+	void UpdateAimDirection();
+
+	float TargetRecoilAlpha = 0.0f;
+	FVector2D TargetAimOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Recoil")
+	float RecoilInterpSpeed = 15.0f;
 };
