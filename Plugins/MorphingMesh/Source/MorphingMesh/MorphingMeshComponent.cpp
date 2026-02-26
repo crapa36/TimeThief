@@ -73,7 +73,6 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	if (Alpha.Equals(DestAlpha))
 	{
 		Alpha = DestAlpha;
-		ElapsedTime = 0;
 	
 		BaseMeshComponent->SetVisibility(true);
 		LiquidMeshComponent->bRenderingEnable = false;
@@ -84,7 +83,7 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		ElapsedTime += DeltaTime;
 		const float AlphaRatio = FMath::Clamp(ElapsedTime / MorphingTime, 0.0f, 1.0f);
-		Alpha = FMath::Lerp(Alpha, DestAlpha, AlphaRatio);
+		Alpha = FMath::Lerp(CurrentAlpha, DestAlpha, AlphaRatio);
 		
 		if (UMaterialInstanceDynamic* DynMaterial = Cast<UMaterialInstanceDynamic>(LiquidMaterial))
 		{
@@ -99,6 +98,7 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	{
 		return;
 	}
+	
 
 	MeshType = NewType;
 	
@@ -106,7 +106,12 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	
 	DestAlpha = FVector3f::ZeroVector;
 	DestAlpha[Index] = 1.0f;
-	ElapsedTime = Alpha[Index] * MorphingTime;
+	
+	CurrentAlpha = Alpha;
+	
+	MorphingTime = MaxMorphingTime * (1 - Alpha[Index]);
+	ElapsedTime = 0;
+	
 	BaseMeshComponent->SetStaticMesh(MorphingMeshData->GetBaseMeshes()[Index]);
 	
 	BaseMeshComponent->SetVisibility(false);
