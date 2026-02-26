@@ -1,6 +1,7 @@
 ﻿#include "ClientSession.h"
 #include "NetworkWorker.h"
 #include <google/protobuf/message.h>
+#include "Protocol.pb.h"
 
 /*-----------------
    ClientSession

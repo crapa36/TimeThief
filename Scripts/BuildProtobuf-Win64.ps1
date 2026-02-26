@@ -20,6 +20,9 @@ cmake -S $Src -B $Bld -G "Visual Studio 17 2022" -A x64 `
   -Dprotobuf_BUILD_TESTS=OFF `
   -Dprotobuf_BUILD_SHARED_LIBS=OFF `
   -Dprotobuf_WITH_ZLIB=OFF `
+  -DCMAKE_POLICY_DEFAULT_CMP0091=NEW `
+  -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" `
+  -Dprotobuf_MSVC_STATIC_RUNTIME=OFF `
   -DCMAKE_INSTALL_PREFIX="$Out"
 
 cmake --build $Bld --config $Config --target install

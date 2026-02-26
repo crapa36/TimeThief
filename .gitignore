@@ -123,5 +123,8 @@ LocalDerivedDataCache/
 .editorconfig
 /Plugins/VisualStudioTools
 
-# Protobuf build filse
+# Protobuf build files
 External/ProtobufBuild/
+
+# Protocol Sync files
+Source/ProtocolSharedUE/Private/Generated/
