@@ -50,30 +50,7 @@ void ATimeThiefCharacterBase::BeginPlay()
 			FirstPersonMesh->HideBoneByName(FName("neck_02"), EPhysBodyOp::PBO_None);
 		}
 
-		if (bIsFirstPerson)
-		{
-			FirstPersonCamera->SetActive(true);
-			GetMesh()->SetOwnerNoSee(true);
-			if (FirstPersonMesh)
-			{
-				FirstPersonMesh->SetVisibility(true);
-			}
-			
-			bUseControllerRotationYaw = true;
-			GetCharacterMovement()->bOrientRotationToMovement = false;
-		}
-		else
-		{
-			FirstPersonCamera->SetActive(false);
-			GetMesh()->SetOwnerNoSee(false);
-			if (FirstPersonMesh)
-			{
-				FirstPersonMesh->SetVisibility(false);
-			}
-			
-			bUseControllerRotationYaw = false;
-			GetCharacterMovement()->bOrientRotationToMovement = true;
-		}
+		ApplyPerspective();
 	}
 }
 
@@ -83,29 +60,20 @@ void ATimeThiefCharacterBase::TogglePerspective()
 
 	if (IsLocallyControlled())
 	{
-		if (bIsFirstPerson)
-		{
-			FirstPersonCamera->SetActive(true);
-			GetMesh()->SetOwnerNoSee(true);
-			if (FirstPersonMesh)
-			{
-				FirstPersonMesh->SetVisibility(true);
-			}
-			
-			bUseControllerRotationYaw = true;
-			GetCharacterMovement()->bOrientRotationToMovement = false;
-		}
-		else
-		{
-			FirstPersonCamera->SetActive(false);
-			GetMesh()->SetOwnerNoSee(false);
-			if (FirstPersonMesh)
-			{
-				FirstPersonMesh->SetVisibility(false);
-			}
-			
-			bUseControllerRotationYaw = false;
-			GetCharacterMovement()->bOrientRotationToMovement = true;
-		}
+		ApplyPerspective();
 	}
+}
+
+void ATimeThiefCharacterBase::ApplyPerspective()
+{
+	FirstPersonCamera->SetActive(bIsFirstPerson);
+	GetMesh()->SetOwnerNoSee(bIsFirstPerson);
+
+	if (FirstPersonMesh)
+	{
+		FirstPersonMesh->SetVisibility(bIsFirstPerson);
+	}
+
+	bUseControllerRotationYaw = bIsFirstPerson;
+	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
 }

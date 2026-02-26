@@ -1,4 +1,4 @@
-﻿#include "Animation/Player/TimeThiefFirstPersonAnimInstance.h"
+#include "Animation/Player/TimeThiefFirstPersonAnimInstance.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Weapon/TimeThiefWeaponBase.h"
@@ -9,7 +9,6 @@ UTimeThiefFirstPersonAnimInstance::UTimeThiefFirstPersonAnimInstance(const FObje
 {
 	bHasWeapon = false;
 	SwayRotation = FRotator::ZeroRotator;
-	SwayLocation = FVector::ZeroVector;
 	ProceduralSpeed = 0.0f;
 	ProceduralVelocity = FVector::ZeroVector;
 	DeltaRotation = FRotator::ZeroRotator;
@@ -34,7 +33,7 @@ void UTimeThiefFirstPersonAnimInstance::NativeUpdateAnimation(float DeltaSeconds
 
 	if (!PlayerCharacter)
 	{
-		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
+		return;
 	}
 
 	UpdateWeaponData();
@@ -82,8 +81,8 @@ void UTimeThiefFirstPersonAnimInstance::UpdateSway(float DeltaSeconds)
 	FRotator DeltaRot = CurrentRotation - LastRotation;
 	DeltaRot.Normalize();
 
-	float TargetPitch = FMath::Clamp(DeltaRot.Pitch * -1.0f, -MaxSwayDegree, MaxSwayDegree);
-	float TargetYaw = FMath::Clamp(DeltaRot.Yaw * 1.0f, -MaxSwayDegree, MaxSwayDegree);
+	float TargetPitch = FMath::Clamp(-DeltaRot.Pitch, -MaxSwayDegree, MaxSwayDegree);
+	float TargetYaw = FMath::Clamp(DeltaRot.Yaw, -MaxSwayDegree, MaxSwayDegree);
 	
 	FRotator TargetSwayRot(TargetPitch, TargetYaw, TargetYaw * 0.5f);
 

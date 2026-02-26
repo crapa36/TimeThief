@@ -32,15 +32,7 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	if (!PlayerCharacter) {
-		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
-	}
-
-	if (!TrajectoryComponent && PlayerCharacter) {
-		TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
-	}
-
-	if (!WireComponent && PlayerCharacter) {
-		WireComponent = PlayerCharacter->GetWireComponent();
+		return;
 	}
 
 	UpdateWeaponData();
@@ -187,7 +179,7 @@ void UTimeThiefPlayerAnimInstance::UpdateSpreadAndAim(float DeltaSeconds)
 {
 	CurrentSpreadRatio = FMath::FInterpTo(CurrentSpreadRatio, 0.0f, DeltaSeconds, SpreadRecoverySpeed);
 
-	AimOffset = FMath::Vector2DInterpTo(AimOffset, TargetAimOffset, DeltaSeconds, 15.0f);
+	AimOffset = FMath::Vector2DInterpTo(AimOffset, TargetAimOffset, DeltaSeconds, AimOffsetInterpSpeed);
 	TargetAimOffset = FMath::Vector2DInterpTo(TargetAimOffset, FVector2D::ZeroVector, DeltaSeconds, AimRecoverySpeed);
 }
 

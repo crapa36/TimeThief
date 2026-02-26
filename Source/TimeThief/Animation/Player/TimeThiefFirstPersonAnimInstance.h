@@ -35,17 +35,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "FirstPerson|Sway")
 	FRotator SwayRotation;
 
-	UPROPERTY(BlueprintReadOnly, Category = "FirstPerson|Sway")
-	FVector SwayLocation;
-
 	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
 	float SwaySpeed = 10.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
 	float MaxSwayDegree = 5.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
-	float MaxSwayDistance = 2.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
 	float ProceduralSpeed;

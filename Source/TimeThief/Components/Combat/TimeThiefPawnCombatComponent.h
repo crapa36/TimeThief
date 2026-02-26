@@ -8,12 +8,6 @@
 class ATimeThiefWeaponBase;
 class UAnimMontage;
 
-UENUM(BlueprintType)
-enum class EToggleDamageType : uint8 {
-	CurrentEquippedWeapon,
-	LeftHand,
-	RightHand
-};
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensionComponent {

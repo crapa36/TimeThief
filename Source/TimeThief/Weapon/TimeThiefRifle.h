@@ -6,7 +6,6 @@
 
 class USoundCue;
 class UParticleSystem;
-class UControlRig;
 
 USTRUCT(BlueprintType)
 struct FHitScanResult
@@ -132,6 +131,9 @@ protected:
 
 	void ApplyRecoil();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
+	float RecoilInputScale = 0.1f;
+
 private:
 	int32 CurrentAmmo;
 	int32 ReserveAmmo;
@@ -140,6 +142,3 @@ private:
 	FTimerHandle AutoFireTimerHandle;
 	FTimerHandle ReloadTimerHandle;
 };
-
-
-
