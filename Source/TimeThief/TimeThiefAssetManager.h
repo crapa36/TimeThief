@@ -5,7 +5,8 @@
 #include "TimeThiefAssetManager.generated.h"
 
 UCLASS()
-class TIMETHIEF_API UTimeThiefAssetManager : public UAssetManager {
+class TIMETHIEF_API UTimeThiefAssetManager : public UAssetManager
+{
 	GENERATED_BODY()
 
 public:

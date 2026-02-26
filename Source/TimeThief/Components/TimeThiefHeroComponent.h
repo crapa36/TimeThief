@@ -4,7 +4,6 @@
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
-#include "Components/Wire/TimeThiefWireTypes.h"
 #include "TimeThiefHeroComponent.generated.h"
 
 class UTimeThiefPawnData;

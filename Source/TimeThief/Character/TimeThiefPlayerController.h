@@ -8,7 +8,7 @@ class UInputMappingContext;
 class UUserWidget;
 
 UCLASS(abstract)
-class ATimeThiefPlayerController : public APlayerController
+class TIMETHIEF_API ATimeThiefPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	

@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "UObject/NoExportTypes.h"
 #include "TimeThiefWirePhysics.generated.h"
 
 class UCharacterMovementComponent;
@@ -17,25 +16,25 @@ public:
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float PullInForce = 150000.0f;
+	float SpringStiffness = 5000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float SpringDamping = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
+	float PullForce = 300000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float SwingInputForce = 150000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float CentrifugalMassMultiplier = 3.0f;
+	float WireResistance = 50.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float MaxSwingSpeedMultiplier = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float GravityMultiplierOnWire = 0.1f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float SwingDragCoefficient = 0.1f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float MinWireLengthForPhysics = 100.0f;
+	float VerticalDamping = 10000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float MaxGroundTime = 0.3f;
@@ -46,22 +45,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float WireBreakAngleThreshold = -0.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics|Stabilization")
-	float VerticalDampingLow = 0.98f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics|Stabilization")
-	float VerticalDampingHigh = 0.9f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics|Stabilization")
-	float PositionCorrectionSpeed = 10.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics|Stabilization")
-	float AnchorHeightThreshold = 200.0f;
-
 protected:
-	virtual FVector CalculatePullForce(const FVector& WireDirection, float CurrentDistance) const;
-	virtual FVector CalculateSwingInputForce(const FVector& WireDirection, const FVector2D& Input) const;
-	virtual FVector GetTangentVelocity(const FVector& Velocity, const FVector& WireDirection) const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCharacterMovementComponent> CachedMovementComponent;

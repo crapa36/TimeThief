@@ -13,6 +13,8 @@ class UTimeThiefWireTargeting;
 class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
+class APlayerCameraManager;
+class UCameraShakeBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWire, Log, All);
 
@@ -86,6 +88,10 @@ private:
 	FVector GetAimDirection() const;
 	void UpdateWireVisuals();
 
+	void UpdateSpeedEffects(float DeltaTime);
+	void ResetSpeedEffects(float DeltaTime);
+	float GetSpeedEffectAlpha() const;
+
 public:
 	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
 	FOnWireStateChanged OnWireStateChanged;
@@ -145,13 +151,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	FVector AnchorMeshScale = FVector(1.0f);
 
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
-	FColor DebugWireColor = FColor::Cyan;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals", meta = (ToolTip = "앵커 메시에서 줄이 연결될 로컬 오프셋"))
+	FVector AnchorWireAttachOffset = FVector::ZeroVector;
 
-	UPROPERTY(EditAnywhere, Category = "Wire|Debug")
-	float DebugWireThickness = 2.0f;
-#endif
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals", meta = (ToolTip = "앵커 메시의 기본 회전 오프셋"))
+	FRotator AnchorMeshRotationOffset = FRotator::ZeroRotator;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
+	float SpeedEffectThreshold = 800.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
+	float MaxFOVIncrease = 15.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
+	float FOVInterpSpeed = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
+	float CameraShakeScale = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
+	TSubclassOf<UCameraShakeBase> WireSpeedShake;
 
 private:
 	UPROPERTY(Transient)
@@ -165,6 +184,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> AnchorMeshComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<APlayerCameraManager> CachedCameraManager;
 	
 	UPROPERTY()
 	EWireState CurrentState = EWireState::Idle;
@@ -178,12 +200,16 @@ private:
 	UPROPERTY()
 	FVector FireDirection = FVector::ZeroVector;
 
+	UPROPERTY()
+	FRotator AttachedAnchorRotation = FRotator::ZeroRotator;
+
 	FVector2D MoveInput = FVector2D::ZeroVector;
 	float CurrentFireDistance = 0.0f;
 	float CooldownRemaining = 0.0f;
 	float AttachedWireLength = 0.0f;
-	float CachedGravityScale = 1.0f;
 	float CachedAirControl = 0.0f;
 	float StuckCheckTimer = 0.0f;
 	float GroundCheckTimer = 0.0f;
+	float DefaultFOV = 90.0f;
+	float CurrentFOVOffset = 0.0f;
 };

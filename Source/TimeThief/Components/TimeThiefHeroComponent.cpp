@@ -65,6 +65,14 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	const UTimeThiefInputConfig* InputConfig = PawnData->InputConfig;
 	if (!InputConfig) return;
 
+	for (const TObjectPtr<UInputMappingContext>& IMC : PawnData->InputMappingContexts)
+	{
+		if (IMC)
+		{
+			AddInputMappingContext(IMC, 1);
+		}
+	}
+
 	const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
 
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move);

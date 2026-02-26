@@ -53,12 +53,6 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag) {
 
 	if (TSubclassOf<UAnimInstance> AnimLayer = WeaponToEquip->GetEquipAnimLayer()) {
 		OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
-		
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				FirstPersonMesh->LinkAnimClassLayers(AnimLayer);
-			}
-		}
 	}
 
 	PlayEquipMontage(WeaponToEquip);
@@ -78,12 +72,6 @@ void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon() {
 
 	if (TSubclassOf<UAnimInstance> AnimLayer = CurrentEquippedWeapon->GetEquipAnimLayer()) {
 		OwningCharacter->GetMesh()->UnlinkAnimClassLayers(AnimLayer);
-
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				FirstPersonMesh->UnlinkAnimClassLayers(AnimLayer);
-			}
-		}
 	}
 
 	CurrentEquippedWeaponTag = FGameplayTag();
@@ -103,11 +91,11 @@ void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* W
 	FName SocketToUse = Weapon->GetSocketName();
 	USkeletalMeshComponent* TargetMesh = OwningCharacter->GetMesh();
 
-	if (OwningCharacter->IsLocallyControlled()) {
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				TargetMesh = FirstPersonMesh;
-			}
+	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+	{
+		if (BaseChar->IsLocallyControlled() && BaseChar->GetFirstPersonMesh())
+		{
+			TargetMesh = BaseChar->GetFirstPersonMesh();
 		}
 	}
 
@@ -133,16 +121,6 @@ void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapo
 	if (AnimInstance) {
 		AnimInstance->Montage_Play(EquipMontage);
 	}
-
-	if (OwningCharacter->IsLocallyControlled()) {
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				if (UAnimInstance* FPAnimInstance = FirstPersonMesh->GetAnimInstance()) {
-					FPAnimInstance->Montage_Play(EquipMontage);
-				}
-			}
-		}
-	}
 }
 
 ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const {
@@ -152,14 +130,15 @@ ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponBy
 	return nullptr;
 }
 
-ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const {
+ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const
+{
 	return CurrentEquippedWeapon;
 }
 
-
-
-void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag) {
+void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag)
+{
 }
 
-void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag) {
+void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag)
+{
 }
