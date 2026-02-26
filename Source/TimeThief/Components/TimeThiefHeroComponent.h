@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
@@ -9,6 +9,8 @@
 class UTimeThiefPawnData;
 class UTimeThiefInputConfig;
 class UInputMappingContext;
+class UTimeThiefWireComponent;
+class UTimeThiefPawnCombatComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeThiefHero_ReadyDelegate, UTimeThiefHeroComponent*, HeroComponent);
 
@@ -60,4 +62,10 @@ protected:
 	float RotationInterpSpeed = 10.0f;
 
 	bool bReadyToBindInputs = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefPawnCombatComponent> CachedCombatComponent;
 };

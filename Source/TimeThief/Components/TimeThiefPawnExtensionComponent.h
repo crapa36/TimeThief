@@ -34,7 +34,8 @@ protected:
 	template <class T>
 	T* GetController() const {
 		static_assert(TPointerIsConvertibleFromTo<T, AController>::Value, "T must be derived from AController");
-		return GetPawn<APawn>()->GetController<T>();
+		APawn* Pawn = GetPawn<APawn>();
+		return Pawn ? Pawn->GetController<T>() : nullptr;
 	}
 
 	void BindOnActorInitStateChanged(FName FeatureName, FGameplayTag RequiredState, bool bCallImmediately);

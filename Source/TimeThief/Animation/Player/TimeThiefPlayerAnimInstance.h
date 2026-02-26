@@ -134,4 +134,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat|Recoil")
 	float RecoilInterpSpeed = 15.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Combat|Spread")
+	float AimOffsetInterpSpeed = 15.0f;
 };

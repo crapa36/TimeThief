@@ -311,16 +311,10 @@ void ATimeThiefRifle::ApplyRecoil()
 			if (PC)
 			{
 				FVector2D AimOff = AnimInst->GetAimOffset();
-				PC->AddPitchInput(-AimOff.Y * 0.1f);
-				PC->AddYawInput(AimOff.X * 0.1f);
+				PC->AddPitchInput(-AimOff.Y * RecoilInputScale);
+				PC->AddYawInput(AimOff.X * RecoilInputScale);
 			}
 		}
 	}
 }
-
-
-
-
-
-
 
