@@ -10,6 +10,7 @@
  * 
  */
 
+class ATimeThiefGameState;
 class UImage;
 class UMaterialInstanceDynamic;
 
@@ -33,24 +34,20 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> StormZone_Image;
 	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> NextStormZone_Image;
+	
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> StormZoneDMI;
+	
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> NextStormZoneDMI;
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<AActor> Player;
 	
-	UPROPERTY(EditAnywhere)
-	FVector2D MapSize;
-	
+	UPROPERTY()
+	TObjectPtr<ATimeThiefGameState> GameState;
+
 	FVector2D MinimapSize;
-	
-	float ElapsedTime{0};
-	FVector2D CurrentStormZoneCenter{0.5f};
-	float CurrentStormZoneRadius{0.5f};
-	
-	FVector2D StormZoneCenter{0.5f};
-	float StormZoneRadius{0.5f};
-	
-	FVector2D DestStormZoneCenter{0.7f, 0.7f};
-	float DestStormZoneRadius{0.3f};
 };

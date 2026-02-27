@@ -6,6 +6,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "TimeThiefGameState.generated.h"
 
+class UTimeStormComponent;
 /**
  * 
  */
@@ -13,4 +14,10 @@ UCLASS()
 class TIMETHIEF_API ATimeThiefGameState : public AGameStateBase
 {
 	GENERATED_BODY()
+	
+public:
+	ATimeThiefGameState();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UTimeStormComponent> TimeStormComponent;
 };
