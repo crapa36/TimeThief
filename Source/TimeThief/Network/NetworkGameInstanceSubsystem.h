@@ -9,12 +9,12 @@
 #include "Engine/World.h"
 
 #include "SendBuffer.h"
-#include "ClientSession.h"
+#include "PacketSession.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
 class SendBuffer;
-class ClientSession;
+class PacketSession;
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -53,7 +53,7 @@ private:
 	FString ServerAddress = TEXT("127.0.0.1");	// 기본값 localhost(loopback)
 	int ServerPort = 8252;						// TimeThiefServer 포트
 	
-	TSharedPtr<ClientSession> GameSession;
+	TSharedPtr<PacketSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
 	

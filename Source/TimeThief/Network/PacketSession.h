@@ -9,17 +9,17 @@ class FSocket;
 class SendBuffer;
 
 /*-----------------
-   ClientSession
+   PacketSession
 -----------------*/
 //
-// ClientSession는 클라이언트 측의 세션을 담당하는 클래스입니다.
+// PacketSession는 클라이언트 측의 세션을 담당하는 클래스입니다.
 //
 
-class TIMETHIEF_API ClientSession : public TSharedFromThis<ClientSession>
+class TIMETHIEF_API PacketSession : public TSharedFromThis<PacketSession>
 {
 public:
-	ClientSession(FSocket* Socket);
-	~ClientSession();
+	PacketSession(FSocket* Socket);
+	~PacketSession();
 	
 public:
 	void Run();

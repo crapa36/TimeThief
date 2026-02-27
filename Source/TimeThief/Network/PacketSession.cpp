@@ -1,58 +1,48 @@
-﻿#include "ClientSession.h"
+﻿#include "PacketSession.h"
 #include "NetworkWorker.h"
-#include <google/protobuf/message.h>
-#include "Protocol.pb.h"
-#include "Protocol/Framing/PacketHeader.h"
+#include "Generated/ClientPacketHandler.h"
 
 /*-----------------
    ClientSession
 -----------------*/
 
-ClientSession::ClientSession(class FSocket* Socket)
+PacketSession::PacketSession(class FSocket* Socket)
 {
-   // TODO: PacketHandler가 PacketHandler 만들어 진 뒤 초기화 하기
+   ClientPacketHandler::Init();
 }
 
-ClientSession::~ClientSession()
+PacketSession::~PacketSession()
 {
    Disconnect();
 }
 
-void ClientSession::Run()
+void PacketSession::Run()
 {
    RecvWorkerThread = MakeShared<RecvWorker>(Socket, AsShared());
    SendWorkerThread = MakeShared<SendWorker>(Socket, AsShared());
 }
 
-void ClientSession::HandleRecvPackets()
+void PacketSession::HandleRecvPackets()
 {
-   google::protobuf::Message* Message = nullptr;
-   se::auth::C_HandshakeReq msg;
-   msg.set_client_protocol_version(0);
-   msg.set_client_build("???");
-   
-   Protocol::Framing::PacketHeader header;
-   header.messageId = 1;
-   header.packetSize = msg.ByteSizeLong();
-   
    while (true)
    {
       TArray<uint8> Packet;
       if (not RecvPacketQueue.Dequeue(OUT Packet))
          break;
       
-      TSharedPtr<ClientSession> ThisPtr = AsShared();
+      TSharedPtr<PacketSession> ThisPtr = AsShared();
       // TODO: PacketHandler가 완성되고 패킷을 조립하고 구분하는 작업 수행 시키기
       //       ex) PacketHandler::HandlePacket(ThisPtr, Packet.GetData(), Packet.Num());
+      // ClientPacketHandler::HandlePacket(ThisPtr, Packet.GetData(), Packet.Num());
    }
 }
 
-void ClientSession::SendPacket(TSharedPtr<SendBuffer> SendBuffer)
+void PacketSession::SendPacket(TSharedPtr<SendBuffer> SendBuffer)
 {
    SendPacketQueue.Enqueue(SendBuffer);
 }
 
-void ClientSession::Disconnect()
+void PacketSession::Disconnect()
 {
    if (RecvWorkerThread)
    {

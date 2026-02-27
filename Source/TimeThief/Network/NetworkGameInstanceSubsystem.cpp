@@ -4,7 +4,7 @@
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 
-#include "ClientSession.h"
+#include "PacketSession.h"
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -66,7 +66,7 @@ void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, in
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Connection Success")));
 		
-		GameSession = MakeShared<ClientSession>(Socket);
+		GameSession = MakeShared<PacketSession>(Socket);
 		GameSession->Run();
 		
 		// TODO: Server에 접속하였다고 알리는 패킷 보내기
