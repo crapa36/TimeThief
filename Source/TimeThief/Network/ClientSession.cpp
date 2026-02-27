@@ -2,6 +2,7 @@
 #include "NetworkWorker.h"
 #include <google/protobuf/message.h>
 #include "Protocol.pb.h"
+#include "Protocol/Framing/PacketHeader.h"
 
 /*-----------------
    ClientSession
@@ -29,6 +30,10 @@ void ClientSession::HandleRecvPackets()
    se::auth::C_HandshakeReq msg;
    msg.set_client_protocol_version(0);
    msg.set_client_build("???");
+   
+   Protocol::Framing::PacketHeader header;
+   header.messageId = 1;
+   header.packetSize = msg.ByteSizeLong();
    
    while (true)
    {
