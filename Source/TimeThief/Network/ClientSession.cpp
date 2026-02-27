@@ -26,6 +26,9 @@ void ClientSession::Run()
 void ClientSession::HandleRecvPackets()
 {
    google::protobuf::Message* Message = nullptr;
+   se::auth::C_HandshakeReq msg;
+   msg.set_client_protocol_version(0);
+   msg.set_client_build("???");
    
    while (true)
    {
