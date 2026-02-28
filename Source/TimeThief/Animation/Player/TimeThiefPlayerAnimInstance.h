@@ -54,6 +54,12 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	float AimYaw = 0.0f;
 
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	bool bIsAiming = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	float AimSpreadMultiplier = 1.0f;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	bool bIsWireAttached;
 
@@ -116,7 +122,7 @@ public:
 	void ApplyFireSpread();
 
 	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle; }
+	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle * AimSpreadMultiplier; }
 
 	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
 	FVector2D GetAimOffset() const { return AimOffset; }
@@ -128,6 +134,7 @@ private:
 	void UpdateRecoil(float DeltaSeconds);
 	void UpdateSpreadAndAim(float DeltaSeconds);
 	void UpdateAimDirection();
+	void UpdateAimingState();
 
 	float TargetRecoilAlpha = 0.0f;
 	FVector2D TargetAimOffset = FVector2D::ZeroVector;

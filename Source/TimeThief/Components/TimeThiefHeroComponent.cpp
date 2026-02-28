@@ -29,6 +29,7 @@ void UTimeThiefHeroComponent::SetPawnData(const UTimeThiefPawnData* InPawnData)
 	if (PawnData) return;
 
 	PawnData = InPawnData;
+	bPawnDataSet = true;
 	CheckDefaultInitialization();
 }
 
@@ -91,7 +92,9 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
 	bReadyToBindInputs = true;
+	bInputsReady = true;
 	OnReadyToBindInputs.Broadcast(this);
+	CheckDefaultInitialization();
 }
 
 void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext* MappingContext, int32 Priority)
@@ -145,12 +148,6 @@ void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
 	Character->AddMovementInput(ForwardDirection, MovementVector.Y);
 	Character->AddMovementInput(RightDirection, MovementVector.X);
 
-	if (!FMath::IsNearlyZero(MovementVector.SizeSquared()))
-	{
-		const FRotator CurrentRotation = Character->GetActorRotation();
-		const FRotator TargetRotation = FMath::RInterpTo(CurrentRotation, YawRotation, GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
-		Character->SetActorRotation(TargetRotation);
-	}
 
 	if (CachedWireComponent)
 	{

@@ -29,6 +29,8 @@ struct FHitScanResult
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector FireDirection = FVector::ForwardVector;
+
+	FHitResult OriginalHitResult;
 };
 
 UCLASS()

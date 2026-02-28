@@ -66,6 +66,10 @@ void ATimeThiefPlayerCharacter::OnPawnDataSet() {
 			HeroComponent->InitializePlayerInput(InputComponent);
 		}
 	}
+
+	if (PawnData && PawnData->PawnTags.Num() > 0) {
+		AppendOwnedGameplayTags(PawnData->PawnTags);
+	}
 }
 
 void ATimeThiefPlayerCharacter::OnRep_PawnData() {
@@ -90,7 +94,9 @@ void ATimeThiefPlayerCharacter::BeginPlay() {
 }
 
 void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
-	DisableInput(Cast<APlayerController>(GetController()));
+	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+		DisableInput(PC);
+	}
 	GetCharacterMovement()->DisableMovement();
 }
 

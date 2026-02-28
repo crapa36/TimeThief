@@ -2,6 +2,7 @@
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "CharacterTrajectoryComponent.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Weapon/TimeThiefWeaponBase.h"
 
@@ -36,6 +37,7 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	}
 
 	UpdateWeaponData();
+	UpdateAimingState();
 	UpdateWireData();
 	UpdateWireHandIK(DeltaSeconds);
 	UpdateRecoil(DeltaSeconds);
@@ -201,3 +203,23 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 	AimYaw = FMath::Clamp(DeltaRotation.Yaw, -90.0f, 90.0f);
 }
 
+void UTimeThiefPlayerAnimInstance::UpdateAimingState()
+{
+	if (!PlayerCharacter)
+	{
+		bIsAiming = false;
+		AimSpreadMultiplier = 1.0f;
+		return;
+	}
+
+	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent())
+	{
+		bIsAiming = PlayerCombat->IsAiming();
+		AimSpreadMultiplier = bIsAiming ? PlayerCombat->GetAimSpreadMultiplier() : 1.0f;
+	}
+	else
+	{
+		bIsAiming = false;
+		AimSpreadMultiplier = 1.0f;
+	}
+}

@@ -50,5 +50,10 @@ protected:
 	UPROPERTY()
 	TObjectPtr<ATimeThiefWeaponBase> CurrentEquippedWeapon;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	TMap<FGameplayTag, FGameplayTag> WeaponToStateTagMap;
+
 	void PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
+	void ApplyCombatStateTag(FGameplayTag WeaponTag);
+	void RemoveCombatStateTag(FGameplayTag WeaponTag);
 };

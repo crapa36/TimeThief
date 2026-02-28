@@ -1,5 +1,6 @@
-﻿#include "Weapon/TimeThiefRifle.h"
+#include "Weapon/TimeThiefRifle.h"
 #include "Animation/Player/TimeThiefPlayerAnimInstance.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -71,12 +72,9 @@ void ATimeThiefRifle::Reload()
 
 	if (ReloadMontage)
 	{
-		if (ACharacter* OwnerChar = Cast<ACharacter>(GetOwner()))
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()))
 		{
-			if (UAnimInstance* AnimInstance = OwnerChar->GetMesh()->GetAnimInstance())
-			{
-				AnimInstance->Montage_Play(ReloadMontage);
-			}
+			BaseChar->PlayMontageOnAllMeshes(ReloadMontage);
 		}
 	}
 
@@ -177,6 +175,7 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 		Result.HitNormal = HitResult.ImpactNormal;
 		Result.HitActor = HitResult.GetActor();
 		Result.HitBoneName = HitResult.BoneName;
+		Result.OriginalHitResult = HitResult;
 
 #if ENABLE_DRAW_DEBUG
 		DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Red, false, 1.0f, 0, 1.0f);
@@ -216,7 +215,7 @@ void ATimeThiefRifle::ApplyDamage(const FHitScanResult& HitResult)
 		HitResult.HitActor.Get(),
 		FinalDamage,
 		HitResult.FireDirection,
-		FHitResult(),
+		HitResult.OriginalHitResult,
 		InstigatorController,
 		this,
 		nullptr
@@ -244,12 +243,9 @@ void ATimeThiefRifle::PlayFireEffects()
 
 	if (FireMontage)
 	{
-		if (ACharacter* OwnerChar = Cast<ACharacter>(GetOwner()))
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()))
 		{
-			if (UAnimInstance* AnimInstance = OwnerChar->GetMesh()->GetAnimInstance())
-			{
-				AnimInstance->Montage_Play(FireMontage);
-			}
+			BaseChar->PlayMontageOnAllMeshes(FireMontage);
 		}
 	}
 }

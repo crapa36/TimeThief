@@ -5,6 +5,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -13,6 +15,7 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bCastHiddenShadow = true;
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 
 	FirstPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
 	FirstPersonMesh->SetupAttachment(GetCapsuleComponent());
@@ -77,3 +80,51 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 	bUseControllerRotationYaw = bIsFirstPerson;
 	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
 }
+
+void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate)
+{
+	if (!Montage)
+	{
+		return;
+	}
+
+	if (UAnimInstance* ThirdPersonAnim = GetMesh()->GetAnimInstance())
+	{
+		ThirdPersonAnim->Montage_Play(Montage, PlayRate);
+	}
+
+	if (FirstPersonMesh)
+	{
+		if (UAnimInstance* FirstPersonAnim = FirstPersonMesh->GetAnimInstance())
+		{
+			FirstPersonAnim->Montage_Play(Montage, PlayRate);
+		}
+	}
+}
+
+void ATimeThiefCharacterBase::AddOwnedGameplayTag(const FGameplayTag& Tag)
+{
+	if (Tag.IsValid())
+	{
+		OwnedGameplayTags.AddTag(Tag);
+	}
+}
+
+void ATimeThiefCharacterBase::RemoveOwnedGameplayTag(const FGameplayTag& Tag)
+{
+	if (Tag.IsValid())
+	{
+		OwnedGameplayTags.RemoveTag(Tag);
+	}
+}
+
+bool ATimeThiefCharacterBase::HasOwnedGameplayTag(const FGameplayTag& Tag) const
+{
+	return OwnedGameplayTags.HasTag(Tag);
+}
+
+void ATimeThiefCharacterBase::AppendOwnedGameplayTags(const FGameplayTagContainer& InTags)
+{
+	OwnedGameplayTags.AppendTags(InTags);
+}
+

@@ -41,4 +41,13 @@ protected:
 	void BindOnActorInitStateChanged(FName FeatureName, FGameplayTag RequiredState, bool bCallImmediately);
 
 	virtual void OnPawnReadyToInitialize() {}
+
+	bool bPawnDataSet = false;
+	bool bInputsReady = false;
+
+	FGameplayTag GetCurrentInitState() const { return CurrentInitState; }
+
+private:
+	FGameplayTag CurrentInitState;
+	bool TryTransitionToState(UGameFrameworkComponentManager* Manager, const FGameplayTag& DesiredState);
 };
