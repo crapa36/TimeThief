@@ -4,8 +4,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Particles/ParticleSystem.h"
-#include "Sound/SoundCue.h"
+#include "Sound/SoundBase.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 
@@ -200,11 +199,6 @@ void ATimeThiefRifle::ApplyDamage(const FHitScanResult& HitResult)
 
 	float FinalDamage = BaseDamage;
 
-	if (HitResult.HitBoneName == HeadshotBoneName)
-	{
-		FinalDamage *= HeadshotMultiplier;
-	}
-
 	AController* InstigatorController = nullptr;
 	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
 	{
@@ -254,7 +248,11 @@ void ATimeThiefRifle::PlayImpactEffects(const FHitScanResult& HitResult)
 {
 	if (ImpactEffect && HitResult.bHit)
 	{
-		FRotator ImpactRotation = HitResult.HitNormal.Rotation();
+		const FVector IncomingDir = HitResult.FireDirection.GetSafeNormal();
+		const FVector ReflectDir = FMath::GetReflectionVector(IncomingDir, HitResult.HitNormal);
+		
+		const FRotator ImpactRotation = FRotationMatrix::MakeFromXZ(ReflectDir, HitResult.HitNormal).Rotator();
+
 		UGameplayStatics::SpawnEmitterAtLocation(
 			this,
 			ImpactEffect,
@@ -266,9 +264,9 @@ void ATimeThiefRifle::PlayImpactEffects(const FHitScanResult& HitResult)
 
 FVector ATimeThiefRifle::GetMuzzleLocation() const
 {
-	if (WeaponMesh && WeaponMesh->DoesSocketExist(MuzzleSocketName))
+	if (WeaponMesh && WeaponMesh->DoesSocketExist(GetMuzzleSocketName()))
 	{
-		return WeaponMesh->GetSocketLocation(MuzzleSocketName);
+		return WeaponMesh->GetSocketLocation(GetMuzzleSocketName());
 	}
 	return GetActorLocation();
 }
@@ -301,14 +299,15 @@ void ATimeThiefRifle::ApplyRecoil()
 	{
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
-			AnimInst->ApplyFireSpread();
+			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadRecoverySpeed);
+			AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadBuildupPerShot);
 
 			APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
 			if (PC)
 			{
-				FVector2D AimOff = AnimInst->GetAimOffset();
-				PC->AddPitchInput(-AimOff.Y * RecoilInputScale);
-				PC->AddYawInput(AimOff.X * RecoilInputScale);
+				const FVector2D AimOff = AnimInst->GetAimOffset();
+				PC->AddPitchInput(-AimOff.Y);
+				PC->AddYawInput(AimOff.X);
 			}
 		}
 	}

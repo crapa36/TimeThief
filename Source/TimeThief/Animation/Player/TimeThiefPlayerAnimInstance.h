@@ -42,9 +42,6 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FTransform LeftHandIKTransform;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	FName LeftHandIKSocketName = FName("LeftHandSocket");
-
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 
@@ -96,20 +93,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
 	float MaxSpreadAngle = 5.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
-	float SpreadIncreasePerShot = 0.15f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
-	float SpreadRecoverySpeed = 2.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
-	float HorizontalRecoilRange = 0.3f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
-	float VerticalRecoilAmount = 0.5f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
-	float AimRecoverySpeed = 3.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Recoil")
+	float RecoilBuildup = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
 	float CurrentSpreadRatio = 0.0f;
@@ -119,7 +105,14 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Spread")
-	void ApplyFireSpread();
+	void ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot);
+
+	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
+	void SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery)
+	{
+		RecoilRecoverySpeed = InRecoilRecovery;
+		SpreadRecoverySpeed = InSpreadRecovery;
+	}
 
 	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
 	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle * AimSpreadMultiplier; }
@@ -127,17 +120,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
 	FVector2D GetAimOffset() const { return AimOffset; }
 
+	UFUNCTION(BlueprintPure, Category = "Combat|Recoil")
+	float GetRecoilBuildup() const { return RecoilBuildup; }
+
 private:
 	void UpdateWeaponData();
 	void UpdateWireData();
 	void UpdateWireHandIK(float DeltaSeconds);
 	void UpdateRecoil(float DeltaSeconds);
-	void UpdateSpreadAndAim(float DeltaSeconds);
+	void UpdateSpreadAndRecoil(float DeltaSeconds);
 	void UpdateAimDirection();
 	void UpdateAimingState();
 
 	float TargetRecoilAlpha = 0.0f;
 	FVector2D TargetAimOffset = FVector2D::ZeroVector;
+
+	float RecoilRecoverySpeed = 5.0f;
+	float SpreadRecoverySpeed = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat|Recoil")
 	float RecoilInterpSpeed = 15.0f;

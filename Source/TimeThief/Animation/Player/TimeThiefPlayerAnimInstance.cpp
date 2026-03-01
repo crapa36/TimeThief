@@ -41,7 +41,7 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	UpdateWireData();
 	UpdateWireHandIK(DeltaSeconds);
 	UpdateRecoil(DeltaSeconds);
-	UpdateSpreadAndAim(DeltaSeconds);
+	UpdateSpreadAndRecoil(DeltaSeconds);
 	UpdateAimDirection();
 }
 
@@ -67,14 +67,15 @@ void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
 	if (bHasWeapon) {
 		EquippedWeaponTag = CurrentWeapon->GetWeaponTag();
 
-		USkeletalMeshComponent* WeaponMesh = CurrentWeapon->GetWeaponMesh();
-		if (WeaponMesh && WeaponMesh->DoesSocketExist(LeftHandIKSocketName)) {
-			FTransform SocketTransform = WeaponMesh->GetSocketTransform(LeftHandIKSocketName, RTS_World);
-			
-			USkeletalMeshComponent* OwningMesh = GetOwningComponent();
-			if (OwningMesh) {
-				FTransform MeshTransform = OwningMesh->GetComponentTransform();
-				LeftHandIKTransform = SocketTransform.GetRelativeTransform(MeshTransform);
+		UStaticMeshComponent* WMesh = CurrentWeapon->GetWeaponMesh();
+		USkeletalMeshComponent* OwningMesh = GetOwningComponent();
+		if (WMesh && OwningMesh)
+		{
+			const FName LHSocket = CurrentWeapon->GetLeftHandSocketName();
+			if (WMesh->DoesSocketExist(LHSocket))
+			{
+				FTransform SocketWorld = WMesh->GetSocketTransform(LHSocket, RTS_World);
+				LeftHandIKTransform = SocketWorld.GetRelativeTransform(OwningMesh->GetComponentTransform());
 			}
 		}
 	} else {
@@ -164,25 +165,26 @@ void UTimeThiefPlayerAnimInstance::UpdateRecoil(float DeltaSeconds)
 	}
 }
 
-void UTimeThiefPlayerAnimInstance::ApplyFireSpread()
+void UTimeThiefPlayerAnimInstance::ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot)
 {
-	CurrentSpreadRatio = FMath::Clamp(CurrentSpreadRatio + SpreadIncreasePerShot, 0.0f, 1.0f);
+	RecoilBuildup = FMath::Clamp(RecoilBuildup + InRecoilBuildupPerShot, 0.0f, 1.0f);
+	CurrentSpreadRatio = FMath::Clamp(CurrentSpreadRatio + InSpreadBuildupPerShot, 0.0f, 1.0f);
 
-	float HorizontalOffset = FMath::RandRange(-HorizontalRecoilRange, HorizontalRecoilRange);
-	float VerticalOffset = VerticalRecoilAmount * (0.8f + FMath::RandRange(0.0f, 0.4f));
+	const float VerticalRecoil = InMaxVerticalRecoil * RecoilBuildup * FMath::FRandRange(0.7f, 1.0f);
+	const float HorizontalRecoil = FMath::FRandRange(-InMaxHorizontalRecoil, InMaxHorizontalRecoil) * RecoilBuildup;
 
-	TargetAimOffset.X += HorizontalOffset;
-	TargetAimOffset.Y += VerticalOffset;
+	TargetAimOffset.X += HorizontalRecoil;
+	TargetAimOffset.Y += VerticalRecoil;
 
-	TriggerRecoil(CurrentSpreadRatio);
+	TriggerRecoil(RecoilBuildup);
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateSpreadAndAim(float DeltaSeconds)
+void UTimeThiefPlayerAnimInstance::UpdateSpreadAndRecoil(float DeltaSeconds)
 {
 	CurrentSpreadRatio = FMath::FInterpTo(CurrentSpreadRatio, 0.0f, DeltaSeconds, SpreadRecoverySpeed);
-
+	RecoilBuildup = FMath::FInterpTo(RecoilBuildup, 0.0f, DeltaSeconds, RecoilRecoverySpeed);
 	AimOffset = FMath::Vector2DInterpTo(AimOffset, TargetAimOffset, DeltaSeconds, AimOffsetInterpSpeed);
-	TargetAimOffset = FMath::Vector2DInterpTo(TargetAimOffset, FVector2D::ZeroVector, DeltaSeconds, AimRecoverySpeed);
+	TargetAimOffset = FMath::Vector2DInterpTo(TargetAimOffset, FVector2D::ZeroVector, DeltaSeconds, RecoilRecoverySpeed);
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
