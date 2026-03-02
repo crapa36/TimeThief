@@ -67,16 +67,13 @@ void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
 	if (bHasWeapon) {
 		EquippedWeaponTag = CurrentWeapon->GetWeaponTag();
 
-		UStaticMeshComponent* WMesh = CurrentWeapon->GetWeaponMesh();
+		const FName LHIKSocket = CurrentWeapon->GetLeftHandIKSocketName();
+		UStaticMeshComponent* WeaponMesh = CurrentWeapon->GetWeaponMesh();
 		USkeletalMeshComponent* OwningMesh = GetOwningComponent();
-		if (WMesh && OwningMesh)
+		if (WeaponMesh && OwningMesh && WeaponMesh->DoesSocketExist(LHIKSocket))
 		{
-			const FName LHSocket = CurrentWeapon->GetLeftHandSocketName();
-			if (WMesh->DoesSocketExist(LHSocket))
-			{
-				FTransform SocketWorld = WMesh->GetSocketTransform(LHSocket, RTS_World);
-				LeftHandIKTransform = SocketWorld.GetRelativeTransform(OwningMesh->GetComponentTransform());
-			}
+			FTransform SocketTransform = WeaponMesh->GetSocketTransform(LHIKSocket, RTS_World);
+			LeftHandIKTransform = SocketTransform.GetRelativeTransform(OwningMesh->GetComponentTransform());
 		}
 	} else {
 		EquippedWeaponTag = FGameplayTag();

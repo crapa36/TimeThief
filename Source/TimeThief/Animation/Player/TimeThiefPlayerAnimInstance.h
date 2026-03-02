@@ -42,6 +42,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FTransform LeftHandIKTransform;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	FName LeftHandIKSocketName = FName("LeftHandIK");
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 

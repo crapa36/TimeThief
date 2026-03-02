@@ -108,9 +108,6 @@ void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* W
 	}
 
 	Weapon->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketToUse);
-
-	const FTransform GripOffset = Weapon->GetGripOffset();
-	Weapon->SetActorRelativeTransform(GripOffset);
 }
 
 void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon) {

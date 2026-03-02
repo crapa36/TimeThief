@@ -19,13 +19,3 @@ FTransform ATimeThiefWeaponBase::GetSocketTransformByName(FName InSocketName) co
 	}
 	return GetActorTransform();
 }
-
-FTransform ATimeThiefWeaponBase::GetGripOffset() const
-{
-	if (WeaponMesh && WeaponMesh->DoesSocketExist(GripSocketName))
-	{
-		return WeaponMesh->GetSocketTransform(GripSocketName, RTS_Component).Inverse();
-	}
-	return FTransform::Identity;
-}
-

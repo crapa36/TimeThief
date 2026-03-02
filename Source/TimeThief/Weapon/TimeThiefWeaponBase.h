@@ -37,16 +37,11 @@ public:
 	FName GetMuzzleSocketName() const { return MuzzleSocketName; }
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
-	FName GetGripSocketName() const { return GripSocketName; }
-
-	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
-	FName GetLeftHandSocketName() const { return LeftHandSocketName; }
+	FName GetLeftHandIKSocketName() const { return LeftHandIKSocketName; }
 
 	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
 	FTransform GetSocketTransformByName(FName InSocketName) const;
 
-	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
-	FTransform GetGripOffset() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -61,11 +56,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
 	FName MuzzleSocketName = TEXT("Muzzle");
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-	FName GripSocketName = TEXT("Grip");
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
-	FName LeftHandSocketName = TEXT("LeftHand");
+	FName LeftHandIKSocketName = TEXT("LeftHandIK");
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
 	TSubclassOf<UAnimInstance> EquipAnimLayer;
