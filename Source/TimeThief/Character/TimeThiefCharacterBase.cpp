@@ -7,6 +7,7 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -98,6 +99,27 @@ void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, floa
 		if (UAnimInstance* FirstPersonAnim = FirstPersonMesh->GetAnimInstance())
 		{
 			FirstPersonAnim->Montage_Play(Montage, PlayRate);
+		}
+	}
+}
+
+void ATimeThiefCharacterBase::PlayAnimationOnAllMeshes(UAnimSequenceBase* Animation, FName SlotName, float BlendInTime, float BlendOutTime, float PlayRate)
+{
+	if (!Animation)
+	{
+		return;
+	}
+
+	if (UAnimInstance* ThirdPersonAnim = GetMesh()->GetAnimInstance())
+	{
+		ThirdPersonAnim->PlaySlotAnimationAsDynamicMontage(Animation, SlotName, BlendInTime, BlendOutTime, PlayRate);
+	}
+
+	if (FirstPersonMesh)
+	{
+		if (UAnimInstance* FirstPersonAnim = FirstPersonMesh->GetAnimInstance())
+		{
+			FirstPersonAnim->PlaySlotAnimationAsDynamicMontage(Animation, SlotName, BlendInTime, BlendOutTime, PlayRate);
 		}
 	}
 }

@@ -12,6 +12,7 @@ class USkeletalMeshComponent;
 class USpringArmComponent;
 
 class UAnimMontage;
+class UAnimSequenceBase;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
@@ -35,6 +36,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Animation")
 	void PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate = 1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Animation")
+	void PlayAnimationOnAllMeshes(UAnimSequenceBase* Animation, FName SlotName = FName("DefaultSlot"), float BlendInTime = 0.15f, float BlendOutTime = 0.15f, float PlayRate = 1.0f);
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Camera")
+	bool IsFirstPerson() const { return bIsFirstPerson; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Camera")
+	UCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
 	void AddOwnedGameplayTag(const FGameplayTag& Tag);

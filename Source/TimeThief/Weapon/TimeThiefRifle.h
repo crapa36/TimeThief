@@ -6,6 +6,7 @@
 
 class USoundBase;
 class UParticleSystem;
+class UAnimSequenceBase;
 
 USTRUCT(BlueprintType)
 struct FHitScanResult
@@ -116,14 +117,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<USoundBase> ReloadSound;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	FName HeadshotBoneName = TEXT("head");
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
+	TObjectPtr<UAnimSequenceBase> FireAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
-	TObjectPtr<UAnimMontage> FireMontage;
+	TObjectPtr<UAnimSequenceBase> ReloadAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
-	TObjectPtr<UAnimMontage> ReloadMontage;
+	FName WeaponAnimSlot = FName("DefaultSlot");
 
 	void ApplyRecoil();
 

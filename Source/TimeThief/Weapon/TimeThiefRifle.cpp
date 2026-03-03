@@ -69,11 +69,11 @@ void ATimeThiefRifle::Reload()
 	bIsReloading = true;
 	StopFire();
 
-	if (ReloadMontage)
+	if (ReloadAnimation)
 	{
 		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()))
 		{
-			BaseChar->PlayMontageOnAllMeshes(ReloadMontage);
+			BaseChar->PlayAnimationOnAllMeshes(ReloadAnimation, WeaponAnimSlot);
 		}
 	}
 
@@ -235,11 +235,11 @@ void ATimeThiefRifle::PlayFireEffects()
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleLoc);
 	}
 
-	if (FireMontage)
+	if (FireAnimation)
 	{
 		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()))
 		{
-			BaseChar->PlayMontageOnAllMeshes(FireMontage);
+			BaseChar->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
 		}
 	}
 }
@@ -300,14 +300,13 @@ void ATimeThiefRifle::ApplyRecoil()
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
 			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadRecoverySpeed);
-			AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadBuildupPerShot);
+			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadBuildupPerShot);
 
 			APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController());
 			if (PC)
 			{
-				const FVector2D AimOff = AnimInst->GetAimOffset();
-				PC->AddPitchInput(-AimOff.Y);
-				PC->AddYawInput(AimOff.X);
+				PC->AddPitchInput(-RecoilDelta.Y);
+				PC->AddYawInput(RecoilDelta.X);
 			}
 		}
 	}

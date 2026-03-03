@@ -7,6 +7,7 @@
 class ATimeThiefWeaponBase;
 class ATimeThiefRifle;
 class USpringArmComponent;
+class UCameraComponent;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerCombatComponent : public UTimeThiefPawnCombatComponent {
@@ -34,6 +35,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
 	float GetAimSpreadMultiplier() const { return AimSpreadMultiplier; }
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
+	bool IsFiringWeapon() const;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TArray<TSubclassOf<ATimeThiefWeaponBase>> DefaultWeaponClasses;
@@ -53,10 +57,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimMovementSpeedMultiplier = 0.6f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
+	float CombatRotationRate = 720.0f;
+
 private:
+	void UpdateCombatRotation();
+	void UpdateAimFOV(float DeltaTime);
+
 	bool bIsAiming = false;
 	float DefaultMaxWalkSpeed = 0.0f;
+	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
 
 	UPROPERTY(Transient)
 	TObjectPtr<USpringArmComponent> CachedCameraBoom;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCameraComponent> CachedFirstPersonCamera;
 };

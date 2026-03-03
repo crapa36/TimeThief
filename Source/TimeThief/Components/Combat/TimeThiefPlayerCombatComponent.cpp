@@ -2,6 +2,7 @@
 #include "Weapon/TimeThiefWeaponBase.h"
 #include "Weapon/TimeThiefRifle.h"
 #include "TimeThiefGameplayTags.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -27,8 +28,14 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
 		{
 			DefaultMaxWalkSpeed = MovementComp->MaxWalkSpeed;
+			DefaultRotationRate = MovementComp->RotationRate;
 		}
 		CachedCameraBoom = OwningCharacter->FindComponentByClass<USpringArmComponent>();
+
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+		{
+			CachedFirstPersonCamera = BaseChar->GetFirstPersonCamera();
+		}
 	}
 
 	for (const TSubclassOf<ATimeThiefWeaponBase>& WeaponClass : DefaultWeaponClasses)
@@ -162,6 +169,8 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 			MovementComp->MaxWalkSpeed = DefaultMaxWalkSpeed * AimMovementSpeedMultiplier;
 		}
 	}
+
+	UpdateCombatRotation();
 }
 
 void UTimeThiefPlayerCombatComponent::StopAiming()
@@ -180,23 +189,80 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 			MovementComp->MaxWalkSpeed = DefaultMaxWalkSpeed;
 		}
 	}
+
+	UpdateCombatRotation();
 }
 
 void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!CachedCameraBoom)
+	UpdateCombatRotation();
+	UpdateAimFOV(DeltaTime);
+}
+
+bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
+{
+	if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+	{
+		return Rifle->IsFiring();
+	}
+	return false;
+}
+
+void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
+{
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
 	{
 		return;
 	}
 
-	const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
-
-	if (UCameraComponent* Camera = Cast<UCameraComponent>(CachedCameraBoom->GetChildComponent(0)))
+	ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter);
+	if (BaseChar && BaseChar->IsFirstPerson())
 	{
-		const float CurrentFOV = Camera->FieldOfView;
-		const float NewFOV = FMath::FInterpTo(CurrentFOV, TargetFOV, DeltaTime, AimInterpSpeed);
-		Camera->SetFieldOfView(NewFOV);
+		return;
+	}
+
+	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
+	if (!MovementComp)
+	{
+		return;
+	}
+
+	const bool bShouldFaceAim = bIsAiming || IsFiringWeapon();
+
+	if (bShouldFaceAim)
+	{
+		MovementComp->bOrientRotationToMovement = false;
+		MovementComp->bUseControllerDesiredRotation = true;
+		MovementComp->RotationRate = FRotator(0.0f, CombatRotationRate, 0.0f);
+	}
+	else
+	{
+		MovementComp->bOrientRotationToMovement = true;
+		MovementComp->bUseControllerDesiredRotation = false;
+		MovementComp->RotationRate = DefaultRotationRate;
 	}
 }
+
+void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
+{
+	const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
+
+	if (CachedCameraBoom)
+	{
+		if (UCameraComponent* Camera = Cast<UCameraComponent>(CachedCameraBoom->GetChildComponent(0)))
+		{
+			const float NewFOV = FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+			Camera->SetFieldOfView(NewFOV);
+		}
+	}
+
+	if (CachedFirstPersonCamera)
+	{
+		const float NewFOV = FMath::FInterpTo(CachedFirstPersonCamera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+		CachedFirstPersonCamera->SetFieldOfView(NewFOV);
+	}
+}
+

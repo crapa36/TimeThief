@@ -46,7 +46,7 @@ protected:
 	FName LeftHandIKSocketName = FName("LeftHandIK");
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
-	bool bHasWeapon;
+	bool bHasWeapon = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	float AimPitch = 0.0f;
@@ -61,10 +61,10 @@ protected:
 	float AimSpreadMultiplier = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	bool bIsWireAttached;
+	bool bIsWireAttached = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	bool bIsWireActive;
+	bool bIsWireActive = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	FVector AnchorDirection;
@@ -96,7 +96,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Spread")
 	float MaxSpreadAngle = 5.0f;
 
-
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Recoil")
 	float RecoilBuildup = 0.0f;
 
@@ -108,7 +107,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Spread")
-	void ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot);
+	FVector2D ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
 	void SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery)
