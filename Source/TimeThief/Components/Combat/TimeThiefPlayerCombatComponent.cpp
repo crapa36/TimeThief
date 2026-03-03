@@ -108,6 +108,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 	{
 		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
 		{
+			SnapRotationToAim();
 			Rifle->StartFire();
 		}
 		return;
@@ -162,6 +163,8 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 
 	bIsAiming = true;
 
+	SnapRotationToAim();
+
 	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
 		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
@@ -203,11 +206,38 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 
 bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
 {
-	if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+	if (const ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
 	{
 		return Rifle->IsFiring();
 	}
 	return false;
+}
+
+void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
+{
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
+	{
+		return;
+	}
+
+	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+	{
+		if (BaseChar->IsFirstPerson())
+		{
+			return;
+		}
+	}
+
+	const AController* Controller = OwningCharacter->GetController();
+	if (!Controller)
+	{
+		return;
+	}
+
+	const FRotator ControlRotation = Controller->GetControlRotation();
+	const FRotator NewRotation(0.0f, ControlRotation.Yaw, 0.0f);
+	OwningCharacter->SetActorRotation(NewRotation);
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
@@ -218,10 +248,12 @@ void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 		return;
 	}
 
-	ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter);
-	if (BaseChar && BaseChar->IsFirstPerson())
+	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 	{
-		return;
+		if (BaseChar->IsFirstPerson())
+		{
+			return;
+		}
 	}
 
 	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();

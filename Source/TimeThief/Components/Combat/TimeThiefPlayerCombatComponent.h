@@ -64,6 +64,8 @@ private:
 	void UpdateCombatRotation();
 	void UpdateAimFOV(float DeltaTime);
 
+	void SnapRotationToAim();
+
 	bool bIsAiming = false;
 	float DefaultMaxWalkSpeed = 0.0f;
 	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
