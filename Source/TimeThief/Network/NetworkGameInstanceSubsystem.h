@@ -10,6 +10,7 @@
 
 #include "SendBuffer.h"
 #include "PacketSession.h"
+#include "ClientConfigTypes.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
@@ -47,14 +48,16 @@ private:
 	void ProcessPacket();
 	
 private:
+	bool LoadClientConfig();
+	
+private:
 	bool bIsConnected = false;
 	FSocket* Socket = nullptr;
-	
-	FString ServerAddress = TEXT("127.0.0.1");	// 기본값 localhost(loopback)
-	int ServerPort = 8252;						// TimeThiefServer 포트
 	
 	TSharedPtr<PacketSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
+	
+	FClientConfig ClientConfig;
 	
 };

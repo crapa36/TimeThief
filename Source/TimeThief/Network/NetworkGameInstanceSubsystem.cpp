@@ -5,6 +5,7 @@
 #include "Interfaces/IPv4/IPv4Address.h"
 
 #include "PacketSession.h"
+#include "ClientConfigLoader.h"
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -14,7 +15,15 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 	
-	ConnectToServer(ServerAddress, ServerPort);
+	bool configLoaded = LoadClientConfig();
+	
+	if (!configLoaded)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to load client config. Check the file path and format."));
+		return;
+	}
+	
+	ConnectToServer(ClientConfig.ServerIp, ClientConfig.ServerPort);
 	
 	SpawnProcessPacketTimer();
 }
@@ -93,4 +102,13 @@ void UNetworkGameInstanceSubsystem::ProcessPacket()
 	if (not bIsConnected or GameSession == nullptr) return;
 	
 	GameSession->HandleRecvPackets();
+}
+
+bool UNetworkGameInstanceSubsystem::LoadClientConfig()
+{
+	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("../External/ProtocolShared/Config/client.dev.json"));
+	
+	UE_LOG(LogTemp, Log, TEXT("[Config] Loading client config from %s"), *FilePath);
+	
+	return FClientConfigLoader::LoadClientConfigFromFile(FilePath, ClientConfig);
 }
