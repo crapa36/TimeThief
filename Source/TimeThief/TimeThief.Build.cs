@@ -24,6 +24,8 @@ public class TimeThief : ModuleRules
             "GameplayTags",
             "ModularGameplay",
             "GameFeatures",
+            "Json",
+            "JsonUtilities",
             "Protobuf",
             "ProtocolSharedUE"
         });
