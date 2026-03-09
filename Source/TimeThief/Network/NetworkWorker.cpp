@@ -6,6 +6,7 @@
 --------------*/
 
 RecvWorker::RecvWorker(FSocket* Socket, TSharedPtr<PacketSession> Session)
+	: Socket(Socket), SessionRef(Session)
 {
 	Thread = FRunnableThread::Create(this, TEXT("RecvWorkerThread"));
 }
@@ -110,6 +111,7 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Result, int32 Size)
 --------------*/
 
 SendWorker::SendWorker(FSocket* Socket, TSharedPtr<PacketSession> Session)
+	: Socket(Socket), SessionRef(Session)
 {
 	Thread = FRunnableThread::Create(this, TEXT("SendWorkerThread"));
 }

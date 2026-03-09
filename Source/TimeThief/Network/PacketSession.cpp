@@ -7,6 +7,7 @@
 -----------------*/
 
 PacketSession::PacketSession(class FSocket* Socket)
+   : Socket(Socket)
 {
    ClientPacketHandler::Init();
 }
