@@ -7,7 +7,7 @@ struct FLocalPlayerInfo
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	uint64 PlayerId = 0;
 	
 	UPROPERTY(BlueprintReadOnly)

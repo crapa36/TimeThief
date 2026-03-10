@@ -8,8 +8,8 @@ struct FRoomState
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
-	uint64 RoomId = 0;
+	UPROPERTY()
+	uint32 RoomId = 0;
 	
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FRoomPlayerInfo> RoomStates;

@@ -7,11 +7,11 @@ struct FRoomPlayerInfo
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	uint64 PlayerId = 0;
 	
-	UPROPERTY(BlueprintReadOnly)
-	uint64 EntityId = 0;
+	UPROPERTY()
+	uint32 EntityId = 0;
 	
 	UPROPERTY(BlueprintReadOnly)
 	FString Nickname;
