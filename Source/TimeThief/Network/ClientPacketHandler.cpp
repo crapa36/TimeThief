@@ -1,5 +1,6 @@
 #include "Generated/ClientPacketHandler.h"
 #include "PacketSession.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 PacketHandlerFunc GPacketHandler[kMaxMessageId + 1];
 
@@ -60,7 +61,17 @@ bool Handle_S_EntityState(PacketSessionRef& session, const se::room::S_EntitySta
 
 bool Handle_N_EntitySpawn(PacketSessionRef& session, const se::room::N_EntitySpawn& pkt)
 {
-	return false;
+	// 다른 플레이어 등의 Entity를 생성하는 패킷
+	// 기본적으로 self Entity는 예외
+	
+	if (auto* GameInstance = GWorld->GetGameInstance())
+	{
+		auto* NetworkGameInstance = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
+		
+		NetworkGameInstance->HandleSpawn(pkt);
+	}
+	
+	return true;
 }
 
 bool Handle_N_EntityDespawn(PacketSessionRef& session, const se::room::N_EntityDespawn& pkt)

@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "Network/NetworkGameInstanceSubsystem.h"
 
+#include <Generated/ClientPacketHandler.h>
+
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 
@@ -78,7 +80,9 @@ void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, in
 		GameSession = MakeShared<PacketSession>(Socket);
 		GameSession->Run();
 		
-		// TODO: Server에 접속하였다고 알리는 패킷 보내기
+		se::lobby::C_LobbyEnterReq lobbyEnterReq;
+		auto packet = ClientPacketHandler::MakeSendBuffer(lobbyEnterReq);
+		SendPacket(packet);
 	}
 	else
 	{
@@ -104,6 +108,35 @@ void UNetworkGameInstanceSubsystem::ProcessPacket()
 	GameSession->HandleRecvPackets();
 }
 
+void UNetworkGameInstanceSubsystem::HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt)
+{
+	if (Socket == nullptr or GameSession == nullptr) return;
+	
+	auto* World = GetWorld();
+	if (World == nullptr) return;
+	
+	const auto& Entity = SpawnPkt.entity();
+	const auto& Movement = Entity.movement();
+	
+	const uint32 EntityId = Entity.entity_id().value();
+	
+	AActor* SpawnActor = World->SpawnActor<AActor>();
+	if (not SpawnActor) return;
+	
+	EntityActors.Add(EntityId, SpawnActor);
+	
+	FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
+	const auto& newPos = Movement.position();
+	State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
+	const float yaw = Movement.yaw();
+	State.Rotation.Yaw = yaw;
+	const float speed = Movement.speed();
+	const float pitch = Entity.aim().pitch();
+	State.Rotation.Pitch = pitch;
+	
+	ApplyEntityStateToActor(EntityId);
+}
+
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 {
 	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("../External/ProtocolShared/Config/client.dev.json"));
@@ -111,4 +144,19 @@ bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 	UE_LOG(LogTemp, Log, TEXT("[Config] Loading client config from %s"), *FilePath);
 	
 	return FClientConfigLoader::LoadClientConfigFromFile(FilePath, ClientConfig);
+}
+
+void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
+{
+	FNetworkEntityState* State = NetworkEntities.Find(EntityId);
+	if (not State) return;
+	
+	TWeakObjectPtr<AActor>* ActorPtr = EntityActors.Find(EntityId);
+	if (not ActorPtr or not ActorPtr->IsValid()) return;
+	
+	AActor* Actor = ActorPtr->Get();
+	if (not Actor) return;
+	
+	Actor->SetActorLocation(State->Position);
+	Actor->SetActorRotation(State->Rotation);
 }

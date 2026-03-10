@@ -11,6 +11,10 @@
 #include "SendBuffer.h"
 #include "PacketSession.h"
 #include "ClientConfigTypes.h"
+#include "Protocol.pb.h"
+#include "State/LocalPlayerInfo.h"
+#include "State/NetworkEntityState.h"
+#include "State/RoomState.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
@@ -47,8 +51,19 @@ private:
 	
 	void ProcessPacket();
 	
+// packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
+public:
+	void HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt);
+	
 private:
 	bool LoadClientConfig();
+	
+public:
+	const struct FLocalPlayerInfo* GetMyPlayerInfo() const { return LocalPlayerInfo.IsSet() ? &LocalPlayerInfo.GetValue() : nullptr; }
+	const struct FRoomState* GetRoomState() const { return RoomState.IsSet() ? &RoomState.GetValue() : nullptr; }
+
+private:
+	void ApplyEntityStateToActor(uint32 EntityId);
 	
 private:
 	bool bIsConnected = false;
@@ -59,5 +74,14 @@ private:
 	FTimerHandle QueueProcessingTimer;
 	
 	FClientConfig ClientConfig;
+	
+private:
+	TOptional<FLocalPlayerInfo> LocalPlayerInfo;
+	TOptional<FRoomState> RoomState;
+	
+private:
+	uint32 LocalPlayerEntityId = 0;
+	TMap<uint32, FNetworkEntityState> NetworkEntities;   // 네트워크로부터 받은 엔티티 상태를 저장하는 맵 (key: ObjectId, value: FNetworkEntityState)
+	TMap<uint32, TWeakObjectPtr<AActor>> EntityActors;
 	
 };
