@@ -43,10 +43,10 @@ public:
 protected:
 	uint32 EntityId = 0;
 	
-	FVector NowPosition;
-	FRotator NowRotation;
+	FVector NowPosition = FVector::ZeroVector;
+	FRotator NowRotation = FRotator::ZeroRotator;
 	
-	FVector DestPosition;
-	FRotator DestRotation;
+	FVector DestPosition = FVector::ZeroVector;
+	FRotator DestRotation = FRotator::ZeroRotator;
 	
 };
