@@ -4,7 +4,10 @@
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Weapon/TimeThiefWeaponBase.h"
+#include "Engine/Engine.h"
+#include "GameFramework/PlayerController.h"
 
 UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -191,17 +194,24 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 	if (!PlayerCharacter)
 	{
 		AimPitch = 0.0f;
-		AimYaw = 0.0f;
+		AimDirection = FVector::ForwardVector;
+		WorldAimLocation = FVector::ZeroVector;
 		return;
 	}
 
-	FRotator ControlRotation = PlayerCharacter->GetControlRotation();
-	FRotator ActorRotation = PlayerCharacter->GetActorRotation();
+	FVector CameraLocation = FVector::ZeroVector;
+	FRotator CameraRotation = PlayerCharacter->GetControlRotation();
+	
+	if (APlayerController* PC = Cast<APlayerController>(PlayerCharacter->GetController()))
+	{
+		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	}
 
-	FRotator DeltaRotation = (ControlRotation - ActorRotation).GetNormalized();
+	AimDirection = CameraRotation.Vector();
+	WorldAimLocation = CameraLocation + (AimDirection * 10000.0f);
 
-	AimPitch = FMath::Clamp(DeltaRotation.Pitch, -90.0f, 90.0f);
-	AimYaw = FMath::Clamp(DeltaRotation.Yaw, -90.0f, 90.0f);
+	const float HorizontalSize = FVector2D(AimDirection.X, AimDirection.Y).Size();
+	AimPitch = -FMath::RadiansToDegrees(FMath::Atan2(AimDirection.Z, HorizontalSize));
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateAimingState()

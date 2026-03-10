@@ -52,7 +52,10 @@ protected:
 	float AimPitch = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
-	float AimYaw = 0.0f;
+	FVector AimDirection = FVector::ForwardVector;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	FVector WorldAimLocation = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	bool bIsAiming = false;

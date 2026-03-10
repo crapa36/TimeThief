@@ -262,7 +262,7 @@ void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 		return;
 	}
 
-	const bool bShouldFaceAim = bIsAiming || IsFiringWeapon();
+	const bool bShouldFaceAim = (CurrentEquippedWeapon != nullptr) || bIsAiming || IsFiringWeapon();
 
 	if (bShouldFaceAim)
 	{
