@@ -137,6 +137,30 @@ void UNetworkGameInstanceSubsystem::HandleSpawn(const se::room::N_EntitySpawn& S
 	ApplyEntityStateToActor(EntityId);
 }
 
+void UNetworkGameInstanceSubsystem::HandleMove(const se::room::S_EntityState& EntityStatePkt)
+{
+	if (Socket == nullptr or GameSession == nullptr) return;
+	
+	auto* World = GetWorld();
+	if (World == nullptr) return;
+	
+	for (const auto& Entity : EntityStatePkt.entities())
+	{
+		const uint32 EntityId = Entity.entity_id().value();
+		
+		FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
+		const auto& newPos = Entity.movement().position();
+		State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
+		const float yaw = Entity.movement().yaw();
+		State.Rotation.Yaw = yaw;
+		const float speed = Entity.movement().speed();
+		const float pitch = Entity.aim().pitch();
+		State.Rotation.Pitch = pitch;
+		
+		ApplyEntityStateToActor(EntityId);
+	}
+}
+
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 {
 	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("../External/ProtocolShared/Config/client.dev.json"));

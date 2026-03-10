@@ -56,7 +56,16 @@ bool Handle_N_GameStart(PacketSessionRef& session, const se::room::N_GameStart& 
 
 bool Handle_S_EntityState(PacketSessionRef& session, const se::room::S_EntityState& pkt)
 {
-	return false;
+	// 다른 여러 Entity의 상태를 업데이트하는 패킷 (본인이 될 수도 있음)
+	
+	if (auto* GameInstance = GWorld->GetGameInstance())
+	{
+		auto* NetworkGameInstance = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
+		
+		NetworkGameInstance->HandleMove(pkt);
+	}
+	
+	return true;
 }
 
 bool Handle_N_EntitySpawn(PacketSessionRef& session, const se::room::N_EntitySpawn& pkt)
