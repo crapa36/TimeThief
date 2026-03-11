@@ -11,8 +11,7 @@
 void UMinimapWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	Player = GetOwningPlayerPawn();
+	
 	MinimapSize = Cast<UCanvasPanelSlot>(Minimap_Image->Slot)->GetSize();
 
 	StormZoneDMI = StormZone_Image->GetDynamicMaterial();
@@ -27,23 +26,24 @@ void UMinimapWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	const FVector2f& MapSize = GameState->TimeStormComponent->MapSize;
 	
-	if (IsVisible() && IsValid(Player))
+	if (IsVisible())
 	{
-		const FVector PlayerLocation = Player->GetActorLocation();
+		const FVector PlayerLocation = GetWorld()->GetFirstPlayerController()->GetPawn()->GetActorLocation();
 		FVector2D MinimapPosition;
 		MinimapPosition.X = PlayerLocation.Y / MapSize.Y * MinimapSize.X;
 		MinimapPosition.Y = PlayerLocation.X / MapSize.X * -MinimapSize.Y;
 
 		Player_Icon->SetRenderTranslation(MinimapPosition);
+		
+		float Radius;;
+		FVector2D Center;
+	
+		GameState->TimeStormComponent->GetCurrStormZone_UV(Center, Radius);
+		StormZoneDMI->SetScalarParameterValue(FName{"Radius"}, Radius);
+		StormZoneDMI->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
+	
+		GameState->TimeStormComponent->GetDestStormZone_UV(Center, Radius);
+		NextStormZoneDMI->SetScalarParameterValue(FName{"Radius"}, Radius);
+		NextStormZoneDMI->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
 	}
-	float Radius;;
-	FVector2D Center;
-	
-	GameState->TimeStormComponent->GetCurrStormZone_UV(Center, Radius);
-	StormZoneDMI->SetScalarParameterValue(FName{"Radius"}, Radius);
-	StormZoneDMI->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
-	
-	GameState->TimeStormComponent->GetDestStormZone_UV(Center, Radius);
-	NextStormZoneDMI->SetScalarParameterValue(FName{"Radius"}, Radius);
-	NextStormZoneDMI->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
 }

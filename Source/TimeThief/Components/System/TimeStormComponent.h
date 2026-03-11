@@ -7,6 +7,8 @@
 #include "TimeStormComponent.generated.h"
 
 
+class UTimeStormData;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeStormComponent : public UActorComponent
 {
@@ -27,18 +29,23 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 	UFUNCTION(BlueprintCallable)
-	void StartShrinkingStormZone(const FVector2D& InDestCenter, float InDestRadius, float InShrinkDuration = 0);
+	void StartShrinkingStormZone(const FVector2D& InDestCenter, float InDestRadius);
 	
 	UFUNCTION(BlueprintCallable)
-	void StartRandomStormZoneShrink(float InShrinkDuration = 0);
+	void StartRandomStormZoneShrink();
 	
 	void GetCurrStormZone_UV(FVector2D& OutCenter, float& OutRadius) const;
 	void GetDestStormZone_UV(FVector2D& OutCenter, float& OutRadius) const;
+	
+	void GetCurrStormZone(FVector2D& OutCenter, float& OutRadius) const;
 	
 	UPROPERTY(EditAnywhere)
 	FVector2f MapSize;
 	
 private:
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UTimeStormData> DataTable;
+	
 	float ElapsedTime = 0.0f;
 	float ShrinkDuration = 0.5f;
 	

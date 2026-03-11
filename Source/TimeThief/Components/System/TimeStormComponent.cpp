@@ -3,6 +3,8 @@
 
 #include "TimeStormComponent.h"
 
+#include "DataAssets/TimeStormData.h"
+
 
 // Sets default values for this component's properties
 UTimeStormComponent::UTimeStormComponent()
@@ -29,10 +31,18 @@ void UTimeStormComponent::OnRegister()
 	Super::OnRegister();
 	
 	
-	CurrCenter = FVector2D{0.0f};
-	PrevCenter = CurrCenter;
-	CurrRadius = MapSize.X * 1.5f;
+	DestCenter = FVector2D{0.0f};
+	DestRadius = MapSize.X * 1.5f;
+	
+	CurrRadius = DestRadius;
+	CurrCenter = DestCenter;
+	
 	PrevRadius = CurrRadius;
+	PrevCenter = CurrCenter;
+	if (DataTable)
+	{
+		ShrinkDuration = DataTable->TimeStormShrinkTimePerLevel[0];
+	}
 }
 
 
@@ -41,10 +51,16 @@ void UTimeStormComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                         FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	
+	if (!DataTable)
+	{
+		return;
+	}
+	
+	ElapsedTime += DeltaTime;
+	
 	if (bIsShrinking)
 	{
-		ElapsedTime += DeltaTime;
 		float Alpha = FMath::Min(ElapsedTime / ShrinkDuration, 1.0f);
 		
 		CurrRadius = FMath::Lerp(PrevRadius, DestRadius, Alpha);
@@ -52,26 +68,20 @@ void UTimeStormComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		
 		if (ElapsedTime >= ShrinkDuration)
 		{
-			CurrRadius = DestRadius;
-			CurrCenter = DestCenter;
-			PrevRadius = CurrRadius;
-			PrevCenter = CurrCenter;
-			bIsShrinking = false;
 			++NumShrinks;
-			
-			UE_LOG(LogTemp, Log, TEXT("Shrinking %d%%"), NumShrinks);
+			bIsShrinking = false;
+			ElapsedTime = 0;
 		}
+	}
+	else if (ElapsedTime >= DataTable->TimeStormStartTimePerLevel[NumShrinks])
+	{
+		StartRandomStormZoneShrink();
+		ElapsedTime = 0;
 	}
 }
 
-void UTimeStormComponent::StartShrinkingStormZone(const FVector2D& InDestCenter, float InDestRadius,
-	float InShrinkDuration)
+void UTimeStormComponent::StartShrinkingStormZone(const FVector2D& InDestCenter, float InDestRadius)
 {
-	if (InShrinkDuration > 0)
-	{
-		ShrinkDuration = InShrinkDuration;
-	}
-	
 	DestRadius = InDestRadius;
 	DestCenter = InDestCenter;
 	
@@ -79,24 +89,28 @@ void UTimeStormComponent::StartShrinkingStormZone(const FVector2D& InDestCenter,
 	bIsShrinking = true;
 }
 
-void UTimeStormComponent::StartRandomStormZoneShrink(float InShrinkDuration)
+void UTimeStormComponent::StartRandomStormZoneShrink()
 {
-	float NextRadius; 
+	if (NumShrinks >= DataTable->TimeStormShrinkTimePerLevel.Num())
+	{
+		return;
+	}
 	
-	if (NumShrinks == 0)
-	{
-		NextRadius = MapSize.X / 2.0f * 5.0f / 6.0f;
-	}
-	else
-	{
-		NextRadius = PrevRadius / 2.0f;
-	}
+	CurrRadius = DestRadius;
+	CurrCenter = DestCenter;
+	
+	PrevRadius = CurrRadius;
+	PrevCenter = CurrCenter;
+	
+	ShrinkDuration = DataTable->TimeStormShrinkTimePerLevel[NumShrinks];
+	
+	float NextRadius = DataTable->TimeStormRadiusPerLevel[NumShrinks];
 	
 	float Dist = FMath::RandRange(0.0f, FMath::Min(PrevRadius, MapSize.X / 2) - NextRadius);
 	
 	FVector2D RandomCenter = PrevCenter + FMath::RandPointInCircle(Dist);
 	
-	StartShrinkingStormZone(RandomCenter, NextRadius, InShrinkDuration);
+	StartShrinkingStormZone(RandomCenter, NextRadius);
 }
 
 void UTimeStormComponent::GetCurrStormZone_UV(FVector2D& OutCenter, float& OutRadius) const
@@ -113,5 +127,11 @@ void UTimeStormComponent::GetDestStormZone_UV(FVector2D& OutCenter, float& OutRa
 	OutCenter.X = DestCenter.Y / MaxSize + 0.5f;
 	OutCenter.Y = ( MaxSize / 2 - DestCenter.X ) / MaxSize;
 	OutRadius = DestRadius / MaxSize;
+}
+
+void UTimeStormComponent::GetCurrStormZone(FVector2D& OutCenter, float& OutRadius) const
+{
+	OutCenter = CurrCenter;
+	OutRadius = CurrRadius;
 }
 
