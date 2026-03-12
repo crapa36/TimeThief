@@ -27,7 +27,8 @@ public class TimeThief : ModuleRules
             "Json",
             "JsonUtilities",
             "Protobuf",
-            "ProtocolSharedUE"
+            "ProtocolSharedUE",
+            "AnimGraphRuntime"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]
