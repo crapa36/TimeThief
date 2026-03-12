@@ -1,28 +1,40 @@
-#include "TimeThiefPlayerController.h"
+#include "Character/TimeThiefPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "TimeThief.h"
 #include "Widgets/Input/SVirtualJoystick.h"
+#include "UI/TimeThiefHUDWidget.h"
 
 void ATimeThiefPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (ShouldUseTouchControls() && IsLocalPlayerController())
+	if (IsLocalPlayerController())
 	{
-		MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
-
-		if (MobileControlsWidget)
+		if (ShouldUseTouchControls())
 		{
-			MobileControlsWidget->AddToPlayerScreen(0);
-		}
-		else
-		{
-			UE_LOG(LogTimeThief, Error, TEXT("Could not spawn mobile controls widget."));
+			MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
+
+			if (MobileControlsWidget)
+			{
+				MobileControlsWidget->AddToPlayerScreen(0);
+			}
+			else
+			{
+				UE_LOG(LogTimeThief, Error, TEXT("Could not spawn mobile controls widget."));
+			}
 		}
 
+		if (MainHUDWidgetClass)
+		{
+			MainHUDWidget = CreateWidget<UTimeThiefHUDWidget>(this, MainHUDWidgetClass);
+			if (MainHUDWidget)
+			{
+				MainHUDWidget->AddToPlayerScreen();
+			}
+		}
 	}
 }
 

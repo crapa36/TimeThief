@@ -16,7 +16,7 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bCastHiddenShadow = true;
-	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPose;
 
 	FirstPersonMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
 	FirstPersonMesh->SetupAttachment(GetCapsuleComponent());
@@ -149,4 +149,3 @@ void ATimeThiefCharacterBase::AppendOwnedGameplayTags(const FGameplayTagContaine
 {
 	OwnedGameplayTags.AppendTags(InTags);
 }
-

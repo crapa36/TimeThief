@@ -264,13 +264,13 @@ void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 
 	const bool bShouldFaceAim = (CurrentEquippedWeapon != nullptr) || bIsAiming || IsFiringWeapon();
 
-	if (bShouldFaceAim)
+	if (bShouldFaceAim && MovementComp->bOrientRotationToMovement)
 	{
 		MovementComp->bOrientRotationToMovement = false;
 		MovementComp->bUseControllerDesiredRotation = true;
 		MovementComp->RotationRate = FRotator(0.0f, CombatRotationRate, 0.0f);
 	}
-	else
+	else if (!bShouldFaceAim && !MovementComp->bOrientRotationToMovement)
 	{
 		MovementComp->bOrientRotationToMovement = true;
 		MovementComp->bUseControllerDesiredRotation = false;
@@ -286,15 +286,20 @@ void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 	{
 		if (UCameraComponent* Camera = Cast<UCameraComponent>(CachedCameraBoom->GetChildComponent(0)))
 		{
-			const float NewFOV = FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
-			Camera->SetFieldOfView(NewFOV);
+			if (!FMath::IsNearlyEqual(Camera->FieldOfView, TargetFOV, 0.1f))
+			{
+				const float NewFOV = FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+				Camera->SetFieldOfView(NewFOV);
+			}
 		}
 	}
 
 	if (CachedFirstPersonCamera)
 	{
-		const float NewFOV = FMath::FInterpTo(CachedFirstPersonCamera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
-		CachedFirstPersonCamera->SetFieldOfView(NewFOV);
+		if (!FMath::IsNearlyEqual(CachedFirstPersonCamera->FieldOfView, TargetFOV, 0.1f))
+		{
+			const float NewFOV = FMath::FInterpTo(CachedFirstPersonCamera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+			CachedFirstPersonCamera->SetFieldOfView(NewFOV);
+		}
 	}
 }
-
