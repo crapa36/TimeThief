@@ -108,33 +108,34 @@ void UNetworkGameInstanceSubsystem::ProcessPacket()
 	GameSession->HandleRecvPackets();
 }
 
-void UNetworkGameInstanceSubsystem::HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt)
+void UNetworkGameInstanceSubsystem::HandleLobbyEnter(const se::lobby::S_LobbyEnterRes& LobbyEnterPkt)
 {
 	if (Socket == nullptr or GameSession == nullptr) return;
 	
 	auto* World = GetWorld();
 	if (World == nullptr) return;
 	
+	const se::common::Result& Result = LobbyEnterPkt.result();
+	if (Result.code() != se::common::ERR_NONE) 
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to enter lobby: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		return;
+	}
+	
+	const auto& PlayerInfo = LobbyEnterPkt.profile();
+	PlayerId = PlayerInfo.player_id().value();
+	PlayerName = UTF8_TO_TCHAR(PlayerInfo.nickname().c_str());
+	Level = PlayerInfo.level();
+}
+
+void UNetworkGameInstanceSubsystem::HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt)
+{
+	if (Socket == nullptr or GameSession == nullptr) return;
+	
+	const auto& ObjectType = SpawnPkt.entity_type();
 	const auto& Entity = SpawnPkt.entity();
-	const auto& Movement = Entity.movement();
 	
-	const uint32 EntityId = Entity.entity_id().value();
-	
-	AActor* SpawnActor = World->SpawnActor<AActor>();
-	if (not SpawnActor) return;
-	
-	EntityActors.Add(EntityId, SpawnActor);
-	
-	FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
-	const auto& newPos = Movement.position();
-	State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
-	const float yaw = Movement.yaw();
-	State.Rotation.Yaw = yaw;
-	const float speed = Movement.speed();
-	const float pitch = Entity.aim().pitch();
-	State.Rotation.Pitch = pitch;
-	
-	ApplyEntityStateToActor(EntityId);
+	SpawnEntity(ObjectType, Entity);
 }
 
 void UNetworkGameInstanceSubsystem::HandleMove(const se::room::S_EntityState& EntityStatePkt)
@@ -153,12 +154,36 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::room::S_EntityState& En
 		State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
 		const float yaw = Entity.movement().yaw();
 		State.Rotation.Yaw = yaw;
-		const float speed = Entity.movement().speed();
-		const float pitch = Entity.aim().pitch();
+		const float pitch = Entity.movement().pitch();
 		State.Rotation.Pitch = pitch;
 		
 		ApplyEntityStateToActor(EntityId);
 	}
+}
+
+void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& ObjectType,
+	const se::room::EntityState& EntityState)
+{
+	auto* World = GetWorld();
+	if (World == nullptr) return;
+	
+	// TODO: ObjectType에 따라서 다른 Actor 클래스를 Spawn해야 할 듯 싶다 (예: Player, NPC, Item 등)
+	AActor* SpawnActor = World->SpawnActor<AActor>();
+	if (not SpawnActor) return;
+	
+	const auto& Movement = EntityState.movement();
+	const uint32 EntityId = EntityState.entity_id().value();
+	EntityActors.Add(EntityId, SpawnActor);
+	
+	FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
+	const auto& newPos = Movement.position();
+	State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
+	const float yaw = Movement.yaw();
+	State.Rotation.Yaw = yaw;
+	const float pitch = Movement.pitch();
+	State.Rotation.Pitch = pitch;
+	
+	ApplyEntityStateToActor(EntityId);
 }
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()

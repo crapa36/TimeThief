@@ -3,7 +3,9 @@
 #include "CoreMinimal.h"
 #include "RoomPlayerInfo.h"
 
-USTRUCT(BlueprintType)
+#include "RoomState.generated.h"
+
+USTRUCT()
 struct FRoomState
 {
 	GENERATED_BODY()
@@ -11,7 +13,7 @@ struct FRoomState
 	UPROPERTY()
 	uint32 RoomId = 0;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	TArray<FRoomPlayerInfo> RoomStates;
 	
 };

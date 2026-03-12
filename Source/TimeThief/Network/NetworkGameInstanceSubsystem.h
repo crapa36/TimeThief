@@ -53,8 +53,12 @@ private:
 	
 // packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
 public:
+	void HandleLobbyEnter(const se::lobby::S_LobbyEnterRes& LobbyEnterPkt);
 	void HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt);
 	void HandleMove(const se::room::S_EntityState& EntityStatePkt);
+	
+private:
+	void SpawnEntity(const se::common::ObjectType& ObjectType, const se::room::EntityState& EntityState);
 	
 private:
 	bool LoadClientConfig();
@@ -81,6 +85,10 @@ private:
 	TOptional<FRoomState> RoomState;
 	
 private:
+	uint64 PlayerId = 0;
+	FString PlayerName;
+	uint32 Level = 0;
+	
 	uint32 LocalPlayerEntityId = 0;
 	TMap<uint32, FNetworkEntityState> NetworkEntities;   // 네트워크로부터 받은 엔티티 상태를 저장하는 맵 (key: ObjectId, value: FNetworkEntityState)
 	TMap<uint32, TWeakObjectPtr<AActor>> EntityActors;

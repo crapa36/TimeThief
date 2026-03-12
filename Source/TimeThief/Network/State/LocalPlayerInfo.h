@@ -1,8 +1,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LocalPlayerInfo.generated.h"
 
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FLocalPlayerInfo
 {
 	GENERATED_BODY()
@@ -10,7 +11,7 @@ struct FLocalPlayerInfo
 	UPROPERTY()
 	uint64 PlayerId = 0;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	FString Nickname;
 	
 };

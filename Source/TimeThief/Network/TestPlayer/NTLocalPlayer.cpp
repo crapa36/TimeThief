@@ -75,7 +75,7 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 		{
 			se::room::EntityState* entityState = pkt.mutable_entity_state();
          
-			se::common::EntityId* entityId = entityState->mutable_entity_id();
+			se::common::ObjectId* entityId = entityState->mutable_entity_id();
 			entityId->set_value(EntityId);
 			se::common::MovementState* movementState = entityState->mutable_movement();
 			se::common::Vector3* postion = movementState->mutable_position();
@@ -84,9 +84,7 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 			postion->set_y(NowPosition.Y);
 			postion->set_z(NowPosition.Z);
 			movementState->set_yaw(NowRotation.Yaw);
-			movementState->set_speed(0.0f);
-			se::common::AimRotation* aimRotation = entityState->mutable_aim();
-			aimRotation->set_pitch(NowRotation.Pitch);
+			movementState->set_pitch(NowRotation.Pitch);
 		}
 		
 		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NetworkEntityState.generated.h"
 
 USTRUCT()
 struct FNetworkEntityState

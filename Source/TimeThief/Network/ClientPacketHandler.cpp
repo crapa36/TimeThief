@@ -26,7 +26,14 @@ bool Handle_S_Pong(PacketSessionRef& session, const se::auth::S_Pong& pkt)
 
 bool Handle_S_LobbyEnterRes(PacketSessionRef& session, const se::lobby::S_LobbyEnterRes& pkt)
 {
-	return false;
+	if (auto* GameInstance = GWorld->GetGameInstance())
+	{
+		auto* NetworkGameInstance = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
+		
+		 NetworkGameInstance->HandleLobbyEnter(pkt);
+	}
+	
+	return true;
 }
 
 bool Handle_S_MatchQueueEnterRes(PacketSessionRef& session, const se::lobby::S_MatchQueueEnterRes& pkt)

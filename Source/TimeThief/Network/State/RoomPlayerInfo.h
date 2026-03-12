@@ -1,8 +1,9 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "RoomPlayerInfo.generated.h"
 
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FRoomPlayerInfo
 {
 	GENERATED_BODY()
@@ -13,10 +14,10 @@ struct FRoomPlayerInfo
 	UPROPERTY()
 	uint32 EntityId = 0;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	FString Nickname;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	bool bReady = false;
 	
 };
