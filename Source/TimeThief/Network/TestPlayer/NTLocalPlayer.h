@@ -83,6 +83,8 @@ protected:
 	float DesiredYaw;
 	
 	FVector2D LastDesiredInput = FVector2D::ZeroVector;
+	float LastSentYaw = 0.0f;
+	float LastSentPitch = 0.0f;
 	
 	float MovePacketElapsed = 0.0f;
 	

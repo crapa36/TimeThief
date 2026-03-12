@@ -4,8 +4,10 @@
 #include "GameFramework/Character.h"
 #include "NTPlayer.generated.h"
 
+struct FNetworkEntityState;
 constexpr  float PositionTolerance = 5.0f;
 constexpr  float RotationTolerance = 2.0f;
+constexpr  float PitchTolerance = 2.0f;
 
 UCLASS()
 class TIMETHIEF_API ANTPlayer : public ACharacter
@@ -30,11 +32,24 @@ public:
 	bool IsLocalPlayer() const;
 	
 public:
-	void SetNowPosition(const FVector& NewPosition) { NowPosition = NewPosition; }
-	void SetNowRotation(const FRotator& NewRotation) { NowRotation = NewRotation; }
+	void SetNetworkEntityState(const FNetworkEntityState& EntityState);
 	
+public:
+	void SetNowPosition(const FVector& NewPosition) { NowPosition = NewPosition; }
 	void SetDestPosition(const FVector& NewPosition) { DestPosition = NewPosition; }
-	void SetDestRotation(const FRotator& NewRotation) { DestRotation = NewRotation; }
+	
+	uint32 GetEntityId() const { return EntityId; }
+	FVector GetNowPosition() const { return NowPosition; }
+	
+	void SetTargetYaw(float InYaw) { TargetYaw = InYaw; }
+	float GetNowYaw() const { return NowYaw; }
+	
+	void SetTargetPitch(float InPitch) { TargetPitch = InPitch; }
+	float GetNowPitch() const { return NowPitch; }
+	
+private:
+	void SetYawApply(float InYaw);
+	void SetPitchApply(float InPitch);
 	
 public:
 	// Called to bind functionality to input
@@ -44,9 +59,11 @@ protected:
 	uint32 EntityId = 0;
 	
 	FVector NowPosition = FVector::ZeroVector;
-	FRotator NowRotation = FRotator::ZeroRotator;
+	float NowYaw = 0.0f;
+	float NowPitch = 0.0f;
 	
 	FVector DestPosition = FVector::ZeroVector;
-	FRotator DestRotation = FRotator::ZeroRotator;
+	float TargetYaw = 0.0f;
+	float TargetPitch = 0.0f;
 	
 };

@@ -153,9 +153,9 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::room::S_EntityState& En
 		const auto& newPos = Entity.movement().position();
 		State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
 		const float yaw = Entity.movement().yaw();
-		State.Rotation.Yaw = yaw;
+		State.Yaw = yaw;
 		const float pitch = Entity.movement().pitch();
-		State.Rotation.Pitch = pitch;
+		State.Pitch = pitch;
 		
 		ApplyEntityStateToActor(EntityId);
 	}
@@ -179,9 +179,9 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	const auto& newPos = Movement.position();
 	State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
 	const float yaw = Movement.yaw();
-	State.Rotation.Yaw = yaw;
+	State.Yaw = yaw;
 	const float pitch = Movement.pitch();
-	State.Rotation.Pitch = pitch;
+	State.Pitch = pitch;
 	
 	ApplyEntityStateToActor(EntityId);
 }
@@ -206,6 +206,10 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
 	AActor* Actor = ActorPtr->Get();
 	if (not Actor) return;
 	
-	Actor->SetActorLocation(State->Position);
-	Actor->SetActorRotation(State->Rotation);
+	// Actor->SetActorLocation(State->Position);
+	// Actor->SetActorRotation(State->Rotation);
+	
+	// TODO: 좀더 다른 방향으로 State를 전달해야 한다
+	// 임시로 NTPlayer에 함수를 추가하고 해당 객체로 캐스팅하여 함수 호출 하는 방식
+	// 다음에는 interface 등 더 우아한 방법으로 교체하도록
 }

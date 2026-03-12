@@ -65,6 +65,12 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 		LastDesiredInput = DesiredInput;
 	}
 	
+	if (FMath::Abs(LastSentPitch - NowPitch) > 1.0f)
+	{
+		ForceSendPacket = true;
+		LastSentPitch = NowPitch;
+	}
+	
 	MovePacketElapsed += DeltaTime;
 	
 	if (MovePacketElapsed >= MOVE_PACKET_SEND_DELAY || ForceSendPacket)
@@ -83,8 +89,8 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 			postion->set_x(NowPosition.X);
 			postion->set_y(NowPosition.Y);
 			postion->set_z(NowPosition.Z);
-			movementState->set_yaw(NowRotation.Yaw);
-			movementState->set_pitch(NowRotation.Pitch);
+			movementState->set_yaw(NowYaw);
+			movementState->set_pitch(NowPitch);
 		}
 		
 		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);

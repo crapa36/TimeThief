@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "NTLocalPlayer.h"
+#include "Network/State/NetworkEntityState.h"
 
 
 // Sets default values
@@ -18,7 +19,7 @@ ANTPlayer::ANTPlayer()
 	bUseControllerRotationRoll = false;
 	
 	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 45.0f, 0.0f);
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
 	
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
@@ -28,6 +29,9 @@ ANTPlayer::ANTPlayer()
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.f;
 	
 	GetCharacterMovement()->bRunPhysicsWithNoController = true;
+	
+	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -100.0f));
+	GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -44,7 +48,7 @@ void ANTPlayer::BeginPlay()
 	
 	{
 		DestPosition = GetActorLocation();
-		DestRotation = GetActorRotation();
+		TargetYaw = GetActorRotation().Yaw;
 	}
 }
 
@@ -55,26 +59,40 @@ void ANTPlayer::Tick(float DeltaTime)
 	
 	{
 		NowPosition = GetActorLocation();
-		NowRotation = GetActorRotation();
+		NowYaw = GetActorRotation().Yaw;
 	}
 	
-	if (IsLocalPlayer()) return;
+	if (IsLocalPlayer())
+	{
+		if (Controller)
+		{
+			const float ControlPitch = Controller->GetControlRotation().Pitch;
+			NowPitch = FRotator::NormalizeAxis(ControlPitch);
+			
+			if (NowPitch > 180.f) NowPitch -= 360.f;
+			NowPitch = FMath::Clamp(NowPitch, -89.f, 89.f);
+		}
+		
+		return;
+	}
 	
 	// 내가 조종하는 Local Player가 아니라면
 	// 목표값(목적지)까지 자동 이동
 	{
 		
 		const bool bCloseEnoughPos = FVector::DistSquared2D(NowPosition, DestPosition) <= FMath::Square(PositionTolerance);
-		const bool bCloseEnoughRot = FMath::Abs(FMath::FindDeltaAngleDegrees(NowRotation.Yaw, DestRotation.Yaw)) <= RotationTolerance;
+		const bool bCloseEnoughRot = FMath::Abs(FMath::FindDeltaAngleDegrees(NowYaw, TargetYaw)) <= RotationTolerance;
+		const bool bCloseEnoughPitch = FMath::Abs(FMath::FindDeltaAngleDegrees(NowPitch, TargetPitch)) <= PitchTolerance;
 		
-		if (bCloseEnoughPos && bCloseEnoughRot)
+		if (bCloseEnoughPos && bCloseEnoughRot && bCloseEnoughPitch)
 		{
 			SetActorLocation(NowPosition);
-			SetActorRotation(NowRotation);
+			SetYawApply(TargetYaw);
+			SetPitchApply(TargetPitch);
 			return;
 		}
 		
-		const float MaxStep = GetCharacterMovement()->MaxWalkSpeed;
+		const float MaxStep = GetCharacterMovement()->MaxWalkSpeed * DeltaTime;
 		const FVector ToDest = DestPosition - NowPosition;
 		
 		FVector NewPosition = NowPosition;
@@ -93,14 +111,14 @@ void ANTPlayer::Tick(float DeltaTime)
 			NewPosition.Z = FMath::FInterpTo(NowPosition.Z, DestPosition.Z, DeltaTime, 10.f);
 		}
 		
-		const float RotationSpeedDegPerSec = GetCharacterMovement()->RotationRate.Yaw;
-		FRotator NewRotation = NowRotation;
-		NewRotation.Yaw = FMath::FixedTurn(NowRotation.Yaw, DestRotation.Yaw, RotationSpeedDegPerSec * DeltaTime);
-		
-		NewRotation.Pitch = DestRotation.Pitch;
-		
 		SetActorLocation(NewPosition);
-		SetActorRotation(NewRotation);
+		
+		const float RotationSpeedDegPerSec = GetCharacterMovement()->RotationRate.Yaw;
+		float NewYaw = FMath::FixedTurn(NowYaw, TargetYaw, RotationSpeedDegPerSec * DeltaTime);
+		SetYawApply(NewYaw);
+		
+		float NewPitch = FMath::FInterpTo(NowPitch, TargetPitch, DeltaTime, 12.f);
+		SetPitchApply(NewPitch);
 	}
 }
 
@@ -108,6 +126,23 @@ bool ANTPlayer::IsLocalPlayer() const
 {
 	return Cast<ANTLocalPlayer>(this) != nullptr;
 	// 이 방법도 좋지만 boolean 변수를 하나 두거나 virtual로 처리해도 된다
+}
+
+void ANTPlayer::SetNetworkEntityState(const FNetworkEntityState& EntityState)
+{
+	DestPosition = EntityState.Position;
+	TargetYaw = EntityState.Yaw;
+	TargetPitch = EntityState.Pitch;
+}
+
+void ANTPlayer::SetYawApply(float InYaw)
+{
+	// TODO: 몸 돌리기
+}
+
+void ANTPlayer::SetPitchApply(float InPitch)
+{
+	// TODO: 허리꺾기 진행
 }
 
 // Called to bind functionality to input
