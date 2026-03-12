@@ -68,7 +68,6 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 	if (FMath::Abs(LastSentPitch - NowPitch) > 1.0f)
 	{
 		ForceSendPacket = true;
-		LastSentPitch = NowPitch;
 	}
 	
 	MovePacketElapsed += DeltaTime;
@@ -76,6 +75,7 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 	if (MovePacketElapsed >= MOVE_PACKET_SEND_DELAY || ForceSendPacket)
 	{
 		MovePacketElapsed = 0.f;
+		LastSentPitch = NowPitch;
 		
 		se::room::C_MoveInput pkt;
 		{
@@ -170,7 +170,6 @@ void ANTLocalPlayer::DoMove(float Right, float Forward)
 			
 			const FVector Location = GetActorLocation();
 			FRotator Rotator = UKismetMathLibrary::FindLookAtRotation(Location, Location + DesiredMoveDirection);
-			DesiredYaw = Rotator.Yaw;
 		}
 	}
 }

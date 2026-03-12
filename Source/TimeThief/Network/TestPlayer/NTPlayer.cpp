@@ -48,7 +48,12 @@ void ANTPlayer::BeginPlay()
 	
 	{
 		DestPosition = GetActorLocation();
-		TargetYaw = GetActorRotation().Yaw;
+		
+		const FRotator ActorRot = GetActorRotation();
+		NowYaw = ActorRot.Pitch;
+		TargetYaw = ActorRot.Yaw;
+		NowPitch = 0.f;
+		TargetPitch = 0.f;
 	}
 }
 
@@ -137,12 +142,15 @@ void ANTPlayer::SetNetworkEntityState(const FNetworkEntityState& EntityState)
 
 void ANTPlayer::SetYawApply(float InYaw)
 {
-	// TODO: 몸 돌리기
+	FRotator NewRotation = GetActorRotation();
+	NewRotation.Yaw = FRotator::NormalizeAxis(InYaw);
+	
+	SetActorRotation(NewRotation);
 }
 
 void ANTPlayer::SetPitchApply(float InPitch)
 {
-	// TODO: 허리꺾기 진행
+	NowPitch = FRotator::NormalizeAxis(InPitch);
 }
 
 // Called to bind functionality to input

@@ -80,7 +80,6 @@ protected:
 	
 	FVector2D DesiredInput = FVector2D::ZeroVector;
 	FVector DesiredMoveDirection = FVector::ZeroVector;
-	float DesiredYaw;
 	
 	FVector2D LastDesiredInput = FVector2D::ZeroVector;
 	float LastSentYaw = 0.0f;

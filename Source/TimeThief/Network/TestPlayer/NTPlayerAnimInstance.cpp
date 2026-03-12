@@ -26,6 +26,7 @@ void UNTPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		IsAir = false;
 		Velocity = FVector::ZeroVector;
 		Direction = 0.f;
+		AimPitch = 0.f;
 		
 		return;
 	}
@@ -41,4 +42,5 @@ void UNTPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	}
 	
 	Direction = UKismetAnimationLibrary::CalculateDirection(OwnerPlayer->GetVelocity(), OwnerPlayer->GetActorRotation());
+	AimPitch = OwnerPlayer->GetNowPitch();
 }

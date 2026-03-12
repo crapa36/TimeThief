@@ -37,4 +37,7 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category="Movement")
 	float Direction = 0.f;
 	
+	UPROPERTY(BlueprintReadWrite, Category="Aim")
+	float AimPitch = 0.f;
+	
 };
