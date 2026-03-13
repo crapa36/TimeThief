@@ -19,23 +19,87 @@ bool UTimeThiefPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponen
 		return false;
 	}
 
-	return true;
+	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
+
+	if (DesiredState == Tags.InitState_Spawned)
+	{
+		return true;
+	}
+
+	if (DesiredState == Tags.InitState_DataAvailable)
+	{
+		return CurrentState == Tags.InitState_Spawned && bPawnDataSet;
+	}
+
+	if (DesiredState == Tags.InitState_DataInitialized)
+	{
+		return CurrentState == Tags.InitState_DataAvailable && bInputsReady;
+	}
+
+	if (DesiredState == Tags.InitState_GameplayReady)
+	{
+		return CurrentState == Tags.InitState_DataInitialized;
+	}
+
+	return false;
 }
 
 void UTimeThiefPawnExtensionComponent::HandleChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) {
-	OnPawnReadyToInitialize();
+	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
+
+	CurrentInitState = DesiredState;
+
+	if (DesiredState == Tags.InitState_DataAvailable)
+	{
+		OnPawnReadyToInitialize();
+	}
+	else if (DesiredState == Tags.InitState_GameplayReady)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] PawnExtension reached GameplayReady state."), *GetNameSafe(GetOwner()));
+	}
 }
 
 void UTimeThiefPawnExtensionComponent::OnActorInitStateChanged(const FActorInitStateChangedParams& Params) {
 }
 
 void UTimeThiefPawnExtensionComponent::CheckDefaultInitialization() {
-	if (UGameFrameworkComponentManager* Manager = UGameFrameworkComponentManager::GetForActor(GetOwner())) {
-		const FGameplayTag& InitTag = FTimeThiefGameplayTags::Get().InitState_Spawned;
-		if (InitTag.IsValid()) {
-			Manager->ChangeFeatureInitState(GetOwner(), NAME_ActorFeatureName, this, InitTag);
+	UGameFrameworkComponentManager* Manager = UGameFrameworkComponentManager::GetForActor(GetOwner());
+	if (!Manager) {
+		return;
+	}
+
+	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
+
+	static const TArray<FGameplayTag> StateChain = {
+		Tags.InitState_Spawned,
+		Tags.InitState_DataAvailable,
+		Tags.InitState_DataInitialized,
+		Tags.InitState_GameplayReady
+	};
+
+	for (const FGameplayTag& State : StateChain)
+	{
+		if (!TryTransitionToState(Manager, State))
+		{
+			break;
 		}
 	}
+}
+
+bool UTimeThiefPawnExtensionComponent::TryTransitionToState(UGameFrameworkComponentManager* Manager, const FGameplayTag& DesiredState)
+{
+	if (CurrentInitState == DesiredState)
+	{
+		return true;
+	}
+
+	if (CanChangeInitState(Manager, CurrentInitState, DesiredState))
+	{
+		Manager->ChangeFeatureInitState(GetOwner(), NAME_ActorFeatureName, this, DesiredState);
+		return true;
+	}
+
+	return false;
 }
 
 void UTimeThiefPawnExtensionComponent::BindOnActorInitStateChanged(FName FeatureName, FGameplayTag RequiredState, bool bCallImmediately) {

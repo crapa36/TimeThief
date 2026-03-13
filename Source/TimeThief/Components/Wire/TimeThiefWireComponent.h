@@ -92,6 +92,10 @@ private:
 	void ResetSpeedEffects(float DeltaTime);
 	float GetSpeedEffectAlpha() const;
 
+	void UpdateWireRotation(float DeltaTime);
+	void ApplyWireRotationMode();
+	void RestoreRotationMode();
+
 public:
 	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
 	FOnWireStateChanged OnWireStateChanged;
@@ -151,10 +155,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	FVector AnchorMeshScale = FVector(1.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals", meta = (ToolTip = "앵커 메시에서 줄이 연결될 로컬 오프셋"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	FVector AnchorWireAttachOffset = FVector::ZeroVector;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals", meta = (ToolTip = "앵커 메시의 기본 회전 오프셋"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	FRotator AnchorMeshRotationOffset = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
@@ -171,6 +175,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
 	TSubclassOf<UCameraShakeBase> WireSpeedShake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
+	bool bOrientToVelocityOnWire = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
+	float WireRotationInterpSpeed = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
+	float WireRotationMinSpeed = 100.0f;
 
 private:
 	UPROPERTY(Transient)
@@ -208,6 +221,9 @@ private:
 	float CooldownRemaining = 0.0f;
 	float AttachedWireLength = 0.0f;
 	float CachedAirControl = 0.0f;
+	bool CachedOrientRotationToMovement = true;
+	bool CachedUseControllerDesiredRotation = false;
+	bool CachedUseControllerRotationYaw = false;
 	float StuckCheckTimer = 0.0f;
 	float GroundCheckTimer = 0.0f;
 	float DefaultFOV = 90.0f;

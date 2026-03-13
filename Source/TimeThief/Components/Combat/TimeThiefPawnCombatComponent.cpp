@@ -56,6 +56,7 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag) {
 	}
 
 	PlayEquipMontage(WeaponToEquip);
+	ApplyCombatStateTag(WeaponTag);
 }
 
 void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon() {
@@ -68,12 +69,19 @@ void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon() {
 		return;
 	}
 
+	if (UAnimMontage* UnequipMontage = CurrentEquippedWeapon->GetUnequipMontage()) {
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
+			BaseChar->PlayMontageOnAllMeshes(UnequipMontage);
+		}
+	}
+
 	CurrentEquippedWeapon->SetActorHiddenInGame(true);
 
 	if (TSubclassOf<UAnimInstance> AnimLayer = CurrentEquippedWeapon->GetEquipAnimLayer()) {
 		OwningCharacter->GetMesh()->UnlinkAnimClassLayers(AnimLayer);
 	}
 
+	RemoveCombatStateTag(CurrentEquippedWeaponTag);
 	CurrentEquippedWeaponTag = FGameplayTag();
 	CurrentEquippedWeapon = nullptr;
 }
@@ -112,14 +120,8 @@ void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapo
 		return;
 	}
 
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) {
-		return;
-	}
-
-	UAnimInstance* AnimInstance = OwningCharacter->GetMesh()->GetAnimInstance();
-	if (AnimInstance) {
-		AnimInstance->Montage_Play(EquipMontage);
+	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>())) {
+		BaseChar->PlayMontageOnAllMeshes(EquipMontage);
 	}
 }
 
@@ -142,3 +144,30 @@ void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 {
 }
+
+void UTimeThiefPawnCombatComponent::ApplyCombatStateTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid()) return;
+
+	if (const FGameplayTag* StateTag = WeaponToStateTagMap.Find(WeaponTag))
+	{
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
+		{
+			BaseChar->AddOwnedGameplayTag(*StateTag);
+		}
+	}
+}
+
+void UTimeThiefPawnCombatComponent::RemoveCombatStateTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid()) return;
+
+	if (const FGameplayTag* StateTag = WeaponToStateTagMap.Find(WeaponTag))
+	{
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
+		{
+			BaseChar->RemoveOwnedGameplayTag(*StateTag);
+		}
+	}
+}
+

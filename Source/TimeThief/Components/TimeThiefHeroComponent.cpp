@@ -29,6 +29,7 @@ void UTimeThiefHeroComponent::SetPawnData(const UTimeThiefPawnData* InPawnData)
 	if (PawnData) return;
 
 	PawnData = InPawnData;
+	bPawnDataSet = true;
 	CheckDefaultInitialization();
 }
 
@@ -46,6 +47,12 @@ void UTimeThiefHeroComponent::BeginPlay()
 	Super::BeginPlay();
 	BindOnActorInitStateChanged(NAME_None, FGameplayTag(), false);
 	CheckDefaultInitialization();
+
+	if (APawn* Pawn = GetPawn<APawn>())
+	{
+		CachedWireComponent = Pawn->FindComponentByClass<UTimeThiefWireComponent>();
+		CachedCombatComponent = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>();
+	}
 }
 
 void UTimeThiefHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -85,7 +92,9 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
 	bReadyToBindInputs = true;
+	bInputsReady = true;
 	OnReadyToBindInputs.Broadcast(this);
+	CheckDefaultInitialization();
 }
 
 void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext* MappingContext, int32 Priority)
@@ -139,27 +148,18 @@ void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
 	Character->AddMovementInput(ForwardDirection, MovementVector.Y);
 	Character->AddMovementInput(RightDirection, MovementVector.X);
 
-	if (!FMath::IsNearlyZero(MovementVector.SizeSquared()))
-	{
-		const FRotator CurrentRotation = Character->GetActorRotation();
-		const FRotator TargetRotation = FMath::RInterpTo(CurrentRotation, YawRotation, GetWorld()->GetDeltaSeconds(), RotationInterpSpeed);
-		Character->SetActorRotation(TargetRotation);
-	}
 
-	if (UTimeThiefWireComponent* WireComp = Character->FindComponentByClass<UTimeThiefWireComponent>())
+	if (CachedWireComponent)
 	{
-		WireComp->SetMoveInput(MovementVector);
+		CachedWireComponent->SetMoveInput(MovementVector);
 	}
 }
 
 void UTimeThiefHeroComponent::Input_MoveCompleted(const FInputActionValue& Value)
 {
-	ACharacter* Character = GetPawn<ACharacter>();
-	if (!Character) return;
-
-	if (UTimeThiefWireComponent* WireComp = Character->FindComponentByClass<UTimeThiefWireComponent>())
+	if (CachedWireComponent)
 	{
-		WireComp->SetMoveInput(FVector2D::ZeroVector);
+		CachedWireComponent->SetMoveInput(FVector2D::ZeroVector);
 	}
 }
 
@@ -179,21 +179,15 @@ void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value)
 
 void UTimeThiefHeroComponent::Input_Jump(const FInputActionValue& Value)
 {
-	if (APawn* Pawn = GetPawn<APawn>())
+	if (CachedWireComponent && CachedWireComponent->IsWireAttached())
 	{
-		if (UTimeThiefWireComponent* WireComp = Pawn->FindComponentByClass<UTimeThiefWireComponent>())
-		{
-			if (WireComp->IsWireAttached())
-			{
-				WireComp->Jump();
-				return;
-			}
-		}
+		CachedWireComponent->Jump();
+		return;
+	}
 
-		if (ACharacter* Character = Cast<ACharacter>(Pawn))
-		{
-			Character->Jump();
-		}
+	if (ACharacter* Character = GetPawn<ACharacter>())
+	{
+		Character->Jump();
 	}
 }
 
@@ -207,27 +201,21 @@ void UTimeThiefHeroComponent::Input_TogglePerspective(const FInputActionValue& V
 
 void UTimeThiefHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
-	APawn* Pawn = GetPawn<APawn>();
-	if (!Pawn) return;
-
-	if (UTimeThiefPawnCombatComponent* CombatComp = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>())
+	if (CachedCombatComponent)
 	{
-		CombatComp->HandleInputPressed(InputTag);
+		CachedCombatComponent->HandleInputPressed(InputTag);
 	}
 	
-	if (UTimeThiefWireComponent* WireComp = Pawn->FindComponentByClass<UTimeThiefWireComponent>())
+	if (CachedWireComponent)
 	{
-		WireComp->HandleInputPressed(InputTag);
+		CachedWireComponent->HandleInputPressed(InputTag);
 	}
 }
 
 void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)
 {
-	APawn* Pawn = GetPawn<APawn>();
-	if (!Pawn) return;
-
-	if (UTimeThiefPawnCombatComponent* CombatComp = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>())
+	if (CachedCombatComponent)
 	{
-		CombatComp->HandleInputReleased(InputTag);
+		CachedCombatComponent->HandleInputReleased(InputTag);
 	}
 }

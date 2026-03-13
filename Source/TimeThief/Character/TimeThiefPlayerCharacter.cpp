@@ -61,23 +61,15 @@ void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData
 void ATimeThiefPlayerCharacter::OnPawnDataSet() {
 	if (HeroComponent && PawnData) {
 		HeroComponent->SetPawnData(PawnData);
-		
+
 		if (InputComponent) {
 			HeroComponent->InitializePlayerInput(InputComponent);
 		}
 	}
-}
 
-void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController) {
-	Super::PossessedBy(NewController);
-}
-
-void ATimeThiefPlayerCharacter::UnPossessed() {
-	Super::UnPossessed();
-}
-
-void ATimeThiefPlayerCharacter::OnRep_PlayerState() {
-	Super::OnRep_PlayerState();
+	if (PawnData && PawnData->PawnTags.Num() > 0) {
+		AppendOwnedGameplayTags(PawnData->PawnTags);
+	}
 }
 
 void ATimeThiefPlayerCharacter::OnRep_PawnData() {
@@ -97,14 +89,14 @@ void ATimeThiefPlayerCharacter::BeginPlay() {
 
 	if (IsLocallyControlled() && bIsFirstPerson)
 	{
-		GetMesh()->HideBoneByName(FName("head"), EPhysBodyOp::PBO_None);
 		FollowCamera->SetActive(false);
-		FirstPersonCamera->SetActive(true);
 	}
 }
 
 void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
-	DisableInput(Cast<APlayerController>(GetController()));
+	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+		DisableInput(PC);
+	}
 	GetCharacterMovement()->DisableMovement();
 }
 

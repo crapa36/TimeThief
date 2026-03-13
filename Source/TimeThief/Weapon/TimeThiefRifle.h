@@ -4,9 +4,8 @@
 #include "Weapon/TimeThiefWeaponBase.h"
 #include "TimeThiefRifle.generated.h"
 
-class USoundCue;
+class USoundBase;
 class UParticleSystem;
-class UControlRig;
 
 USTRUCT(BlueprintType)
 struct FHitScanResult
@@ -30,6 +29,8 @@ struct FHitScanResult
 
 	UPROPERTY(BlueprintReadOnly)
 	FVector FireDirection = FVector::ForwardVector;
+
+	FHitResult OriginalHitResult;
 };
 
 UCLASS()
@@ -49,22 +50,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
 	void Reload();
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	bool CanFire() const;
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	int32 GetCurrentAmmo() const { return CurrentAmmo; }
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	int32 GetMaxAmmo() const { return MaxAmmo; }
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	int32 GetReserveAmmo() const { return ReserveAmmo; }
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	bool IsReloading() const { return bIsReloading; }
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	bool IsFiring() const { return bIsFiring; }
 
 protected:
@@ -84,10 +85,7 @@ protected:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float BaseDamage = 25.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	float HeadshotMultiplier = 2.0f;
-
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float FireRate = 600.0f;
 
@@ -95,7 +93,7 @@ protected:
 	float MaxRange = 10000.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	float SpreadAngle = 1.0f;
+	float SpreadAngle = 3.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
 	int32 MaxAmmo = 30;
@@ -113,13 +111,10 @@ protected:
 	TObjectPtr<UParticleSystem> ImpactEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<USoundCue> FireSound;
+	TObjectPtr<USoundBase> FireSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<USoundCue> ReloadSound;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	FName MuzzleSocketName = TEXT("Muzzle");
+	TObjectPtr<USoundBase> ReloadSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	FName HeadshotBoneName = TEXT("head");
@@ -132,14 +127,39 @@ protected:
 
 	void ApplyRecoil();
 
+	// 연사 시 도달하는 최대 상하 반동 (도 단위, Pitch)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
+	float MaxVerticalRecoil = 1.5f;
+
+	// 연사 시 도달하는 최대 좌우 반동 (도 단위, Yaw)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
+	float MaxHorizontalRecoil = 0.6f;
+
+	// 반동 복구 속도 (클수록 빠르게 복귀)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
+	float RecoilRecoverySpeed = 5.0f;
+
+	// 탄퍼짐 복구 속도 (클수록 빠르게 복귀)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
+	float SpreadRecoverySpeed = 2.0f;
+
+	// 발사당 반동 증가량 (0~1 비율, 누적되어 최대 1.0까지)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
+	float RecoilBuildupPerShot = 0.12f;
+
+	// 발사당 탄퍼짐 증가량 (0~1 비율, 누적되어 최대 1.0까지)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
+	float SpreadBuildupPerShot = 0.15f;
+
 private:
-	int32 CurrentAmmo;
-	int32 ReserveAmmo;
+	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
+	int32 CurrentAmmo = 0;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
+	int32 ReserveAmmo = 0;
+
 	bool bIsFiring = false;
 	bool bIsReloading = false;
 	FTimerHandle AutoFireTimerHandle;
 	FTimerHandle ReloadTimerHandle;
 };
-
-
-

@@ -29,10 +29,7 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	Velocity = CharacterOwner->GetVelocity();
 	VerticalVelocity = Velocity.Z;
-
-	const FVector LateralVelocity = FVector(Velocity.X, Velocity.Y, 0.0f);
-	GroundSpeed = LateralVelocity.Size();
-
+	GroundSpeed = Velocity.Size2D();
 	bHasVelocity = !FMath::IsNearlyZero(GroundSpeed);
 	bIsFalling = CharacterMovement->IsFalling();
 	bIsMoving = bHasVelocity && !bIsFalling;

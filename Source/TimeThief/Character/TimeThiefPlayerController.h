@@ -15,10 +15,10 @@ class TIMETHIEF_API ATimeThiefPlayerController : public APlayerController
 protected:
 
 	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")
-	TArray<UInputMappingContext*> DefaultMappingContexts;
+	TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;
 
 	UPROPERTY(EditAnywhere, Category="Input|Input Mappings")
-	TArray<UInputMappingContext*> MobileExcludedMappingContexts;
+	TArray<TObjectPtr<UInputMappingContext>> MobileExcludedMappingContexts;
 
 	UPROPERTY(EditAnywhere, Category="Input|Touch Controls")
 	TSubclassOf<UUserWidget> MobileControlsWidgetClass;

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameplayTagContainer.h"
 #include "TimeThiefCharacterBase.generated.h"
 
 class UTimePointSystemComponent;
@@ -11,6 +12,8 @@ class UCameraComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
 struct FStoreOrder;
+
+class UAnimMontage;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
@@ -33,7 +36,25 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
-	
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Animation")
+	void PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate = 1.0f);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
+	void AddOwnedGameplayTag(const FGameplayTag& Tag);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
+	void RemoveOwnedGameplayTag(const FGameplayTag& Tag);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
+	bool HasOwnedGameplayTag(const FGameplayTag& Tag) const;
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
+	const FGameplayTagContainer& GetOwnedGameplayTags() const { return OwnedGameplayTags; }
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
+	void AppendOwnedGameplayTags(const FGameplayTagContainer& InTags);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -52,6 +73,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
-	
+
+	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tags")
+	FGameplayTagContainer OwnedGameplayTags;
+
+private:
+	void ApplyPerspective();
 };

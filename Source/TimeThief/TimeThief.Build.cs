@@ -23,7 +23,6 @@ public class TimeThief : ModuleRules
             "PoseSearch",
             "GameplayTags",
             "ModularGameplay",
-            "GameFeatures",
             "DeveloperSettings",
         });
 

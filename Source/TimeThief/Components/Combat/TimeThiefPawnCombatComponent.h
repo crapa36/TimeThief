@@ -8,12 +8,6 @@
 class ATimeThiefWeaponBase;
 class UAnimMontage;
 
-UENUM(BlueprintType)
-enum class EToggleDamageType : uint8 {
-	CurrentEquippedWeapon,
-	LeftHand,
-	RightHand
-};
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensionComponent {
@@ -56,5 +50,10 @@ protected:
 	UPROPERTY()
 	TObjectPtr<ATimeThiefWeaponBase> CurrentEquippedWeapon;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	TMap<FGameplayTag, FGameplayTag> WeaponToStateTagMap;
+
 	void PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
+	void ApplyCombatStateTag(FGameplayTag WeaponTag);
+	void RemoveCombatStateTag(FGameplayTag WeaponTag);
 };
