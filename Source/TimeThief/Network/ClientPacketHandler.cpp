@@ -51,9 +51,19 @@ bool Handle_N_MatchFound(PacketSessionRef& session, const se::lobby::N_MatchFoun
 	return false;
 }
 
-bool Handle_N_RoomReadyChanged(PacketSessionRef& session, const se::room::N_RoomReadyChanged& pkt)
+bool Handle_S_JoinRoom(PacketSessionRef& session, const se::room::S_JoinRoom& pkt)
 {
-	return false;
+	// 방에 처음 입장한 상태를 업데이트하는 패킷
+	// RoomPlayer들이 모두 Spawn 된 상태에서 RoomPlayer들의 스냅샷 정보와, Entity로서 Spawn해야 하는 정보를 담고있다
+	
+	if (auto* GameInstance = GWorld->GetGameInstance())
+	{
+		auto* NetworkGameInstance = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
+		
+		// NetworkGameInstance->HandleMove(pkt);
+	}
+	
+	return true;
 }
 
 bool Handle_N_GameStart(PacketSessionRef& session, const se::room::N_GameStart& pkt)

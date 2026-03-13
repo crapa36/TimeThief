@@ -8,6 +8,7 @@
 
 #include "PacketSession.h"
 #include "ClientConfigLoader.h"
+#include "TestPlayer/NTLocalPlayer.h"
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -128,6 +129,38 @@ void UNetworkGameInstanceSubsystem::HandleLobbyEnter(const se::lobby::S_LobbyEnt
 	Level = PlayerInfo.level();
 }
 
+void UNetworkGameInstanceSubsystem::HandleJoinRoom(const se::room::S_JoinRoom& JoinRoomPkt)
+{
+	if (Socket == nullptr or GameSession == nullptr) return;
+	
+	// TODO: RoomPlayer 정보 담기
+	// 임시로 RoomPlayer에서 PlayerId로 찾아서 LocalPlayerEntityId로 설정하는 방식으로 처리
+	const auto& RoomSnapshot = JoinRoomPkt.snapshot();
+	const auto& RoomPlayers = RoomSnapshot.players();
+	for (const auto& RoomPlayer : RoomPlayers)
+	{
+		if (RoomPlayer.player_id().value() == PlayerId)
+		{
+			LocalPlayerEntityId = RoomPlayer.entity_id().value();
+			break;
+		}
+	}
+	
+	auto* World = GetWorld();
+	if (World == nullptr) return;
+	
+	PlayerId = JoinRoomPkt.player_id().value();	// 서버에서 알려준 Player ID로 업데이트
+	
+	const auto& EntitySpawns = JoinRoomPkt.existing_entities();
+	for (const auto& EntitySpawn : EntitySpawns)
+	{
+		const auto& ObjectType = EntitySpawn.entity_type();
+		const auto& Entity = EntitySpawn.entity();
+		
+		SpawnEntity(ObjectType, Entity);
+	}
+}
+
 void UNetworkGameInstanceSubsystem::HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt)
 {
 	if (Socket == nullptr or GameSession == nullptr) return;
@@ -167,21 +200,47 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	auto* World = GetWorld();
 	if (World == nullptr) return;
 	
-	// TODO: ObjectType에 따라서 다른 Actor 클래스를 Spawn해야 할 듯 싶다 (예: Player, NPC, Item 등)
-	AActor* SpawnActor = World->SpawnActor<AActor>();
+	const uint32 EntityId = EntityState.entity_id().value();
+	
+	// 이미 존재하는 EntityId인 경우, 중복으로 Spawn하지 않도록 처리
+	if (EntityActors.Contains(EntityId)) return;
+	
+	AActor* SpawnActor = nullptr;
+
+	switch (ObjectType)
+	{
+	case se::common::OBJ_PLAYER:
+		{
+			const bool bIsLocalPlayer = (LocalPlayerEntityId == EntityId);
+			
+			if (bIsLocalPlayer)
+			{
+				SpawnActor = World->SpawnActor<ANTLocalPlayer>();
+			}
+			else
+			{
+				SpawnActor = World->SpawnActor<ANTPlayer>();
+			}
+			
+			break;
+		}
+		
+	default:
+		return;
+	}
+	
 	if (not SpawnActor) return;
 	
-	const auto& Movement = EntityState.movement();
-	const uint32 EntityId = EntityState.entity_id().value();
 	EntityActors.Add(EntityId, SpawnActor);
 	
 	FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
+	
+	const auto& Movement = EntityState.movement();
 	const auto& newPos = Movement.position();
+	
 	State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
-	const float yaw = Movement.yaw();
-	State.Yaw = yaw;
-	const float pitch = Movement.pitch();
-	State.Pitch = pitch;
+	State.Yaw = Movement.yaw();
+	State.Pitch = Movement.pitch();
 	
 	ApplyEntityStateToActor(EntityId);
 }

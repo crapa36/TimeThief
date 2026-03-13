@@ -54,6 +54,7 @@ private:
 // packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
 public:
 	void HandleLobbyEnter(const se::lobby::S_LobbyEnterRes& LobbyEnterPkt);
+	void HandleJoinRoom(const se::room::S_JoinRoom& JoinRoomPkt);
 	void HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt);
 	void HandleMove(const se::room::S_EntityState& EntityStatePkt);
 	
