@@ -20,7 +20,6 @@ UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitiali
 	WireLeftHandIKTransform = FTransform::Identity;
 	WireLeftHandIKAlpha = 0.0f;
 	WireAnchorDirectionWorld = FVector::ForwardVector;
-	AimControlRigReleaseTimer = 0.0f;
 }
 
 void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
@@ -41,7 +40,7 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	}
 
 	UpdateWeaponData();
-	UpdateAimingState(DeltaSeconds);
+	UpdateAimingState();
 	UpdateWireData();
 	UpdateWireHandIK(DeltaSeconds);
 	UpdateRecoil(DeltaSeconds);
@@ -200,15 +199,6 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 		return;
 	}
 
-	if (!bShouldApplyAimControlRig)
-	{
-		const FVector CharacterForward = PlayerCharacter->GetActorForwardVector();
-		AimPitch = 0.0f;
-		AimDirection = CharacterForward;
-		WorldAimLocation = PlayerCharacter->GetActorLocation() + (CharacterForward * 1000.0f);
-		return;
-	}
-
 	FVector CameraLocation = FVector::ZeroVector;
 	FRotator CameraRotation = PlayerCharacter->GetControlRotation();
 	
@@ -224,43 +214,26 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 	AimPitch = -FMath::RadiansToDegrees(FMath::Atan2(AimDirection.Z, HorizontalSize));
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateAimingState(float DeltaSeconds)
+void UTimeThiefPlayerAnimInstance::UpdateAimingState()
 {
 	if (!PlayerCharacter)
 	{
 		bIsAiming = false;
-		bIsFiringWeapon = false;
-		bShouldApplyAimControlRig = false;
-		AimControlRigReleaseTimer = 0.0f;
 		AimSpreadMultiplier = 1.0f;
+		bUseWeaponControlRigRotation = false;
 		return;
 	}
 
 	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent())
 	{
 		bIsAiming = PlayerCombat->IsAiming();
-		bIsFiringWeapon = PlayerCombat->IsFiringWeapon();
-
-		const bool bWantsAimControlRig = bIsAiming || bIsFiringWeapon;
-		if (bWantsAimControlRig)
-		{
-			AimControlRigReleaseTimer = AimControlRigReleaseHoldTime;
-			bShouldApplyAimControlRig = true;
-		}
-		else
-		{
-			AimControlRigReleaseTimer = FMath::Max(0.0f, AimControlRigReleaseTimer - DeltaSeconds);
-			bShouldApplyAimControlRig = AimControlRigReleaseTimer > 0.0f;
-		}
-
 		AimSpreadMultiplier = bIsAiming ? PlayerCombat->GetAimSpreadMultiplier() : 1.0f;
+		bUseWeaponControlRigRotation = PlayerCombat->ShouldUseWeaponControlRigRotation();
 	}
 	else
 	{
 		bIsAiming = false;
-		bIsFiringWeapon = false;
-		bShouldApplyAimControlRig = false;
-		AimControlRigReleaseTimer = 0.0f;
 		AimSpreadMultiplier = 1.0f;
+		bUseWeaponControlRigRotation = false;
 	}
 }

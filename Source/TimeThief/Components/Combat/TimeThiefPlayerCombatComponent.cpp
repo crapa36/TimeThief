@@ -3,17 +3,21 @@
 #include "Weapon/TimeThiefRifle.h"
 #include "TimeThiefGameplayTags.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "Character/TimeThiefPlayerCharacter.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+
+UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+}
 
 void UTimeThiefPlayerCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
 
@@ -29,8 +33,20 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		{
 			DefaultMaxWalkSpeed = MovementComp->MaxWalkSpeed;
 			DefaultRotationRate = MovementComp->RotationRate;
+			bDefaultOrientRotationToMovement = MovementComp->bOrientRotationToMovement;
+			bDefaultUseControllerDesiredRotation = MovementComp->bUseControllerDesiredRotation;
 		}
-		CachedCameraBoom = OwningCharacter->FindComponentByClass<USpringArmComponent>();
+		bDefaultUseControllerRotationYaw = OwningCharacter->bUseControllerRotationYaw;
+		CachedWireComponent = OwningCharacter->FindComponentByClass<UTimeThiefWireComponent>();
+
+		if (const ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(OwningCharacter))
+		{
+			CachedThirdPersonCamera = PlayerChar->GetFollowCamera();
+		}
+		else
+		{
+			CachedThirdPersonCamera = OwningCharacter->FindComponentByClass<UCameraComponent>();
+		}
 
 		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 		{
@@ -95,14 +111,13 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 	{
 		if (CurrentEquippedWeaponTag == Tags.Weapon_Rifle)
 		{
-			UnequipCurrentWeapon();
 			StopAiming();
+			UnequipCurrentWeapon();
 		}
 		else
 		{
 			EquipWeapon(Tags.Weapon_Rifle);
 		}
-		UpdateCombatRotation();
 		return;
 	}
 
@@ -217,6 +232,11 @@ bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
 	return false;
 }
 
+bool UTimeThiefPlayerCombatComponent::ShouldUseWeaponControlRigRotation() const
+{
+	return bIsAiming || IsFiringWeapon();
+}
+
 void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 {
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
@@ -231,6 +251,11 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 		{
 			return;
 		}
+	}
+
+	if (IsRotationManagedExternally())
+	{
+		return;
 	}
 
 	const AController* Controller = OwningCharacter->GetController();
@@ -260,41 +285,90 @@ void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 		}
 	}
 
+	if (IsRotationManagedExternally())
+	{
+		return;
+	}
+
 	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
 	if (!MovementComp)
 	{
 		return;
 	}
 
-	const bool bShouldFaceAim = bIsAiming || IsFiringWeapon();
+	ApplyCombatRotationMode(ShouldUseControllerFacing());
+}
 
-	if (bShouldFaceAim && MovementComp->bOrientRotationToMovement)
+void UTimeThiefPlayerCombatComponent::ApplyCombatRotationMode(bool bUseControllerFacing)
+{
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
 	{
+		return;
+	}
+
+	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
+	if (!MovementComp)
+	{
+		return;
+	}
+
+	if (bUseControllerFacing)
+	{
+		OwningCharacter->bUseControllerRotationYaw = false;
 		MovementComp->bOrientRotationToMovement = false;
 		MovementComp->bUseControllerDesiredRotation = true;
 		MovementComp->RotationRate = FRotator(0.0f, CombatRotationRate, 0.0f);
+		return;
 	}
-	else if (!bShouldFaceAim && !MovementComp->bOrientRotationToMovement)
+
+	OwningCharacter->bUseControllerRotationYaw = bDefaultUseControllerRotationYaw;
+	MovementComp->bOrientRotationToMovement = bDefaultOrientRotationToMovement;
+	MovementComp->bUseControllerDesiredRotation = bDefaultUseControllerDesiredRotation;
+	MovementComp->RotationRate = DefaultRotationRate;
+}
+
+bool UTimeThiefPlayerCombatComponent::ShouldUseControllerFacing() const
+{
+	const ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
 	{
-		MovementComp->bOrientRotationToMovement = true;
-		MovementComp->bUseControllerDesiredRotation = false;
-		MovementComp->RotationRate = DefaultRotationRate;
+		return ShouldUseWeaponControlRigRotation();
 	}
+
+	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
+	return ShouldUseWeaponControlRigRotation() || HasMovementIntent(MovementComp);
+}
+
+bool UTimeThiefPlayerCombatComponent::HasMovementIntent(const UCharacterMovementComponent* MovementComp) const
+{
+	if (!MovementComp)
+	{
+		return false;
+	}
+
+	const bool bHasAcceleration = !MovementComp->GetCurrentAcceleration().IsNearlyZero();
+	const FVector HorizontalVelocity(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
+	const bool bHasHorizontalVelocity = HorizontalVelocity.SizeSquared() > FMath::Square(25.0f);
+
+	return bHasAcceleration || bHasHorizontalVelocity;
+}
+
+bool UTimeThiefPlayerCombatComponent::IsRotationManagedExternally() const
+{
+	return CachedWireComponent && CachedWireComponent->IsWireActive();
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 {
 	const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
 
-	if (CachedCameraBoom)
+	if (CachedThirdPersonCamera)
 	{
-		if (UCameraComponent* Camera = Cast<UCameraComponent>(CachedCameraBoom->GetChildComponent(0)))
+		if (!FMath::IsNearlyEqual(CachedThirdPersonCamera->FieldOfView, TargetFOV, 0.1f))
 		{
-			if (!FMath::IsNearlyEqual(Camera->FieldOfView, TargetFOV, 0.1f))
-			{
-				const float NewFOV = FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
-				Camera->SetFieldOfView(NewFOV);
-			}
+			const float NewFOV = FMath::FInterpTo(CachedThirdPersonCamera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+			CachedThirdPersonCamera->SetFieldOfView(NewFOV);
 		}
 	}
 

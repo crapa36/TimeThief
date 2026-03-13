@@ -33,6 +33,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	UTimeThiefWireComponent* GetWireComponent() const { return WireComponent; }
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
+	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;
