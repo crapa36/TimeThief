@@ -32,9 +32,7 @@ void PacketSession::HandleRecvPackets()
          break;
       
       TSharedPtr<PacketSession> ThisPtr = AsShared();
-      // TODO: PacketHandler가 완성되고 패킷을 조립하고 구분하는 작업 수행 시키기
-      //       ex) PacketHandler::HandlePacket(ThisPtr, Packet.GetData(), Packet.Num());
-      // ClientPacketHandler::HandlePacket(ThisPtr, Packet.GetData(), Packet.Num());
+      ClientPacketHandler::Dispatch(ThisPtr, Packet.GetData(), Packet.Num());
    }
 }
 

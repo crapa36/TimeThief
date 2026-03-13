@@ -76,6 +76,8 @@ void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, in
 	
 	if (connected)
 	{
+		bIsConnected = true;
+		
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Connection Success")));
 		
 		GameSession = MakeShared<PacketSession>(Socket);
