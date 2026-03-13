@@ -25,11 +25,13 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
+	bool ModifyTimePoints(int Value);
+	
 	int GetTimePoints() const { return static_cast<int>(TimePoints); }
 	
 private:
 	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"))
 	float TimePointsGainPerSecond = 10.0f;
 	
-	float TimePoints = 0.0f;
+	float TimePoints = 100000.0f;
 };

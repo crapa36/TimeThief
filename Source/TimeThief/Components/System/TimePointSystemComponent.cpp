@@ -52,3 +52,13 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	TimePoints += DeltaTime * TimePointsGainPerSecond;
 }
 
+bool UTimePointSystemComponent::ModifyTimePoints(int Value)
+{
+	if (TimePoints >= Value)
+	{
+		TimePoints += Value;
+		return true;
+	}
+	return false;
+}
+

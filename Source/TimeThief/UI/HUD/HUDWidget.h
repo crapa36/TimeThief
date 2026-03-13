@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "HUDWidget.generated.h"
 
+class UTextBlock;
 /**
  * 
  */
@@ -13,4 +14,10 @@ UCLASS()
 class TIMETHIEF_API UHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
+	
+public:
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UTextBlock> TimePoint_Text;
 };

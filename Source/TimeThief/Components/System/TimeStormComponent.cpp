@@ -52,7 +52,7 @@ void UTimeStormComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	if (!DataTable)
+	if (!DataTable || NumShrinks >= DataTable->TimeStormShrinkTimePerLevel.Num())
 	{
 		return;
 	}

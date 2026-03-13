@@ -4,11 +4,13 @@
 #include "GameFramework/Character.h"
 #include "TimeThiefCharacterBase.generated.h"
 
+class UTimePointSystemComponent;
 class UTimeThiefPawnCombatComponent;
 class UTimeThiefHealthComponent;
 class UCameraComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
+struct FStoreOrder;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
@@ -17,7 +19,9 @@ class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
 
 public:
 	ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
+	
+	bool PurchaseItem(const FStoreOrder& Order);
+	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const { return nullptr; }
 
@@ -29,11 +33,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
-
+	
 protected:
 	virtual void BeginPlay() override;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")
+	TObjectPtr<UTimePointSystemComponent> TimePointSystemComponent;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
 	TObjectPtr<UTimeThiefHealthComponent> HealthComponent;
 
@@ -45,6 +52,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
-
+	
 	bool bIsFirstPerson = false;
 };
