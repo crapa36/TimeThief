@@ -3,6 +3,8 @@
 UTimeThiefHealthComponent::UTimeThiefHealthComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	MaxHealth = DefaultMaxHealth;
+	CurrentHealth = DefaultMaxHealth;
 }
 
 void UTimeThiefHealthComponent::BeginPlay()
@@ -81,4 +83,3 @@ void UTimeThiefHealthComponent::HandleDeath()
 	bIsDead = true;
 	OnDeath.Broadcast(GetOwner());
 }
-

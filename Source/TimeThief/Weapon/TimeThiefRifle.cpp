@@ -18,7 +18,6 @@ void ATimeThiefRifle::BeginPlay()
 	Super::BeginPlay();
 
 	CurrentAmmo = MaxAmmo;
-	ReserveAmmo = MaxReserveAmmo;
 }
 
 void ATimeThiefRifle::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -33,6 +32,12 @@ void ATimeThiefRifle::StartFire()
 {
 	if (bIsReloading || bIsFiring)
 	{
+		return;
+	}
+
+	if (CurrentAmmo <= 0)
+	{
+		Reload();
 		return;
 	}
 
@@ -61,7 +66,7 @@ void ATimeThiefRifle::StopFire()
 
 void ATimeThiefRifle::Reload()
 {
-	if (bIsReloading || CurrentAmmo >= MaxAmmo || ReserveAmmo <= 0)
+	if (bIsReloading || CurrentAmmo >= MaxAmmo)
 	{
 		return;
 	}
@@ -87,11 +92,7 @@ void ATimeThiefRifle::Reload()
 
 void ATimeThiefRifle::FinishReload()
 {
-	const int32 AmmoNeeded = MaxAmmo - CurrentAmmo;
-	const int32 AmmoToAdd = FMath::Min(AmmoNeeded, ReserveAmmo);
-
-	CurrentAmmo += AmmoToAdd;
-	ReserveAmmo -= AmmoToAdd;
+	CurrentAmmo = MaxAmmo;
 	bIsReloading = false;
 }
 
@@ -105,7 +106,7 @@ void ATimeThiefRifle::FireShot()
 	if (!CanFire())
 	{
 		StopFire();
-		if (CurrentAmmo <= 0 && ReserveAmmo > 0)
+		if (CurrentAmmo <= 0)
 		{
 			Reload();
 		}

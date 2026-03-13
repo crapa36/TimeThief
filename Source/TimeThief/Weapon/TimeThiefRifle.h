@@ -61,9 +61,6 @@ public:
 	int32 GetMaxAmmo() const { return MaxAmmo; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
-	int32 GetReserveAmmo() const { return ReserveAmmo; }
-
-	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	bool IsReloading() const { return bIsReloading; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
@@ -98,9 +95,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
 	int32 MaxAmmo = 30;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
-	int32 MaxReserveAmmo = 120;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
 	float ReloadTime = 2.0f;
@@ -156,8 +150,6 @@ private:
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	int32 CurrentAmmo = 0;
 
-	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
-	int32 ReserveAmmo = 0;
 
 	bool bIsFiring = false;
 	bool bIsReloading = false;

@@ -38,7 +38,7 @@ protected:
 	void OnHealthUpdated(float CurrentHealth, float MaxHealth, float HealthPercentage);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "TimeThief|HUD|Ammo")
-	void OnAmmoUpdated(int32 CurrentAmmo, int32 MaxAmmo, int32 ReserveAmmo, bool bHasWeapon);
+	void OnAmmoUpdated(int32 CurrentAmmo, int32 MaxAmmo, bool bHasWeapon);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "TimeThief|HUD|Crosshair")
 	void OnCrosshairSpreadUpdated(float SpreadMultiplier, bool bIsAiming);
