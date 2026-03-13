@@ -126,34 +126,61 @@ void UNetworkGameInstanceSubsystem::HandleLobbyEnter(const se::lobby::S_LobbyEnt
 	}
 	
 	const auto& PlayerInfo = LobbyEnterPkt.profile();
-	PlayerId = PlayerInfo.player_id().value();
-	PlayerName = UTF8_TO_TCHAR(PlayerInfo.nickname().c_str());
-	Level = PlayerInfo.level();
+	
+	if (!LocalPlayerInfo.IsSet())
+	{
+		LocalPlayerInfo.Emplace();	
+	}
+	FLocalPlayerInfo& MyInfo = LocalPlayerInfo.GetValue();
+	MyInfo.PlayerId = PlayerInfo.player_id().value();
+	MyInfo.Nickname = UTF8_TO_TCHAR(PlayerInfo.nickname().c_str());
+	PlayerInfo.level();
 }
 
 void UNetworkGameInstanceSubsystem::HandleJoinRoom(const se::room::S_JoinRoom& JoinRoomPkt)
 {
 	if (Socket == nullptr or GameSession == nullptr) return;
 	
+	const auto& RoomSnapshot = JoinRoomPkt.snapshot();
+	
+	if (!LocalPlayerInfo.IsSet())
+	{
+		LocalPlayerInfo.Emplace();
+	}
+	FLocalPlayerInfo& MyInfo = LocalPlayerInfo.GetValue();
+	
+	if (!RoomState.IsSet())
+	{
+		RoomState.Emplace();
+	}
+	
+	FRoomState& State = RoomState.GetValue();
+	State.RoomId = RoomSnapshot.room_id();
+	
 	// TODO: RoomPlayer 정보 담기
 	// 임시로 RoomPlayer에서 PlayerId로 찾아서 LocalPlayerEntityId로 설정하는 방식으로 처리
-	const auto& RoomSnapshot = JoinRoomPkt.snapshot();
+	
 	const auto& RoomPlayers = RoomSnapshot.players();
 	for (const auto& RoomPlayer : RoomPlayers)
 	{
-		if (RoomPlayer.player_id().value() == PlayerId)
+		if (RoomPlayer.player_id().value() == MyInfo.PlayerId)
 		{
 			LocalPlayerEntityId = RoomPlayer.entity_id().value();
-			break;
+			MyInfo.Nickname = UTF8_TO_TCHAR(RoomPlayer.nickname().c_str());
 		}
+		FRoomPlayerInfo PlayerInfo;
+		PlayerInfo.PlayerId = RoomPlayer.player_id().value();
+		PlayerInfo.EntityId = RoomPlayer.entity_id().value();
+		PlayerInfo.Nickname = UTF8_TO_TCHAR(RoomPlayer.nickname().c_str());
+		
+		State.RoomStates.Add(PlayerInfo);
 	}
 	
 	auto* World = GetWorld();
 	if (World == nullptr) return;
 	
-	PlayerId = JoinRoomPkt.player_id().value();	// 서버에서 알려준 Player ID로 업데이트
-	
 	const auto& EntitySpawns = JoinRoomPkt.existing_entities();
+	int Count = EntitySpawns.size();
 	for (const auto& EntitySpawn : EntitySpawns)
 	{
 		const auto& ObjectType = EntitySpawn.entity_type();
@@ -208,6 +235,7 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	if (EntityActors.Contains(EntityId)) return;
 	
 	AActor* SpawnActor = nullptr;
+	bool bSpawnedLocalPlayer = false;
 
 	switch (ObjectType)
 	{
@@ -218,6 +246,7 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 			if (bIsLocalPlayer)
 			{
 				SpawnActor = World->SpawnActor<ANTLocalPlayer>();
+				bSpawnedLocalPlayer = true;
 			}
 			else
 			{
@@ -245,6 +274,18 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	State.Pitch = Movement.pitch();
 	
 	ApplyEntityStateToActor(EntityId);
+	
+	if (bSpawnedLocalPlayer)
+	{
+		if (APlayerController* PC = World->GetWorld()->GetFirstPlayerController())
+		{
+			if (APawn* Pawn = Cast<APawn>(SpawnActor))
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Possessed %llu"), LocalPlayerInfo.GetValue().PlayerId));
+				PC->Possess(Pawn);
+			}
+		}
+	}
 }
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()

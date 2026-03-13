@@ -60,7 +60,7 @@ bool Handle_S_JoinRoom(PacketSessionRef& session, const se::room::S_JoinRoom& pk
 	{
 		auto* NetworkGameInstance = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
 		
-		// NetworkGameInstance->HandleMove(pkt);
+		NetworkGameInstance->HandleJoinRoom(pkt);
 	}
 	
 	return true;

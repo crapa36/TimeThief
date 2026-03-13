@@ -86,10 +86,6 @@ private:
 	TOptional<FRoomState> RoomState;
 	
 private:
-	uint64 PlayerId = 0;
-	FString PlayerName;
-	uint32 Level = 0;
-	
 	uint32 LocalPlayerEntityId = 0;
 	TMap<uint32, FNetworkEntityState> NetworkEntities;   // 네트워크로부터 받은 엔티티 상태를 저장하는 맵 (key: ObjectId, value: FNetworkEntityState)
 	TMap<uint32, TWeakObjectPtr<AActor>> EntityActors;
