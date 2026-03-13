@@ -5,6 +5,9 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
+#include "Components/System/TimePointSystemComponent.h"
+#include "StoreCommons.h"
+#include "TimeThiefPlayerState.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
@@ -37,6 +40,40 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	FirstPersonCamera->SetActive(false);
 
 	bIsFirstPerson = false;
+	
+	TimePointSystemComponent = CreateDefaultSubobject<UTimePointSystemComponent>(TEXT("TimePointSystemComponent"));
+}
+
+bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
+{
+	if (TimePointSystemComponent->GetTimePoints() >= Order.Price)
+	{
+		TimePointSystemComponent->ModifyTimePoints(-Order.Price);
+		ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(GetPlayerState());
+			switch (Order.ItemName)
+			{
+			case EStoreItemName::DamageUpgrade:
+				PS->Status.Damage++;
+				break;
+			case EStoreItemName::StabilityUpgrade:
+				PS->Status.Stability++;
+				break;
+			case EStoreItemName::CapacityUpgrade:
+				PS->Status.Capacity++;
+				break;
+			case EStoreItemName::HealthUpgrade:
+				PS->Status.Health++;
+				break;
+			case EStoreItemName::SpeedUpgrade:
+				PS->Status.Speed++;
+				break;
+			default:
+				break;
+			}
+		return true;
+	}
+	
+	return false;
 }
 
 void ATimeThiefCharacterBase::BeginPlay()
