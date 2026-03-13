@@ -54,12 +54,12 @@ void UTimeThiefHUDWidget::UpdateAmmoDisplay()
 	{
 		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CachedCombatComponent->GetCharacterCurrentEquippedWeapon()))
 		{
-			OnAmmoUpdated(Rifle->GetCurrentAmmo(), Rifle->GetReserveAmmo(), true);
+			OnAmmoUpdated(Rifle->GetCurrentAmmo(), Rifle->GetMaxAmmo(), Rifle->GetReserveAmmo(), true);
 			return;
 		}
 	}
 	
-	OnAmmoUpdated(0, 0, false);
+	OnAmmoUpdated(0, 0, 0, false);
 }
 
 void UTimeThiefHUDWidget::UpdateCrosshairDisplay()

@@ -61,6 +61,18 @@ protected:
 	bool bIsAiming = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	bool bIsFiringWeapon = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	bool bShouldApplyAimControlRig = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat|Aim|Rig", meta = (ClampMin = "0.0", UIMin = "0.0", UIMax = "0.5"))
+	float AimControlRigReleaseHoldTime = 0.15f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	float AimControlRigReleaseTimer = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	float AimSpreadMultiplier = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
@@ -135,7 +147,7 @@ private:
 	void UpdateRecoil(float DeltaSeconds);
 	void UpdateSpreadAndRecoil(float DeltaSeconds);
 	void UpdateAimDirection();
-	void UpdateAimingState();
+	void UpdateAimingState(float DeltaSeconds);
 
 	float TargetRecoilAlpha = 0.0f;
 	FVector2D TargetAimOffset = FVector2D::ZeroVector;

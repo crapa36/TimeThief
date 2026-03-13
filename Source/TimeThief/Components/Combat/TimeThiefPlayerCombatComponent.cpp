@@ -96,11 +96,13 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		if (CurrentEquippedWeaponTag == Tags.Weapon_Rifle)
 		{
 			UnequipCurrentWeapon();
+			StopAiming();
 		}
 		else
 		{
 			EquipWeapon(Tags.Weapon_Rifle);
 		}
+		UpdateCombatRotation();
 		return;
 	}
 
@@ -110,6 +112,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		{
 			SnapRotationToAim();
 			Rifle->StartFire();
+			UpdateCombatRotation();
 		}
 		return;
 	}
@@ -141,6 +144,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
 		{
 			Rifle->StopFire();
+			UpdateCombatRotation();
 		}
 		return;
 	}
@@ -262,7 +266,7 @@ void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 		return;
 	}
 
-	const bool bShouldFaceAim = (CurrentEquippedWeapon != nullptr) || bIsAiming || IsFiringWeapon();
+	const bool bShouldFaceAim = bIsAiming || IsFiringWeapon();
 
 	if (bShouldFaceAim && MovementComp->bOrientRotationToMovement)
 	{
