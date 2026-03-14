@@ -3,6 +3,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
@@ -12,6 +13,11 @@ void UTimeThiefHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
+	if (Crosshair_Image)
+	{
+		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
+	}
+
 	if (ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 	{
 		InitializeHUD(PlayerChar);
@@ -103,6 +109,11 @@ void UTimeThiefHUDWidget::OnWeaponEquipped(ATimeThiefWeaponBase* Weapon)
 
 	CachedWeapon = Weapon;
 
+	if (Crosshair_Image)
+	{
+		Crosshair_Image->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+
 	if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(Weapon))
 	{
 		Rifle->OnAmmoChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::HandleAmmoChanged);
@@ -124,6 +135,12 @@ void UTimeThiefHUDWidget::OnWeaponUnequipped()
 		}
 		CachedWeapon.Reset();
 	}
+
+	if (Crosshair_Image)
+	{
+		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
+	}
+
 	OnAmmoUpdated(0, 0, false);
 }
 
@@ -134,21 +151,15 @@ void UTimeThiefHUDWidget::OnTimePointUpdated(int DisplayTimePoints)
 
 void UTimeThiefHUDWidget::UpdateCrosshairDisplay()
 {
-	if (CachedCombatComponent.IsValid())
+	if (CachedCombatComponent.IsValid() && Crosshair_Image && CachedWeapon.IsValid())
 	{
-		const bool bIsAiming = CachedCombatComponent->IsAiming();
 		float SpreadMultiplier = 1.0f;
 
-		if (bIsAiming)
+		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CachedWeapon.Get()))
 		{
-			SpreadMultiplier *= CachedCombatComponent->GetAimSpreadMultiplier();
+			SpreadMultiplier += Rifle->GetCurrentSpread()*0.5; 
 		}
 
-		if (CachedCombatComponent->IsFiringWeapon())
-		{
-			SpreadMultiplier *= 2.0f; 
-		}
-
-		OnCrosshairSpreadUpdated(SpreadMultiplier, bIsAiming);
+		Crosshair_Image->SetRenderScale(FVector2D(SpreadMultiplier, SpreadMultiplier));
 	}
 }

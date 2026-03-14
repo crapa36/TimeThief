@@ -7,6 +7,7 @@
 class UProgressBar;
 class UHorizontalBox;
 class UTextBlock;
+class UImage;
 class UTimePointSystemComponent;
 class ATimeThiefPlayerCharacter;
 class UTimeThiefHealthComponent;
@@ -38,6 +39,9 @@ class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TimePoint_Text;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Crosshair_Image;
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|HUD")
@@ -65,9 +69,6 @@ protected:
 	void HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
 	void OnWeaponEquipped(ATimeThiefWeaponBase* Weapon);
 	void OnWeaponUnequipped();
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "TimeThief|HUD|Crosshair")
-	void OnCrosshairSpreadUpdated(float SpreadMultiplier, bool bIsAiming);
 
 	UFUNCTION()
 	void OnTimePointUpdated(int DisplayTimePoints);

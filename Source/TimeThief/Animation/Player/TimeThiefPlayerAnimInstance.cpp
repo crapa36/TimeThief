@@ -167,11 +167,11 @@ void UTimeThiefPlayerAnimInstance::UpdateRecoil(float DeltaSeconds)
 
 FVector2D UTimeThiefPlayerAnimInstance::ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot)
 {
+	const float VerticalRecoil = FMath::Lerp(InMaxVerticalRecoil * 0.2f, InMaxVerticalRecoil, RecoilBuildup) * FMath::FRandRange(0.85f, 1.15f);
+	const float HorizontalRecoil = FMath::FRandRange(-InMaxHorizontalRecoil, InMaxHorizontalRecoil) * FMath::Lerp(0.3f, 1.0f, RecoilBuildup);
+
 	RecoilBuildup = FMath::Clamp(RecoilBuildup + InRecoilBuildupPerShot, 0.0f, 1.0f);
 	CurrentSpreadRatio = FMath::Clamp(CurrentSpreadRatio + InSpreadBuildupPerShot, 0.0f, 1.0f);
-
-	const float VerticalRecoil = InMaxVerticalRecoil * RecoilBuildup * FMath::FRandRange(0.7f, 1.0f);
-	const float HorizontalRecoil = FMath::FRandRange(-InMaxHorizontalRecoil, InMaxHorizontalRecoil) * RecoilBuildup;
 
 	TargetAimOffset.X += HorizontalRecoil;
 	TargetAimOffset.Y += VerticalRecoil;
