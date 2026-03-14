@@ -6,6 +6,8 @@
 #include "TimeThief.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
+#include "UI/Minimap/MinimapWidget.h"
+#include "UI/Store/StoreWidget.h"
 
 void ATimeThiefPlayerController::BeginPlay()
 {
@@ -32,8 +34,18 @@ void ATimeThiefPlayerController::BeginPlay()
 			MainHUDWidget = CreateWidget<UTimeThiefHUDWidget>(this, MainHUDWidgetClass);
 			if (MainHUDWidget)
 			{
-				MainHUDWidget->AddToPlayerScreen();
+				MainHUDWidget->AddToViewport();
 			}
+		}
+		
+		if (StoreWidgetClass)
+		{
+			StoreWidget = CreateWidget<UStoreWidget>(this, StoreWidgetClass);
+		}
+		
+		if (MinimapWidgetClass)
+		{
+			MinimapWidget = CreateWidget<UMinimapWidget>(this, MinimapWidgetClass);
 		}
 	}
 }
@@ -65,4 +77,18 @@ void ATimeThiefPlayerController::SetupInputComponent()
 bool ATimeThiefPlayerController::ShouldUseTouchControls() const
 {
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
+}
+
+void ATimeThiefPlayerController::ToggleMinimap()
+{
+	IsShowingMinimap = !IsShowingMinimap;
+	
+	if (IsShowingMinimap)
+	{
+		MinimapWidget->AddToViewport();
+	}
+	else
+	{
+		MinimapWidget->RemoveFromParent();
+	}
 }

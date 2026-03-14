@@ -21,7 +21,9 @@ public:
 	FGameplayTag InputTag_Action_EquipRifle;
 	FGameplayTag InputTag_Action_Wire;
 	FGameplayTag InputTag_Action_TogglePerspective;
-
+	FGameplayTag InputTag_Action_ToggleMinimap;
+	
+	
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Pistol;
 

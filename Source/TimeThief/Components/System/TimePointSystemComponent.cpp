@@ -13,7 +13,8 @@ UTimePointSystemComponent::UTimePointSystemComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
+	
+	OnTimePointsChanged_Delegate.AddUObject(this, &UTimePointSystemComponent::HandleTimePointsChanged);
 	// ...
 }
 
@@ -33,6 +34,7 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
                                               FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
 	if (const ATimeThiefGameState* GameState = GetWorld()->GetGameState<ATimeThiefGameState>())
 	{
 		if (const UTimeStormComponent* TimeStormComponent= GameState->TimeStormComponent)
@@ -50,15 +52,26 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	}
 	
 	TimePoints += DeltaTime * TimePointsGainPerSecond;
+	
+	if (LastDisplayTimePoints != GetTimePoints())
+	{
+		OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
+	}
 }
 
 bool UTimePointSystemComponent::ModifyTimePoints(int Value)
 {
-	if (TimePoints >= Value)
+	if (TimePoints + Value >= 0)
 	{
 		TimePoints += Value;
+		OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
 		return true;
 	}
 	return false;
+}
+
+void UTimePointSystemComponent::HandleTimePointsChanged(int InTimePoints)
+{
+	LastDisplayTimePoints = InTimePoints;
 }
 

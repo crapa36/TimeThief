@@ -52,7 +52,7 @@ void UTimeThiefHealthComponent::TakeDamage(float DamageAmount, AActor* DamageIns
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
 	LastDamageInstigator = DamageInstigator;
 
-	OnHealthChanged.Broadcast(this, OldHealth, CurrentHealth, DamageInstigator);
+	OnHealthChanged_Delegate.Broadcast(this, OldHealth, CurrentHealth, DamageInstigator);
 
 	if (CurrentHealth <= 0.0f)
 	{
@@ -70,7 +70,7 @@ void UTimeThiefHealthComponent::Heal(float HealAmount, AActor* HealInstigator)
 	const float OldHealth = CurrentHealth;
 	CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
 
-	OnHealthChanged.Broadcast(this, OldHealth, CurrentHealth, HealInstigator);
+	OnHealthChanged_Delegate.Broadcast(this, OldHealth, CurrentHealth, HealInstigator);
 }
 
 void UTimeThiefHealthComponent::HandleDeath()

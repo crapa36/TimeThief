@@ -4,7 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "TimeThiefHealthComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnHealthChangedSignature, UTimeThiefHealthComponent*, HealthComponent, float, OldHealth, float, NewHealth, AActor*, Instigator);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnHealthChangedSignature, const UTimeThiefHealthComponent*, float, float, AActor*);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathSignature, AActor*, OwningActor);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -35,9 +35,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	void Heal(float HealAmount, AActor* HealInstigator);
-
-	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Health")
-	FOnHealthChangedSignature OnHealthChanged;
+	
+	FOnHealthChangedSignature OnHealthChanged_Delegate;
 
 	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Health")
 	FOnDeathSignature OnDeath;

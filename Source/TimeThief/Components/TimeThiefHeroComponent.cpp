@@ -11,6 +11,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "Character/TimeThiefPlayerCharacter.h"
+#include "Character/TimeThiefPlayerController.h"
+#include "Weapon/TimeThiefWeaponBase.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -87,7 +90,8 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this, &ThisClass::Input_Look);
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this, &ThisClass::Input_Jump);
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_TogglePerspective, ETriggerEvent::Started, this, &ThisClass::Input_TogglePerspective);
-
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this, &ThisClass::Input_ToggleMinimap);
+	
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
@@ -196,6 +200,17 @@ void UTimeThiefHeroComponent::Input_TogglePerspective(const FInputActionValue& V
 	if (ATimeThiefCharacterBase* Character = Cast<ATimeThiefCharacterBase>(GetPawn()))
 	{
 		Character->TogglePerspective();
+	}
+}
+
+void UTimeThiefHeroComponent::Input_ToggleMinimap(const FInputActionValue& Value)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController> (Player->GetController()))
+		{
+			PC->ToggleMinimap();
+		}
 	}
 }
 
