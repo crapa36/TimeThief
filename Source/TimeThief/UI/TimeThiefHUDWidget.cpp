@@ -24,7 +24,6 @@ void UTimeThiefHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 
 	if (CachedCharacter.IsValid())
 	{
-		UpdateAmmoDisplay();
 		UpdateCrosshairDisplay();
 	}
 }
@@ -48,8 +47,22 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	{
 		CachedTimePointSystemComponent->OnTimePointsChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnTimePointUpdated);
 	}
-}
 
+	if (CachedCombatComponent.IsValid())
+	{
+		CachedCombatComponent->OnWeaponEquipped_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnWeaponEquipped);
+		CachedCombatComponent->OnWeaponUnequipped_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnWeaponUnequipped);
+
+		if (ATimeThiefWeaponBase* Weapon = CachedCombatComponent->GetCharacterCurrentEquippedWeapon())
+		{
+			OnWeaponEquipped(Weapon);
+		}
+		else
+		{
+			OnWeaponUnequipped();
+		}
+	}
+}
 
 void UTimeThiefHUDWidget::OnHealthUpdated(const UTimeThiefHealthComponent* HealthComponent, float OldHealth, float CurrHealth, AActor* Instigator)
 {
@@ -73,23 +86,50 @@ void UTimeThiefHUDWidget::OnAmmoUpdated(int32 CurrentAmmo, int32 MaxAmmo, bool b
 	}
 }
 
+void UTimeThiefHUDWidget::HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
+{
+	OnAmmoUpdated(CurrentAmmo, MaxAmmo, true);
+}
+
+void UTimeThiefHUDWidget::OnWeaponEquipped(ATimeThiefWeaponBase* Weapon)
+{
+	if (CachedWeapon.IsValid() && CachedWeapon.Get() != Weapon)
+	{
+		if (ATimeThiefRifle* OldRifle = Cast<ATimeThiefRifle>(CachedWeapon.Get()))
+		{
+			OldRifle->OnAmmoChanged_Delegate.RemoveAll(this);
+		}
+	}
+
+	CachedWeapon = Weapon;
+
+	if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(Weapon))
+	{
+		Rifle->OnAmmoChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::HandleAmmoChanged);
+		HandleAmmoChanged(Rifle->GetCurrentAmmo(), Rifle->GetMaxAmmo());
+	}
+	else
+	{
+		OnAmmoUpdated(0, 0, false);
+	}
+}
+
+void UTimeThiefHUDWidget::OnWeaponUnequipped()
+{
+	if (CachedWeapon.IsValid())
+	{
+		if (ATimeThiefRifle* OldRifle = Cast<ATimeThiefRifle>(CachedWeapon.Get()))
+		{
+			OldRifle->OnAmmoChanged_Delegate.RemoveAll(this);
+		}
+		CachedWeapon.Reset();
+	}
+	OnAmmoUpdated(0, 0, false);
+}
+
 void UTimeThiefHUDWidget::OnTimePointUpdated(int DisplayTimePoints)
 {
 	TimePoint_Text->SetText(FText::AsNumber(DisplayTimePoints));
-}
-
-void UTimeThiefHUDWidget::UpdateAmmoDisplay()
-{
-	if (CachedCombatComponent.IsValid())
-	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CachedCombatComponent->GetCharacterCurrentEquippedWeapon()))
-		{
-			OnAmmoUpdated(Rifle->GetCurrentAmmo(), Rifle->GetMaxAmmo(), true);
-			return;
-		}
-	}
-	
-	OnAmmoUpdated(0, 0, false);
 }
 
 void UTimeThiefHUDWidget::UpdateCrosshairDisplay()

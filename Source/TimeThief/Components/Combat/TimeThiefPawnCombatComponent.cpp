@@ -68,6 +68,8 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 
 	PlayEquipMontage(WeaponToEquip);
 	ApplyCombatStateTag(WeaponTag);
+
+	OnWeaponEquipped_Delegate.Broadcast(WeaponToEquip);
 }
 
 void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon()
@@ -101,6 +103,8 @@ void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon()
 	RemoveCombatStateTag(CurrentEquippedWeaponTag);
 	CurrentEquippedWeaponTag = FGameplayTag();
 	CurrentEquippedWeapon = nullptr;
+
+	OnWeaponUnequipped_Delegate.Broadcast();
 }
 
 void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* Weapon)

@@ -8,6 +8,8 @@ class USoundBase;
 class UParticleSystem;
 class UAnimSequenceBase;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAmmoChangedSignature, int32, int32);
+
 USTRUCT(BlueprintType)
 struct FHitScanResult
 {
@@ -65,6 +67,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	bool IsFiring() const { return bIsFiring; }
+
+	FOnAmmoChangedSignature OnAmmoChanged_Delegate;
 
 protected:
 	virtual void BeginPlay() override;
@@ -146,10 +150,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float SpreadBuildupPerShot = 0.15f;
 
-private:
+
+	private:
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	int32 CurrentAmmo = 0;
-
 
 	bool bIsFiring = false;
 	bool bIsReloading = false;

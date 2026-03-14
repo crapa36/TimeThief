@@ -11,6 +11,7 @@ class UTimePointSystemComponent;
 class ATimeThiefPlayerCharacter;
 class UTimeThiefHealthComponent;
 class UTimeThiefPlayerCombatComponent;
+class ATimeThiefWeaponBase;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
@@ -44,7 +45,6 @@ public:
 
 protected:
 	virtual void NativeConstruct() override;
-
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
@@ -60,8 +60,11 @@ protected:
 	TWeakObjectPtr<UTimePointSystemComponent> CachedTimePointSystemComponent;
 	
 	void OnHealthUpdated(const UTimeThiefHealthComponent*, float, float, AActor*);
-	
 	void OnAmmoUpdated(int32 CurrentAmmo, int32 MaxAmmo, bool bHasWeapon);
+	
+	void HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
+	void OnWeaponEquipped(ATimeThiefWeaponBase* Weapon);
+	void OnWeaponUnequipped();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "TimeThief|HUD|Crosshair")
 	void OnCrosshairSpreadUpdated(float SpreadMultiplier, bool bIsAiming);
@@ -70,6 +73,7 @@ protected:
 	void OnTimePointUpdated(int DisplayTimePoints);
 	
 private:
-	void UpdateAmmoDisplay();
 	void UpdateCrosshairDisplay();
+	
+	TWeakObjectPtr<ATimeThiefWeaponBase> CachedWeapon;
 };

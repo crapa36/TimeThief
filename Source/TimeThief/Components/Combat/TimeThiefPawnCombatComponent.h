@@ -8,6 +8,8 @@
 class ATimeThiefWeaponBase;
 class UAnimMontage;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnWeaponEquippedSignature, ATimeThiefWeaponBase*);
+DECLARE_MULTICAST_DELEGATE(FOnWeaponUnequippedSignature);
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensionComponent {
@@ -42,6 +44,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = "TimeThief|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
+
+	FOnWeaponEquippedSignature OnWeaponEquipped_Delegate;
+	FOnWeaponUnequippedSignature OnWeaponUnequipped_Delegate;
 
 protected:
 	UPROPERTY()

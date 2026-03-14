@@ -94,6 +94,7 @@ void ATimeThiefRifle::FinishReload()
 {
 	CurrentAmmo = MaxAmmo;
 	bIsReloading = false;
+	OnAmmoChanged_Delegate.Broadcast(CurrentAmmo, MaxAmmo);
 }
 
 bool ATimeThiefRifle::CanFire() const
@@ -114,6 +115,7 @@ void ATimeThiefRifle::FireShot()
 	}
 
 	CurrentAmmo--;
+	OnAmmoChanged_Delegate.Broadcast(CurrentAmmo, MaxAmmo);
 
 	FHitScanResult HitResult = PerformHitScan();
 
@@ -176,16 +178,6 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 		Result.HitActor = HitResult.GetActor();
 		Result.HitBoneName = HitResult.BoneName;
 		Result.OriginalHitResult = HitResult;
-
-#if ENABLE_DRAW_DEBUG
-		DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Red, false, 1.0f, 0, 1.0f);
-#endif
-	}
-	else
-	{
-#if ENABLE_DRAW_DEBUG
-		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Yellow, false, 1.0f, 0, 1.0f);
-#endif
 	}
 
 	return Result;
@@ -312,4 +304,3 @@ void ATimeThiefRifle::ApplyRecoil()
 		}
 	}
 }
-
