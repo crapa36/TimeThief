@@ -63,6 +63,7 @@ bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
 				break;
 			case EStoreItemName::HealthUpgrade:
 				PS->Status.Health++;
+				HealthComponent->Upgrade();
 				break;
 			case EStoreItemName::SpeedUpgrade:
 				PS->Status.Speed++;
