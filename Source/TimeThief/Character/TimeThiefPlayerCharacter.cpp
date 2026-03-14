@@ -9,6 +9,7 @@
 #include "CharacterTrajectoryComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Actors/StoreActor.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -98,6 +99,16 @@ void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
 		DisableInput(PC);
 	}
 	GetCharacterMovement()->DisableMovement();
+}
+
+void ATimeThiefPlayerCharacter::SetNearStore(const AStoreActor* InNearStore)
+{
+	NearStore = InNearStore;
+}
+
+const AStoreActor* ATimeThiefPlayerCharacter::GetNearStore() const
+{
+	return NearStore;
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

@@ -36,6 +36,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	void Heal(float HealAmount, AActor* HealInstigator);
 	
+	void Upgrade();
+	
 	FOnHealthChangedSignature OnHealthChanged_Delegate;
 
 	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Health")
@@ -52,7 +54,10 @@ protected:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Health")
 	float DefaultMaxHealth = 100.0f;
-
+	
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Health")
+	float UpgradeAmount = 20.0f;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Health")
 	float CurrentHealth;
 

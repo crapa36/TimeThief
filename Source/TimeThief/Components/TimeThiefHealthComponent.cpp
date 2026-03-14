@@ -1,5 +1,8 @@
 ﻿#include "Components/TimeThiefHealthComponent.h"
 
+#include "Character/TimeThiefPlayerState.h"
+#include "GameFramework/Character.h"
+
 UTimeThiefHealthComponent::UTimeThiefHealthComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -71,6 +74,16 @@ void UTimeThiefHealthComponent::Heal(float HealAmount, AActor* HealInstigator)
 	CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
 
 	OnHealthChanged_Delegate.Broadcast(this, OldHealth, CurrentHealth, HealInstigator);
+}
+
+void UTimeThiefHealthComponent::Upgrade()
+{
+	if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Cast<ACharacter>(GetOwner())->GetPlayerState()))
+	{
+		MaxHealth = DefaultMaxHealth + PS->Status.Health * UpgradeAmount;
+		CurrentHealth += UpgradeAmount;
+		OnHealthChanged_Delegate.Broadcast(this, CurrentHealth, CurrentHealth, nullptr);
+	}
 }
 
 void UTimeThiefHealthComponent::HandleDeath()

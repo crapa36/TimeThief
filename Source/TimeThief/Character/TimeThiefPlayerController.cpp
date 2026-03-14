@@ -4,6 +4,8 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "TimeThief.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "UI/Minimap/MinimapWidget.h"
@@ -90,5 +92,38 @@ void ATimeThiefPlayerController::ToggleMinimap()
 	else
 	{
 		MinimapWidget->RemoveFromParent();
+	}
+}
+
+void ATimeThiefPlayerController::SetStoreVisibility(bool bVisible)
+{
+	if (bVisible)
+	{
+		if (!StoreWidget->IsInViewport())
+		{
+			SetIgnoreLookInput(true);
+			
+			FInputModeGameAndUI InputMode;
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			SetInputMode(InputMode);
+			bShowMouseCursor = true;
+			
+			int32 ViewportSizeX, ViewportSizeY;
+			GetViewportSize(ViewportSizeX, ViewportSizeY);
+			SetMouseLocation(ViewportSizeX / 2, ViewportSizeY / 2);
+			
+			StoreWidget->AddToViewport();
+		}
+	}
+	else
+	{
+		if (StoreWidget->IsInViewport())
+		{
+			StoreWidget->RemoveFromParent();
+			
+			SetIgnoreLookInput(false);
+			SetInputMode(FInputModeGameOnly{});
+			bShowMouseCursor = false;
+		}
 	}
 }
