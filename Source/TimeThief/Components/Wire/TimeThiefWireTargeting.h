@@ -24,6 +24,9 @@ public:
 	float AutoAimRadius = 250.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
+	float AnchorCollisionRadius = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
 	float MinTargetDistance = 250.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
@@ -33,7 +36,7 @@ public:
 	float LedgeCheckHeight = 250.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
-	float AimAccuracyWeight = 5.0f;
+	float AimAccuracyWeight = 50.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
 	TArray<TEnumAsByte<EObjectTypeQuery>> CollisionObjectTypes;

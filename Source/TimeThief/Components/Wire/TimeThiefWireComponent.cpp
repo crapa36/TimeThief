@@ -151,19 +151,41 @@ void UTimeThiefWireComponent::FireWire()
 {
 	if (!CanFireWire()) return;
 
-	const FVector StartLocation = GetWireStartLocation();
-	FVector TargetLocation;
+	const FVector WireStartLocation = GetWireStartLocation();
 	
-	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, StartLocation, GetAimDirection(), MaxWireLength))
+	FVector CamLoc;
+	FRotator CamRot;
+	
+	if (IsValid(CachedCharacter))
 	{
-		FireDirection = (TargetLocation - StartLocation).GetSafeNormal();
+		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
+		{
+			PC->GetPlayerViewPoint(CamLoc, CamRot);
+		}
+		else
+		{
+			CachedCharacter->GetActorEyesViewPoint(CamLoc, CamRot);
+		}
 	}
 	else
 	{
-		FireDirection = GetAimDirection();
+		CamLoc = WireStartLocation;
+		CamRot = GetOwner()->GetActorRotation();
+	}
+	
+	const FVector AimDirection = CamRot.Vector();
+	FVector TargetLocation;
+	
+	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
+	{
+		FireDirection = (TargetLocation - WireStartLocation).GetSafeNormal();
+	}
+	else
+	{
+		FireDirection = AimDirection;
 	}
 
-	AnchorPoint = StartLocation;
+	AnchorPoint = WireStartLocation;
 	AnchorNormal = -FireDirection;
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
@@ -592,4 +614,3 @@ void UTimeThiefWireComponent::UpdateWireRotation(float DeltaTime)
 	const FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, WireRotationInterpSpeed);
 	CachedCharacter->SetActorRotation(FRotator(CurrentRotation.Pitch, NewRotation.Yaw, CurrentRotation.Roll));
 }
-

@@ -18,12 +18,13 @@ void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponT
 		return;
 	}
 
-	if (CharacterCarriedWeaponMap.Contains(InWeaponTagToRegister))
+	TObjectPtr<ATimeThiefWeaponBase>& RegisteredWeapon = CharacterCarriedWeaponMap.FindOrAdd(InWeaponTagToRegister);
+	if (RegisteredWeapon)
 	{
 		return;
 	}
 
-	CharacterCarriedWeaponMap.Emplace(InWeaponTagToRegister, InWeaponToRegister);
+	RegisteredWeapon = InWeaponToRegister;
 
 	if (bRegisterAsEquippedWeapon)
 	{
