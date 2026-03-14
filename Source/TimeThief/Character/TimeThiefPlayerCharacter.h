@@ -4,6 +4,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
+class AStoreActor;
 class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefHeroComponent;
@@ -20,8 +21,7 @@ public:
 	ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
-
-
+	
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Character")
@@ -36,6 +36,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	void SetNearStore(const AStoreActor* InNearStore);
+	const AStoreActor* GetNearStore() const;
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;
@@ -68,10 +70,13 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
 
+	UPROPERTY()
+	const AStoreActor* NearStore;
+	
 private:
 	UFUNCTION()
 	void OnRep_PawnData();
-
+	
 public:
 	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }
 };

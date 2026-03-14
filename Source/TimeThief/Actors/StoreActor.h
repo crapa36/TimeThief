@@ -12,13 +12,13 @@ UCLASS()
 class TIMETHIEF_API AStoreActor : public AActor
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
-	
+
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<USphereComponent> InteractionSphere;
-	
+
 public:
 	// Sets default values for this actor's properties
 	AStoreActor();
@@ -30,4 +30,22 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION()
+	void OnBeginOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
+
+	UFUNCTION()
+	void OnEndOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent,
+		int32 OtherBodyIndex
+	);
 };

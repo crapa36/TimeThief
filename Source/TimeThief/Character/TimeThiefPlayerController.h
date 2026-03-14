@@ -58,4 +58,6 @@ protected:
 	
 public:
 	void ToggleMinimap();
+	
+	void SetStoreVisibility(bool bVisible);
 };

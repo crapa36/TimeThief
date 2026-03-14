@@ -3,6 +3,8 @@
 
 #include "StoreActor.h"
 
+#include "Character/TimeThiefPlayerCharacter.h"
+#include "Character/TimeThiefPlayerController.h"
 #include "Components/SphereComponent.h"
 
 
@@ -17,6 +19,9 @@ AStoreActor::AStoreActor()
 	
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>("InteractionSphere");
 	InteractionSphere->SetupAttachment(RootComponent);
+	
+	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AStoreActor::OnBeginOverlap);
+	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AStoreActor::OnEndOverlap);
 }
 
 // Called when the game starts or when spawned
@@ -31,4 +36,35 @@ void AStoreActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
+
+void AStoreActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(OtherActor))
+	{
+		Player->SetNearStore(this);
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
+		{
+			PC->SetStoreVisibility(true);
+		}
+	}
+}
+
+void AStoreActor::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(OtherActor))
+	{
+		if (Player->GetNearStore() == this)
+		{
+			Player->SetNearStore(nullptr);
+			if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
+			{
+				PC->SetStoreVisibility(false);
+			}
+		}
+	}
+}
+
+
 
