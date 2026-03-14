@@ -35,21 +35,6 @@ ANTLocalPlayer::ANTLocalPlayer()
 void ANTLocalPlayer::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (APlayerController* PC = Cast<APlayerController>(Controller))
-	{
-		if (ULocalPlayer* LP = PC->GetLocalPlayer())
-		{
-			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
-			{
-				Subsystem->ClearAllMappings();
-				if (IMC_Default)
-				{
-					Subsystem->AddMappingContext(IMC_Default, 0);
-				}
-			}
-		}
-	}
 }
 
 // Called every frame
@@ -102,6 +87,21 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 void ANTLocalPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	
+	if (APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		if (ULocalPlayer* LP = PC->GetLocalPlayer())
+		{
+			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			{
+				Subsystem->ClearAllMappings();
+				if (IMC_Default)
+				{
+					Subsystem->AddMappingContext(IMC_Default, 0);
+				}
+			}
+		}
+	}
 	
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
