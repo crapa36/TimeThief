@@ -39,7 +39,7 @@ public:
 	
 public:
 	void SetNowPosition(const FVector& NewPosition) { NowPosition = NewPosition; }
-	void SetDestPosition(const FVector& NewPosition) { DestPosition = NewPosition; }
+	void SetDestPosition(const FVector& NewPosition) { DestPosition = NewPosition; InterpStartPosition = GetActorLocation(); InterpTargetPosition = NewPosition; InterpElapsed = 0.f; }
 	
 	uint32 GetEntityId() const { return EntityId; }
 	FVector GetNowPosition() const { return NowPosition; }
@@ -68,5 +68,11 @@ protected:
 	FVector DestPosition = FVector::ZeroVector;
 	float TargetYaw = 0.0f;
 	float TargetPitch = 0.0f;
+	
+	FVector InterpStartPosition = FVector::ZeroVector;
+	FVector InterpTargetPosition = FVector::ZeroVector;
+
+	float InterpElapsed = 0.f;
+	float InterpDuration = 0.1f;
 	
 };

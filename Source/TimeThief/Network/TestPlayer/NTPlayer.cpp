@@ -99,30 +99,10 @@ void ANTPlayer::Tick(float DeltaTime)
 			return;
 		}
 		
-		const float MaxStep = GetCharacterMovement()->MaxWalkSpeed * DeltaTime;
-		
-		const FVector2D ToDestXZ(DestPosition.X - NowPosition.X, DestPosition.Z - NowPosition.Z);
-		const float DistXZ = ToDestXZ.Length();
-		
-		FVector NewPosition = NowPosition;
-		
-		if (DistXZ <= KINDA_SMALL_NUMBER)
-		{
-			// 거의 같은 위치에 있는 경우, 바로 목적지로 이동
-			NewPosition.X = DestPosition.X;
-			NewPosition.Z = DestPosition.Z;
-		}
-		else
-		{
-			const FVector2D DirXZ = ToDestXZ.GetSafeNormal();
-			const float MoveStep = FMath::Min(MaxStep, DistXZ);
-			
-			NewPosition.X += DirXZ.X * MoveStep;
-			NewPosition.Z += DirXZ.Y * MoveStep;
-		}
-		
-		NewPosition.Y = FMath::FInterpConstantTo(NowPosition.Y, DestPosition.Y, DeltaTime, 900.f);
-		
+		InterpElapsed += DeltaTime;
+		const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.f, 1.f);
+
+		FVector NewPosition = FMath::Lerp(InterpStartPosition, InterpTargetPosition, Alpha);
 		SetActorLocation(NewPosition);
 		
 		const float RotationSpeedDegPerSec = GetCharacterMovement()->RotationRate.Yaw;
