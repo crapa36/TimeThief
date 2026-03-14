@@ -32,6 +32,9 @@ public:
 	bool IsLocalPlayer() const;
 	
 public:
+	void SetEntityId(uint32 InEntityId) { EntityId = InEntityId; }
+	
+public:
 	void SetNetworkEntityState(const FNetworkEntityState& EntityState);
 	
 public:

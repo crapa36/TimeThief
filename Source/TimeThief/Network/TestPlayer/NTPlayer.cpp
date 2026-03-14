@@ -84,6 +84,8 @@ void ANTPlayer::Tick(float DeltaTime)
 	// 내가 조종하는 Local Player가 아니라면
 	// 목표값(목적지)까지 자동 이동
 	{
+		const FVector2D NowXZ(NowPosition.X, NowPosition.Z);
+		const FVector2D DestXZ(DestPosition.X, DestPosition.Z);
 		
 		const bool bCloseEnoughPos = FVector::DistSquared2D(NowPosition, DestPosition) <= FMath::Square(PositionTolerance);
 		const bool bCloseEnoughRot = FMath::Abs(FMath::FindDeltaAngleDegrees(NowYaw, TargetYaw)) <= RotationTolerance;
@@ -91,30 +93,35 @@ void ANTPlayer::Tick(float DeltaTime)
 		
 		if (bCloseEnoughPos && bCloseEnoughRot && bCloseEnoughPitch)
 		{
-			SetActorLocation(NowPosition);
+			SetActorLocation(DestPosition);
 			SetYawApply(TargetYaw);
 			SetPitchApply(TargetPitch);
 			return;
 		}
 		
 		const float MaxStep = GetCharacterMovement()->MaxWalkSpeed * DeltaTime;
-		const FVector ToDest = DestPosition - NowPosition;
+		
+		const FVector2D ToDestXZ(DestPosition.X - NowPosition.X, DestPosition.Z - NowPosition.Z);
+		const float DistXZ = ToDestXZ.Length();
 		
 		FVector NewPosition = NowPosition;
 		
-		const float Dist2D = FVector(ToDest.X, ToDest.Y, 0.0f).Size();
-		if (Dist2D <= KINDA_SMALL_NUMBER)
+		if (DistXZ <= KINDA_SMALL_NUMBER)
 		{
 			// 거의 같은 위치에 있는 경우, 바로 목적지로 이동
 			NewPosition.X = DestPosition.X;
-			NewPosition.Y = DestPosition.Y;
+			NewPosition.Z = DestPosition.Z;
 		}
 		else
 		{
-			const FVector Dir2D = FVector(ToDest.X, ToDest.Y, 0.0f).GetSafeNormal();
-			NewPosition += Dir2D * MaxStep;
-			NewPosition.Z = FMath::FInterpTo(NowPosition.Z, DestPosition.Z, DeltaTime, 10.f);
+			const FVector2D DirXZ = ToDestXZ.GetSafeNormal();
+			const float MoveStep = FMath::Min(MaxStep, DistXZ);
+			
+			NewPosition.X += DirXZ.X * MoveStep;
+			NewPosition.Z += DirXZ.Y * MoveStep;
 		}
+		
+		NewPosition.Y = FMath::FInterpConstantTo(NowPosition.Y, DestPosition.Y, DeltaTime, 900.f);
 		
 		SetActorLocation(NewPosition);
 		

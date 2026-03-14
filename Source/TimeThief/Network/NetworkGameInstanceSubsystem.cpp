@@ -300,6 +300,11 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	
 	if (bSpawnedLocalPlayer)
 	{
+		if (ANTLocalPlayer* LocalPlayer = Cast<ANTLocalPlayer>(SpawnActor))
+		{
+			LocalPlayer->SetEntityId(LocalPlayerEntityId);
+		}
+		
 		if (APawn* SpawnPawn = Cast<APawn>(SpawnActor))
 		{
 			if (APlayerController* PC = World->GetFirstPlayerController())
@@ -340,19 +345,20 @@ bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
 {
 	FNetworkEntityState* State = NetworkEntities.Find(EntityId);
-	if (not State) return;
+	if (!State) return;
 	
 	TWeakObjectPtr<AActor>* ActorPtr = EntityActors.Find(EntityId);
-	if (not ActorPtr or not ActorPtr->IsValid()) return;
+	if (!ActorPtr) return;
+	if (!ActorPtr->IsValid()) return;
 	
 	AActor* Actor = ActorPtr->Get();
-	if (not Actor) return;
+	if (!Actor) return;
 	
 	FRotator NewRotation(0.0f, State->Yaw, 0.0f);
 	
 	if (ANTPlayer* Player = Cast<ANTPlayer>(Actor))
 	{
-		Player->SetNowPosition(State->Position);
+		Player->SetDestPosition(State->Position);
 		Player->SetTargetYaw(State->Yaw);
 		Player->SetTargetPitch(State->Pitch);
 	}
