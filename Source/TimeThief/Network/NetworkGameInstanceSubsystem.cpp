@@ -18,6 +18,9 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 	
+	LocalPlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/Blueprint/BP_NTLocalPlayer.BP_NTLocalPlayer_C"));
+	RemotePlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/Blueprint/BP_NTPlayer.BP_NTPlayer_C"));
+	
 	bool configLoaded = LoadClientConfig();
 	
 	if (!configLoaded)
@@ -156,6 +159,7 @@ void UNetworkGameInstanceSubsystem::HandleJoinRoom(const se::room::S_JoinRoom& J
 	
 	FRoomState& State = RoomState.GetValue();
 	State.RoomId = RoomSnapshot.room_id();
+	State.RoomStates.Empty();
 	
 	// TODO: RoomPlayer 정보 담기
 	// 임시로 RoomPlayer에서 PlayerId로 찾아서 LocalPlayerEntityId로 설정하는 방식으로 처리
@@ -232,7 +236,25 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	const uint32 EntityId = EntityState.entity_id().value();
 	
 	// 이미 존재하는 EntityId인 경우, 중복으로 Spawn하지 않도록 처리
-	if (EntityActors.Contains(EntityId)) return;
+	if (TWeakObjectPtr<AActor>*  Existing = EntityActors.Find(EntityId))
+	{
+		if (Existing->IsValid())
+		{
+			return;
+		}
+		EntityActors.Remove(EntityId);
+	}
+	
+	const auto& Movement = EntityState.movement();
+	const auto& Pos = Movement.position();
+	
+	const FVector SpawnLocation(Pos.x(), Pos.y(), Pos.z());
+	const FRotator SpawnRotation(0.0f, Movement.yaw(), 0.0f);
+	
+	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+	
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	
 	AActor* SpawnActor = nullptr;
 	bool bSpawnedLocalPlayer = false;
@@ -245,12 +267,12 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 			
 			if (bIsLocalPlayer)
 			{
-				SpawnActor = World->SpawnActor<ANTLocalPlayer>();
+				SpawnActor = World->SpawnActor<AActor>(LocalPlayerClass, SpawnTransform, Params);
 				bSpawnedLocalPlayer = true;
 			}
 			else
 			{
-				SpawnActor = World->SpawnActor<ANTPlayer>();
+				SpawnActor = World->SpawnActor<AActor>(RemotePlayerClass, SpawnTransform, Params);
 			}
 			
 			break;
@@ -260,16 +282,17 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 		return;
 	}
 	
-	if (not SpawnActor) return;
+	if (SpawnActor == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to spawn actor for EntityId %u"), EntityId);
+		return;
+	}
 	
 	EntityActors.Add(EntityId, SpawnActor);
 	
 	FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
 	
-	const auto& Movement = EntityState.movement();
-	const auto& newPos = Movement.position();
-	
-	State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
+	State.Position = SpawnLocation;
 	State.Yaw = Movement.yaw();
 	State.Pitch = Movement.pitch();
 	
@@ -277,13 +300,30 @@ void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& Ob
 	
 	if (bSpawnedLocalPlayer)
 	{
-		if (APlayerController* PC = World->GetWorld()->GetFirstPlayerController())
+		if (APawn* SpawnPawn = Cast<APawn>(SpawnActor))
 		{
-			if (APawn* Pawn = Cast<APawn>(SpawnActor))
+			if (APlayerController* PC = World->GetFirstPlayerController())
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Possessed %llu"), LocalPlayerInfo.GetValue().PlayerId));
-				PC->Possess(Pawn);
+				World->GetTimerManager().SetTimerForNextTick([PC, SpawnPawn]()
+				{
+					if (!IsValid(PC) || !IsValid(SpawnPawn)) return;
+					
+					if (APawn* OldPawn = PC->GetPawn())
+					{
+						PC->UnPossess();
+					}
+					
+					PC->Possess(SpawnPawn);
+					PC->SetViewTarget(SpawnPawn);
+					
+				});
 			}
+			else
+			{
+			}
+		}
+		else
+		{
 		}
 	}
 }
@@ -308,8 +348,19 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
 	AActor* Actor = ActorPtr->Get();
 	if (not Actor) return;
 	
-	// Actor->SetActorLocation(State->Position);
-	// Actor->SetActorRotation(State->Rotation);
+	FRotator NewRotation(0.0f, State->Yaw, 0.0f);
+	
+	if (ANTPlayer* Player = Cast<ANTPlayer>(Actor))
+	{
+		Player->SetNowPosition(State->Position);
+		Player->SetTargetYaw(State->Yaw);
+		Player->SetTargetPitch(State->Pitch);
+	}
+	else
+	{
+		Actor->SetActorLocation(State->Position);
+		Actor->SetActorRotation(NewRotation);
+	}
 	
 	// TODO: 좀더 다른 방향으로 State를 전달해야 한다
 	// 임시로 NTPlayer에 함수를 추가하고 해당 객체로 캐스팅하여 함수 호출 하는 방식

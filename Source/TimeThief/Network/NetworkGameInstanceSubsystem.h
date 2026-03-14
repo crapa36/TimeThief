@@ -71,6 +71,13 @@ public:
 private:
 	void ApplyEntityStateToActor(uint32 EntityId);
 	
+public:
+	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
+	TSubclassOf<AActor> RemotePlayerClass;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
+	TSubclassOf<AActor> LocalPlayerClass;
+	
 private:
 	bool bIsConnected = false;
 	FSocket* Socket = nullptr;
