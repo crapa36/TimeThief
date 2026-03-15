@@ -96,6 +96,10 @@ void UTimeThiefWireComponent::BeginPlay()
 
 void UTimeThiefWireComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (IsValid(CachedCameraManager) && CurrentFOVOffset > 0.0f)
+	{
+		CachedCameraManager->UnlockFOV();
+	}
 	ReleaseWire();
 	Super::EndPlay(EndPlayReason);
 }
@@ -544,7 +548,16 @@ void UTimeThiefWireComponent::UpdateSpeedEffects(float DeltaTime)
 	{
 		const float TargetFOVOffset = EffectAlpha * MaxFOVIncrease;
 		CurrentFOVOffset = FMath::FInterpTo(CurrentFOVOffset, TargetFOVOffset, DeltaTime, FOVInterpSpeed);
-		CachedCameraManager->SetFOV(DefaultFOV + CurrentFOVOffset);
+		
+		if (CurrentFOVOffset > 0.1f)
+		{
+			CachedCameraManager->SetFOV(DefaultFOV + CurrentFOVOffset);
+		}
+		else
+		{
+			CurrentFOVOffset = 0.0f;
+			CachedCameraManager->UnlockFOV();
+		}
 	}
 
 	if (EffectAlpha > 0.3f && WireSpeedShake && IsValid(CachedCharacter))
@@ -563,10 +576,19 @@ void UTimeThiefWireComponent::ResetSpeedEffects(float DeltaTime)
 		return;
 	}
 
-	if (CurrentFOVOffset > KINDA_SMALL_NUMBER)
+	if (CurrentFOVOffset > 0.0f)
 	{
 		CurrentFOVOffset = FMath::FInterpTo(CurrentFOVOffset, 0.0f, DeltaTime, FOVInterpSpeed * 2.0f);
-		CachedCameraManager->SetFOV(DefaultFOV + CurrentFOVOffset);
+		
+		if (CurrentFOVOffset > 0.1f)
+		{
+			CachedCameraManager->SetFOV(DefaultFOV + CurrentFOVOffset);
+		}
+		else
+		{
+			CurrentFOVOffset = 0.0f;
+			CachedCameraManager->UnlockFOV();
+		}
 	}
 }
 

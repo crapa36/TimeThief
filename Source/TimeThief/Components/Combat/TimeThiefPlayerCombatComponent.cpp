@@ -8,6 +8,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Engine/World.h"
 
 UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent()
 {
@@ -219,8 +220,76 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	UpdateWorldAimLocation();
 	UpdateCombatRotation();
+	
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (OwningCharacter && ShouldUseControllerFacing() && !IsRotationManagedExternally())
+	{
+		if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+		{
+			if (!BaseChar->IsFirstPerson())
+			{
+				FVector StartLoc = OwningCharacter->GetActorLocation();
+				if (CurrentEquippedWeapon)
+				{
+					StartLoc = CurrentEquippedWeapon->GetActorLocation();
+				}
+				FVector AimDirection = CachedWorldAimLocation - StartLoc;
+				AimDirection.Z = 0.0f;
+				
+				if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
+				{
+					FRotator TargetRotation = AimDirection.Rotation();
+					FRotator CurrentRotation = OwningCharacter->GetActorRotation();
+					FRotator NewRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.0f, TargetRotation.Yaw, 0.0f), DeltaTime, 20.0f);
+
+					OwningCharacter->SetActorRotation(NewRotation);
+				}
+			}
+		}
+	}
+
 	UpdateAimFOV(DeltaTime);
+}
+
+void UTimeThiefPlayerCombatComponent::UpdateWorldAimLocation()
+{
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
+	{
+		return;
+	}
+
+	const APlayerController* PC = Cast<APlayerController>(OwningCharacter->GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	FVector TraceStart = CameraLocation;
+	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * 50000.0f);
+
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(OwningCharacter);
+	if (CurrentEquippedWeapon)
+	{
+		QueryParams.AddIgnoredActor(CurrentEquippedWeapon);
+	}
+
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
+	{
+		CachedWorldAimLocation = HitResult.ImpactPoint;
+	}
+	else
+	{
+		CachedWorldAimLocation = TraceEnd;
+	}
 }
 
 bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
@@ -237,7 +306,7 @@ bool UTimeThiefPlayerCombatComponent::ShouldUseWeaponControlRigRotation() const
 	return bIsAiming || IsFiringWeapon();
 }
 
-void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
+void UTimeThiefPlayerCombatComponent::SnapRotationToAim() 
 {
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
 	if (!OwningCharacter)
@@ -258,15 +327,22 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 		return;
 	}
 
-	const AController* Controller = OwningCharacter->GetController();
-	if (!Controller)
-	{
-		return;
-	}
+	UpdateWorldAimLocation();
 
-	const FRotator ControlRotation = Controller->GetControlRotation();
-	const FRotator NewRotation(0.0f, ControlRotation.Yaw, 0.0f);
-	OwningCharacter->SetActorRotation(NewRotation);
+	FVector StartLoc = OwningCharacter->GetActorLocation();
+	if (CurrentEquippedWeapon)
+	{
+		StartLoc = CurrentEquippedWeapon->GetActorLocation();
+	}
+	
+	FVector AimDirection = CachedWorldAimLocation - StartLoc;
+	AimDirection.Z = 0.0f;
+	
+	if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
+	{
+		FRotator TargetRotation = AimDirection.Rotation();
+		OwningCharacter->SetActorRotation(FRotator(0.0f, TargetRotation.Yaw, 0.0f));
+	}
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
@@ -317,7 +393,7 @@ void UTimeThiefPlayerCombatComponent::ApplyCombatRotationMode(bool bUseControlle
 	{
 		OwningCharacter->bUseControllerRotationYaw = false;
 		MovementComp->bOrientRotationToMovement = false;
-		MovementComp->bUseControllerDesiredRotation = true;
+		MovementComp->bUseControllerDesiredRotation = false;
 		MovementComp->RotationRate = FRotator(0.0f, CombatRotationRate, 0.0f);
 		return;
 	}
