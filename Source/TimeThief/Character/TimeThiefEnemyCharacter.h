@@ -13,4 +13,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+	UFUNCTION()
+	void OnDeath(AActor* OwningActor);
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Enemy")
+	float DestroyDelay = 3.0f;
 };

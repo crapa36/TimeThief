@@ -9,7 +9,11 @@ UTimeThiefFirstPersonAnimInstance::UTimeThiefFirstPersonAnimInstance(const FObje
 {
 	bHasWeapon = false;
 	SwayRotation = FRotator::ZeroRotator;
-	SwayLocation = FVector::ZeroVector;
+	ProceduralSpeed = 0.0f;
+	ProceduralVelocity = FVector::ZeroVector;
+	DeltaRotation = FRotator::ZeroRotator;
+	AccumulatedTime = 0.0f;
+	CurrentBobAmplitude = 0.0f;
 }
 
 void UTimeThiefFirstPersonAnimInstance::NativeInitializeAnimation()
@@ -29,11 +33,12 @@ void UTimeThiefFirstPersonAnimInstance::NativeUpdateAnimation(float DeltaSeconds
 
 	if (!PlayerCharacter)
 	{
-		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
+		return;
 	}
 
 	UpdateWeaponData();
 	UpdateSway(DeltaSeconds);
+	UpdateProceduralData(DeltaSeconds);
 }
 
 void UTimeThiefFirstPersonAnimInstance::UpdateWeaponData()
@@ -76,12 +81,43 @@ void UTimeThiefFirstPersonAnimInstance::UpdateSway(float DeltaSeconds)
 	FRotator DeltaRot = CurrentRotation - LastRotation;
 	DeltaRot.Normalize();
 
-	float TargetPitch = FMath::Clamp(DeltaRot.Pitch * -1.0f, -MaxSwayDegree, MaxSwayDegree);
-	float TargetYaw = FMath::Clamp(DeltaRot.Yaw * 1.0f, -MaxSwayDegree, MaxSwayDegree);
+	float TargetPitch = FMath::Clamp(-DeltaRot.Pitch, -MaxSwayDegree, MaxSwayDegree);
+	float TargetYaw = FMath::Clamp(DeltaRot.Yaw, -MaxSwayDegree, MaxSwayDegree);
 	
 	FRotator TargetSwayRot(TargetPitch, TargetYaw, TargetYaw * 0.5f);
 
 	SwayRotation = FMath::RInterpTo(SwayRotation, TargetSwayRot, DeltaSeconds, SwaySpeed);
 
+	DeltaRotation = DeltaRot;
+
 	LastRotation = CurrentRotation;
 }
+
+void UTimeThiefFirstPersonAnimInstance::UpdateProceduralData(float DeltaSeconds)
+{
+	if (!PlayerCharacter) return;
+
+	AccumulatedTime += DeltaSeconds;
+
+	ProceduralVelocity = PlayerCharacter->GetVelocity();
+	ProceduralSpeed = ProceduralVelocity.Size2D();
+
+	float TargetBobAmplitude = IdleBobAmplitude;
+	if (ProceduralSpeed > RunSpeedThreshold)
+	{
+		TargetBobAmplitude = RunBobAmplitude;
+	}
+	else if (ProceduralSpeed > WalkSpeedThreshold)
+	{
+		float Alpha = (ProceduralSpeed - WalkSpeedThreshold) / (RunSpeedThreshold - WalkSpeedThreshold);
+		TargetBobAmplitude = FMath::Lerp(WalkBobAmplitude, RunBobAmplitude, Alpha);
+	}
+	else if (ProceduralSpeed > 10.0f)
+	{
+		float Alpha = ProceduralSpeed / WalkSpeedThreshold;
+		TargetBobAmplitude = FMath::Lerp(IdleBobAmplitude, WalkBobAmplitude, Alpha);
+	}
+
+	CurrentBobAmplitude = FMath::FInterpTo(CurrentBobAmplitude, TargetBobAmplitude, DeltaSeconds, BobAmplitudeInterpSpeed);
+}
+

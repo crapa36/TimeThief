@@ -6,42 +6,53 @@
 #include "Animation/AnimMontage.h"
 #include "Character/TimeThiefCharacterBase.h"
 
-UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent() {
+UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent()
+{
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister, ATimeThiefWeaponBase* InWeaponToRegister, bool bRegisterAsEquippedWeapon) {
-	if (!InWeaponToRegister || !InWeaponTagToRegister.IsValid()) {
+void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister, ATimeThiefWeaponBase* InWeaponToRegister, bool bRegisterAsEquippedWeapon)
+{
+	if (!InWeaponToRegister || !InWeaponTagToRegister.IsValid())
+	{
 		return;
 	}
 
-	if (CharacterCarriedWeaponMap.Contains(InWeaponTagToRegister)) {
+	TObjectPtr<ATimeThiefWeaponBase>& RegisteredWeapon = CharacterCarriedWeaponMap.FindOrAdd(InWeaponTagToRegister);
+	if (RegisteredWeapon)
+	{
 		return;
 	}
 
-	CharacterCarriedWeaponMap.Emplace(InWeaponTagToRegister, InWeaponToRegister);
+	RegisteredWeapon = InWeaponToRegister;
 
-	if (bRegisterAsEquippedWeapon) {
+	if (bRegisterAsEquippedWeapon)
+	{
 		EquipWeapon(InWeaponTagToRegister);
 	}
 }
 
-void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag) {
+void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
+{
 	ATimeThiefWeaponBase* WeaponToEquip = GetCharacterCarriedWeaponByTag(WeaponTag);
-	if (!WeaponToEquip) {
+	if (!WeaponToEquip)
+	{
 		return;
 	}
 
-	if (CurrentEquippedWeaponTag == WeaponTag) {
+	if (CurrentEquippedWeaponTag == WeaponTag)
+	{
 		return;
 	}
 
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) {
+	if (!OwningCharacter)
+	{
 		return;
 	}
 
-	if (CurrentEquippedWeapon) {
+	if (CurrentEquippedWeapon)
+	{
 		UnequipCurrentWeapon();
 	}
 
@@ -51,115 +62,142 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag) {
 	WeaponToEquip->SetActorHiddenInGame(false);
 	AttachWeaponToSocket(WeaponToEquip);
 
-	if (TSubclassOf<UAnimInstance> AnimLayer = WeaponToEquip->GetEquipAnimLayer()) {
+	if (TSubclassOf<UAnimInstance> AnimLayer = WeaponToEquip->GetEquipAnimLayer())
+	{
 		OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
-		
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				FirstPersonMesh->LinkAnimClassLayers(AnimLayer);
-			}
-		}
 	}
 
 	PlayEquipMontage(WeaponToEquip);
+	ApplyCombatStateTag(WeaponTag);
+
+	OnWeaponEquipped_Delegate.Broadcast(WeaponToEquip);
 }
 
-void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon() {
-	if (!CurrentEquippedWeapon) {
+void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon()
+{
+	if (!CurrentEquippedWeapon)
+	{
 		return;
 	}
 
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) {
+	if (!OwningCharacter)
+	{
 		return;
+	}
+
+	if (UAnimMontage* UnequipMontage = CurrentEquippedWeapon->GetUnequipMontage())
+	{
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+		{
+			BaseChar->PlayMontageOnAllMeshes(UnequipMontage);
+		}
 	}
 
 	CurrentEquippedWeapon->SetActorHiddenInGame(true);
 
-	if (TSubclassOf<UAnimInstance> AnimLayer = CurrentEquippedWeapon->GetEquipAnimLayer()) {
+	if (TSubclassOf<UAnimInstance> AnimLayer = CurrentEquippedWeapon->GetEquipAnimLayer())
+	{
 		OwningCharacter->GetMesh()->UnlinkAnimClassLayers(AnimLayer);
-
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				FirstPersonMesh->UnlinkAnimClassLayers(AnimLayer);
-			}
-		}
 	}
 
+	RemoveCombatStateTag(CurrentEquippedWeaponTag);
 	CurrentEquippedWeaponTag = FGameplayTag();
 	CurrentEquippedWeapon = nullptr;
+
+	OnWeaponUnequipped_Delegate.Broadcast();
 }
 
-void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* Weapon) {
-	if (!Weapon) {
+void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* Weapon)
+{
+	if (!Weapon)
+	{
 		return;
 	}
 
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) {
+	if (!OwningCharacter)
+	{
 		return;
 	}
 
 	FName SocketToUse = Weapon->GetSocketName();
 	USkeletalMeshComponent* TargetMesh = OwningCharacter->GetMesh();
 
-	if (OwningCharacter->IsLocallyControlled()) {
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				TargetMesh = FirstPersonMesh;
-			}
+	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+	{
+		if (BaseChar->IsLocallyControlled() && BaseChar->GetFirstPersonMesh())
+		{
+			TargetMesh = BaseChar->GetFirstPersonMesh();
 		}
 	}
 
 	Weapon->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketToUse);
 }
 
-void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon) {
-	if (!Weapon) {
+void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon)
+{
+	if (!Weapon)
+	{
 		return;
 	}
 
 	UAnimMontage* EquipMontage = Weapon->GetEquipMontage();
-	if (!EquipMontage) {
+	if (!EquipMontage)
+	{
 		return;
 	}
 
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) {
-		return;
-	}
-
-	UAnimInstance* AnimInstance = OwningCharacter->GetMesh()->GetAnimInstance();
-	if (AnimInstance) {
-		AnimInstance->Montage_Play(EquipMontage);
-	}
-
-	if (OwningCharacter->IsLocallyControlled()) {
-		if (ATimeThiefCharacterBase* TTCharacter = Cast<ATimeThiefCharacterBase>(OwningCharacter)) {
-			if (USkeletalMeshComponent* FirstPersonMesh = TTCharacter->GetFirstPersonMesh()) {
-				if (UAnimInstance* FPAnimInstance = FirstPersonMesh->GetAnimInstance()) {
-					FPAnimInstance->Montage_Play(EquipMontage);
-				}
-			}
-		}
+	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
+	{
+		BaseChar->PlayMontageOnAllMeshes(EquipMontage);
 	}
 }
 
-ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const {
-	if (const TObjectPtr<ATimeThiefWeaponBase>* FoundWeapon = CharacterCarriedWeaponMap.Find(InWeaponTagToGet)) {
+ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
+{
+	if (const TObjectPtr<ATimeThiefWeaponBase>* FoundWeapon = CharacterCarriedWeaponMap.Find(InWeaponTagToGet))
+	{
 		return *FoundWeapon;
 	}
 	return nullptr;
 }
 
-ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const {
+ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const
+{
 	return CurrentEquippedWeapon;
 }
 
-
-
-void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag) {
+void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag)
+{
 }
 
-void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag) {
+void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag)
+{
+}
+
+void UTimeThiefPawnCombatComponent::ApplyCombatStateTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid()) return;
+
+	if (const FGameplayTag* StateTag = WeaponToStateTagMap.Find(WeaponTag))
+	{
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
+		{
+			BaseChar->AddOwnedGameplayTag(*StateTag);
+		}
+	}
+}
+
+void UTimeThiefPawnCombatComponent::RemoveCombatStateTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid()) return;
+
+	if (const FGameplayTag* StateTag = WeaponToStateTagMap.Find(WeaponTag))
+	{
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
+		{
+			BaseChar->RemoveOwnedGameplayTag(*StateTag);
+		}
+	}
 }

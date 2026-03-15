@@ -3,7 +3,8 @@
 
 FTimeThiefGameplayTags FTimeThiefGameplayTags::GameplayTags;
 
-void FTimeThiefGameplayTags::InitializeNativeGameplayTags() {
+void FTimeThiefGameplayTags::InitializeNativeGameplayTags()
+{
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Move, "InputTag.Action.Move", "Move Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Look, "InputTag.Action.Look", "Look Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Jump, "InputTag.Action.Jump", "Jump Input");
@@ -14,10 +15,10 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags() {
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_EquipRifle, "InputTag.Action.EquipRifle", "Equip Rifle Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Wire, "InputTag.Action.Wire", "Wire Action Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_TogglePerspective, "InputTag.Action.TogglePerspective", "Toggle Perspective Input");
-
+	GameplayTags.AddTag(GameplayTags.InputTag_Action_ToggleMinimap, "InputTag.Action.ToggleMinimap", "Toggle Show Minimap Input");
+	
 	GameplayTags.AddTag(GameplayTags.Weapon_Rifle, "Weapon.Rifle", "Rifle Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_Pistol, "Weapon.Pistol", "Pistol Weapon Type");
-
 
 	GameplayTags.AddTag(GameplayTags.State_Combat_Rifle, "State.Combat.Rifle", "Character is holding a Rifle");
 	GameplayTags.AddTag(GameplayTags.State_Combat_Pistol, "State.Combat.Pistol", "Character is holding a Pistol");
@@ -28,7 +29,7 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags() {
 	GameplayTags.AddTag(GameplayTags.InitState_GameplayReady, "InitState.GameplayReady", "Ready for gameplay");
 }
 
-void FTimeThiefGameplayTags::AddTag(FGameplayTag& OutTag, const ANSICHAR* TagName, const ANSICHAR* TagComment) {
-	
+void FTimeThiefGameplayTags::AddTag(FGameplayTag& OutTag, const ANSICHAR* TagName, const ANSICHAR* TagComment)
+{
 	OutTag = UGameplayTagsManager::Get().AddNativeGameplayTag(FName(TagName), FString(TagComment));
 }

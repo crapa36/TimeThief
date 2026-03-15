@@ -1,19 +1,16 @@
 #include "Game/TimeThiefGameMode.h"
-#include "Character/TimeThiefPlayerCharacter.h" 
+#include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPawnData.h"
-#include "Game/TimeThiefExperienceDefinition.h"
 #include "GameFramework/PlayerController.h"
 
 ATimeThiefGameMode::ATimeThiefGameMode() {
-	DefaultPawnClass = ATimeThiefPlayerCharacter::StaticClass();
 }
 
-void ATimeThiefGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) {
-	Super::InitGame(MapName, Options, ErrorMessage);
-
-	if (DefaultExperience && DefaultExperience->DefaultPawnData) {
-		DefaultPawnData = DefaultExperience->DefaultPawnData;
+UClass* ATimeThiefGameMode::GetDefaultPawnClassForController_Implementation(AController* InController) {
+	if (DefaultPawnData && DefaultPawnData->PawnClass) {
+		return DefaultPawnData->PawnClass;
 	}
+	return ATimeThiefPlayerCharacter::StaticClass();
 }
 
 void ATimeThiefGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) {
@@ -26,8 +23,3 @@ void ATimeThiefGameMode::HandleStartingNewPlayer_Implementation(APlayerControlle
 	}
 }
 
-void ATimeThiefGameMode::OnExperienceLoaded(const UTimeThiefExperienceDefinition* Experience) {
-	if (Experience && Experience->DefaultPawnData) {
-		DefaultPawnData = Experience->DefaultPawnData;
-	}
-}

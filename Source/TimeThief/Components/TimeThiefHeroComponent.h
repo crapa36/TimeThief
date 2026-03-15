@@ -4,12 +4,13 @@
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "GameplayTagContainer.h"
 #include "InputActionValue.h"
-#include "Components/Wire/TimeThiefWireTypes.h"
 #include "TimeThiefHeroComponent.generated.h"
 
 class UTimeThiefPawnData;
 class UTimeThiefInputConfig;
 class UInputMappingContext;
+class UTimeThiefWireComponent;
+class UTimeThiefPawnCombatComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeThiefHero_ReadyDelegate, UTimeThiefHeroComponent*, HeroComponent);
 
@@ -52,7 +53,8 @@ private:
 	void Input_Look(const FInputActionValue& Value);
 	void Input_Jump(const FInputActionValue& Value);
 	void Input_TogglePerspective(const FInputActionValue& Value);
-
+	void Input_ToggleMinimap(const FInputActionValue& Value);
+	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
@@ -61,4 +63,10 @@ protected:
 	float RotationInterpSpeed = 10.0f;
 
 	bool bReadyToBindInputs = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefPawnCombatComponent> CachedCombatComponent;
 };

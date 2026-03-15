@@ -6,9 +6,11 @@
 #include "TimeThiefPawnData.generated.h"
 
 class UTimeThiefInputConfig;
+class UInputMappingContext;
 
 UCLASS(BlueprintType, Const, Meta = (DisplayName = "TimeThief Pawn Data", ShortTooltip = "Data asset used to define a Pawn."))
-class TIMETHIEF_API UTimeThiefPawnData : public UPrimaryDataAsset {
+class TIMETHIEF_API UTimeThiefPawnData : public UPrimaryDataAsset
+{
 	GENERATED_BODY()
 
 public:
@@ -20,8 +22,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Input")
 	TObjectPtr<UTimeThiefInputConfig> InputConfig;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Input")
+	TArray<TObjectPtr<UInputMappingContext>> InputMappingContexts;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Tags", Meta = (Categories = "Pawn"))
 	FGameplayTagContainer PawnTags;
 };
-

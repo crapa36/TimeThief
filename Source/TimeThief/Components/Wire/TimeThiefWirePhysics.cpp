@@ -1,6 +1,5 @@
 ﻿#include "Components/Wire/TimeThiefWirePhysics.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/Controller.h"
 #include "GameFramework/Character.h"
 
 void UTimeThiefWirePhysics::Initialize(UCharacterMovementComponent* InMovementComponent)
@@ -10,128 +9,103 @@ void UTimeThiefWirePhysics::Initialize(UCharacterMovementComponent* InMovementCo
 
 void UTimeThiefWirePhysics::ApplyWirePhysics(float DeltaTime, const FVector& AnchorPoint, const FVector& WireStartLocation, float WireLength, const FVector2D& Input)
 {
-	if (!IsValid(CachedMovementComponent)) return;
+	if (!IsValid(CachedMovementComponent))
+	{
+		return;
+	}
 
 	const FVector ToAnchor = AnchorPoint - WireStartLocation;
 	const float CurrentDistance = ToAnchor.Size();
 	const FVector WireDirection = ToAnchor.GetSafeNormal();
-
-	
-	if (CurrentDistance > WireLength)
-	{
-		const FVector Velocity = CachedMovementComponent->Velocity;
-		const float RadialSpeed = FVector::DotProduct(Velocity, WireDirection);
-
-		if (RadialSpeed < 0.0f)
-		{
-			CachedMovementComponent->Velocity -= WireDirection * RadialSpeed;
-		}
-
-		const float DistanceError = CurrentDistance - WireLength;
-		if (DistanceError > KINDA_SMALL_NUMBER)
-		{
-			const float CorrectionSpeed = DistanceError * PositionCorrectionSpeed;
-			CachedMovementComponent->Velocity += WireDirection * CorrectionSpeed;
-		}
-	}
-
-	
-	const float HeightDifference = AnchorPoint.Z - WireStartLocation.Z;
-	if (HeightDifference > 0 && HeightDifference < AnchorHeightThreshold)
-	{
-		if (CachedMovementComponent->Velocity.Z > 0)
-		{
-			CachedMovementComponent->Velocity.Z *= VerticalDampingLow;
-		}
-	}
-	else if (HeightDifference <= 0)
-	{
-		if (CachedMovementComponent->Velocity.Z > 0)
-		{
-			CachedMovementComponent->Velocity.Z *= VerticalDampingHigh;
-		}
-	}
-
-	
-	const FVector PullForce = CalculatePullForce(WireDirection, CurrentDistance);
-	const FVector InputForce = CalculateSwingInputForce(WireDirection, Input);
-	FVector TotalForce = PullForce + InputForce;
-
-	
 	const FVector Velocity = CachedMovementComponent->Velocity;
-	const float SpeedSq = Velocity.SizeSquared();
+
+	FVector TotalForce = FVector::ZeroVector;
+
+	const float DistanceError = CurrentDistance - WireLength;
+	if (DistanceError > 0.0f)
+	{
+		const float RadialVelocity = FVector::DotProduct(Velocity, WireDirection);
+		const float SpringForce = DistanceError * SpringStiffness;
+		const float DampingForce = -RadialVelocity * SpringDamping;
+		TotalForce += WireDirection * (SpringForce + DampingForce);
+	}
+
+	const FVector TangentVelocity = Velocity - WireDirection * FVector::DotProduct(Velocity, WireDirection);
+	const float TangentSpeed = TangentVelocity.Size();
+	const float CentrifugalForce = CachedMovementComponent->Mass * TangentSpeed * TangentSpeed / FMath::Max(CurrentDistance, 1.0f);
+	const float EffectivePullForce = PullForce - CentrifugalForce;
+
+	if (EffectivePullForce > 0.0f)
+	{
+		TotalForce += WireDirection * EffectivePullForce;
+	}
+
+	if (!Input.IsNearlyZero())
+	{
+		if (const ACharacter* Character = Cast<ACharacter>(CachedMovementComponent->GetOwner()))
+		{
+			FVector ViewLoc;
+			FRotator ViewRot;
+			Character->GetActorEyesViewPoint(ViewLoc, ViewRot);
+
+			const FVector CameraRight = FRotationMatrix(ViewRot).GetUnitAxis(EAxis::Y);
+			FVector WireRight = FVector::CrossProduct(WireDirection, FVector::UpVector);
+			
+			if (WireRight.IsNearlyZero())
+			{
+				WireRight = CameraRight;
+			}
+			else
+			{
+				WireRight.Normalize();
+			}
+
+			const FVector CameraForward = FRotationMatrix(ViewRot).GetUnitAxis(EAxis::X);
+			const FVector WorldInputDirection = (CameraForward * Input.Y + CameraRight * Input.X).GetSafeNormal();
+			const float SwingProjection = FVector::DotProduct(WorldInputDirection, WireRight);
+			
+			TotalForce += WireRight * SwingProjection * SwingInputForce;
+		}
+	}
+	else if (WireResistance > 0.0f)
+	{
+		TotalForce -= Velocity * WireResistance;
+	}
+
+	const float HeightDifference = AnchorPoint.Z - WireStartLocation.Z;
+	
+	if (HeightDifference > 0.0f)
+	{
+		const float NormalizedHeight = HeightDifference / FMath::Max(WireLength, 1.0f);
+		
+
+		float SpeedRatio = Velocity.Size() / CachedMovementComponent->MaxWalkSpeed;
+		float SpeedFactor = FMath::Square(FMath::Min(SpeedRatio, 1.0f));
+		
+		if (Input.IsNearlyZero())
+		{
+			SpeedFactor *= 0.5f;
+		}
+
+		const float HeightFactor = FMath::Square(FMath::Clamp(NormalizedHeight, 0.0f, 1.0f));
+
+		const float VerticalDampingForce = HeightFactor * SpeedFactor * VerticalDamping;
+		TotalForce.Z += VerticalDampingForce;
+	}
+
 	const float MaxSpeed = CachedMovementComponent->MaxWalkSpeed * MaxSwingSpeedMultiplier;
+	const float SpeedSq = Velocity.SizeSquared();
 
 	if (SpeedSq > FMath::Square(MaxSpeed))
 	{
-		const FVector DragForce = -Velocity.GetSafeNormal() * (SpeedSq * SwingDragCoefficient);
-		TotalForce += DragForce;
-	}
-
-	CachedMovementComponent->AddForce(TotalForce);
-}
-
-FVector UTimeThiefWirePhysics::CalculatePullForce(const FVector& WireDirection, float CurrentDistance) const
-{
-	if (!IsValid(CachedMovementComponent)) return FVector::ZeroVector;
-
-	const FVector TangentVelocity = GetTangentVelocity(CachedMovementComponent->Velocity, WireDirection);
-	const float TangentSpeedSq = TangentVelocity.SizeSquared();
-
-	const float CentrifugalForceMagnitude = CachedMovementComponent->Mass * CentrifugalMassMultiplier * TangentSpeedSq / FMath::Max(CurrentDistance, MinWireLengthForPhysics);
-
-	float TotalPullMagnitude = CentrifugalForceMagnitude + PullInForce;
-	const float MaxPullForce = PullInForce * 2.0f;
-	TotalPullMagnitude = FMath::Min(TotalPullMagnitude, MaxPullForce);
-
-	return WireDirection * TotalPullMagnitude;
-}
-
-FVector UTimeThiefWirePhysics::CalculateSwingInputForce(const FVector& WireDirection, const FVector2D& Input) const
-{
-	if (!IsValid(CachedMovementComponent) || Input.IsNearlyZero()) return FVector::ZeroVector;
-
-	const ACharacter* Character = Cast<ACharacter>(CachedMovementComponent->GetOwner());
-	if (!Character) return FVector::ZeroVector;
-
-	FVector ViewLoc;
-	FRotator ViewRot;
-	Character->GetActorEyesViewPoint(ViewLoc, ViewRot);
-
-	const FVector ForwardDir = FRotationMatrix(ViewRot).GetUnitAxis(EAxis::X);
-	const FVector RightDir = FRotationMatrix(ViewRot).GetUnitAxis(EAxis::Y);
-	const FVector InputDirection = (ForwardDir * Input.Y + RightDir * Input.X).GetSafeNormal();
-
-	if (InputDirection.IsNearlyZero()) return FVector::ZeroVector;
-
-	const FVector TangentVelocity = GetTangentVelocity(CachedMovementComponent->Velocity, WireDirection);
-	const float TangentSpeedSq = TangentVelocity.SizeSquared();
-
-	FVector ForceDirection = FVector::ZeroVector;
-
-	if (TangentSpeedSq > FMath::Square(100.0f))
-	{
-		const FVector SwingDir = TangentVelocity.GetSafeNormal();
-		const float Projection = FVector::DotProduct(InputDirection, SwingDir);
-		ForceDirection = SwingDir * Projection;
-	}
-	else
-	{
-		const float InputAlongWire = FVector::DotProduct(InputDirection, WireDirection);
-		const FVector RadialInputComponent = WireDirection * InputAlongWire;
-		const FVector RawTangentInput = InputDirection - RadialInputComponent;
-
-		if (RawTangentInput.SizeSquared() > KINDA_SMALL_NUMBER)
+		const FVector VelocityDir = Velocity.GetSafeNormal();
+		CachedMovementComponent->Velocity = VelocityDir * MaxSpeed;
+		const float ForceDot = FVector::DotProduct(TotalForce, VelocityDir);
+		if (ForceDot > 0.0f)
 		{
-			ForceDirection = RawTangentInput.GetSafeNormal();
+			TotalForce -= VelocityDir * ForceDot;
 		}
 	}
 
-	return ForceDirection * SwingInputForce;
-}
-
-FVector UTimeThiefWirePhysics::GetTangentVelocity(const FVector& Velocity, const FVector& WireDirection) const
-{
-	const float VelocityAlongWire = FVector::DotProduct(Velocity, WireDirection);
-	return Velocity - WireDirection * VelocityAlongWire;
+	CachedMovementComponent->AddForce(TotalForce);
 }

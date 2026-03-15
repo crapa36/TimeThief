@@ -126,7 +126,7 @@ FBox ULiquidMeshComponent::GetBound() const
 		return FBox(ForceInit);
 	}
 
-	const FVector3f& Alpha = ParentComponent->Alpha;
+	const FVector3f& Alpha = ParentComponent->CurrAlpha;
 	const TArray<FBox>& Bound = Data->GetBounds();
 
 	// Bounds는 3개라는 전제를 깰 수 있으니 방어
@@ -146,7 +146,7 @@ FBox ULiquidMeshComponent::GetBound() const
 
 FVector3f ULiquidMeshComponent::GetAlpha() const
 {
-	return ParentComponent ? ParentComponent->Alpha : FVector3f::ZeroVector;
+	return ParentComponent ? ParentComponent->CurrAlpha : FVector3f::ZeroVector;
 }
 
 TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() const

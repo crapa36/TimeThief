@@ -15,23 +15,33 @@ class TIMETHIEF_API ATimeThiefWeaponBase : public AActor {
 public:
 	ATimeThiefWeaponBase();
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	UFUNCTION(BlueprintPure, Category = "Weapon")
 	FGameplayTag GetWeaponTag() const { return WeaponTag; }
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	UFUNCTION(BlueprintPure, Category = "Weapon")
 	FName GetSocketName() const { return SocketName; }
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	UStaticMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	UFUNCTION(BlueprintPure, Category = "Weapon")
 	TSubclassOf<UAnimInstance> GetEquipAnimLayer() const { return EquipAnimLayer; }
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon|Animation")
+	UFUNCTION(BlueprintPure, Category = "Weapon|Animation")
 	UAnimMontage* GetEquipMontage() const { return EquipMontage; }
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon|Animation")
+	UFUNCTION(BlueprintPure, Category = "Weapon|Animation")
 	UAnimMontage* GetUnequipMontage() const { return UnequipMontage; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
+	FName GetMuzzleSocketName() const { return MuzzleSocketName; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
+	FName GetLeftHandIKSocketName() const { return LeftHandIKSocketName; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
+	FTransform GetSocketTransformByName(FName InSocketName) const;
+
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -41,7 +51,14 @@ protected:
 	FName SocketName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
+	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
+	FName MuzzleSocketName = TEXT("Muzzle");
+
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
+	FName LeftHandIKSocketName = TEXT("LeftHandIK");
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
 	TSubclassOf<UAnimInstance> EquipAnimLayer;

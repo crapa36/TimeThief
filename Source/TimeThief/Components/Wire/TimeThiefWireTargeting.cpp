@@ -26,23 +26,32 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(CachedCharacter);
 
-	TArray<FHitResult> HitResults;
-	bool bFoundAny = World->SweepMultiByObjectType(
-		HitResults, StartLocation, EndLocation, FQuat::Identity,
+	TArray<FHitResult> Candidates;
+
+	FHitResult LineHit;
+	if (World->LineTraceSingleByObjectType(LineHit, StartLocation, EndLocation, FCollisionObjectQueryParams(CollisionObjectTypes), QueryParams))
+	{
+		Candidates.Add(LineHit);
+	}
+
+	TArray<FHitResult> SweepHits;
+	World->SweepMultiByObjectType(
+		SweepHits, StartLocation, EndLocation, FQuat::Identity,
 		FCollisionObjectQueryParams(CollisionObjectTypes),
 		FCollisionShape::MakeSphere(AutoAimRadius),
 		QueryParams
 	);
+	
+	Candidates.Append(SweepHits);
 
-	if (!bFoundAny) return false;
+	if (Candidates.IsEmpty()) return false;
 
 	float BestScore = -FLT_MAX;
 	FVector BestLocation = FVector::ZeroVector;
 	bool bFoundCandidate = false;
 
-	for (const FHitResult& Hit : HitResults)
+	for (const FHitResult& Hit : Candidates)
 	{
-		
 		if (Hit.Component.IsValid() && Hit.Component->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Overlap)
 		{
 			continue;
@@ -102,11 +111,11 @@ bool UTimeThiefWireTargeting::CheckAnchorCollision(const FVector& Start, const F
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(IgnoredActor);
 
-	
 	TArray<FHitResult> HitResults;
-	bool bHit = World->LineTraceMultiByObjectType(
-		HitResults, Start, End,
+	bool bHit = World->SweepMultiByObjectType(
+		HitResults, Start, End, FQuat::Identity,
 		FCollisionObjectQueryParams(CollisionObjectTypes),
+		FCollisionShape::MakeSphere(AnchorCollisionRadius),
 		QueryParams
 	);
 
@@ -118,8 +127,6 @@ bool UTimeThiefWireTargeting::CheckAnchorCollision(const FVector& Start, const F
 			{
 				continue;
 			}
-
-			
 			OutHit = Hit;
 			return true;
 		}

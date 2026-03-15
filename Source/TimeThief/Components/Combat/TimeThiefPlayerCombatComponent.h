@@ -5,21 +5,91 @@
 #include "TimeThiefPlayerCombatComponent.generated.h"
 
 class ATimeThiefWeaponBase;
+class ATimeThiefRifle;
+class UCameraComponent;
+class UCharacterMovementComponent;
+class UTimeThiefWireComponent;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerCombatComponent : public UTimeThiefPawnCombatComponent {
 	GENERATED_BODY()
 
 public:
-	virtual void BeginPlay() override;
+	UTimeThiefPlayerCombatComponent();
 
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false);
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
+	virtual void HandleInputReleased(FGameplayTag InputTag) override;
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat|Aim")
+	void StartAiming();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat|Aim")
+	void StopAiming();
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
+	bool IsAiming() const { return bIsAiming; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
+	float GetAimSpreadMultiplier() const { return AimSpreadMultiplier; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
+	bool IsFiringWeapon() const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Rotation")
+	bool ShouldUseWeaponControlRigRotation() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TArray<TSubclassOf<ATimeThiefWeaponBase>> DefaultWeaponClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float AimFOV = 60.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float DefaultFOV = 90.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float AimInterpSpeed = 15.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float AimSpreadMultiplier = 0.3f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float AimMovementSpeedMultiplier = 0.6f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
+	float CombatRotationRate = 720.0f;
+
+private:
+	void ApplyCombatRotationMode(bool bUseControllerFacing);
+	bool ShouldUseControllerFacing() const;
+	bool HasMovementIntent(const UCharacterMovementComponent* MovementComp) const;
+	bool IsRotationManagedExternally() const;
+
+	void UpdateCombatRotation();
+	void UpdateAimFOV(float DeltaTime);
+
+	void SnapRotationToAim();
+
+	bool bIsAiming = false;
+	float DefaultMaxWalkSpeed = 0.0f;
+	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	bool bDefaultOrientRotationToMovement = true;
+	bool bDefaultUseControllerDesiredRotation = false;
+	bool bDefaultUseControllerRotationYaw = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCameraComponent> CachedThirdPersonCamera;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCameraComponent> CachedFirstPersonCamera;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
 };

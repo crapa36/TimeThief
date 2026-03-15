@@ -32,12 +32,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon;
 
-	// 1인칭 시점 흔들림 (Sway) 처리를 위한 변수
 	UPROPERTY(BlueprintReadOnly, Category = "FirstPerson|Sway")
 	FRotator SwayRotation;
-
-	UPROPERTY(BlueprintReadOnly, Category = "FirstPerson|Sway")
-	FVector SwayLocation;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
 	float SwaySpeed = 10.0f;
@@ -45,12 +41,50 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
 	float MaxSwayDegree = 5.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
-	float MaxSwayDistance = 2.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	float ProceduralSpeed;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	FVector ProceduralVelocity;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	FRotator DeltaRotation;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
+	float AccumulatedTime;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Breathing")
+	float BreathingSpeed = 1.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Breathing")
+	float BreathingAmplitude = 0.8f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float IdleBobAmplitude = 0.5f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float WalkBobAmplitude = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float RunBobAmplitude = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float WalkSpeedThreshold = 200.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float RunSpeedThreshold = 500.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Procedural|Bobbing")
+	float CurrentBobAmplitude;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Procedural|Bobbing")
+	float BobAmplitudeInterpSpeed = 8.0f;
 
 private:
 	void UpdateWeaponData();
 	void UpdateSway(float DeltaSeconds);
+	void UpdateProceduralData(float DeltaSeconds);
 
 	FRotator LastRotation;
 };

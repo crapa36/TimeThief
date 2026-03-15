@@ -1,13 +1,14 @@
-﻿#include "Components/Wire/TimeThiefWireComponent.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/Wire/TimeThiefWirePhysics.h"
 #include "Components/Wire/TimeThiefWireTargeting.h"
 #include "TimeThiefGameplayTags.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
-#include "DrawDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(LogWire);
 
@@ -81,6 +82,15 @@ void UTimeThiefWireComponent::BeginPlay()
 			}
 			AnchorMeshComponent->SetWorldScale3D(AnchorMeshScale);
 		}
+
+		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
+		{
+			CachedCameraManager = PC->PlayerCameraManager;
+			if (CachedCameraManager)
+			{
+				DefaultFOV = CachedCameraManager->DefaultFOV;
+			}
+		}
 	}
 }
 
@@ -103,8 +113,11 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 		break;
 	case EWireState::Attached:
 		UpdateAttachedWire(DeltaTime);
+		UpdateWireRotation(DeltaTime);
+		UpdateSpeedEffects(DeltaTime);
 		break;
 	default:
+		ResetSpeedEffects(DeltaTime);
 		break;
 	}
 
@@ -138,19 +151,41 @@ void UTimeThiefWireComponent::FireWire()
 {
 	if (!CanFireWire()) return;
 
-	const FVector StartLocation = GetWireStartLocation();
-	FVector TargetLocation;
+	const FVector WireStartLocation = GetWireStartLocation();
 	
-	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, StartLocation, GetAimDirection(), MaxWireLength))
+	FVector CamLoc;
+	FRotator CamRot;
+	
+	if (IsValid(CachedCharacter))
 	{
-		FireDirection = (TargetLocation - StartLocation).GetSafeNormal();
+		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
+		{
+			PC->GetPlayerViewPoint(CamLoc, CamRot);
+		}
+		else
+		{
+			CachedCharacter->GetActorEyesViewPoint(CamLoc, CamRot);
+		}
 	}
 	else
 	{
-		FireDirection = GetAimDirection();
+		CamLoc = WireStartLocation;
+		CamRot = GetOwner()->GetActorRotation();
+	}
+	
+	const FVector AimDirection = CamRot.Vector();
+	FVector TargetLocation;
+	
+	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
+	{
+		FireDirection = (TargetLocation - WireStartLocation).GetSafeNormal();
+	}
+	else
+	{
+		FireDirection = AimDirection;
 	}
 
-	AnchorPoint = StartLocation;
+	AnchorPoint = WireStartLocation;
 	AnchorNormal = -FireDirection;
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
@@ -168,9 +203,9 @@ void UTimeThiefWireComponent::ReleaseWire()
 	{
 		if (IsValid(CachedMovementComponent))
 		{
-			CachedMovementComponent->GravityScale = CachedGravityScale;
 			CachedMovementComponent->AirControl = CachedAirControl;
 		}
+		RestoreRotationMode();
 	}
 
 	CooldownRemaining = WireCooldown;
@@ -189,13 +224,10 @@ void UTimeThiefWireComponent::Jump()
 	{
 		ReleaseWire();
 		
-		if (IsValid(CachedCharacter))
+		if (IsValid(CachedCharacter) && IsValid(CachedMovementComponent))
 		{
-			if (UCharacterMovementComponent* MoveComp = CachedCharacter->GetCharacterMovement())
-			{
-				float JumpZ = MoveComp->JumpZVelocity;
-				CachedCharacter->LaunchCharacter(FVector(0.0f, 0.0f, JumpZ), false, true);
-			}
+			const float JumpZ = CachedMovementComponent->JumpZVelocity;
+			CachedCharacter->LaunchCharacter(FVector(0.0f, 0.0f, JumpZ), false, true);
 		}
 	}
 }
@@ -234,6 +266,9 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 		AnchorPoint = HitResult.ImpactPoint;
 		AnchorNormal = HitResult.ImpactNormal;
 		AttachedWireLength = FVector::Dist(StartLocation, AnchorPoint);
+		
+		AttachedAnchorRotation = (-AnchorNormal).Rotation() + AnchorMeshRotationOffset;
+		
 		SetWireState(EWireState::Attached);
 		OnWireAttached.Broadcast(AnchorPoint);
 		return;
@@ -249,15 +284,11 @@ void UTimeThiefWireComponent::OnAnchorAttached()
 {
 	if (!IsValid(CachedMovementComponent)) return;
 
-	CachedGravityScale = CachedMovementComponent->GravityScale;
 	CachedAirControl = CachedMovementComponent->AirControl;
-
-	if (WirePhysics)
-	{
-		CachedMovementComponent->GravityScale = WirePhysics->GravityMultiplierOnWire;
-	}
 	CachedMovementComponent->AirControl = AirControlOnWire;
 	CachedMovementComponent->SetMovementMode(MOVE_Falling);
+
+	ApplyWireRotationMode();
 
 	const FVector WireDirection = (AnchorPoint - GetWireStartLocation()).GetSafeNormal();
 	const float VelocityTowardAnchor = FVector::DotProduct(CachedMovementComponent->Velocity, WireDirection);
@@ -312,7 +343,14 @@ void UTimeThiefWireComponent::HandleInputPressed(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Wire)
 	{
-		CurrentState == EWireState::Idle ? FireWire() : ReleaseWire();
+		if (CurrentState == EWireState::Idle)
+		{
+			FireWire();
+		}
+		else
+		{
+			ReleaseWire();
+		}
 	}
 	else if (InputTag == Tags.InputTag_Action_Jump)
 	{
@@ -329,7 +367,10 @@ bool UTimeThiefWireComponent::IsStuck(float DeltaTime)
 {
 	if (!IsValid(CachedMovementComponent)) return true;
 
-	if (CachedMovementComponent->Velocity.Size() < StuckSpeedThreshold)
+	const float SpeedSquared = CachedMovementComponent->Velocity.SizeSquared();
+	const float ThresholdSquared = StuckSpeedThreshold * StuckSpeedThreshold;
+
+	if (SpeedSquared < ThresholdSquared)
 	{
 		StuckCheckTimer += DeltaTime;
 		if (StuckCheckTimer >= StuckCheckDelay)
@@ -348,7 +389,6 @@ bool UTimeThiefWireComponent::IsOnGroundTooLong(float DeltaTime)
 {
 	if (!IsValid(CachedMovementComponent)) return false;
 
-	FHitResult FloorHit;
 	const bool bOnGround = CachedMovementComponent->CurrentFloor.bBlockingHit;
 
 	if (bOnGround)
@@ -372,9 +412,10 @@ bool UTimeThiefWireComponent::IsWireSnapping() const
 	if (!IsValid(CachedMovementComponent) || !WirePhysics) return false;
 
 	const FVector Velocity = CachedMovementComponent->Velocity;
-	const float Speed = Velocity.Size();
+	const float SpeedSquared = Velocity.SizeSquared();
+	const float ThresholdSquared = WirePhysics->WireBreakSpeedThreshold * WirePhysics->WireBreakSpeedThreshold;
 
-	if (Speed < WirePhysics->WireBreakSpeedThreshold)
+	if (SpeedSquared < ThresholdSquared)
 	{
 		return false;
 	}
@@ -383,12 +424,7 @@ bool UTimeThiefWireComponent::IsWireSnapping() const
 	const FVector VelocityDir = Velocity.GetSafeNormal();
 	const float DotProduct = FVector::DotProduct(VelocityDir, WireDirection);
 
-	if (DotProduct < WirePhysics->WireBreakAngleThreshold)
-	{
-		return true;
-	}
-
-	return false;
+	return DotProduct < WirePhysics->WireBreakAngleThreshold;
 }
 
 bool UTimeThiefWireComponent::IsFacingAwayFromWire() const
@@ -414,11 +450,16 @@ FVector UTimeThiefWireComponent::GetAimDirection() const
 
 FVector UTimeThiefWireComponent::GetWireStartLocation() const
 {
-	if (!IsValid(CachedCharacter)) return GetOwner()->GetActorLocation();
-
-	if (CachedCharacter->GetMesh()->DoesSocketExist(WireStartSocketName))
+	if (!IsValid(CachedCharacter))
 	{
-		return CachedCharacter->GetMesh()->GetSocketLocation(WireStartSocketName);
+		const AActor* Owner = GetOwner();
+		return Owner ? Owner->GetActorLocation() : FVector::ZeroVector;
+	}
+
+	USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh();
+	if (Mesh && Mesh->DoesSocketExist(WireStartSocketName))
+	{
+		return Mesh->GetSocketLocation(WireStartSocketName);
 	}
 
 	return CachedCharacter->GetActorLocation();
@@ -435,16 +476,38 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 		return;
 	}
 
+	const FVector Start = GetWireStartLocation();
+	
+	FRotator AnchorRotation;
+	if (CurrentState == EWireState::Attached)
+	{
+		AnchorRotation = AttachedAnchorRotation;
+	}
+	else
+	{
+		const FVector AnchorDirection = (AnchorPoint - Start).GetSafeNormal();
+		AnchorRotation = AnchorDirection.Rotation() + AnchorMeshRotationOffset;
+	}
+	
+	AnchorMeshComponent->SetWorldLocation(AnchorPoint);
+	AnchorMeshComponent->SetWorldRotation(AnchorRotation);
+
+	const FVector WireAttachPoint = AnchorPoint + AnchorRotation.RotateVector(AnchorWireAttachOffset);
+	const FVector End = WireAttachPoint;
+	const float Distance = FVector::Dist(Start, End);
+
+	if (Distance < KINDA_SMALL_NUMBER)
+	{
+		WireMeshComponent->SetVisibility(false);
+		AnchorMeshComponent->SetVisibility(false);
+		return;
+	}
+
 	WireMeshComponent->SetVisibility(true);
 	AnchorMeshComponent->SetVisibility(true);
 
-	const FVector Start = GetWireStartLocation();
-	const FVector End = AnchorPoint;
-	const FVector Direction = (End - Start).GetSafeNormal();
-	const float Distance = FVector::Dist(Start, End);
-
+	const FVector Direction = (End - Start) / Distance;
 	const FVector CenterLocation = (Start + End) * 0.5f;
-	
 	const FRotator Rotation = Direction.Rotation() + FRotator(-90.0f, 0.0f, 0.0f);
 	
 	const float LengthScale = Distance / 100.0f;
@@ -454,9 +517,100 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 	WireMeshComponent->SetWorldLocation(CenterLocation);
 	WireMeshComponent->SetWorldRotation(Rotation);
 	WireMeshComponent->SetWorldScale3D(Scale);
+}
 
-	AnchorMeshComponent->SetWorldLocation(AnchorPoint);
-	
-	const FRotator AnchorRotation = FRotationMatrix::MakeFromZ(AnchorNormal).Rotator();
-	AnchorMeshComponent->SetWorldRotation(AnchorRotation);
+float UTimeThiefWireComponent::GetSpeedEffectAlpha() const
+{
+	if (!IsValid(CachedMovementComponent))
+	{
+		return 0.0f;
+	}
+
+	const float Speed = CachedMovementComponent->Velocity.Size();
+	if (Speed <= SpeedEffectThreshold)
+	{
+		return 0.0f;
+	}
+
+	const float MaxSpeed = SpeedEffectThreshold * 2.5f;
+	return FMath::Clamp((Speed - SpeedEffectThreshold) / (MaxSpeed - SpeedEffectThreshold), 0.0f, 1.0f);
+}
+
+void UTimeThiefWireComponent::UpdateSpeedEffects(float DeltaTime)
+{
+	const float EffectAlpha = GetSpeedEffectAlpha();
+
+	if (IsValid(CachedCameraManager))
+	{
+		const float TargetFOVOffset = EffectAlpha * MaxFOVIncrease;
+		CurrentFOVOffset = FMath::FInterpTo(CurrentFOVOffset, TargetFOVOffset, DeltaTime, FOVInterpSpeed);
+		CachedCameraManager->SetFOV(DefaultFOV + CurrentFOVOffset);
+	}
+
+	if (EffectAlpha > 0.3f && WireSpeedShake && IsValid(CachedCharacter))
+	{
+		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
+		{
+			PC->ClientStartCameraShake(WireSpeedShake, CameraShakeScale * EffectAlpha);
+		}
+	}
+}
+
+void UTimeThiefWireComponent::ResetSpeedEffects(float DeltaTime)
+{
+	if (!IsValid(CachedCameraManager))
+	{
+		return;
+	}
+
+	if (CurrentFOVOffset > KINDA_SMALL_NUMBER)
+	{
+		CurrentFOVOffset = FMath::FInterpTo(CurrentFOVOffset, 0.0f, DeltaTime, FOVInterpSpeed * 2.0f);
+		CachedCameraManager->SetFOV(DefaultFOV + CurrentFOVOffset);
+	}
+}
+
+void UTimeThiefWireComponent::ApplyWireRotationMode()
+{
+	if (!bOrientToVelocityOnWire) return;
+	if (!IsValid(CachedCharacter) || !IsValid(CachedMovementComponent)) return;
+
+	CachedOrientRotationToMovement = CachedMovementComponent->bOrientRotationToMovement;
+	CachedUseControllerDesiredRotation = CachedMovementComponent->bUseControllerDesiredRotation;
+	CachedUseControllerRotationYaw = CachedCharacter->bUseControllerRotationYaw;
+
+	CachedMovementComponent->bOrientRotationToMovement = false;
+	CachedMovementComponent->bUseControllerDesiredRotation = false;
+	CachedCharacter->bUseControllerRotationYaw = false;
+}
+
+void UTimeThiefWireComponent::RestoreRotationMode()
+{
+	if (!bOrientToVelocityOnWire) return;
+	if (!IsValid(CachedCharacter) || !IsValid(CachedMovementComponent)) return;
+
+	CachedMovementComponent->bOrientRotationToMovement = CachedOrientRotationToMovement;
+	CachedMovementComponent->bUseControllerDesiredRotation = CachedUseControllerDesiredRotation;
+	CachedCharacter->bUseControllerRotationYaw = CachedUseControllerRotationYaw;
+}
+
+void UTimeThiefWireComponent::UpdateWireRotation(float DeltaTime)
+{
+	if (!bOrientToVelocityOnWire) return;
+	if (!IsValid(CachedCharacter) || !IsValid(CachedMovementComponent)) return;
+
+	const FVector Velocity = CachedMovementComponent->Velocity;
+	const FVector LateralVelocity = FVector(Velocity.X, Velocity.Y, 0.0f);
+	const float LateralSpeed = LateralVelocity.Size();
+
+	if (LateralSpeed < WireRotationMinSpeed)
+	{
+		return;
+	}
+
+	const FRotator CurrentRotation = CachedCharacter->GetActorRotation();
+	const FRotator TargetRotation = FRotator(0.0f, LateralVelocity.Rotation().Yaw, 0.0f);
+
+	const FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, WireRotationInterpSpeed);
+	CachedCharacter->SetActorRotation(FRotator(CurrentRotation.Pitch, NewRotation.Yaw, CurrentRotation.Roll));
 }

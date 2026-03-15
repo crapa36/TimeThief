@@ -8,12 +8,8 @@
 class ATimeThiefWeaponBase;
 class UAnimMontage;
 
-UENUM(BlueprintType)
-enum class EToggleDamageType : uint8 {
-	CurrentEquippedWeapon,
-	LeftHand,
-	RightHand
-};
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnWeaponEquippedSignature, ATimeThiefWeaponBase*);
+DECLARE_MULTICAST_DELEGATE(FOnWeaponUnequippedSignature);
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensionComponent {
@@ -49,6 +45,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "TimeThief|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
 
+	FOnWeaponEquippedSignature OnWeaponEquipped_Delegate;
+	FOnWeaponUnequippedSignature OnWeaponUnequipped_Delegate;
+
 protected:
 	UPROPERTY()
 	TMap<FGameplayTag, TObjectPtr<ATimeThiefWeaponBase>> CharacterCarriedWeaponMap;
@@ -56,5 +55,10 @@ protected:
 	UPROPERTY()
 	TObjectPtr<ATimeThiefWeaponBase> CurrentEquippedWeapon;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	TMap<FGameplayTag, FGameplayTag> WeaponToStateTagMap;
+
 	void PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
+	void ApplyCombatStateTag(FGameplayTag WeaponTag);
+	void RemoveCombatStateTag(FGameplayTag WeaponTag);
 };

@@ -4,10 +4,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHeroComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/TimeThiefHealthComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "CharacterTrajectoryComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Actors/StoreActor.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -32,7 +34,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationYaw = true;
+	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -60,23 +62,15 @@ void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData
 void ATimeThiefPlayerCharacter::OnPawnDataSet() {
 	if (HeroComponent && PawnData) {
 		HeroComponent->SetPawnData(PawnData);
-		
+
 		if (InputComponent) {
 			HeroComponent->InitializePlayerInput(InputComponent);
 		}
 	}
-}
 
-void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController) {
-	Super::PossessedBy(NewController);
-}
-
-void ATimeThiefPlayerCharacter::UnPossessed() {
-	Super::UnPossessed();
-}
-
-void ATimeThiefPlayerCharacter::OnRep_PlayerState() {
-	Super::OnRep_PlayerState();
+	if (PawnData && PawnData->PawnTags.Num() > 0) {
+		AppendOwnedGameplayTags(PawnData->PawnTags);
+	}
 }
 
 void ATimeThiefPlayerCharacter::OnRep_PawnData() {
@@ -90,10 +84,31 @@ UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent
 void ATimeThiefPlayerCharacter::BeginPlay() {
 	Super::BeginPlay();
 
-	if (FirstPersonMesh && FollowCamera)
-	{
-		FirstPersonMesh->AttachToComponent(FollowCamera, FAttachmentTransformRules::SnapToTargetIncludingScale);
+	if (UTimeThiefHealthComponent* Health = GetHealthComponent()) {
+		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
 	}
+
+	if (IsLocallyControlled() && bIsFirstPerson)
+	{
+		FollowCamera->SetActive(false);
+	}
+}
+
+void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
+	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
+		DisableInput(PC);
+	}
+	GetCharacterMovement()->DisableMovement();
+}
+
+void ATimeThiefPlayerCharacter::SetNearStore(const AStoreActor* InNearStore)
+{
+	NearStore = InNearStore;
+}
+
+const AStoreActor* ATimeThiefPlayerCharacter::GetNearStore() const
+{
+	return NearStore;
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

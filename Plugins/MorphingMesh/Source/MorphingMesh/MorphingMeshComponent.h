@@ -52,12 +52,13 @@ public:
 	void SetType(EMorphTargetType NewType);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings", meta=(ClampMin="0.1", ClampMax="1.0", UIMin="0.1", UIMax="1.0"))
-	float MorphingTime{0.5f};
+	float MaxMorphingTime{0.5f};
 	
-	
+	float MorphingTime{MaxMorphingTime};
 	float ElapsedTime{0.0f};
 	
-	FVector3f Alpha{1.0f, 0.0f, 0.0f};
+	FVector3f PrevAlpha{1.0f, 0.0f, 0.0f};
+	FVector3f CurrAlpha{1.0f, 0.0f, 0.0f};
 	FVector3f DestAlpha{1.0f, 0.0f, 0.0f};
 	
 	EMorphTargetType MeshType{EMorphTargetType::A};

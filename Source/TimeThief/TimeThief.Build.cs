@@ -29,6 +29,7 @@ public class TimeThief : ModuleRules
             "Protobuf",
             "ProtocolSharedUE",
             "AnimGraphRuntime"
+            "DeveloperSettings",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]

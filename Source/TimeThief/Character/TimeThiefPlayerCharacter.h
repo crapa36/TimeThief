@@ -4,6 +4,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
+class AStoreActor;
 class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefHeroComponent;
@@ -20,11 +21,7 @@ public:
 	ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
-
-	virtual void PossessedBy(AController* NewController) override;
-	virtual void UnPossessed() override;
-	virtual void OnRep_PlayerState() override;
-
+	
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Character")
@@ -36,11 +33,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	UTimeThiefWireComponent* GetWireComponent() const { return WireComponent; }
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
+	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	void SetNearStore(const AStoreActor* InNearStore);
+	const AStoreActor* GetNearStore() const;
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;
 
 	void OnPawnDataSet();
+
+	UFUNCTION()
+	void OnDeath(AActor* OwningActor);
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -65,10 +70,13 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
 
+	UPROPERTY()
+	const AStoreActor* NearStore;
+	
 private:
 	UFUNCTION()
 	void OnRep_PawnData();
-
+	
 public:
 	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }
 };
