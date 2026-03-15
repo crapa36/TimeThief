@@ -28,7 +28,7 @@ public class TimeThief : ModuleRules
             "JsonUtilities",
             "Protobuf",
             "ProtocolSharedUE",
-            "AnimGraphRuntime"
+            "AnimGraphRuntime",
             "DeveloperSettings",
         });
 
