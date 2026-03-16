@@ -4,6 +4,8 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
+class UInventorySystemComponent;
+class AInteractionActorBase;
 class AStoreActor;
 class USpringArmComponent;
 class UCameraComponent;
@@ -19,7 +21,9 @@ class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefCharacterBase {
 
 public:
 	ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
+	
+	void OnInteract();
+	
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 	
 	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
@@ -38,6 +42,10 @@ public:
 
 	void SetNearStore(const AStoreActor* InNearStore);
 	const AStoreActor* GetNearStore() const;
+	
+	void AddNearInteractionActor(AInteractionActorBase* InteractionActor);
+	void RemoveNearInteractionActor(AInteractionActorBase* InteractionActor);
+	
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;
@@ -59,19 +67,24 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
 	TObjectPtr<UTimeThiefPlayerCombatComponent> PlayerCombatComponent;
-
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching")
 	TObjectPtr<UCharacterTrajectoryComponent> CharacterTrajectoryComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wire")
 	TObjectPtr<UTimeThiefWireComponent> WireComponent;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UInventorySystemComponent> InventoryComponent;
+	
 	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
 
 	UPROPERTY()
 	const AStoreActor* NearStore;
+	
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AInteractionActorBase>> NearInteractionActors;
 	
 private:
 	UFUNCTION()

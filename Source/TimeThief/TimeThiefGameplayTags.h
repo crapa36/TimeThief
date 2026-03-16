@@ -22,7 +22,7 @@ public:
 	FGameplayTag InputTag_Action_Wire;
 	FGameplayTag InputTag_Action_TogglePerspective;
 	FGameplayTag InputTag_Action_ToggleMinimap;
-	
+	FGameplayTag InputTag_Action_Interact;
 	
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Pistol;

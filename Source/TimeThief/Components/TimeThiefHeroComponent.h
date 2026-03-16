@@ -54,6 +54,7 @@ private:
 	void Input_Jump(const FInputActionValue& Value);
 	void Input_TogglePerspective(const FInputActionValue& Value);
 	void Input_ToggleMinimap(const FInputActionValue& Value);
+	void Input_Interact(const FInputActionValue& Value);
 	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")
