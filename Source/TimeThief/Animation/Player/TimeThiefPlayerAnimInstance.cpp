@@ -207,8 +207,22 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 	}
 
-	AimDirection = CameraRotation.Vector();
-	WorldAimLocation = CameraLocation + (AimDirection * 10000.0f);
+	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent())
+	{
+		WorldAimLocation = PlayerCombat->GetWorldAimLocation();
+	}
+	else
+	{
+		WorldAimLocation = CameraLocation + (CameraRotation.Vector() * 50000.0f);
+	}
+
+	FVector StartLoc = PlayerCharacter->GetActorLocation();
+	if (CurrentWeapon)
+	{
+		StartLoc = CurrentWeapon->GetActorLocation();
+	}
+
+	AimDirection = (WorldAimLocation - StartLoc).GetSafeNormal();
 
 	const float HorizontalSize = FVector2D(AimDirection.X, AimDirection.Y).Size();
 	AimPitch = -FMath::RadiansToDegrees(FMath::Atan2(AimDirection.Z, HorizontalSize));

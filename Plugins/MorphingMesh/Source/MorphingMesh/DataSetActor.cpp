@@ -134,7 +134,7 @@ void ADataSetActor::BakeDataSet() const
 					}
 				}
 			}
-			
+#if WITH_EDITORONLY_DATA
 			UVVolumeTextures[i]->Source.Init(
 				Resolution,
 				Resolution,
@@ -148,7 +148,7 @@ void ADataSetActor::BakeDataSet() const
 			UVVolumeTextures[i]->CompressionNone = true;
 			UVVolumeTextures[i]->Filter = TF_Trilinear;
 			UVVolumeTextures[i]->CompressionSettings = TC_Default;
-			
+#endif	
 			UVVolumeTextures[i]->UpdateResource();
 		}
 

@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "InputActionValue.h"
 #include "NTPlayer.h"
-#include "Developer/Datasmith/DatasmithFacade/Public/DatasmithFacadeActor.h"
 #include "NTLocalPlayer.generated.h"
 
 class UInputAction;

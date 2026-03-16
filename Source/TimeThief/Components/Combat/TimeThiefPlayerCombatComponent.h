@@ -44,6 +44,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Rotation")
 	bool ShouldUseWeaponControlRigRotation() const;
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
+	FVector GetWorldAimLocation() const { return CachedWorldAimLocation; }
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TArray<TSubclassOf<ATimeThiefWeaponBase>> DefaultWeaponClasses;
@@ -75,6 +78,7 @@ private:
 	void UpdateCombatRotation();
 	void UpdateAimFOV(float DeltaTime);
 
+	void UpdateWorldAimLocation();
 	void SnapRotationToAim();
 
 	bool bIsAiming = false;
@@ -83,6 +87,7 @@ private:
 	bool bDefaultOrientRotationToMovement = true;
 	bool bDefaultUseControllerDesiredRotation = false;
 	bool bDefaultUseControllerRotationYaw = false;
+	FVector CachedWorldAimLocation = FVector::ZeroVector;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UCameraComponent> CachedThirdPersonCamera;

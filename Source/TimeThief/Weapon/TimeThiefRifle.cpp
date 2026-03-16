@@ -8,6 +8,7 @@
 #include "Particles/ParticleSystem.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "DrawDebugHelpers.h"
 
 ATimeThiefRifle::ATimeThiefRifle()
 {
@@ -200,6 +201,13 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 
 	FHitResult WeaponHitResult;
 	const bool bWeaponHit = GetWorld()->LineTraceSingleByChannel(WeaponHitResult, MuzzleLocation, TargetLocation, ECC_Visibility, QueryParams);
+
+	const FVector DebugEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
+	DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Red, false, 2.0f, 0, 1.0f);
+	if (bWeaponHit)
+	{
+		DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
+	}
 
 	Result.FireDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
 
