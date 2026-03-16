@@ -50,6 +50,8 @@ public:
 	void SetTargetPitch(float InPitch) { TargetPitch = InPitch; }
 	float GetNowPitch() const { return NowPitch; }
 	
+	FVector GetMoveStepSpeed() const { return MoveStepSpeed; }
+	
 private:
 	void SetYawApply(float InYaw);
 	void SetPitchApply(float InPitch);
@@ -74,5 +76,7 @@ protected:
 
 	float InterpElapsed = 0.f;
 	float InterpDuration = 0.1f;
+	
+	FVector MoveStepSpeed = FVector::ZeroVector;
 	
 };

@@ -103,6 +103,7 @@ void ANTPlayer::Tick(float DeltaTime)
 		const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.f, 1.f);
 
 		FVector NewPosition = FMath::Lerp(InterpStartPosition, InterpTargetPosition, Alpha);
+		MoveStepSpeed = (NewPosition - NowPosition) / DeltaTime;
 		SetActorLocation(NewPosition);
 		
 		const float RotationSpeedDegPerSec = GetCharacterMovement()->RotationRate.Yaw;

@@ -31,7 +31,14 @@ void UNTPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 	
-	Velocity = OwnerPlayer->GetVelocity();
+	if (OwnerPlayer->IsLocalPlayer())
+	{
+		Velocity = OwnerPlayer->GetVelocity();
+	}
+	else
+	{
+		Velocity = OwnerPlayer->GetMoveStepSpeed();
+	}
 	Velocity.Z = 0.f;
 	
 	Speed = Velocity.Size();
