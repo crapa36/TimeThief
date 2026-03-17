@@ -62,24 +62,24 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 		MovePacketElapsed = 0.f;
 		LastSentPitch = NowPitch;
 		
-		se::room::C_MoveInput pkt;
-		{
-			se::room::EntityState* entityState = pkt.mutable_entity_state();
-         
-			se::common::ObjectId* entityId = entityState->mutable_entity_id();
-			entityId->set_value(EntityId);
-			se::common::MovementState* movementState = entityState->mutable_movement();
-			se::common::Vector3* postion = movementState->mutable_position();
-			
-			postion->set_x(NowPosition.X);
-			postion->set_y(NowPosition.Y);
-			postion->set_z(NowPosition.Z);
-			movementState->set_yaw(NowYaw);
-			movementState->set_pitch(NowPitch);
-		}
-		
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);
-		GetWorld()->GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>()->SendPacket(sendBuffer);
+		// se::room::C_MoveInput pkt;
+		// {
+		// 	se::room::EntityState* entityState = pkt.mutable_entity_state();
+  //        
+		// 	se::common::ObjectId* entityId = entityState->mutable_entity_id();
+		// 	entityId->set_value(EntityId);
+		// 	se::common::MovementState* movementState = entityState->mutable_movement();
+		// 	se::common::Vector3* postion = movementState->mutable_position();
+		// 	
+		// 	postion->set_x(NowPosition.X);
+		// 	postion->set_y(NowPosition.Y);
+		// 	postion->set_z(NowPosition.Z);
+		// 	movementState->set_yaw(NowYaw);
+		// 	movementState->set_pitch(NowPitch);
+		// }
+		//
+		// SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);
+		// GetWorld()->GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>()->SendPacket(sendBuffer);
 	}
 }
 

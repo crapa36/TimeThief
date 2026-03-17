@@ -34,20 +34,21 @@ const char descriptor_table_protodef_options_2fpacket_5foptions_2eproto[] PROTOB
   "\n\034options/packet_options.proto\022\nse.optio"
   "ns\032 google/protobuf/descriptor.proto*+\n\t"
   "PacketDir\022\014\n\010DIR_NONE\020\000\022\007\n\003C2S\020\001\022\007\n\003S2C\020"
-  "\002*<\n\013PacketRoute\022\016\n\nROUTE_NONE\020\000\022\010\n\004AUTH"
-  "\020\001\022\t\n\005LOBBY\020\002\022\010\n\004ROOM\020\003:4\n\tpacket_id\022\037.g"
-  "oogle.protobuf.MessageOptions\030\321\206\003 \001(\r:E\n"
-  "\003dir\022\037.google.protobuf.MessageOptions\030\322\206"
-  "\003 \001(\0162\025.se.options.PacketDir:I\n\005route\022\037."
-  "google.protobuf.MessageOptions\030\323\206\003 \001(\0162\027"
-  ".se.options.PacketRouteb\006proto3"
+  "\002*F\n\013PacketRoute\022\016\n\nROUTE_NONE\020\000\022\010\n\004AUTH"
+  "\020\001\022\t\n\005LOBBY\020\002\022\010\n\004ROOM\020\003\022\010\n\004GAME\020\004:4\n\tpac"
+  "ket_id\022\037.google.protobuf.MessageOptions\030"
+  "\321\206\003 \001(\r:E\n\003dir\022\037.google.protobuf.Message"
+  "Options\030\322\206\003 \001(\0162\025.se.options.PacketDir:I"
+  "\n\005route\022\037.google.protobuf.MessageOptions"
+  "\030\323\206\003 \001(\0162\027.se.options.PacketRouteb\006proto"
+  "3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_options_2fpacket_5foptions_2eproto_deps[1] = {
   &::descriptor_table_google_2fprotobuf_2fdescriptor_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_options_2fpacket_5foptions_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_options_2fpacket_5foptions_2eproto = {
-    false, false, 391, descriptor_table_protodef_options_2fpacket_5foptions_2eproto,
+    false, false, 401, descriptor_table_protodef_options_2fpacket_5foptions_2eproto,
     "options/packet_options.proto",
     &descriptor_table_options_2fpacket_5foptions_2eproto_once, descriptor_table_options_2fpacket_5foptions_2eproto_deps, 1, 0,
     schemas, file_default_instances, TableStruct_options_2fpacket_5foptions_2eproto::offsets,
@@ -87,6 +88,7 @@ bool PacketRoute_IsValid(int value) {
     case 1:
     case 2:
     case 3:
+    case 4:
       return true;
     default:
       return false;

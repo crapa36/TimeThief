@@ -24,8 +24,7 @@ namespace se {
 namespace auth {
 PROTOBUF_CONSTEXPR C_HandshakeReq::C_HandshakeReq(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.client_build_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.client_protocol_version_)*/0u
+    /*decltype(_impl_.client_protocol_version_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_HandshakeReqDefaultTypeInternal {
   PROTOBUF_CONSTEXPR C_HandshakeReqDefaultTypeInternal()
@@ -38,11 +37,10 @@ struct C_HandshakeReqDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_HandshakeReqDefaultTypeInternal _C_HandshakeReq_default_instance_;
 PROTOBUF_CONSTEXPR S_HandshakeRes::S_HandshakeRes(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.server_build_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.result_)*/nullptr
-  , /*decltype(_impl_.server_tick_hz_)*/0u
-  , /*decltype(_impl_.snapshot_hz_)*/0u
-  , /*decltype(_impl_.server_protocol_version_)*/0u
+    /*decltype(_impl_.result_)*/nullptr
+  , /*decltype(_impl_.config_)*/nullptr
+  , /*decltype(_impl_.session_player_id_)*/uint64_t{0u}
+  , /*decltype(_impl_.success_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct S_HandshakeResDefaultTypeInternal {
   PROTOBUF_CONSTEXPR S_HandshakeResDefaultTypeInternal()
@@ -70,7 +68,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR S_LoginRes::S_LoginRes(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.result_)*/nullptr
-  , /*decltype(_impl_.token_)*/nullptr
+  , /*decltype(_impl_.success_)*/false
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct S_LoginResDefaultTypeInternal {
   PROTOBUF_CONSTEXPR S_LoginResDefaultTypeInternal()
@@ -122,18 +120,16 @@ const uint32_t TableStruct_auth_2fauth_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::auth::C_HandshakeReq, _impl_.client_protocol_version_),
-  PROTOBUF_FIELD_OFFSET(::se::auth::C_HandshakeReq, _impl_.client_build_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.success_),
   PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.result_),
-  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.server_tick_hz_),
-  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.snapshot_hz_),
-  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.server_protocol_version_),
-  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.server_build_),
+  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.session_player_id_),
+  PROTOBUF_FIELD_OFFSET(::se::auth::S_HandshakeRes, _impl_.config_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::auth::C_LoginReq, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -148,8 +144,8 @@ const uint32_t TableStruct_auth_2fauth_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::auth::S_LoginRes, _impl_.success_),
   PROTOBUF_FIELD_OFFSET(::se::auth::S_LoginRes, _impl_.result_),
-  PROTOBUF_FIELD_OFFSET(::se::auth::S_LoginRes, _impl_.token_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::auth::C_Ping, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -168,11 +164,11 @@ const uint32_t TableStruct_auth_2fauth_5fmessages_2eproto::offsets[] PROTOBUF_SE
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::se::auth::C_HandshakeReq)},
-  { 8, -1, -1, sizeof(::se::auth::S_HandshakeRes)},
-  { 19, -1, -1, sizeof(::se::auth::C_LoginReq)},
-  { 27, -1, -1, sizeof(::se::auth::S_LoginRes)},
-  { 35, -1, -1, sizeof(::se::auth::C_Ping)},
-  { 42, -1, -1, sizeof(::se::auth::S_Pong)},
+  { 7, -1, -1, sizeof(::se::auth::S_HandshakeRes)},
+  { 17, -1, -1, sizeof(::se::auth::C_LoginReq)},
+  { 25, -1, -1, sizeof(::se::auth::S_LoginRes)},
+  { 33, -1, -1, sizeof(::se::auth::C_Ping)},
+  { 40, -1, -1, sizeof(::se::auth::S_Pong)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -187,21 +183,19 @@ static const ::_pb::Message* const file_default_instances[] = {
 const char descriptor_table_protodef_auth_2fauth_5fmessages_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\030auth/auth_messages.proto\022\007se.auth\032\034opt"
   "ions/packet_options.proto\032\031common/common"
-  "_types.proto\032\025auth/auth_types.proto\"V\n\016C"
+  "_types.proto\032\025auth/auth_types.proto\"@\n\016C"
   "_HandshakeReq\022\037\n\027client_protocol_version"
-  "\030\001 \001(\r\022\024\n\014client_build\030\002 \001(\t:\r\210\265\030\350\007\220\265\030\001\230"
-  "\265\030\001\"\246\001\n\016S_HandshakeRes\022!\n\006result\030\001 \001(\0132\021"
-  ".se.common.Result\022\026\n\016server_tick_hz\030\002 \001("
-  "\r\022\023\n\013snapshot_hz\030\003 \001(\r\022\037\n\027server_protoco"
-  "l_version\030\004 \001(\r\022\024\n\014server_build\030\005 \001(\t:\r\210"
-  "\265\030\351\007\220\265\030\002\230\265\030\001\"3\n\nC_LoginReq\022\n\n\002id\030\001 \001(\t\022\n"
-  "\n\002pw\030\002 \001(\t:\r\210\265\030\362\007\220\265\030\001\230\265\030\001\"a\n\nS_LoginRes\022"
-  "!\n\006result\030\001 \001(\0132\021.se.common.Result\022!\n\005to"
-  "ken\030\002 \001(\0132\022.se.auth.AuthToken:\r\210\265\030\363\007\220\265\030\002"
-  "\230\265\030\001\"/\n\006C_Ping\022\026\n\016client_time_ms\030\001 \001(\004:\r"
-  "\210\265\030\374\007\220\265\030\001\230\265\030\001\"G\n\006S_Pong\022\026\n\016client_time_m"
-  "s\030\001 \001(\004\022\026\n\016server_time_ms\030\002 \001(\004:\r\210\265\030\375\007\220\265"
-  "\030\002\230\265\030\001b\006proto3"
+  "\030\001 \001(\r:\r\210\265\030\350\007\220\265\030\001\230\265\030\001\"\226\001\n\016S_HandshakeRes"
+  "\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.c"
+  "ommon.Result\022\031\n\021session_player_id\030\003 \001(\004\022"
+  "&\n\006config\030\004 \001(\0132\026.se.auth.RuntimeConfig:"
+  "\r\210\265\030\351\007\220\265\030\002\230\265\030\001\"3\n\nC_LoginReq\022\n\n\002id\030\001 \001(\t"
+  "\022\n\n\002pw\030\002 \001(\t:\r\210\265\030\362\007\220\265\030\001\230\265\030\001\"O\n\nS_LoginRe"
+  "s\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se."
+  "common.Result:\r\210\265\030\363\007\220\265\030\002\230\265\030\001\"/\n\006C_Ping\022\026"
+  "\n\016client_time_ms\030\001 \001(\004:\r\210\265\030\374\007\220\265\030\001\230\265\030\001\"G\n"
+  "\006S_Pong\022\026\n\016client_time_ms\030\001 \001(\004\022\026\n\016serve"
+  "r_time_ms\030\002 \001(\004:\r\210\265\030\375\007\220\265\030\002\230\265\030\001b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_auth_2fauth_5fmessages_2eproto_deps[3] = {
   &::descriptor_table_auth_2fauth_5ftypes_2eproto,
@@ -210,7 +204,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_auth_2fauth_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_auth_2fauth_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_auth_2fauth_5fmessages_2eproto = {
-    false, false, 654, descriptor_table_protodef_auth_2fauth_5fmessages_2eproto,
+    false, false, 598, descriptor_table_protodef_auth_2fauth_5fmessages_2eproto,
     "auth/auth_messages.proto",
     &descriptor_table_auth_2fauth_5fmessages_2eproto_once, descriptor_table_auth_2fauth_5fmessages_2eproto_deps, 3, 6,
     schemas, file_default_instances, TableStruct_auth_2fauth_5fmessages_2eproto::offsets,
@@ -242,19 +236,10 @@ C_HandshakeReq::C_HandshakeReq(const C_HandshakeReq& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   C_HandshakeReq* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.client_build_){}
-    , decltype(_impl_.client_protocol_version_){}
+      decltype(_impl_.client_protocol_version_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  _impl_.client_build_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.client_build_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_client_build().empty()) {
-    _this->_impl_.client_build_.Set(from._internal_client_build(), 
-      _this->GetArenaForAllocation());
-  }
   _this->_impl_.client_protocol_version_ = from._impl_.client_protocol_version_;
   // @@protoc_insertion_point(copy_constructor:se.auth.C_HandshakeReq)
 }
@@ -264,14 +249,9 @@ inline void C_HandshakeReq::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.client_build_){}
-    , decltype(_impl_.client_protocol_version_){0u}
+      decltype(_impl_.client_protocol_version_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
-  _impl_.client_build_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.client_build_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 C_HandshakeReq::~C_HandshakeReq() {
@@ -285,7 +265,6 @@ C_HandshakeReq::~C_HandshakeReq() {
 
 inline void C_HandshakeReq::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.client_build_.Destroy();
 }
 
 void C_HandshakeReq::SetCachedSize(int size) const {
@@ -298,7 +277,6 @@ void C_HandshakeReq::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  _impl_.client_build_.ClearToEmpty();
   _impl_.client_protocol_version_ = 0u;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
@@ -314,16 +292,6 @@ const char* C_HandshakeReq::_InternalParse(const char* ptr, ::_pbi::ParseContext
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
           _impl_.client_protocol_version_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // string client_build = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
-          auto str = _internal_mutable_client_build();
-          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "se.auth.C_HandshakeReq.client_build"));
         } else
           goto handle_unusual;
         continue;
@@ -362,16 +330,6 @@ uint8_t* C_HandshakeReq::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_client_protocol_version(), target);
   }
 
-  // string client_build = 2;
-  if (!this->_internal_client_build().empty()) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_client_build().data(), static_cast<int>(this->_internal_client_build().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "se.auth.C_HandshakeReq.client_build");
-    target = stream->WriteStringMaybeAliased(
-        2, this->_internal_client_build(), target);
-  }
-
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -387,13 +345,6 @@ size_t C_HandshakeReq::ByteSizeLong() const {
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // string client_build = 2;
-  if (!this->_internal_client_build().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_client_build());
-  }
 
   // uint32 client_protocol_version = 1;
   if (this->_internal_client_protocol_version() != 0) {
@@ -418,9 +369,6 @@ void C_HandshakeReq::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (!from._internal_client_build().empty()) {
-    _this->_internal_set_client_build(from._internal_client_build());
-  }
   if (from._internal_client_protocol_version() != 0) {
     _this->_internal_set_client_protocol_version(from._internal_client_protocol_version());
   }
@@ -440,13 +388,7 @@ bool C_HandshakeReq::IsInitialized() const {
 
 void C_HandshakeReq::InternalSwap(C_HandshakeReq* other) {
   using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &_impl_.client_build_, lhs_arena,
-      &other->_impl_.client_build_, rhs_arena
-  );
   swap(_impl_.client_protocol_version_, other->_impl_.client_protocol_version_);
 }
 
@@ -461,17 +403,28 @@ void C_HandshakeReq::InternalSwap(C_HandshakeReq* other) {
 class S_HandshakeRes::_Internal {
  public:
   static const ::se::common::Result& result(const S_HandshakeRes* msg);
+  static const ::se::auth::RuntimeConfig& config(const S_HandshakeRes* msg);
 };
 
 const ::se::common::Result&
 S_HandshakeRes::_Internal::result(const S_HandshakeRes* msg) {
   return *msg->_impl_.result_;
 }
+const ::se::auth::RuntimeConfig&
+S_HandshakeRes::_Internal::config(const S_HandshakeRes* msg) {
+  return *msg->_impl_.config_;
+}
 void S_HandshakeRes::clear_result() {
   if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
     delete _impl_.result_;
   }
   _impl_.result_ = nullptr;
+}
+void S_HandshakeRes::clear_config() {
+  if (GetArenaForAllocation() == nullptr && _impl_.config_ != nullptr) {
+    delete _impl_.config_;
+  }
+  _impl_.config_ = nullptr;
 }
 S_HandshakeRes::S_HandshakeRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -483,28 +436,22 @@ S_HandshakeRes::S_HandshakeRes(const S_HandshakeRes& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   S_HandshakeRes* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.server_build_){}
-    , decltype(_impl_.result_){nullptr}
-    , decltype(_impl_.server_tick_hz_){}
-    , decltype(_impl_.snapshot_hz_){}
-    , decltype(_impl_.server_protocol_version_){}
+      decltype(_impl_.result_){nullptr}
+    , decltype(_impl_.config_){nullptr}
+    , decltype(_impl_.session_player_id_){}
+    , decltype(_impl_.success_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  _impl_.server_build_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.server_build_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_server_build().empty()) {
-    _this->_impl_.server_build_.Set(from._internal_server_build(), 
-      _this->GetArenaForAllocation());
-  }
   if (from._internal_has_result()) {
     _this->_impl_.result_ = new ::se::common::Result(*from._impl_.result_);
   }
-  ::memcpy(&_impl_.server_tick_hz_, &from._impl_.server_tick_hz_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.server_protocol_version_) -
-    reinterpret_cast<char*>(&_impl_.server_tick_hz_)) + sizeof(_impl_.server_protocol_version_));
+  if (from._internal_has_config()) {
+    _this->_impl_.config_ = new ::se::auth::RuntimeConfig(*from._impl_.config_);
+  }
+  ::memcpy(&_impl_.session_player_id_, &from._impl_.session_player_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.success_) -
+    reinterpret_cast<char*>(&_impl_.session_player_id_)) + sizeof(_impl_.success_));
   // @@protoc_insertion_point(copy_constructor:se.auth.S_HandshakeRes)
 }
 
@@ -513,17 +460,12 @@ inline void S_HandshakeRes::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.server_build_){}
-    , decltype(_impl_.result_){nullptr}
-    , decltype(_impl_.server_tick_hz_){0u}
-    , decltype(_impl_.snapshot_hz_){0u}
-    , decltype(_impl_.server_protocol_version_){0u}
+      decltype(_impl_.result_){nullptr}
+    , decltype(_impl_.config_){nullptr}
+    , decltype(_impl_.session_player_id_){uint64_t{0u}}
+    , decltype(_impl_.success_){false}
     , /*decltype(_impl_._cached_size_)*/{}
   };
-  _impl_.server_build_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.server_build_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 S_HandshakeRes::~S_HandshakeRes() {
@@ -537,8 +479,8 @@ S_HandshakeRes::~S_HandshakeRes() {
 
 inline void S_HandshakeRes::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.server_build_.Destroy();
   if (this != internal_default_instance()) delete _impl_.result_;
+  if (this != internal_default_instance()) delete _impl_.config_;
 }
 
 void S_HandshakeRes::SetCachedSize(int size) const {
@@ -551,14 +493,17 @@ void S_HandshakeRes::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  _impl_.server_build_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
     delete _impl_.result_;
   }
   _impl_.result_ = nullptr;
-  ::memset(&_impl_.server_tick_hz_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.server_protocol_version_) -
-      reinterpret_cast<char*>(&_impl_.server_tick_hz_)) + sizeof(_impl_.server_protocol_version_));
+  if (GetArenaForAllocation() == nullptr && _impl_.config_ != nullptr) {
+    delete _impl_.config_;
+  }
+  _impl_.config_ = nullptr;
+  ::memset(&_impl_.session_player_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.success_) -
+      reinterpret_cast<char*>(&_impl_.session_player_id_)) + sizeof(_impl_.success_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -568,45 +513,35 @@ const char* S_HandshakeRes::_InternalParse(const char* ptr, ::_pbi::ParseContext
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .se.common.Result result = 1;
+      // bool success = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.success_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Result result = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_result(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // uint32 server_tick_hz = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
-          _impl_.server_tick_hz_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // uint32 snapshot_hz = 3;
+      // uint64 session_player_id = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
-          _impl_.snapshot_hz_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          _impl_.session_player_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // uint32 server_protocol_version = 4;
+      // .se.auth.RuntimeConfig config = 4;
       case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 32)) {
-          _impl_.server_protocol_version_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_config(), ptr);
           CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // string server_build = 5;
-      case 5:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
-          auto str = _internal_mutable_server_build();
-          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "se.auth.S_HandshakeRes.server_build"));
         } else
           goto handle_unusual;
         continue;
@@ -639,39 +574,30 @@ uint8_t* S_HandshakeRes::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .se.common.Result result = 1;
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_success(), target);
+  }
+
+  // .se.common.Result result = 2;
   if (this->_internal_has_result()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::result(this),
+      InternalWriteMessage(2, _Internal::result(this),
         _Internal::result(this).GetCachedSize(), target, stream);
   }
 
-  // uint32 server_tick_hz = 2;
-  if (this->_internal_server_tick_hz() != 0) {
+  // uint64 session_player_id = 3;
+  if (this->_internal_session_player_id() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_server_tick_hz(), target);
+    target = ::_pbi::WireFormatLite::WriteUInt64ToArray(3, this->_internal_session_player_id(), target);
   }
 
-  // uint32 snapshot_hz = 3;
-  if (this->_internal_snapshot_hz() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(3, this->_internal_snapshot_hz(), target);
-  }
-
-  // uint32 server_protocol_version = 4;
-  if (this->_internal_server_protocol_version() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(4, this->_internal_server_protocol_version(), target);
-  }
-
-  // string server_build = 5;
-  if (!this->_internal_server_build().empty()) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_server_build().data(), static_cast<int>(this->_internal_server_build().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "se.auth.S_HandshakeRes.server_build");
-    target = stream->WriteStringMaybeAliased(
-        5, this->_internal_server_build(), target);
+  // .se.auth.RuntimeConfig config = 4;
+  if (this->_internal_has_config()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(4, _Internal::config(this),
+        _Internal::config(this).GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -690,33 +616,28 @@ size_t S_HandshakeRes::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // string server_build = 5;
-  if (!this->_internal_server_build().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_server_build());
-  }
-
-  // .se.common.Result result = 1;
+  // .se.common.Result result = 2;
   if (this->_internal_has_result()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.result_);
   }
 
-  // uint32 server_tick_hz = 2;
-  if (this->_internal_server_tick_hz() != 0) {
-    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_server_tick_hz());
+  // .se.auth.RuntimeConfig config = 4;
+  if (this->_internal_has_config()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.config_);
   }
 
-  // uint32 snapshot_hz = 3;
-  if (this->_internal_snapshot_hz() != 0) {
-    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_snapshot_hz());
+  // uint64 session_player_id = 3;
+  if (this->_internal_session_player_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(this->_internal_session_player_id());
   }
 
-  // uint32 server_protocol_version = 4;
-  if (this->_internal_server_protocol_version() != 0) {
-    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_server_protocol_version());
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    total_size += 1 + 1;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -737,21 +658,19 @@ void S_HandshakeRes::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (!from._internal_server_build().empty()) {
-    _this->_internal_set_server_build(from._internal_server_build());
-  }
   if (from._internal_has_result()) {
     _this->_internal_mutable_result()->::se::common::Result::MergeFrom(
         from._internal_result());
   }
-  if (from._internal_server_tick_hz() != 0) {
-    _this->_internal_set_server_tick_hz(from._internal_server_tick_hz());
+  if (from._internal_has_config()) {
+    _this->_internal_mutable_config()->::se::auth::RuntimeConfig::MergeFrom(
+        from._internal_config());
   }
-  if (from._internal_snapshot_hz() != 0) {
-    _this->_internal_set_snapshot_hz(from._internal_snapshot_hz());
+  if (from._internal_session_player_id() != 0) {
+    _this->_internal_set_session_player_id(from._internal_session_player_id());
   }
-  if (from._internal_server_protocol_version() != 0) {
-    _this->_internal_set_server_protocol_version(from._internal_server_protocol_version());
+  if (from._internal_success() != 0) {
+    _this->_internal_set_success(from._internal_success());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -769,16 +688,10 @@ bool S_HandshakeRes::IsInitialized() const {
 
 void S_HandshakeRes::InternalSwap(S_HandshakeRes* other) {
   using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &_impl_.server_build_, lhs_arena,
-      &other->_impl_.server_build_, rhs_arena
-  );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(S_HandshakeRes, _impl_.server_protocol_version_)
-      + sizeof(S_HandshakeRes::_impl_.server_protocol_version_)
+      PROTOBUF_FIELD_OFFSET(S_HandshakeRes, _impl_.success_)
+      + sizeof(S_HandshakeRes::_impl_.success_)
       - PROTOBUF_FIELD_OFFSET(S_HandshakeRes, _impl_.result_)>(
           reinterpret_cast<char*>(&_impl_.result_),
           reinterpret_cast<char*>(&other->_impl_.result_));
@@ -1048,28 +961,17 @@ void C_LoginReq::InternalSwap(C_LoginReq* other) {
 class S_LoginRes::_Internal {
  public:
   static const ::se::common::Result& result(const S_LoginRes* msg);
-  static const ::se::auth::AuthToken& token(const S_LoginRes* msg);
 };
 
 const ::se::common::Result&
 S_LoginRes::_Internal::result(const S_LoginRes* msg) {
   return *msg->_impl_.result_;
 }
-const ::se::auth::AuthToken&
-S_LoginRes::_Internal::token(const S_LoginRes* msg) {
-  return *msg->_impl_.token_;
-}
 void S_LoginRes::clear_result() {
   if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
     delete _impl_.result_;
   }
   _impl_.result_ = nullptr;
-}
-void S_LoginRes::clear_token() {
-  if (GetArenaForAllocation() == nullptr && _impl_.token_ != nullptr) {
-    delete _impl_.token_;
-  }
-  _impl_.token_ = nullptr;
 }
 S_LoginRes::S_LoginRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -1082,16 +984,14 @@ S_LoginRes::S_LoginRes(const S_LoginRes& from)
   S_LoginRes* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.result_){nullptr}
-    , decltype(_impl_.token_){nullptr}
+    , decltype(_impl_.success_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_result()) {
     _this->_impl_.result_ = new ::se::common::Result(*from._impl_.result_);
   }
-  if (from._internal_has_token()) {
-    _this->_impl_.token_ = new ::se::auth::AuthToken(*from._impl_.token_);
-  }
+  _this->_impl_.success_ = from._impl_.success_;
   // @@protoc_insertion_point(copy_constructor:se.auth.S_LoginRes)
 }
 
@@ -1101,7 +1001,7 @@ inline void S_LoginRes::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.result_){nullptr}
-    , decltype(_impl_.token_){nullptr}
+    , decltype(_impl_.success_){false}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -1118,7 +1018,6 @@ S_LoginRes::~S_LoginRes() {
 inline void S_LoginRes::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete _impl_.result_;
-  if (this != internal_default_instance()) delete _impl_.token_;
 }
 
 void S_LoginRes::SetCachedSize(int size) const {
@@ -1135,10 +1034,7 @@ void S_LoginRes::Clear() {
     delete _impl_.result_;
   }
   _impl_.result_ = nullptr;
-  if (GetArenaForAllocation() == nullptr && _impl_.token_ != nullptr) {
-    delete _impl_.token_;
-  }
-  _impl_.token_ = nullptr;
+  _impl_.success_ = false;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1148,18 +1044,18 @@ const char* S_LoginRes::_InternalParse(const char* ptr, ::_pbi::ParseContext* ct
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .se.common.Result result = 1;
+      // bool success = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
-          ptr = ctx->ParseMessage(_internal_mutable_result(), ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.success_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .se.auth.AuthToken token = 2;
+      // .se.common.Result result = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
-          ptr = ctx->ParseMessage(_internal_mutable_token(), ptr);
+          ptr = ctx->ParseMessage(_internal_mutable_result(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -1193,18 +1089,17 @@ uint8_t* S_LoginRes::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .se.common.Result result = 1;
-  if (this->_internal_has_result()) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::result(this),
-        _Internal::result(this).GetCachedSize(), target, stream);
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_success(), target);
   }
 
-  // .se.auth.AuthToken token = 2;
-  if (this->_internal_has_token()) {
+  // .se.common.Result result = 2;
+  if (this->_internal_has_result()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(2, _Internal::token(this),
-        _Internal::token(this).GetCachedSize(), target, stream);
+      InternalWriteMessage(2, _Internal::result(this),
+        _Internal::result(this).GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1223,18 +1118,16 @@ size_t S_LoginRes::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .se.common.Result result = 1;
+  // .se.common.Result result = 2;
   if (this->_internal_has_result()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.result_);
   }
 
-  // .se.auth.AuthToken token = 2;
-  if (this->_internal_has_token()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.token_);
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    total_size += 1 + 1;
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -1259,9 +1152,8 @@ void S_LoginRes::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PRO
     _this->_internal_mutable_result()->::se::common::Result::MergeFrom(
         from._internal_result());
   }
-  if (from._internal_has_token()) {
-    _this->_internal_mutable_token()->::se::auth::AuthToken::MergeFrom(
-        from._internal_token());
+  if (from._internal_success() != 0) {
+    _this->_internal_set_success(from._internal_success());
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -1281,8 +1173,8 @@ void S_LoginRes::InternalSwap(S_LoginRes* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(S_LoginRes, _impl_.token_)
-      + sizeof(S_LoginRes::_impl_.token_)
+      PROTOBUF_FIELD_OFFSET(S_LoginRes, _impl_.success_)
+      + sizeof(S_LoginRes::_impl_.success_)
       - PROTOBUF_FIELD_OFFSET(S_LoginRes, _impl_.result_)>(
           reinterpret_cast<char*>(&_impl_.result_),
           reinterpret_cast<char*>(&other->_impl_.result_));

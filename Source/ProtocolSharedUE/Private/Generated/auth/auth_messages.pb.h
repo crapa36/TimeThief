@@ -203,23 +203,8 @@ class PROTOCOLSHAREDUE_API C_HandshakeReq final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kClientBuildFieldNumber = 2,
     kClientProtocolVersionFieldNumber = 1,
   };
-  // string client_build = 2;
-  void clear_client_build();
-  const std::string& client_build() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_client_build(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_client_build();
-  PROTOBUF_NODISCARD std::string* release_client_build();
-  void set_allocated_client_build(std::string* client_build);
-  private:
-  const std::string& _internal_client_build() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_client_build(const std::string& value);
-  std::string* _internal_mutable_client_build();
-  public:
-
   // uint32 client_protocol_version = 1;
   void clear_client_protocol_version();
   uint32_t client_protocol_version() const;
@@ -237,7 +222,6 @@ class PROTOCOLSHAREDUE_API C_HandshakeReq final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr client_build_;
     uint32_t client_protocol_version_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -367,27 +351,12 @@ class PROTOCOLSHAREDUE_API S_HandshakeRes final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kServerBuildFieldNumber = 5,
-    kResultFieldNumber = 1,
-    kServerTickHzFieldNumber = 2,
-    kSnapshotHzFieldNumber = 3,
-    kServerProtocolVersionFieldNumber = 4,
+    kResultFieldNumber = 2,
+    kConfigFieldNumber = 4,
+    kSessionPlayerIdFieldNumber = 3,
+    kSuccessFieldNumber = 1,
   };
-  // string server_build = 5;
-  void clear_server_build();
-  const std::string& server_build() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_server_build(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_server_build();
-  PROTOBUF_NODISCARD std::string* release_server_build();
-  void set_allocated_server_build(std::string* server_build);
-  private:
-  const std::string& _internal_server_build() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_server_build(const std::string& value);
-  std::string* _internal_mutable_server_build();
-  public:
-
-  // .se.common.Result result = 1;
+  // .se.common.Result result = 2;
   bool has_result() const;
   private:
   bool _internal_has_result() const;
@@ -405,31 +374,40 @@ class PROTOCOLSHAREDUE_API S_HandshakeRes final :
       ::se::common::Result* result);
   ::se::common::Result* unsafe_arena_release_result();
 
-  // uint32 server_tick_hz = 2;
-  void clear_server_tick_hz();
-  uint32_t server_tick_hz() const;
-  void set_server_tick_hz(uint32_t value);
+  // .se.auth.RuntimeConfig config = 4;
+  bool has_config() const;
   private:
-  uint32_t _internal_server_tick_hz() const;
-  void _internal_set_server_tick_hz(uint32_t value);
+  bool _internal_has_config() const;
+  public:
+  void clear_config();
+  const ::se::auth::RuntimeConfig& config() const;
+  PROTOBUF_NODISCARD ::se::auth::RuntimeConfig* release_config();
+  ::se::auth::RuntimeConfig* mutable_config();
+  void set_allocated_config(::se::auth::RuntimeConfig* config);
+  private:
+  const ::se::auth::RuntimeConfig& _internal_config() const;
+  ::se::auth::RuntimeConfig* _internal_mutable_config();
+  public:
+  void unsafe_arena_set_allocated_config(
+      ::se::auth::RuntimeConfig* config);
+  ::se::auth::RuntimeConfig* unsafe_arena_release_config();
+
+  // uint64 session_player_id = 3;
+  void clear_session_player_id();
+  uint64_t session_player_id() const;
+  void set_session_player_id(uint64_t value);
+  private:
+  uint64_t _internal_session_player_id() const;
+  void _internal_set_session_player_id(uint64_t value);
   public:
 
-  // uint32 snapshot_hz = 3;
-  void clear_snapshot_hz();
-  uint32_t snapshot_hz() const;
-  void set_snapshot_hz(uint32_t value);
+  // bool success = 1;
+  void clear_success();
+  bool success() const;
+  void set_success(bool value);
   private:
-  uint32_t _internal_snapshot_hz() const;
-  void _internal_set_snapshot_hz(uint32_t value);
-  public:
-
-  // uint32 server_protocol_version = 4;
-  void clear_server_protocol_version();
-  uint32_t server_protocol_version() const;
-  void set_server_protocol_version(uint32_t value);
-  private:
-  uint32_t _internal_server_protocol_version() const;
-  void _internal_set_server_protocol_version(uint32_t value);
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
   public:
 
   // @@protoc_insertion_point(class_scope:se.auth.S_HandshakeRes)
@@ -440,11 +418,10 @@ class PROTOCOLSHAREDUE_API S_HandshakeRes final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr server_build_;
     ::se::common::Result* result_;
-    uint32_t server_tick_hz_;
-    uint32_t snapshot_hz_;
-    uint32_t server_protocol_version_;
+    ::se::auth::RuntimeConfig* config_;
+    uint64_t session_player_id_;
+    bool success_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -742,10 +719,10 @@ class PROTOCOLSHAREDUE_API S_LoginRes final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kResultFieldNumber = 1,
-    kTokenFieldNumber = 2,
+    kResultFieldNumber = 2,
+    kSuccessFieldNumber = 1,
   };
-  // .se.common.Result result = 1;
+  // .se.common.Result result = 2;
   bool has_result() const;
   private:
   bool _internal_has_result() const;
@@ -763,23 +740,14 @@ class PROTOCOLSHAREDUE_API S_LoginRes final :
       ::se::common::Result* result);
   ::se::common::Result* unsafe_arena_release_result();
 
-  // .se.auth.AuthToken token = 2;
-  bool has_token() const;
+  // bool success = 1;
+  void clear_success();
+  bool success() const;
+  void set_success(bool value);
   private:
-  bool _internal_has_token() const;
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
   public:
-  void clear_token();
-  const ::se::auth::AuthToken& token() const;
-  PROTOBUF_NODISCARD ::se::auth::AuthToken* release_token();
-  ::se::auth::AuthToken* mutable_token();
-  void set_allocated_token(::se::auth::AuthToken* token);
-  private:
-  const ::se::auth::AuthToken& _internal_token() const;
-  ::se::auth::AuthToken* _internal_mutable_token();
-  public:
-  void unsafe_arena_set_allocated_token(
-      ::se::auth::AuthToken* token);
-  ::se::auth::AuthToken* unsafe_arena_release_token();
 
   // @@protoc_insertion_point(class_scope:se.auth.S_LoginRes)
  private:
@@ -790,7 +758,7 @@ class PROTOCOLSHAREDUE_API S_LoginRes final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::Result* result_;
-    ::se::auth::AuthToken* token_;
+    bool success_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1134,61 +1102,31 @@ inline void C_HandshakeReq::set_client_protocol_version(uint32_t value) {
   // @@protoc_insertion_point(field_set:se.auth.C_HandshakeReq.client_protocol_version)
 }
 
-// string client_build = 2;
-inline void C_HandshakeReq::clear_client_build() {
-  _impl_.client_build_.ClearToEmpty();
-}
-inline const std::string& C_HandshakeReq::client_build() const {
-  // @@protoc_insertion_point(field_get:se.auth.C_HandshakeReq.client_build)
-  return _internal_client_build();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void C_HandshakeReq::set_client_build(ArgT0&& arg0, ArgT... args) {
- 
- _impl_.client_build_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:se.auth.C_HandshakeReq.client_build)
-}
-inline std::string* C_HandshakeReq::mutable_client_build() {
-  std::string* _s = _internal_mutable_client_build();
-  // @@protoc_insertion_point(field_mutable:se.auth.C_HandshakeReq.client_build)
-  return _s;
-}
-inline const std::string& C_HandshakeReq::_internal_client_build() const {
-  return _impl_.client_build_.Get();
-}
-inline void C_HandshakeReq::_internal_set_client_build(const std::string& value) {
-  
-  _impl_.client_build_.Set(value, GetArenaForAllocation());
-}
-inline std::string* C_HandshakeReq::_internal_mutable_client_build() {
-  
-  return _impl_.client_build_.Mutable(GetArenaForAllocation());
-}
-inline std::string* C_HandshakeReq::release_client_build() {
-  // @@protoc_insertion_point(field_release:se.auth.C_HandshakeReq.client_build)
-  return _impl_.client_build_.Release();
-}
-inline void C_HandshakeReq::set_allocated_client_build(std::string* client_build) {
-  if (client_build != nullptr) {
-    
-  } else {
-    
-  }
-  _impl_.client_build_.SetAllocated(client_build, GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (_impl_.client_build_.IsDefault()) {
-    _impl_.client_build_.Set("", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:se.auth.C_HandshakeReq.client_build)
-}
-
 // -------------------------------------------------------------------
 
 // S_HandshakeRes
 
-// .se.common.Result result = 1;
+// bool success = 1;
+inline void S_HandshakeRes::clear_success() {
+  _impl_.success_ = false;
+}
+inline bool S_HandshakeRes::_internal_success() const {
+  return _impl_.success_;
+}
+inline bool S_HandshakeRes::success() const {
+  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.success)
+  return _internal_success();
+}
+inline void S_HandshakeRes::_internal_set_success(bool value) {
+  
+  _impl_.success_ = value;
+}
+inline void S_HandshakeRes::set_success(bool value) {
+  _internal_set_success(value);
+  // @@protoc_insertion_point(field_set:se.auth.S_HandshakeRes.success)
+}
+
+// .se.common.Result result = 2;
 inline bool S_HandshakeRes::_internal_has_result() const {
   return this != internal_default_instance() && _impl_.result_ != nullptr;
 }
@@ -1273,114 +1211,109 @@ inline void S_HandshakeRes::set_allocated_result(::se::common::Result* result) {
   // @@protoc_insertion_point(field_set_allocated:se.auth.S_HandshakeRes.result)
 }
 
-// uint32 server_tick_hz = 2;
-inline void S_HandshakeRes::clear_server_tick_hz() {
-  _impl_.server_tick_hz_ = 0u;
+// uint64 session_player_id = 3;
+inline void S_HandshakeRes::clear_session_player_id() {
+  _impl_.session_player_id_ = uint64_t{0u};
 }
-inline uint32_t S_HandshakeRes::_internal_server_tick_hz() const {
-  return _impl_.server_tick_hz_;
+inline uint64_t S_HandshakeRes::_internal_session_player_id() const {
+  return _impl_.session_player_id_;
 }
-inline uint32_t S_HandshakeRes::server_tick_hz() const {
-  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.server_tick_hz)
-  return _internal_server_tick_hz();
+inline uint64_t S_HandshakeRes::session_player_id() const {
+  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.session_player_id)
+  return _internal_session_player_id();
 }
-inline void S_HandshakeRes::_internal_set_server_tick_hz(uint32_t value) {
+inline void S_HandshakeRes::_internal_set_session_player_id(uint64_t value) {
   
-  _impl_.server_tick_hz_ = value;
+  _impl_.session_player_id_ = value;
 }
-inline void S_HandshakeRes::set_server_tick_hz(uint32_t value) {
-  _internal_set_server_tick_hz(value);
-  // @@protoc_insertion_point(field_set:se.auth.S_HandshakeRes.server_tick_hz)
+inline void S_HandshakeRes::set_session_player_id(uint64_t value) {
+  _internal_set_session_player_id(value);
+  // @@protoc_insertion_point(field_set:se.auth.S_HandshakeRes.session_player_id)
 }
 
-// uint32 snapshot_hz = 3;
-inline void S_HandshakeRes::clear_snapshot_hz() {
-  _impl_.snapshot_hz_ = 0u;
+// .se.auth.RuntimeConfig config = 4;
+inline bool S_HandshakeRes::_internal_has_config() const {
+  return this != internal_default_instance() && _impl_.config_ != nullptr;
 }
-inline uint32_t S_HandshakeRes::_internal_snapshot_hz() const {
-  return _impl_.snapshot_hz_;
+inline bool S_HandshakeRes::has_config() const {
+  return _internal_has_config();
 }
-inline uint32_t S_HandshakeRes::snapshot_hz() const {
-  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.snapshot_hz)
-  return _internal_snapshot_hz();
+inline const ::se::auth::RuntimeConfig& S_HandshakeRes::_internal_config() const {
+  const ::se::auth::RuntimeConfig* p = _impl_.config_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::auth::RuntimeConfig&>(
+      ::se::auth::_RuntimeConfig_default_instance_);
 }
-inline void S_HandshakeRes::_internal_set_snapshot_hz(uint32_t value) {
-  
-  _impl_.snapshot_hz_ = value;
+inline const ::se::auth::RuntimeConfig& S_HandshakeRes::config() const {
+  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.config)
+  return _internal_config();
 }
-inline void S_HandshakeRes::set_snapshot_hz(uint32_t value) {
-  _internal_set_snapshot_hz(value);
-  // @@protoc_insertion_point(field_set:se.auth.S_HandshakeRes.snapshot_hz)
-}
-
-// uint32 server_protocol_version = 4;
-inline void S_HandshakeRes::clear_server_protocol_version() {
-  _impl_.server_protocol_version_ = 0u;
-}
-inline uint32_t S_HandshakeRes::_internal_server_protocol_version() const {
-  return _impl_.server_protocol_version_;
-}
-inline uint32_t S_HandshakeRes::server_protocol_version() const {
-  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.server_protocol_version)
-  return _internal_server_protocol_version();
-}
-inline void S_HandshakeRes::_internal_set_server_protocol_version(uint32_t value) {
-  
-  _impl_.server_protocol_version_ = value;
-}
-inline void S_HandshakeRes::set_server_protocol_version(uint32_t value) {
-  _internal_set_server_protocol_version(value);
-  // @@protoc_insertion_point(field_set:se.auth.S_HandshakeRes.server_protocol_version)
-}
-
-// string server_build = 5;
-inline void S_HandshakeRes::clear_server_build() {
-  _impl_.server_build_.ClearToEmpty();
-}
-inline const std::string& S_HandshakeRes::server_build() const {
-  // @@protoc_insertion_point(field_get:se.auth.S_HandshakeRes.server_build)
-  return _internal_server_build();
-}
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void S_HandshakeRes::set_server_build(ArgT0&& arg0, ArgT... args) {
- 
- _impl_.server_build_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:se.auth.S_HandshakeRes.server_build)
-}
-inline std::string* S_HandshakeRes::mutable_server_build() {
-  std::string* _s = _internal_mutable_server_build();
-  // @@protoc_insertion_point(field_mutable:se.auth.S_HandshakeRes.server_build)
-  return _s;
-}
-inline const std::string& S_HandshakeRes::_internal_server_build() const {
-  return _impl_.server_build_.Get();
-}
-inline void S_HandshakeRes::_internal_set_server_build(const std::string& value) {
-  
-  _impl_.server_build_.Set(value, GetArenaForAllocation());
-}
-inline std::string* S_HandshakeRes::_internal_mutable_server_build() {
-  
-  return _impl_.server_build_.Mutable(GetArenaForAllocation());
-}
-inline std::string* S_HandshakeRes::release_server_build() {
-  // @@protoc_insertion_point(field_release:se.auth.S_HandshakeRes.server_build)
-  return _impl_.server_build_.Release();
-}
-inline void S_HandshakeRes::set_allocated_server_build(std::string* server_build) {
-  if (server_build != nullptr) {
+inline void S_HandshakeRes::unsafe_arena_set_allocated_config(
+    ::se::auth::RuntimeConfig* config) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.config_);
+  }
+  _impl_.config_ = config;
+  if (config) {
     
   } else {
     
   }
-  _impl_.server_build_.SetAllocated(server_build, GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (_impl_.server_build_.IsDefault()) {
-    _impl_.server_build_.Set("", GetArenaForAllocation());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.auth.S_HandshakeRes.config)
+}
+inline ::se::auth::RuntimeConfig* S_HandshakeRes::release_config() {
+  
+  ::se::auth::RuntimeConfig* temp = _impl_.config_;
+  _impl_.config_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
   }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:se.auth.S_HandshakeRes.server_build)
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::auth::RuntimeConfig* S_HandshakeRes::unsafe_arena_release_config() {
+  // @@protoc_insertion_point(field_release:se.auth.S_HandshakeRes.config)
+  
+  ::se::auth::RuntimeConfig* temp = _impl_.config_;
+  _impl_.config_ = nullptr;
+  return temp;
+}
+inline ::se::auth::RuntimeConfig* S_HandshakeRes::_internal_mutable_config() {
+  
+  if (_impl_.config_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::auth::RuntimeConfig>(GetArenaForAllocation());
+    _impl_.config_ = p;
+  }
+  return _impl_.config_;
+}
+inline ::se::auth::RuntimeConfig* S_HandshakeRes::mutable_config() {
+  ::se::auth::RuntimeConfig* _msg = _internal_mutable_config();
+  // @@protoc_insertion_point(field_mutable:se.auth.S_HandshakeRes.config)
+  return _msg;
+}
+inline void S_HandshakeRes::set_allocated_config(::se::auth::RuntimeConfig* config) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.config_);
+  }
+  if (config) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(config));
+    if (message_arena != submessage_arena) {
+      config = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, config, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.config_ = config;
+  // @@protoc_insertion_point(field_set_allocated:se.auth.S_HandshakeRes.config)
 }
 
 // -------------------------------------------------------------------
@@ -1491,7 +1424,27 @@ inline void C_LoginReq::set_allocated_pw(std::string* pw) {
 
 // S_LoginRes
 
-// .se.common.Result result = 1;
+// bool success = 1;
+inline void S_LoginRes::clear_success() {
+  _impl_.success_ = false;
+}
+inline bool S_LoginRes::_internal_success() const {
+  return _impl_.success_;
+}
+inline bool S_LoginRes::success() const {
+  // @@protoc_insertion_point(field_get:se.auth.S_LoginRes.success)
+  return _internal_success();
+}
+inline void S_LoginRes::_internal_set_success(bool value) {
+  
+  _impl_.success_ = value;
+}
+inline void S_LoginRes::set_success(bool value) {
+  _internal_set_success(value);
+  // @@protoc_insertion_point(field_set:se.auth.S_LoginRes.success)
+}
+
+// .se.common.Result result = 2;
 inline bool S_LoginRes::_internal_has_result() const {
   return this != internal_default_instance() && _impl_.result_ != nullptr;
 }
@@ -1574,91 +1527,6 @@ inline void S_LoginRes::set_allocated_result(::se::common::Result* result) {
   }
   _impl_.result_ = result;
   // @@protoc_insertion_point(field_set_allocated:se.auth.S_LoginRes.result)
-}
-
-// .se.auth.AuthToken token = 2;
-inline bool S_LoginRes::_internal_has_token() const {
-  return this != internal_default_instance() && _impl_.token_ != nullptr;
-}
-inline bool S_LoginRes::has_token() const {
-  return _internal_has_token();
-}
-inline const ::se::auth::AuthToken& S_LoginRes::_internal_token() const {
-  const ::se::auth::AuthToken* p = _impl_.token_;
-  return p != nullptr ? *p : reinterpret_cast<const ::se::auth::AuthToken&>(
-      ::se::auth::_AuthToken_default_instance_);
-}
-inline const ::se::auth::AuthToken& S_LoginRes::token() const {
-  // @@protoc_insertion_point(field_get:se.auth.S_LoginRes.token)
-  return _internal_token();
-}
-inline void S_LoginRes::unsafe_arena_set_allocated_token(
-    ::se::auth::AuthToken* token) {
-  if (GetArenaForAllocation() == nullptr) {
-    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.token_);
-  }
-  _impl_.token_ = token;
-  if (token) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.auth.S_LoginRes.token)
-}
-inline ::se::auth::AuthToken* S_LoginRes::release_token() {
-  
-  ::se::auth::AuthToken* temp = _impl_.token_;
-  _impl_.token_ = nullptr;
-#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
-  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
-  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  if (GetArenaForAllocation() == nullptr) { delete old; }
-#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
-  if (GetArenaForAllocation() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
-  return temp;
-}
-inline ::se::auth::AuthToken* S_LoginRes::unsafe_arena_release_token() {
-  // @@protoc_insertion_point(field_release:se.auth.S_LoginRes.token)
-  
-  ::se::auth::AuthToken* temp = _impl_.token_;
-  _impl_.token_ = nullptr;
-  return temp;
-}
-inline ::se::auth::AuthToken* S_LoginRes::_internal_mutable_token() {
-  
-  if (_impl_.token_ == nullptr) {
-    auto* p = CreateMaybeMessage<::se::auth::AuthToken>(GetArenaForAllocation());
-    _impl_.token_ = p;
-  }
-  return _impl_.token_;
-}
-inline ::se::auth::AuthToken* S_LoginRes::mutable_token() {
-  ::se::auth::AuthToken* _msg = _internal_mutable_token();
-  // @@protoc_insertion_point(field_mutable:se.auth.S_LoginRes.token)
-  return _msg;
-}
-inline void S_LoginRes::set_allocated_token(::se::auth::AuthToken* token) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
-  if (message_arena == nullptr) {
-    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.token_);
-  }
-  if (token) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
-                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(token));
-    if (message_arena != submessage_arena) {
-      token = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, token, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  _impl_.token_ = token;
-  // @@protoc_insertion_point(field_set_allocated:se.auth.S_LoginRes.token)
 }
 
 // -------------------------------------------------------------------
