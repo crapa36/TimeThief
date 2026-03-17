@@ -12,6 +12,7 @@ struct FNetworkEntityState
 	
 	uint32 EntityId;
 	se::common::ObjectType ObjectType;
+	uint32 TemplateId = 0;
 	FVector Position = FVector::ZeroVector;
 	float Yaw = 0.0f;
 	float Pitch = 0.0f;
