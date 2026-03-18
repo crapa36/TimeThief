@@ -369,6 +369,21 @@ void UNetworkGameInstanceSubsystem::RequestLeaveRoom()
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomLeaveReq to server"));
 }
 
+void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request loading complete: Not connected to server"));
+		return;
+	}
+	
+	se::game::C_LoadingCompleteReq Request;
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
+}
+
 void UNetworkGameInstanceSubsystem::AddEntity(uint32 EntityId, AActor* Actor)
 {
 	if (EntityId == 0)
