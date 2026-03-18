@@ -54,8 +54,6 @@ protected:
 
 	bool ShouldUseTouchControls() const;
 	
-	bool IsShowingMinimap = false;
-	
 public:
 	void ToggleMinimap();
 	

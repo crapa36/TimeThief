@@ -34,6 +34,8 @@ class TIMETHIEF_API UStoreItemData : public UDataAsset
 	GENERATED_BODY()
 	
 public:
+	UStoreItemData();
+	
 	UPROPERTY(EditAnywhere)
 	TMap<EStoreItemName, FStoreItemInfo> StoreItems;
 };

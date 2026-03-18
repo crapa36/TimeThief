@@ -42,9 +42,6 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 void UInventorySystemComponent::AddItem(EItemName Item, int Amount)
 {
 	ItemQuantities[Item] += Amount;
-
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Added %d of item %s. Total now: %d"), 
-		Amount, *UEnum::GetValueAsString(Item), ItemQuantities[Item]));
 }
 
 bool UInventorySystemComponent::RemoveItem(EItemName Item, int Amount)

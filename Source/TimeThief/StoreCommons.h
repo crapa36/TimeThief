@@ -24,6 +24,7 @@ enum class EStoreItemName : uint8
 	SIZE UMETA(Hidden)
 };
 
+ENUM_RANGE_BY_COUNT(EStoreItemName, EStoreItemName::SIZE);
 
 struct FStoreOrder
 {

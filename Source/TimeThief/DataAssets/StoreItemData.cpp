@@ -2,3 +2,11 @@
 
 
 #include "StoreItemData.h"
+
+UStoreItemData::UStoreItemData()
+{
+	for (EStoreItemName ItemName : TEnumRange<EStoreItemName>())
+	{
+		StoreItems.Add(ItemName, FStoreItemInfo{});
+	}
+}
