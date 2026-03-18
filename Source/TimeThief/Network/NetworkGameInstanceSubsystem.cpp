@@ -18,8 +18,8 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 	
-	LocalPlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/Blueprint/BP_NTLocalPlayer.BP_NTLocalPlayer_C"));
-	RemotePlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/Blueprint/BP_NTPlayer.BP_NTPlayer_C"));
+	LocalPlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/SSH/BP_NTLocalPlayer.BP_NTLocalPlayer_C"));
+	RemotePlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/SSH/BP_NTPlayer.BP_NTPlayer_C"));
 	
 	bool configLoaded = LoadClientConfig();
 	
