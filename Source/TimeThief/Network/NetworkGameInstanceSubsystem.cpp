@@ -336,6 +336,39 @@ bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 	return FClientConfigLoader::LoadClientConfigFromFile(FilePath, ClientConfig);
 }
 
+void UNetworkGameInstanceSubsystem::RequestEnterRoom()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter room: Not connected to server"));
+		return;
+	}
+	
+	se::room::C_RoomEnterReq Request;
+	Request.set_room_id(1); // TEMP;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomEnterReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestLeaveRoom()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to leave room: Not connected to server"));
+		return;
+	}
+	
+	se::room::C_RoomLeaveReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomLeaveReq to server"));
+}
+
 void UNetworkGameInstanceSubsystem::AddEntity(uint32 EntityId, AActor* Actor)
 {
 	if (EntityId == 0)

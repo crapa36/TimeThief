@@ -109,6 +109,13 @@ private:
 	bool LoadClientConfig();
 	
 public:
+	UFUNCTION(BlueprintCallable, Category = "Network|Room")
+	void RequestEnterRoom();
+	
+	UFUNCTION(BlueprintCallable, Category = "Network|Room")
+	void RequestLeaveRoom();
+	
+public:
 	const struct FLocalPlayerInfo* GetMyPlayerInfo() const { return LocalPlayerInfo.IsSet() ? &LocalPlayerInfo.GetValue() : nullptr; }
 	const struct FRoomState* GetRoomState() const { return RoomState.IsSet() ? &RoomState.GetValue() : nullptr; }
 
