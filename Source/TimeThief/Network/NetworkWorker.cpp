@@ -17,8 +17,6 @@ RecvWorker::~RecvWorker()
 
 bool RecvWorker::Init()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RecvWorker::Init()"));
-	
 	return FRunnable::Init();
 }
 
@@ -122,8 +120,6 @@ SendWorker::~SendWorker()
 
 bool SendWorker::Init()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("SendWorker::Init()"));
-	
 	return FRunnable::Init();
 }
 

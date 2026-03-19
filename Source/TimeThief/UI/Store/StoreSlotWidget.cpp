@@ -9,7 +9,6 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Game/StoreSettings.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 void UStoreSlotWidget::NativeConstruct()
 {
@@ -17,7 +16,7 @@ void UStoreSlotWidget::NativeConstruct()
 
 	if (Slot_Button)
 	{
-		Slot_Button->OnClicked.AddDynamic(this, &UStoreSlotWidget::OnSlotClicked);
+		Slot_Button->OnClicked.AddUniqueDynamic(this, &UStoreSlotWidget::OnSlotClicked);
 	}
 }
 
@@ -25,11 +24,12 @@ void UStoreSlotWidget::OnSlotClicked()
 {
 	if (ATimeThiefCharacterBase* Player = Cast<ATimeThiefCharacterBase>(GetOwningPlayerPawn()))
 	{
-		if (ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
+		if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
 		{
+			const FStoreItemInfo& ItemInfo = GetDefault<UStoreSettings>()->ItemData->StoreItems[ItemName];
 			FStoreOrder Order;
 			Order.ItemName = ItemName;
-			Order.Price = GetDefault<UStoreSettings>()->ItemData->StoreItems[ItemName].Price;
+			Order.Price = ItemInfo.Price;
 			int Level = 0;
 			switch (ItemName)
 			{
@@ -51,7 +51,7 @@ void UStoreSlotWidget::OnSlotClicked()
 			default:
 				break;
 			}
-			Order.Price += Level * GetDefault<UStoreSettings>()->ItemData->StoreItems[ItemName].Increment;
+			Order.Price += Level * ItemInfo.Increment;
 			Player->PurchaseItem(Order);
 			
 			UpdateUI();
@@ -71,7 +71,7 @@ void UStoreSlotWidget::UpdateUI()
 	const UStoreSettings* StoreSettings = GetDefault<UStoreSettings>();
 	if (UStoreItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
-		const FStoreItemStat& ItemStat = LoadedData->StoreItems[ItemName];
+		const FStoreItemInfo& ItemStat = LoadedData->StoreItems[ItemName];
 
 		if (Item_Image)
 		{

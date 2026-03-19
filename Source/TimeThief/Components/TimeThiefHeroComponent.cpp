@@ -13,6 +13,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/TimeThiefWeaponBase.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
@@ -91,6 +92,7 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this, &ThisClass::Input_Jump);
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_TogglePerspective, ETriggerEvent::Started, this, &ThisClass::Input_TogglePerspective);
 	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this, &ThisClass::Input_ToggleMinimap);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Interact, ETriggerEvent::Started, this, &ThisClass::Input_Interact);
 	
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
@@ -211,6 +213,15 @@ void UTimeThiefHeroComponent::Input_ToggleMinimap(const FInputActionValue& Value
 		{
 			PC->ToggleMinimap();
 		}
+	}
+}
+
+void UTimeThiefHeroComponent::Input_Interact(const FInputActionValue& Value)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		Player->OnInteract();
+		UKismetSystemLibrary::PrintString(this, TEXT("Interact Pressed"));
 	}
 }
 

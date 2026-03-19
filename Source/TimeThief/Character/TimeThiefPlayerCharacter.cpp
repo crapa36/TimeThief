@@ -7,9 +7,11 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "CharacterTrajectoryComponent.h"
+#include "Actors/InteractionActorBase.h"
+#include "Components/System/InventorySystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
-#include "Actors/StoreActor.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -27,6 +29,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
 	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
 	WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
+	InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
 
 	CharacterTrajectoryComponent = CreateDefaultSubobject<UCharacterTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));
 	CharacterTrajectoryComponent->SetAutoActivate(true);
@@ -40,6 +43,18 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+}
+
+void ATimeThiefPlayerCharacter::OnInteract()
+{
+	for (auto Actor : NearInteractionActors)
+	{
+		if (Actor.IsValid())
+		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Interacted with %s"), *Actor->GetName()));
+			Actor->Interact(this);
+		}
+	}
 }
 
 void ATimeThiefPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
@@ -109,6 +124,16 @@ void ATimeThiefPlayerCharacter::SetNearStore(const AStoreActor* InNearStore)
 const AStoreActor* ATimeThiefPlayerCharacter::GetNearStore() const
 {
 	return NearStore;
+}
+
+void ATimeThiefPlayerCharacter::AddNearInteractionActor(AInteractionActorBase* InteractionActor)
+{
+	NearInteractionActors.AddUnique(InteractionActor);
+}
+
+void ATimeThiefPlayerCharacter::RemoveNearInteractionActor(AInteractionActorBase* InteractionActor)
+{
+	NearInteractionActors.Remove(InteractionActor);
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
