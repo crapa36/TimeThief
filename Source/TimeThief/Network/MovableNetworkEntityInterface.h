@@ -4,6 +4,8 @@
 #include "UObject/Interface.h"
 #include "MovableNetworkEntityInterface.generated.h"
 
+struct FNetworkEntityState;
+
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
 class UMovableNetworkEntityInterface : public UInterface
@@ -30,5 +32,7 @@ public:
 	virtual void SetNetworkPitch(float NewPitch) = 0;
 	
 	virtual float GetLocalControlPitch() const = 0;
+	
+	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) = 0;
 	
 };

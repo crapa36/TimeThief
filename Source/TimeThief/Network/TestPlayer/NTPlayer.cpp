@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Network/NetworkEntityComponent.h"
+#include "Network/NetworkMoveComponent.h"
 #include "Network/State/NetworkControlType.h"
 #include "Network/State/NetworkEntityState.h"
 
@@ -35,6 +36,7 @@ ANTPlayer::ANTPlayer()
 	GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	
 	NetworkEntityComponent = CreateDefaultSubobject<UNetworkEntityComponent>(TEXT("NetworkEntityComponent"));
+	NetworkMoveComponent = CreateDefaultSubobject<UNetworkMoveComponent>(TEXT("NetworkMoveComponent"));
 	
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -49,15 +51,6 @@ void ANTPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	{
-		DestPosition = GetActorLocation();
-		
-		const FRotator ActorRot = GetActorRotation();
-		NowYaw = ActorRot.Yaw;
-		TargetYaw = ActorRot.Yaw;
-		NowPitch = 0.f;
-		TargetPitch = 0.f;
-	}
 }
 
 // Called every frame
@@ -65,59 +58,61 @@ void ANTPlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	NowPosition = GetActorLocation();
-	NowYaw = GetActorRotation().Yaw;
-	
-	if (IsLocalPlayer())
+}
+
+FVector ANTPlayer::GetNetworkLocation() const
+{
+	return GetActorLocation();
+}
+
+void ANTPlayer::SetNetworkLocation(const FVector& NewLocation)
+{
+	SetActorLocation(NewLocation);
+}
+
+float ANTPlayer::GetNetworkYaw() const
+{
+	return GetActorRotation().Yaw;
+}
+
+void ANTPlayer::SetNetworkYaw(float NewYaw)
+{
+	FRotator NewRotation = GetActorRotation();
+	NewRotation.Yaw = FRotator::NormalizeAxis(NewYaw);
+	SetActorRotation(NewRotation);
+}
+
+float ANTPlayer::GetNetworkPitch() const
+{
+	return CurrentNetworkPitch;
+}
+
+void ANTPlayer::SetNetworkPitch(float NewPitch)
+{
+	const float NormalizedPitch = FRotator::NormalizeAxis(CurrentNetworkPitch);
+	CurrentNetworkPitch = FMath::Clamp(NormalizedPitch, -89.0f, 89.0f);
+}
+
+float ANTPlayer::GetLocalControlPitch() const
+{
+	if (Controller == nullptr)
 	{
-		if (Controller)
-		{
-			const float ControlPitch = Controller->GetControlRotation().Pitch;
-			NowPitch = FRotator::NormalizeAxis(ControlPitch);
-			
-			if (NowPitch > 180.f) NowPitch -= 360.f;
-			NowPitch = FMath::Clamp(NowPitch, -89.f, 89.f);
-		}
-		
+		return 0.0f;
+	}
+	
+	float ControlPitch = Controller->GetControlRotation().Pitch;
+	ControlPitch = FRotator::NormalizeAxis(ControlPitch);
+	return FMath::Clamp(ControlPitch, -89.0f, 89.0f);
+}
+
+void ANTPlayer::ApplyNetworkMovementState(const FNetworkEntityState& EntityState)
+{
+	if (NetworkMoveComponent == nullptr)
+	{
 		return;
 	}
-
-	if (NetworkEntityComponent == nullptr)
-	{
-		return;
-	}
 	
-	// 내가 조종하는 Local Player가 아니라면
-	// 목표값(목적지)까지 자동 이동
-	{
-		const FVector2D NowXZ(NowPosition.X, NowPosition.Z);
-		const FVector2D DestXZ(DestPosition.X, DestPosition.Z);
-		
-		const bool bCloseEnoughPos = FVector::DistSquared2D(NowPosition, DestPosition) <= FMath::Square(PositionTolerance);
-		const bool bCloseEnoughRot = FMath::Abs(FMath::FindDeltaAngleDegrees(NowYaw, TargetYaw)) <= RotationTolerance;
-		const bool bCloseEnoughPitch = FMath::Abs(FMath::FindDeltaAngleDegrees(NowPitch, TargetPitch)) <= PitchTolerance;
-		
-		if (bCloseEnoughPos && bCloseEnoughRot && bCloseEnoughPitch)
-		{
-			SetActorLocation(DestPosition);
-			SetYawApply(TargetYaw);
-			SetPitchApply(TargetPitch);
-			return;
-		}
-		
-		InterpElapsed += DeltaTime;
-		const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.f, 1.f);
-
-		const FVector NewPosition = FMath::Lerp(InterpStartPosition, InterpTargetPosition, Alpha);
-		SetActorLocation(NewPosition);
-		
-		const float RotationSpeedDegPerSec = GetCharacterMovement()->RotationRate.Yaw;
-		float NewYaw = FMath::FixedTurn(NowYaw, TargetYaw, RotationSpeedDegPerSec * DeltaTime);
-		SetYawApply(NewYaw);
-		
-		float NewPitch = FMath::FInterpTo(NowPitch, TargetPitch, DeltaTime, 12.f);
-		SetPitchApply(NewPitch);
-	}
+	NetworkMoveComponent->ApplyNetworkState(EntityState);
 }
 
 UNetworkEntityComponent* ANTPlayer::GetNetworkEntityComponent() const
@@ -141,29 +136,9 @@ void ANTPlayer::InitializeNetworkEntity(uint32 InEntityId, ENetworkControlType I
 	NetworkEntityComponent->SetControlType(InControlType);
 }
 
-void ANTPlayer::SetNetworkEntityState(const FNetworkEntityState& EntityState)
-{
-	SetDestPosition(EntityState.Position);
-	TargetYaw = EntityState.Yaw;
-	TargetPitch = EntityState.Pitch;
-}
-
 uint32 ANTPlayer::GetEntityId() const
 {
 	return NetworkEntityComponent ? NetworkEntityComponent->GetEntityId() : 0;
-}
-
-void ANTPlayer::SetYawApply(float InYaw)
-{
-	FRotator NewRotation = GetActorRotation();
-	NewRotation.Yaw = FRotator::NormalizeAxis(InYaw);
-	
-	SetActorRotation(NewRotation);
-}
-
-void ANTPlayer::SetPitchApply(float InPitch)
-{
-	NowPitch = FRotator::NormalizeAxis(InPitch);
 }
 
 // Called to bind functionality to input

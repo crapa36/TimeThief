@@ -42,5 +42,5 @@ void UNTPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	}
 	
 	Direction = UKismetAnimationLibrary::CalculateDirection(OwnerPlayer->GetVelocity(), OwnerPlayer->GetActorRotation());
-	AimPitch = OwnerPlayer->GetNowPitch();
+	AimPitch = OwnerPlayer->GetNetworkPitch();
 }

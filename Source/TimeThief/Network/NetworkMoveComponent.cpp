@@ -120,7 +120,7 @@ bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 	
 	OutSyncData.Position = Movable->GetNetworkLocation();
 	OutSyncData.Yaw = Movable->GetNetworkYaw();
-	OutSyncData.Pitch = Movable->GetNetworkPitch();
+	OutSyncData.Pitch = Movable->GetLocalControlPitch();
 	return true;
 }
 

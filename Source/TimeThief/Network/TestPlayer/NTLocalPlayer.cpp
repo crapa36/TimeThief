@@ -50,7 +50,7 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 		LastDesiredInput = DesiredInput;
 	}
 	
-	if (FMath::Abs(LastSentPitch - NowPitch) > 1.0f)
+	if (FMath::Abs(LastSentPitch - GetNetworkPitch()) > 1.0f)
 	{
 		ForceSendPacket = true;
 	}
@@ -60,7 +60,7 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 	if (MovePacketElapsed >= MOVE_PACKET_SEND_DELAY || ForceSendPacket)
 	{
 		MovePacketElapsed = 0.f;
-		LastSentPitch = NowPitch;
+		LastSentPitch = GetNetworkPitch();
 		
 		// se::room::C_MoveInput pkt;
 		// {
