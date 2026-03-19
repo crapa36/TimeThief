@@ -19,6 +19,7 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+struct FMoveSyncData;
 class SendBuffer;
 class PacketSession;
 
@@ -44,6 +45,9 @@ public:
 	
 public:
 	void SendPacket(TSharedPtr<SendBuffer> Buffer);
+	
+public:
+	void SendMove(const FMoveSyncData& MoveData);
 	
 private:
 	void ConnectToServer(const FString& IPAddress, int32 Port);

@@ -8,6 +8,7 @@
 
 #include "PacketSession.h"
 #include "ClientConfigLoader.h"
+#include "Network/State/MoveSyncData.h"
 
 namespace
 {
@@ -69,6 +70,23 @@ void UNetworkGameInstanceSubsystem::SendPacket(TSharedPtr<SendBuffer> Buffer)
 	if (not bIsConnected or GameSession == nullptr) return;
 	
 	GameSession->SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
+{
+	se::game::C_MoveReq Pkt;
+	
+	auto* Movement = Pkt.mutable_movement();
+	auto* Position = Movement->mutable_position();
+	Position->set_x(MoveData.Position.X);
+	Position->set_y(MoveData.Position.Y);
+	Position->set_z(MoveData.Position.Z);
+	
+	Movement->set_yaw(MoveData.Yaw);
+	Movement->set_pitch(MoveData.Pitch);
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Pkt);
+	SendPacket(Buffer);
 }
 
 void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, int32 Port)

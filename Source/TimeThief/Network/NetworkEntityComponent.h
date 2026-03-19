@@ -8,7 +8,7 @@
 #include "NetworkEntityComponent.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Network), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UNetworkEntityComponent : public UActorComponent
 {
 	GENERATED_BODY()
