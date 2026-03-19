@@ -1,0 +1,6 @@
+[submodule "External/Protobuf"]
+	path = External/Protobuf
+	url = https://github.com/protocolbuffers/protobuf
+[submodule "External/ProtocolShared"]
+	path = External/ProtocolShared
+	url = https://github.com/niche0905/ProtocolShared

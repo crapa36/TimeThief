@@ -34,7 +34,7 @@ public:
 	float MaxSwingSpeedMultiplier = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float VerticalDamping = 20000.0f;
+	float VerticalDamping = 25000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float MaxGroundTime = 0.3f;

@@ -9,12 +9,17 @@
 #include "Engine/World.h"
 
 #include "SendBuffer.h"
-#include "ClientSession.h"
+#include "PacketSession.h"
+#include "ClientConfigTypes.h"
+#include "Protocol.pb.h"
+#include "State/LocalPlayerInfo.h"
+#include "State/NetworkEntityState.h"
+#include "State/RoomState.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
 class SendBuffer;
-class ClientSession;
+class PacketSession;
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -46,15 +51,50 @@ private:
 	
 	void ProcessPacket();
 	
+// packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
+public:
+	void HandleLobbyEnter(const se::lobby::S_LobbyEnterRes& LobbyEnterPkt);
+	void HandleJoinRoom(const se::room::S_JoinRoom& JoinRoomPkt);
+	void HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt);
+	void HandleMove(const se::room::S_EntityState& EntityStatePkt);
+	
+private:
+	void SpawnEntity(const se::common::ObjectType& ObjectType, const se::room::EntityState& EntityState);
+	
+private:
+	bool LoadClientConfig();
+	
+public:
+	const struct FLocalPlayerInfo* GetMyPlayerInfo() const { return LocalPlayerInfo.IsSet() ? &LocalPlayerInfo.GetValue() : nullptr; }
+	const struct FRoomState* GetRoomState() const { return RoomState.IsSet() ? &RoomState.GetValue() : nullptr; }
+
+private:
+	void ApplyEntityStateToActor(uint32 EntityId);
+	
+public:
+	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
+	TSubclassOf<AActor> RemotePlayerClass;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
+	TSubclassOf<AActor> LocalPlayerClass;
+	
 private:
 	bool bIsConnected = false;
 	FSocket* Socket = nullptr;
 	
-	FString ServerAddress = TEXT("127.0.0.1");	// 기본값 localhost(loopback)
-	int ServerPort = 8252;						// TimeThiefServer 포트
-	
-	TSharedPtr<ClientSession> GameSession;
+	TSharedPtr<PacketSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
+	
+	FClientConfig ClientConfig;
+	
+private:
+	TOptional<FLocalPlayerInfo> LocalPlayerInfo;
+	TOptional<FRoomState> RoomState;
+	
+private:
+	uint32 LocalPlayerEntityId = 0;
+	TMap<uint32, FNetworkEntityState> NetworkEntities;   // 네트워크로부터 받은 엔티티 상태를 저장하는 맵 (key: ObjectId, value: FNetworkEntityState)
+	TMap<uint32, TWeakObjectPtr<AActor>> EntityActors;
 	
 };

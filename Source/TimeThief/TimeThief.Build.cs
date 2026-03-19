@@ -23,6 +23,12 @@ public class TimeThief : ModuleRules
             "PoseSearch",
             "GameplayTags",
             "ModularGameplay",
+            "GameFeatures",
+            "Json",
+            "JsonUtilities",
+            "Protobuf",
+            "ProtocolSharedUE",
+            "AnimGraphRuntime",
             "DeveloperSettings",
         });
 

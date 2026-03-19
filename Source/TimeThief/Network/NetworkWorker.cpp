@@ -5,7 +5,8 @@
    RecvWorker
 --------------*/
 
-RecvWorker::RecvWorker(FSocket* Socket, TSharedPtr<ClientSession> Session)
+RecvWorker::RecvWorker(FSocket* Socket, TSharedPtr<PacketSession> Session)
+	: Socket(Socket), SessionRef(Session)
 {
 	Thread = FRunnableThread::Create(this, TEXT("RecvWorkerThread"));
 }
@@ -29,7 +30,7 @@ uint32 RecvWorker::Run()
 		
 		if (ReceivePacket(OUT Packet))
 		{
-			if (TSharedPtr<ClientSession> Session = SessionRef.Pin())
+			if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
 			{
 				Session->RecvPacketQueue.Enqueue(Packet);
 			}
@@ -109,7 +110,8 @@ bool RecvWorker::ReceiveDesiredBytes(uint8* Result, int32 Size)
    SendWorker
 --------------*/
 
-SendWorker::SendWorker(FSocket* Socket, TSharedPtr<ClientSession> Session)
+SendWorker::SendWorker(FSocket* Socket, TSharedPtr<PacketSession> Session)
+	: Socket(Socket), SessionRef(Session)
 {
 	Thread = FRunnableThread::Create(this, TEXT("SendWorkerThread"));
 }
@@ -131,7 +133,7 @@ uint32 SendWorker::Run()
 	{
 		TSharedPtr<SendBuffer> SendBuffer;;
 		
-		if (TSharedPtr<ClientSession> Session = SessionRef.Pin())
+		if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
 		{
 			if (Session->SendPacketQueue.Dequeue(OUT SendBuffer))
 			{

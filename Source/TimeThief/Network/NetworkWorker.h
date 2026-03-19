@@ -4,11 +4,11 @@
 #include "Containers/Queue.h"
 #include "Sockets.h"
 
-#include "ClientSession.h"
+#include "PacketSession.h"
 #include "SendBuffer.h"
 
 class FSocket;
-class ClientSession;
+class PacketSession;
 class SendBuffer;
 
 /*--------------
@@ -21,7 +21,7 @@ class SendBuffer;
 class TIMETHIEF_API RecvWorker : public FRunnable
 {
 public:
-	RecvWorker(FSocket* Socket, TSharedPtr<ClientSession> Session);
+	RecvWorker(FSocket* Socket, TSharedPtr<PacketSession> Session);
 	virtual ~RecvWorker();
 	
 	virtual bool Init() override;
@@ -38,7 +38,7 @@ protected:
 	FRunnableThread* Thread = nullptr;
 	bool Running = true;
 	FSocket* Socket;
-	TWeakPtr<ClientSession> SessionRef;
+	TWeakPtr<PacketSession> SessionRef;
 
 };
 
@@ -52,7 +52,7 @@ protected:
 class TIMETHIEF_API SendWorker : public FRunnable
 {
 public:
-	SendWorker(FSocket* Socket, TSharedPtr<ClientSession> Session);
+	SendWorker(FSocket* Socket, TSharedPtr<PacketSession> Session);
 	virtual ~SendWorker();
 	
 	virtual bool Init() override;
@@ -71,6 +71,6 @@ protected:
 	FRunnableThread* Thread = nullptr;
 	bool Running = true;
 	FSocket* Socket;
-	TWeakPtr<ClientSession> SessionRef;
+	TWeakPtr<PacketSession> SessionRef;
 	
 };
