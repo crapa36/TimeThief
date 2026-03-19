@@ -13,14 +13,17 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Aim, "InputTag.Action.Aim", "Aim Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Melee, "InputTag.Action.Melee", "Melee Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_EquipRifle, "InputTag.Action.EquipRifle", "Equip Rifle Input");
+	GameplayTags.AddTag(GameplayTags.InputTag_Action_EquipShotgun, "InputTag.Action.EquipShotgun", "Equip Shotgun Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Wire, "InputTag.Action.Wire", "Wire Action Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_TogglePerspective, "InputTag.Action.TogglePerspective", "Toggle Perspective Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_ToggleMinimap, "InputTag.Action.ToggleMinimap", "Toggle Show Minimap Input");
 	
 	GameplayTags.AddTag(GameplayTags.Weapon_Rifle, "Weapon.Rifle", "Rifle Weapon Type");
+	GameplayTags.AddTag(GameplayTags.Weapon_Shotgun, "Weapon.Shotgun", "Shotgun Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_Pistol, "Weapon.Pistol", "Pistol Weapon Type");
 
 	GameplayTags.AddTag(GameplayTags.State_Combat_Rifle, "State.Combat.Rifle", "Character is holding a Rifle");
+	GameplayTags.AddTag(GameplayTags.State_Combat_Shotgun, "State.Combat.Shotgun", "Character is holding a Shotgun");
 	GameplayTags.AddTag(GameplayTags.State_Combat_Pistol, "State.Combat.Pistol", "Character is holding a Pistol");
 
 	GameplayTags.AddTag(GameplayTags.InitState_Spawned, "InitState.Spawned", "Actor has been spawned");

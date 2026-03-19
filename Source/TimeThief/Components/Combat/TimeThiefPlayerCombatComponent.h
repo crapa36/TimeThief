@@ -5,7 +5,6 @@
 #include "TimeThiefPlayerCombatComponent.generated.h"
 
 class ATimeThiefWeaponBase;
-class ATimeThiefRifle;
 class UCameraComponent;
 class UCharacterMovementComponent;
 class UTimeThiefWireComponent;

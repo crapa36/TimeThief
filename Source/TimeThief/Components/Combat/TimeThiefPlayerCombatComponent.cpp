@@ -1,6 +1,5 @@
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Weapon/TimeThiefWeaponBase.h"
-#include "Weapon/TimeThiefRifle.h"
 #include "TimeThiefGameplayTags.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
@@ -24,6 +23,7 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 	if (WeaponToStateTagMap.Num() == 0)
 	{
 		WeaponToStateTagMap.Add(Tags.Weapon_Rifle, Tags.State_Combat_Rifle);
+		WeaponToStateTagMap.Add(Tags.Weapon_Shotgun, Tags.State_Combat_Shotgun);
 		WeaponToStateTagMap.Add(Tags.Weapon_Pistol, Tags.State_Combat_Pistol);
 	}
 
@@ -121,12 +121,26 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		return;
 	}
 
+	if (InputTag == Tags.InputTag_Action_EquipShotgun)
+	{
+		if (CurrentEquippedWeaponTag == Tags.Weapon_Shotgun)
+		{
+			StopAiming();
+			UnequipCurrentWeapon();
+		}
+		else
+		{
+			EquipWeapon(Tags.Weapon_Shotgun);
+		}
+		return;
+	}
+
 	if (InputTag == Tags.InputTag_Action_Fire)
 	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+		if (CurrentEquippedWeapon)
 		{
 			SnapRotationToAim();
-			Rifle->StartFire();
+			CurrentEquippedWeapon->StartFire();
 			UpdateCombatRotation();
 		}
 		return;
@@ -134,9 +148,9 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Reload)
 	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+		if (CurrentEquippedWeapon)
 		{
-			Rifle->Reload();
+			CurrentEquippedWeapon->Reload();
 		}
 		return;
 	}
@@ -156,9 +170,9 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Fire)
 	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+		if (CurrentEquippedWeapon)
 		{
-			Rifle->StopFire();
+			CurrentEquippedWeapon->StopFire();
 			UpdateCombatRotation();
 		}
 		return;
@@ -225,11 +239,7 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 
 bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
 {
-	if (const ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
-	{
-		return Rifle->IsFiring();
-	}
-	return false;
+	return CurrentEquippedWeapon && CurrentEquippedWeapon->IsFiring();
 }
 
 bool UTimeThiefPlayerCombatComponent::ShouldUseWeaponControlRigRotation() const

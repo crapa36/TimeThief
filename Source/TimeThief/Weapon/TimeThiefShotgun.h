@@ -2,60 +2,39 @@
 
 #include "CoreMinimal.h"
 #include "Weapon/TimeThiefWeaponBase.h"
-#include "TimeThiefRifle.generated.h"
+#include "TimeThiefShotgun.generated.h"
 
 class USoundBase;
 class UParticleSystem;
 class UAnimSequenceBase;
 
-USTRUCT(BlueprintType)
-struct FHitScanResult
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadOnly)
-	bool bHit = false;
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector HitLocation = FVector::ZeroVector;
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector HitNormal = FVector::ZeroVector;
-
-	UPROPERTY(BlueprintReadOnly)
-	TWeakObjectPtr<AActor> HitActor = nullptr;
-
-	UPROPERTY(BlueprintReadOnly)
-	FName HitBoneName = NAME_None;
-
-	UPROPERTY(BlueprintReadOnly)
-	FVector FireDirection = FVector::ForwardVector;
-
-	FHitResult OriginalHitResult;
-};
-
 UCLASS()
-class TIMETHIEF_API ATimeThiefRifle : public ATimeThiefWeaponBase
+class TIMETHIEF_API ATimeThiefShotgun : public ATimeThiefWeaponBase
 {
 	GENERATED_BODY()
 
 public:
-	ATimeThiefRifle();
+	ATimeThiefShotgun();
 
 protected:
 	virtual void ExecuteFireShot() override;
-	FHitScanResult PerformHitScan() const;
-	void ApplyDamage(const FHitScanResult& HitResult);
-	void PlayFireEffects();
-	void PlayImpactEffects(const FHitScanResult& HitResult);
 	virtual void ApplyRecoilAndSpread() override;
 
-protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	float BaseDamage = 25.0f;
+	void ApplyShotgunDamage(const FHitResult& HitResult, const FVector& FireDirection);
+	void PlayFireEffects(const FVector& MuzzleLocation);
+	void PlayImpactEffects(const FHitResult& HitResult, const FVector& FireDirection);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	float MaxRange = 10000.0f;
+	float DamagePerPellet = 12.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
+	float MaxRange = 8000.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
+	int32 PelletCount = 8;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Spread")
+	float PelletSpreadAngle = 3.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
@@ -69,20 +48,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
 	TObjectPtr<UAnimSequenceBase> FireAnimation;
 
-	// 최대 수직 반동 (각도)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float MaxVerticalRecoil = 1.5f;
+	float MaxVerticalRecoil = 2.4f;
 
-	// 최대 수평 반동 (각도)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float MaxHorizontalRecoil = 0.6f;
+	float MaxHorizontalRecoil = 1.0f;
 
-	// 반동 회복 속도 (각도/초)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float RecoilRecoverySpeed = 5.0f;
+	float RecoilRecoverySpeed = 4.0f;
 
-	// 1발당 반동 증가량 (각도)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float RecoilBuildupPerShot = 0.12f;
-
+	float RecoilBuildupPerShot = 0.2f;
 };
+
+
