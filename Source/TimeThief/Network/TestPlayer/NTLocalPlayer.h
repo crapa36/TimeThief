@@ -73,17 +73,4 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> MouseLookAction;
 	
-protected:
-	// TEMP
-	const float MOVE_PACKET_SEND_DELAY = 0.1f; // 100ms마다 MoveInput 패킷 전송
-	
-	FVector2D DesiredInput = FVector2D::ZeroVector;
-	FVector DesiredMoveDirection = FVector::ZeroVector;
-	
-	FVector2D LastDesiredInput = FVector2D::ZeroVector;
-	float LastSentYaw = 0.0f;
-	float LastSentPitch = 0.0f;
-	
-	float MovePacketElapsed = 0.0f;
-	
 };
