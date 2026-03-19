@@ -69,6 +69,9 @@ protected:
 	float CombatRotationRate = 720.0f;
 
 private:
+	void EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag);
+	TSubclassOf<ATimeThiefWeaponBase> FindDefaultWeaponClassByTag(FGameplayTag WeaponTag) const;
+
 	void ApplyCombatRotationMode(bool bUseControllerFacing);
 	bool ShouldUseControllerFacing() const;
 	bool HasMovementIntent(const UCharacterMovementComponent* MovementComp) const;

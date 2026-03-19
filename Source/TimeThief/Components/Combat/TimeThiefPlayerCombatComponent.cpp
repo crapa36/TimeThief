@@ -104,6 +104,52 @@ ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TS
 	return SpawnedWeapon;
 }
 
+void UTimeThiefPlayerCombatComponent::EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid())
+	{
+		return;
+	}
+
+	if (GetCharacterCarriedWeaponByTag(WeaponTag))
+	{
+		EquipWeapon(WeaponTag);
+		return;
+	}
+
+	const TSubclassOf<ATimeThiefWeaponBase> WeaponClass = FindDefaultWeaponClassByTag(WeaponTag);
+	if (!WeaponClass)
+	{
+		return;
+	}
+
+	if (ATimeThiefWeaponBase* SpawnedWeapon = SpawnAndRegisterWeapon(WeaponClass, false))
+	{
+		EquipWeapon(SpawnedWeapon->GetWeaponTag());
+	}
+}
+
+TSubclassOf<ATimeThiefWeaponBase> UTimeThiefPlayerCombatComponent::FindDefaultWeaponClassByTag(FGameplayTag WeaponTag) const
+{
+	for (const TSubclassOf<ATimeThiefWeaponBase>& WeaponClass : DefaultWeaponClasses)
+	{
+		if (!WeaponClass)
+		{
+			continue;
+		}
+
+		if (const ATimeThiefWeaponBase* WeaponCDO = WeaponClass->GetDefaultObject<ATimeThiefWeaponBase>())
+		{
+			if (WeaponCDO->GetWeaponTag() == WeaponTag)
+			{
+				return WeaponClass;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
 void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 {
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
@@ -117,7 +163,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		}
 		else
 		{
-			EquipWeapon(Tags.Weapon_Rifle);
+			EquipOrSpawnWeaponByTag(Tags.Weapon_Rifle);
 		}
 		return;
 	}
@@ -131,7 +177,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		}
 		else
 		{
-			EquipWeapon(Tags.Weapon_Shotgun);
+			EquipOrSpawnWeaponByTag(Tags.Weapon_Shotgun);
 		}
 		return;
 	}
