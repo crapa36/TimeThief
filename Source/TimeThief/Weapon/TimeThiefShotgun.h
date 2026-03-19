@@ -8,6 +8,29 @@ class USoundBase;
 class UParticleSystem;
 class UAnimSequenceBase;
 
+USTRUCT(BlueprintType)
+struct FShotgunHitResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bHit = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector HitLocation = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector HitNormal = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly)
+	TWeakObjectPtr<AActor> HitActor = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	FVector FireDirection = FVector::ForwardVector;
+
+	FHitResult OriginalHitResult;
+};
+
 UCLASS()
 class TIMETHIEF_API ATimeThiefShotgun : public ATimeThiefWeaponBase
 {
@@ -17,24 +40,24 @@ public:
 	ATimeThiefShotgun();
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void ExecuteFireShot() override;
+	TArray<FShotgunHitResult> PerformPelletHitScan() const;
+	void ApplyDamage(const TArray<FShotgunHitResult>& HitResults);
+	void PlayFireEffects();
+	void PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults);
 	virtual void ApplyRecoilAndSpread() override;
 
-	void ApplyShotgunDamage(const FHitResult& HitResult, const FVector& FireDirection);
-	void PlayFireEffects(const FVector& MuzzleLocation);
-	void PlayImpactEffects(const FHitResult& HitResult, const FVector& FireDirection);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float DamagePerPellet = 12.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	float MaxRange = 8000.0f;
+	float MaxRange = 3000.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	int32 PelletCount = 8;
+	int32 PelletCount = 12;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Spread")
-	float PelletSpreadAngle = 3.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
@@ -49,16 +72,10 @@ protected:
 	TObjectPtr<UAnimSequenceBase> FireAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float MaxVerticalRecoil = 2.4f;
+	float VerticalRecoil = 6.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float MaxHorizontalRecoil = 1.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float RecoilRecoverySpeed = 4.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float RecoilBuildupPerShot = 0.2f;
+	float HorizontalRecoil = 3.0f;
 };
 
 

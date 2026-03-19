@@ -23,6 +23,8 @@ void ATimeThiefWeaponBase::BeginPlay()
 	Super::BeginPlay();
 	CurrentAmmo = MaxAmmo;
 	CurrentSpread = 0.0f;
+	NextAllowedFireTime = 0.0f;
+	bWantsToFire = false;
 }
 
 void ATimeThiefWeaponBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -39,15 +41,12 @@ void ATimeThiefWeaponBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ATimeThiefWeaponBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (!bIsFiring && CurrentSpread > 0.0f)
-	{
-		CurrentSpread = FMath::FInterpConstantTo(CurrentSpread, 0.0f, DeltaTime, SpreadDecreasePerSecond);
-	}
 }
 
 void ATimeThiefWeaponBase::StartFire()
 {
+	bWantsToFire = true;
+
 	if (bIsReloading || bIsFiring)
 	{
 		return;
@@ -60,22 +59,26 @@ void ATimeThiefWeaponBase::StartFire()
 	}
 
 	bIsFiring = true;
-	HandleAutoFireShot();
-
 	if (UWorld* World = GetWorld())
 	{
-		const float FireInterval = FireRate > 0.0f ? (60.0f / FireRate) : 0.1f;
-		World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &ATimeThiefWeaponBase::HandleAutoFireShot, FireInterval, true);
+		const float CurrentTime = World->GetTimeSeconds();
+		const float InitialDelay = FMath::Max(0.0f, NextAllowedFireTime - CurrentTime);
+
+		if (InitialDelay <= KINDA_SMALL_NUMBER)
+		{
+			HandleAutoFireShot();
+		}
+		else
+		{
+			ScheduleAutoFireShot(InitialDelay);
+		}
 	}
 }
 
 void ATimeThiefWeaponBase::StopFire()
 {
-	bIsFiring = false;
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
-	}
+	bWantsToFire = false;
+	StopFiringLoop();
 }
 
 void ATimeThiefWeaponBase::Reload()
@@ -86,7 +89,7 @@ void ATimeThiefWeaponBase::Reload()
 	}
 
 	bIsReloading = true;
-	StopFire();
+	StopFiringLoop();
 	OnReloadStarted();
 
 	if (UWorld* World = GetWorld())
@@ -149,13 +152,27 @@ FVector ATimeThiefWeaponBase::GetMuzzleLocation() const
 
 void ATimeThiefWeaponBase::HandleAutoFireShot()
 {
+	UWorld* World = GetWorld();
+	if (!World || !bIsFiring)
+	{
+		return;
+	}
+
 	if (!CanFire())
 	{
-		StopFire();
+		StopFiringLoop();
 		if (CurrentAmmo <= 0)
 		{
 			Reload();
 		}
+		return;
+	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	const float RemainingDelay = NextAllowedFireTime - CurrentTime;
+	if (RemainingDelay > KINDA_SMALL_NUMBER)
+	{
+		ScheduleAutoFireShot(RemainingDelay);
 		return;
 	}
 
@@ -165,7 +182,64 @@ void ATimeThiefWeaponBase::HandleAutoFireShot()
 	ExecuteFireShot();
 	ApplyRecoilAndSpread();
 
-	CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, 0.0f, MaxSpread);
+
+	const float FireInterval = GetFireInterval();
+	NextAllowedFireTime = CurrentTime + FireInterval;
+
+	if (CurrentAmmo <= 0)
+	{
+		StopFiringLoop();
+		Reload();
+		return;
+	}
+
+	if (bIsFiring && bWantsToFire && CanFire())
+	{
+		ScheduleAutoFireShot(FireInterval);
+	}
+	else if (!bWantsToFire)
+	{
+		StopFiringLoop();
+	}
+}
+
+void ATimeThiefWeaponBase::StopFiringLoop()
+{
+	bIsFiring = false;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
+	}
+}
+
+void ATimeThiefWeaponBase::ScheduleAutoFireShot(float Delay)
+{
+	if (!bIsFiring || !bWantsToFire)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
+		World->GetTimerManager().SetTimer(
+			AutoFireTimerHandle,
+			this,
+			&ATimeThiefWeaponBase::HandleAutoFireShot,
+			FMath::Max(0.0f, Delay),
+			false
+		);
+	}
+}
+
+float ATimeThiefWeaponBase::GetFireInterval() const
+{
+	if (RoundsPerSecond > KINDA_SMALL_NUMBER)
+	{
+		return 1.0f / RoundsPerSecond;
+	}
+
+	return FireRate > 0.0f ? (60.0f / FireRate) : 0.1f;
 }
 
 void ATimeThiefWeaponBase::FinishReload()
@@ -174,6 +248,11 @@ void ATimeThiefWeaponBase::FinishReload()
 	bIsReloading = false;
 	NotifyAmmoChanged();
 	OnReloadFinished();
+
+	if (bWantsToFire)
+	{
+		StartFire();
+	}
 }
 
 FTransform ATimeThiefWeaponBase::GetSocketTransformByName(FName InSocketName) const

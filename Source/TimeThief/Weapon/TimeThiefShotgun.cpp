@@ -5,22 +5,40 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Particles/ParticleSystem.h"
 #include "Sound/SoundBase.h"
 #include "DrawDebugHelpers.h"
 
 ATimeThiefShotgun::ATimeThiefShotgun()
 {
 	FireRate = 110.0f;
+	RoundsPerSecond = 110.0f / 60.0f;
 	MaxAmmo = 8;
 	ReloadTime = 2.0f;
 	MaxSpread = 7.0f;
-	SpreadIncreasePerShot = 1.3f;
-	SpreadDecreasePerSecond = 8.0f;
+	SpreadIncreasePerShot = 0.f;
+	SpreadDecreasePerSecond = 0.f;
+	BaseSpread = 3.5f;
+}
+
+void ATimeThiefShotgun::BeginPlay()
+{
+	Super::BeginPlay();
+	CurrentSpread = BaseSpread;
 }
 
 void ATimeThiefShotgun::ExecuteFireShot()
 {
+	const TArray<FShotgunHitResult> HitResults = PerformPelletHitScan();
+	ApplyDamage(HitResults);
+	PlayFireEffects();
+	PlayImpactEffects(HitResults);
+}
+
+TArray<FShotgunHitResult> ATimeThiefShotgun::PerformPelletHitScan() const
+{
+	TArray<FShotgunHitResult> Results;
+	Results.Reserve(PelletCount);
+
 	const FVector MuzzleLocation = GetMuzzleLocation();
 	FVector CameraLocation = GetActorLocation();
 	FVector CameraAimDir = GetActorForwardVector();
@@ -46,11 +64,14 @@ void ATimeThiefShotgun::ExecuteFireShot()
 	QueryParams.bTraceComplex = true;
 	QueryParams.bReturnPhysicalMaterial = true;
 
-	const float DynamicSpread = PelletSpreadAngle + (GetCurrentSpread() * 0.4f);
-	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, DynamicSpread * 0.5f));
+	
+	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
+	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
 
 	for (int32 PelletIndex = 0; PelletIndex < PelletCount; ++PelletIndex)
 	{
+		FShotgunHitResult PelletResult;
+
 		const FVector PelletAimDir = FMath::VRandCone(CameraAimDir, HalfSpreadRad);
 		const FVector CameraTraceEnd = CameraLocation + PelletAimDir * MaxRange;
 
@@ -62,70 +83,59 @@ void ATimeThiefShotgun::ExecuteFireShot()
 		const bool bWeaponHit = GetWorld()->LineTraceSingleByChannel(WeaponHitResult, MuzzleLocation, TargetLocation, ECC_Visibility, QueryParams);
 
 		const FVector DebugEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
-		DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Orange, false, 1.0f, 0, 0.6f);
-
+		DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Orange, false, 2.0f, 0, 1.0f);
 		if (bWeaponHit)
 		{
-			const FVector FireDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
-			ApplyShotgunDamage(WeaponHitResult, FireDirection);
-			PlayImpactEffects(WeaponHitResult, FireDirection);
+			DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
 		}
-	}
 
-	PlayFireEffects(MuzzleLocation);
-}
-
-void ATimeThiefShotgun::ApplyRecoilAndSpread()
-{
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
-	if (!OwnerPawn)
-	{
-		return;
-	}
-
-	if (ACharacter* OwnerChar = Cast<ACharacter>(OwnerPawn))
-	{
-		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
+		PelletResult.FireDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
+		if (bWeaponHit)
 		{
-			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadDecreasePerSecond);
-			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadIncreasePerShot);
-
-			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
-			{
-				PC->AddPitchInput(-RecoilDelta.Y);
-				PC->AddYawInput(RecoilDelta.X);
-			}
+			PelletResult.bHit = true;
+			PelletResult.HitLocation = WeaponHitResult.ImpactPoint;
+			PelletResult.HitNormal = WeaponHitResult.ImpactNormal;
+			PelletResult.HitActor = WeaponHitResult.GetActor();
+			PelletResult.OriginalHitResult = WeaponHitResult;
 		}
+
+		Results.Add(PelletResult);
 	}
+
+	return Results;
 }
 
-void ATimeThiefShotgun::ApplyShotgunDamage(const FHitResult& HitResult, const FVector& FireDirection)
+void ATimeThiefShotgun::ApplyDamage(const TArray<FShotgunHitResult>& HitResults)
 {
-	AActor* HitActor = HitResult.GetActor();
-	if (!HitActor)
-	{
-		return;
-	}
-
 	AController* InstigatorController = nullptr;
 	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
 	{
 		InstigatorController = OwnerPawn->GetController();
 	}
 
-	UGameplayStatics::ApplyPointDamage(
-		HitActor,
-		DamagePerPellet,
-		FireDirection,
-		HitResult,
-		InstigatorController,
-		this,
-		nullptr
-	);
+	for (const FShotgunHitResult& HitResult : HitResults)
+	{
+		if (!HitResult.bHit || !HitResult.HitActor.IsValid())
+		{
+			continue;
+		}
+
+		UGameplayStatics::ApplyPointDamage(
+			HitResult.HitActor.Get(),
+			DamagePerPellet,
+			HitResult.FireDirection,
+			HitResult.OriginalHitResult,
+			InstigatorController,
+			this,
+			nullptr
+		);
+	}
 }
 
-void ATimeThiefShotgun::PlayFireEffects(const FVector& MuzzleLocation)
+void ATimeThiefShotgun::PlayFireEffects()
 {
+	const FVector MuzzleLocation = GetMuzzleLocation();
+
 	if (MuzzleFlashEffect)
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(this, MuzzleFlashEffect, MuzzleLocation, GetActorRotation());
@@ -145,18 +155,50 @@ void ATimeThiefShotgun::PlayFireEffects(const FVector& MuzzleLocation)
 	}
 }
 
-void ATimeThiefShotgun::PlayImpactEffects(const FHitResult& HitResult, const FVector& FireDirection)
+void ATimeThiefShotgun::PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults)
 {
 	if (!ImpactEffect)
 	{
 		return;
 	}
 
-	const FVector IncomingDir = FireDirection.GetSafeNormal();
-	const FVector ReflectDir = FMath::GetReflectionVector(IncomingDir, HitResult.ImpactNormal);
-	const FRotator ImpactRotation = FRotationMatrix::MakeFromXZ(ReflectDir, HitResult.ImpactNormal).Rotator();
+	for (const FShotgunHitResult& HitResult : HitResults)
+	{
+		if (!HitResult.bHit)
+		{
+			continue;
+		}
 
-	UGameplayStatics::SpawnEmitterAtLocation(this, ImpactEffect, HitResult.ImpactPoint, ImpactRotation);
+		const FVector IncomingDir = HitResult.FireDirection.GetSafeNormal();
+		const FVector ReflectDir = FMath::GetReflectionVector(IncomingDir, HitResult.HitNormal);
+		const FRotator ImpactRotation = FRotationMatrix::MakeFromXZ(ReflectDir, HitResult.HitNormal).Rotator();
+
+		UGameplayStatics::SpawnEmitterAtLocation(this, ImpactEffect, HitResult.HitLocation, ImpactRotation);
+	}
+}
+
+void ATimeThiefShotgun::ApplyRecoilAndSpread()
+{
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (!OwnerPawn)
+	{
+		return;
+	}
+
+	if (ACharacter* OwnerChar = Cast<ACharacter>(OwnerPawn))
+	{
+		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
+		{
+			AnimInst->SetRecoilRecoverySpeed(0.f, SpreadDecreasePerSecond);
+			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(VerticalRecoil, HorizontalRecoil, 0.0f, 0.0f);
+
+			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+			{
+				PC->AddPitchInput(-RecoilDelta.Y);
+				PC->AddYawInput(RecoilDelta.X);
+			}
+		}
+	}
 }
 
 

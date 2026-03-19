@@ -20,7 +20,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false);
+	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false, FGameplayTag PreferredWeaponTag = FGameplayTag());
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
@@ -71,6 +71,7 @@ protected:
 private:
 	void EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag);
 	TSubclassOf<ATimeThiefWeaponBase> FindDefaultWeaponClassByTag(FGameplayTag WeaponTag) const;
+	FGameplayTag InferWeaponTagFromClass(TSubclassOf<ATimeThiefWeaponBase> WeaponClass) const;
 
 	void ApplyCombatRotationMode(bool bUseControllerFacing);
 	bool ShouldUseControllerFacing() const;

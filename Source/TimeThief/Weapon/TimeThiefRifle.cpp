@@ -8,11 +8,30 @@
 
 ATimeThiefRifle::ATimeThiefRifle()
 {
+	RoundsPerSecond = 10.0f;
 }
 
-FHitScanResult ATimeThiefRifle::PerformHitScan() const
+void ATimeThiefRifle::Tick(float DeltaTime)
 {
-	FHitScanResult Result;
+	Super::Tick(DeltaTime);
+
+	if (!IsFiring() && CurrentSpread > BaseSpread)
+	{
+		CurrentSpread = FMath::FInterpConstantTo(CurrentSpread, BaseSpread, DeltaTime, SpreadDecreasePerSecond);
+	}
+}
+
+void ATimeThiefRifle::ExecuteFireShot()
+{
+	const FRifleHitResult HitResult = PerformHitScan();
+	ApplyDamage(HitResult);
+	PlayFireEffects();
+	PlayImpactEffects(HitResult);
+}
+
+FRifleHitResult ATimeThiefRifle::PerformHitScan() const
+{
+	FRifleHitResult Result;
 
 	FVector CameraLocation = GetActorLocation();
 	FVector CameraAimDir = GetActorForwardVector();
@@ -32,9 +51,10 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 		}
 	}
 
-	if (CurrentSpread > 0.0f)
+	const float SpreadAngle = GetSpreadAngleForFire();
+	if (SpreadAngle > 0.0f)
 	{
-		const float HalfSpread = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+		const float HalfSpread = FMath::DegreesToRadians(SpreadAngle * 0.5f);
 		CameraAimDir = FMath::VRandCone(CameraAimDir, HalfSpread);
 	}
 
@@ -86,7 +106,7 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 	return Result;
 }
 
-void ATimeThiefRifle::ApplyDamage(const FHitScanResult& HitResult)
+void ATimeThiefRifle::ApplyDamage(const FRifleHitResult& HitResult)
 {
 	if (!HitResult.HitActor.IsValid())
 	{
@@ -138,7 +158,7 @@ void ATimeThiefRifle::PlayFireEffects()
 	}
 }
 
-void ATimeThiefRifle::PlayImpactEffects(const FHitScanResult& HitResult)
+void ATimeThiefRifle::PlayImpactEffects(const FRifleHitResult& HitResult)
 {
 	if (ImpactEffect && HitResult.bHit)
 	{
@@ -170,6 +190,7 @@ void ATimeThiefRifle::ApplyRecoilAndSpread()
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
 			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadDecreasePerSecond);
+			CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, BaseSpread, MaxSpread);
 			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadIncreasePerShot);
 
 			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))

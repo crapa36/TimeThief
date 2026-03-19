@@ -52,6 +52,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	float GetCurrentSpread() const { return CurrentSpread; }
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
+	float GetSpreadAngleForFire() const { return FMath::Clamp(BaseSpread + CurrentSpread, 0.0f, MaxSpread); }
+
 	FOnWeaponAmmoChangedSignature OnAmmoChanged_Delegate;
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
@@ -97,6 +100,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float FireRate = 600.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float RoundsPerSecond = 0.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
 	int32 MaxAmmo = 30;
 
@@ -105,6 +111,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Spread")
 	float MaxSpread = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Spread")
+	float BaseSpread = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Spread")
 	float SpreadIncreasePerShot = 1.0f;
@@ -126,6 +135,12 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	float CurrentSpread = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
+	float NextAllowedFireTime = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
+	bool bWantsToFire = false;
 
 	bool bIsFiring = false;
 	bool bIsReloading = false;
@@ -159,6 +174,9 @@ protected:
 	TObjectPtr<UAnimMontage> UnequipMontage;
 
 private:
+	float GetFireInterval() const;
+	void StopFiringLoop();
+	void ScheduleAutoFireShot(float Delay);
 	void HandleAutoFireShot();
 	void FinishReload();
 };

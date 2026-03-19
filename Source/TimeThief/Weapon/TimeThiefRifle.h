@@ -9,7 +9,7 @@ class UParticleSystem;
 class UAnimSequenceBase;
 
 USTRUCT(BlueprintType)
-struct FHitScanResult
+struct FRifleHitResult
 {
 	GENERATED_BODY()
 
@@ -41,13 +41,14 @@ class TIMETHIEF_API ATimeThiefRifle : public ATimeThiefWeaponBase
 
 public:
 	ATimeThiefRifle();
+	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void ExecuteFireShot() override;
-	FHitScanResult PerformHitScan() const;
-	void ApplyDamage(const FHitScanResult& HitResult);
+	FRifleHitResult PerformHitScan() const;
+	void ApplyDamage(const FRifleHitResult& HitResult);
 	void PlayFireEffects();
-	void PlayImpactEffects(const FHitScanResult& HitResult);
+	void PlayImpactEffects(const FRifleHitResult& HitResult);
 	virtual void ApplyRecoilAndSpread() override;
 
 protected:
