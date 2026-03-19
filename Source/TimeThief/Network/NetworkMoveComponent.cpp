@@ -161,12 +161,13 @@ void UNetworkMoveComponent::TickLocal(float DeltaTime)
 			return;
 		}
 		
-		if (NGIS == nullptr)
+		UNetworkGameInstanceSubsystem* NetworkGIS = GetNetworkGameInstanceSubsystem();
+		if (NetworkGIS == nullptr)
 		{
 			return;
 		}
 		
-		NGIS->SendMove(MoveData);
+		NetworkGIS->SendMove(MoveData);
 	}
 }
 
@@ -230,5 +231,28 @@ void UNetworkMoveComponent::SnapToTarget()
 	Movable->SetNetworkLocation(InterpTargetPosition);
 	Movable->SetNetworkYaw(TargetYaw);
 	Movable->SetNetworkPitch(TargetPitch);
+}
+
+UNetworkGameInstanceSubsystem* UNetworkMoveComponent::GetNetworkGameInstanceSubsystem()
+{
+	if (NGIS)
+	{
+		return NGIS;
+	}
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return nullptr;
+	}
+	
+	UGameInstance* GameInstance = World->GetGameInstance();
+	if (GameInstance == nullptr)
+	{
+		return nullptr;
+	}
+	
+	NGIS = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
+	return NGIS;
 }
 

@@ -51,6 +51,9 @@ private:
 	void SnapToTarget();
 	
 private:
+	UNetworkGameInstanceSubsystem* GetNetworkGameInstanceSubsystem();
+	
+private:
 	UPROPERTY()
 	TObjectPtr<UNetworkGameInstanceSubsystem> NGIS = nullptr;
 	
