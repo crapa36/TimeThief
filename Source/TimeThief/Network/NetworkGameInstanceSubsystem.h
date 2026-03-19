@@ -14,6 +14,7 @@
 #include "Protocol.pb.h"
 #include "State/LocalPlayerInfo.h"
 #include "State/NetworkEntityState.h"
+#include "State/NetworkPlayState.h"
 #include "State/RoomState.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
@@ -54,38 +55,38 @@ private:
 	
 // packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
 public:
-	void HandleHandshakeRes(const se::auth::S_HandshakeRes& pkt);
-	void HandleLoginRes(const se::auth::S_LoginRes& pkt);
-	void HandlePong(const se::auth::S_Pong& pkt);
-	void HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& pkt);
-	void HandleMatchQueueEnterRes(const se::lobby::S_MatchQueueEnterRes& pkt);
-	void HandleMatchQueueCancelRes(const se::lobby::S_MatchQueueCancelRes& pkt);
-	void HandleMatchFound(const se::lobby::N_MatchFound& pkt);
-	void HandleRoomEnterRes(const se::room::S_RoomEnterRes& pkt);
-	void HandleRoomLeaveRes(const se::room::S_RoomLeaveRes& pkt);
-	void HandleEntitySpawn(const se::room::N_EntitySpawn& pkt);
-	void HandleEntityDespawn(const se::room::N_EntityDespawn& pkt);
-	void HandleRoomClosed(const se::room::N_RoomClosed& pkt);
-	void HandleGameStart(const se::game::N_GameStart& pkt);
-	void HandleGameEnd(const se::game::N_GameEnd& pkt);
-	void HandleMove(const se::game::N_Move& pkt);
-	void HandleFire(const se::game::N_Fire& pkt);
-	void HandleAttack(const se::game::N_Attack& pkt);
-	void HandleThrowGrenade(const se::game::N_ThrowGrenade& pkt);
-	void HandleReload(const se::game::N_Reload& pkt);
-	void HandleWeaponChanged(const se::game::N_WeaponChanged& pkt);
-	void HandleUseAbility(const se::game::N_UseAbility& pkt);
-	void HandleKillPlayer(const se::game::N_KillPlayer& pkt);
-	void HandleUseItem(const se::game::N_UseItem& pkt);
-	void HandlePickupItem(const se::game::N_PickupItem& pkt);
-	void HandleUseStoreRes(const se::game::S_UseStoreRes& pkt);
-	void HandleItemGained(const se::game::N_ItemGained& pkt);
-	void HandleHealthChanged(const se::game::N_HealthChanged& pkt);
-	void HandleEntityDied(const se::game::N_EntityDied& pkt);
-	void HandleEntityRespawned(const se::game::N_EntityRespawned& pkt);
-	void HandleEntityDestroyed(const se::game::N_EntityDestroyed& pkt);
-	void HandleTimePointChanged(const se::game::N_TimePointChanged& pkt);
-	void HandleTimeStormChange(const se::game::N_TimeStormChange& pkt);
+	void HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt);
+	void HandleLoginRes(const se::auth::S_LoginRes& Pkt);
+	void HandlePong(const se::auth::S_Pong& Pkt);
+	void HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& Pkt);
+	void HandleMatchQueueEnterRes(const se::lobby::S_MatchQueueEnterRes& Pkt);
+	void HandleMatchQueueCancelRes(const se::lobby::S_MatchQueueCancelRes& Pkt);
+	void HandleMatchFound(const se::lobby::N_MatchFound& Pkt);
+	void HandleRoomEnterRes(const se::room::S_RoomEnterRes& Pkt);
+	void HandleRoomLeaveRes(const se::room::S_RoomLeaveRes& Pkt);
+	void HandleEntitySpawn(const se::room::N_EntitySpawn& Pkt);
+	void HandleEntityDespawn(const se::room::N_EntityDespawn& Pkt);
+	void HandleRoomClosed(const se::room::N_RoomClosed& Pkt);
+	void HandleGameStart(const se::game::N_GameStart& Pkt);
+	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
+	void HandleMove(const se::game::N_Move& Pkt);
+	void HandleFire(const se::game::N_Fire& Pkt);
+	void HandleAttack(const se::game::N_Attack& Pkt);
+	void HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt);
+	void HandleReload(const se::game::N_Reload& Pkt);
+	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
+	void HandleUseAbility(const se::game::N_UseAbility& Pkt);
+	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
+	void HandleUseItem(const se::game::N_UseItem& Pkt);
+	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
+	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);
+	void HandleItemGained(const se::game::N_ItemGained& Pkt);
+	void HandleHealthChanged(const se::game::N_HealthChanged& Pkt);
+	void HandleEntityDied(const se::game::N_EntityDied& Pkt);
+	void HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt);
+	void HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt);
+	void HandleTimePointChanged(const se::game::N_TimePointChanged& Pkt);
+	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
 	
 public:
 	void AddEntity(uint32 EntityId,  AActor* Actor);
@@ -118,10 +119,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
 	
-public:
-	const struct FLocalPlayerInfo* GetMyPlayerInfo() const { return LocalPlayerInfo.IsSet() ? &LocalPlayerInfo.GetValue() : nullptr; }
-	const struct FRoomState* GetRoomState() const { return RoomState.IsSet() ? &RoomState.GetValue() : nullptr; }
-
+private:
+	void ClearRoomState();
+	
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
 	TSubclassOf<AActor> RemotePlayerClass;
@@ -140,11 +140,16 @@ private:
 	FClientConfig ClientConfig;
 	
 private:
-	TOptional<FLocalPlayerInfo> LocalPlayerInfo;
-	TOptional<FRoomState> RoomState;
+	UPROPERTY(BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
+	ENetworkPlayState PlayState = ENetworkPlayState::Disconnected;
+	
+	FLocalPlayerInfo LocalPlayerInfo;
+	
+	uint32 LocalPlayerEntityId = 0;
 	
 private:
-	uint32 LocalPlayerEntityId = 0;
+	FRoomState RoomState;
+	
 	TMap<uint32, FNetworkEntityState> NetworkEntities;   // 네트워크로부터 받은 엔티티 상태를 저장하는 맵 (key: ObjectId, value: FNetworkEntityState)
 	TMap<uint32, TWeakObjectPtr<AActor>> EntityActors;
 	
