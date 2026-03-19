@@ -25,14 +25,16 @@ public:
 	// virtual ~INetworkEntityInterface() = default;
 	
 public:
-	virtual uint32 GetEntityId() const = 0;
-	virtual void SetEntityId(uint32 NewEntityId) = 0;
+	// virtual uint32 GetEntityId() const = 0;
+	// virtual void SetEntityId(uint32 NewEntityId) = 0;
+	//
+	// virtual bool IsLocalPlayer() const = 0;
+	// virtual void SetIsLocalEntity(bool bIsLocal) = 0;
+	//
+	// virtual void InitializeFromNetworkState(const FNetworkEntityState& EntityState) = 0;
+	// virtual void ApplyNetworkState(const FNetworkEntityState& EntityState) = 0;
+	// virtual void HandleNetworkDespawn() = 0;
 	
-	virtual bool IsLocalPlayer() const = 0;
-	virtual void SetIsLocalEntity(bool bIsLocal) = 0;
-	
-	virtual void InitializeFromNetworkState(const FNetworkEntityState& EntityState) = 0;
-	virtual void ApplyNetworkState(const FNetworkEntityState& EntityState) = 0;
-	virtual void HandleNetworkDespawn() = 0;
+	virtual class UNetworkEntityComponent* GetNetworkEntityComponent() const = 0;
 	
 };
