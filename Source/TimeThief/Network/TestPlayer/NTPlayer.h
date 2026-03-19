@@ -44,6 +44,7 @@ public:
 	
 	virtual float GetLocalControlPitch() const override;
 	
+	virtual FVector GetNetworkVelocity() const override;
 	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) override;
 	
 public:

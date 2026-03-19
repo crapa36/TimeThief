@@ -121,6 +121,7 @@ bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 	OutSyncData.Position = Movable->GetNetworkLocation();
 	OutSyncData.Yaw = Movable->GetNetworkYaw();
 	OutSyncData.Pitch = Movable->GetLocalControlPitch();
+	
 	return true;
 }
 
@@ -148,6 +149,10 @@ void UNetworkMoveComponent::TickLocal(float DeltaTime)
 		return;
 	}
 
+	MoveStep = Owner->GetVelocity();
+	float CurrentPitch = Movable->GetLocalControlPitch();
+	Movable->SetNetworkPitch(CurrentPitch);
+	
 	SendMoveElapsed += DeltaTime;
 	// TODO: 시간이 되었거나 변동 사항이 있어 패킷을 보내야 하는 경우 이동 패킷 전송
 	//		 Movable에서 boolean IsMoveDirty 같은 걸 만들어서 위치나 회전이 변경되었는지 체크하는 방식으로 하는 게 좋아보임
@@ -208,7 +213,11 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.0f, 1.0f);
 	
 	const FVector NewPosition = FMath::Lerp(InterpStartPosition, InterpTargetPosition, Alpha);
-	Movable->SetNetworkLocation(NewPosition);
+	if (DeltaTime > 0.0f)
+	{
+		MoveStep = (NewPosition - CurrentPosition) / DeltaTime;
+		Movable->SetNetworkLocation(NewPosition);
+	}
 	
 	const float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw);
 	const float NewYaw = FRotator::NormalizeAxis(StartYaw + DeltaYaw * Alpha);

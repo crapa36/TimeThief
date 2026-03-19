@@ -89,7 +89,7 @@ float ANTPlayer::GetNetworkPitch() const
 
 void ANTPlayer::SetNetworkPitch(float NewPitch)
 {
-	const float NormalizedPitch = FRotator::NormalizeAxis(CurrentNetworkPitch);
+	const float NormalizedPitch = FRotator::NormalizeAxis(NewPitch);
 	CurrentNetworkPitch = FMath::Clamp(NormalizedPitch, -89.0f, 89.0f);
 }
 
@@ -103,6 +103,16 @@ float ANTPlayer::GetLocalControlPitch() const
 	float ControlPitch = Controller->GetControlRotation().Pitch;
 	ControlPitch = FRotator::NormalizeAxis(ControlPitch);
 	return FMath::Clamp(ControlPitch, -89.0f, 89.0f);
+}
+
+FVector ANTPlayer::GetNetworkVelocity() const
+{
+	if (NetworkMoveComponent == nullptr)
+	{
+		return FVector::ZeroVector;
+	}
+	
+	return NetworkMoveComponent->GetMoveStep();
 }
 
 void ANTPlayer::ApplyNetworkMovementState(const FNetworkEntityState& EntityState)

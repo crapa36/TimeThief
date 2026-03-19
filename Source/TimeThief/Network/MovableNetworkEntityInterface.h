@@ -33,6 +33,8 @@ public:
 	
 	virtual float GetLocalControlPitch() const = 0;
 	
+	virtual FVector GetNetworkVelocity() const = 0;
+	
 	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) = 0;
 	
 };

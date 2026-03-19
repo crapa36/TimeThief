@@ -34,6 +34,8 @@ public:
 	void SetInterpDuration(float Duration) { InterpDuration = Duration; }
 	float GetInterpDuration() const { return InterpDuration; }
 	
+	FVector GetMoveStep() const { return MoveStep; }
+	
 public:
 	bool BuildMoveSyncData(FMoveSyncData& OutSyncData) const;
 	
@@ -70,6 +72,7 @@ private:
 	
 	FVector InterpStartPosition = FVector::ZeroVector;
 	FVector InterpTargetPosition = FVector::ZeroVector;
+	FVector MoveStep = FVector::ZeroVector;
 	
 	float InterpElapsed = 0.0f;
 	float InterpDuration = 0.1f;	// TODO: 패킷 간격과 네트워크 지연을 고려해서 적절한 보간 지속 시간 설정 필요 (임시로 0.1초로 설정)
