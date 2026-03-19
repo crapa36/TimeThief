@@ -102,6 +102,10 @@ private:
 	void DestroyEntityActor(uint32 EntityId);
 	AActor* GetOrSpawnEntityActor(uint32 EntityId);
 	
+	void PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
+	void InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
+	void HandleLocalPlayerActorSpawned(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
+	
 private:
 	void ApplyEntityStateToActor(uint32 EntityId);
 	void ApplyEntityStateToActor(AActor* Actor, const FNetworkEntityState& EntityState);

@@ -125,17 +125,6 @@ bool ANTPlayer::IsLocalPlayer() const
 	return NetworkEntityComponent && NetworkEntityComponent->IsLocalControlled();
 }
 
-void ANTPlayer::InitializeNetworkEntity(uint32 InEntityId, ENetworkControlType InControlType)
-{
-	if (NetworkEntityComponent == nullptr)
-	{
-		return;
-	}
-	
-	NetworkEntityComponent->SetEntityId(InEntityId);
-	NetworkEntityComponent->SetControlType(InControlType);
-}
-
 uint32 ANTPlayer::GetEntityId() const
 {
 	return NetworkEntityComponent ? NetworkEntityComponent->GetEntityId() : 0;

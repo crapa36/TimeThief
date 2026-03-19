@@ -54,9 +54,6 @@ public:
 	uint32 GetEntityId() const;
 	
 public:
-	void InitializeNetworkEntity(uint32 InEntityId, ENetworkControlType InControlType);
-	
-public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	

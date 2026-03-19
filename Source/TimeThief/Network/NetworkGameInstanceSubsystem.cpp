@@ -6,9 +6,13 @@
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 
+#include "Protocol.pb.h"
+
 #include "PacketSession.h"
 #include "ClientConfigLoader.h"
+#include "NetworkEntityComponent.h"
 #include "Network/State/MoveSyncData.h"
+#include "Network/TestPlayer/NTLocalPlayer.h"
 
 namespace
 {
@@ -638,6 +642,8 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	if (SpawnedActor == nullptr) return nullptr;
 	
 	AddEntity(EntityState.EntityId, SpawnedActor);
+	PostSpawnEntityActor(SpawnedActor, EntityState);
+	
 	return SpawnedActor;
 }
 
@@ -683,6 +689,90 @@ AActor* UNetworkGameInstanceSubsystem::GetOrSpawnEntityActor(uint32 EntityId)
 	return SpawnEntityActor(*EntityState);
 }
 
+void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
+{
+	if (SpawnedActor == nullptr) return;
+	
+	InitializeNetworkEntityActor(SpawnedActor, EntityState);;
+	
+	if (IsLocalPlayerEntity(EntityState.EntityId))
+	{
+		HandleLocalPlayerActorSpawned(SpawnedActor, EntityState);
+	}
+}
+
+void UNetworkGameInstanceSubsystem::InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
+{
+	if (SpawnedActor == nullptr) return;
+	
+	UNetworkEntityComponent* NetworkEntityComp = SpawnedActor->FindComponentByClass<UNetworkEntityComponent>();
+	if (NetworkEntityComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Spawned actor has no NetworkEntityComponent: %s"), *GetNameSafe(SpawnedActor));
+		return;
+	}
+	
+	NetworkEntityComp->SetEntityId(EntityState.EntityId);
+	switch (EntityState.ObjectType)
+	{
+	case se::common::OBJ_PLAYER:
+		if (IsLocalPlayerEntity(EntityState.EntityId))
+		{
+			NetworkEntityComp->SetControlType(ENetworkControlType::Local);
+		}
+		else
+		{
+			NetworkEntityComp->SetControlType(ENetworkControlType::Remote);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void UNetworkGameInstanceSubsystem::HandleLocalPlayerActorSpawned(AActor* SpawnedActor,
+                                                                  const FNetworkEntityState& EntityState)
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr || SpawnedActor == nullptr) return;
+	
+	APawn* SpawnPawn = Cast<APawn>(SpawnedActor);
+	if (SpawnPawn == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Local player actor is not a Pawn. EntityId=%u"), EntityState.EntityId);
+		return;
+	}
+	
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (PC == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Failed to possess local player: PlayerController is null"));
+		return;
+	}
+	
+	TWeakObjectPtr<APlayerController> WeakPC = PC;
+	TWeakObjectPtr<APawn> WeakPawn = SpawnPawn;
+	
+	World->GetTimerManager().SetTimerForNextTick([WeakPC, WeakPawn]()
+	{
+		if (!WeakPC.IsValid() || !WeakPawn.IsValid()) return;
+		
+		APlayerController* LocalPC = WeakPC.Get();
+		APawn* NewPawn = WeakPawn.Get();
+		
+		if (APawn* OldPawn = LocalPC->GetPawn())
+		{
+			if (OldPawn != NewPawn)
+			{
+				LocalPC->UnPossess();
+			}
+		}
+		
+		LocalPC->Possess(NewPawn);
+		LocalPC->SetViewTarget(NewPawn);
+	});
+}
+
 void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
 {
 	const FNetworkEntityState* EntityState = NetworkEntities.Find(EntityId);
@@ -698,26 +788,13 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const
 {
 	if (Actor == nullptr) return;
 	
-	FRotator NewRotation(0.0f, EntityState.Yaw, 0.0f);
+	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Actor))
+	{
+		Movable->ApplyNetworkMovementState(EntityState);
+		return;
+	}
 	
-	// TODO: 좀더 다른 방향으로 State를 전달해야 한다
-	// 임시로 NTPlayer에 함수를 추가하고 해당 객체로 캐스팅하여 함수 호출 하는 방식
-	// 다음에는 interface 등 더 우아한 방법으로 교체하도록
-	// 구 코드	
-	// --------------------------------------------
-	// if (ANTPlayer* Player = Cast<ANTPlayer>(Actor))
-	// {
-	// 	Player->SetDestPosition(EntityState.Position);
-	// 	Player->SetTargetYaw(EntityState.Yaw);
-	// 	Player->SetTargetPitch(EntityState.Pitch);
-	// }
-	// else
-	// {
-	// 	Actor->SetActorLocation(EntityState.Position);
-	// 	Actor->SetActorRotation(NewRotation);
-	// }
-	
-	// TEMP
+	const FRotator NewRotation{0.0f, EntityState.Yaw, 0.0f};
 	Actor->SetActorLocation(EntityState.Position);
 	Actor->SetActorRotation(NewRotation);
 }
