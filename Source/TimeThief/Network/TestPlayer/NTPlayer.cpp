@@ -5,7 +5,8 @@
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "NTLocalPlayer.h"
+#include "Network/NetworkEntityComponent.h"
+#include "Network/State/NetworkControlType.h"
 #include "Network/State/NetworkEntityState.h"
 
 
@@ -33,6 +34,8 @@ ANTPlayer::ANTPlayer()
 	GetMesh()->SetRelativeLocation(FVector(0.0f, 0.0f, -100.0f));
 	GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	
+	NetworkEntityComponent = CreateDefaultSubobject<UNetworkEntityComponent>(TEXT("NetworkEntityComponent"));
+	
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
@@ -50,7 +53,7 @@ void ANTPlayer::BeginPlay()
 		DestPosition = GetActorLocation();
 		
 		const FRotator ActorRot = GetActorRotation();
-		NowYaw = ActorRot.Pitch;
+		NowYaw = ActorRot.Yaw;
 		TargetYaw = ActorRot.Yaw;
 		NowPitch = 0.f;
 		TargetPitch = 0.f;
@@ -62,10 +65,8 @@ void ANTPlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	{
-		NowPosition = GetActorLocation();
-		NowYaw = GetActorRotation().Yaw;
-	}
+	NowPosition = GetActorLocation();
+	NowYaw = GetActorRotation().Yaw;
 	
 	if (IsLocalPlayer())
 	{
@@ -78,6 +79,11 @@ void ANTPlayer::Tick(float DeltaTime)
 			NowPitch = FMath::Clamp(NowPitch, -89.f, 89.f);
 		}
 		
+		return;
+	}
+
+	if (NetworkEntityComponent == nullptr)
+	{
 		return;
 	}
 	
@@ -102,7 +108,7 @@ void ANTPlayer::Tick(float DeltaTime)
 		InterpElapsed += DeltaTime;
 		const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.f, 1.f);
 
-		FVector NewPosition = FMath::Lerp(InterpStartPosition, InterpTargetPosition, Alpha);
+		const FVector NewPosition = FMath::Lerp(InterpStartPosition, InterpTargetPosition, Alpha);
 		SetActorLocation(NewPosition);
 		
 		const float RotationSpeedDegPerSec = GetCharacterMovement()->RotationRate.Yaw;
@@ -114,17 +120,37 @@ void ANTPlayer::Tick(float DeltaTime)
 	}
 }
 
-bool ANTPlayer::IsLocalPlayer() const
+UNetworkEntityComponent* ANTPlayer::GetNetworkEntityComponent() const
 {
-	return Cast<ANTLocalPlayer>(this) != nullptr;
-	// 이 방법도 좋지만 boolean 변수를 하나 두거나 virtual로 처리해도 된다
+	return NetworkEntityComponent;
+}
+
+bool ANTPlayer::IsLocalPlayer() const
+{	
+	return NetworkEntityComponent && NetworkEntityComponent->IsLocalControlled();
+}
+
+void ANTPlayer::InitializeNetworkEntity(uint32 InEntityId, ENetworkControlType InControlType)
+{
+	if (NetworkEntityComponent == nullptr)
+	{
+		return;
+	}
+	
+	NetworkEntityComponent->SetEntityId(InEntityId);
+	NetworkEntityComponent->SetControlType(InControlType);
 }
 
 void ANTPlayer::SetNetworkEntityState(const FNetworkEntityState& EntityState)
 {
-	DestPosition = EntityState.Position;
+	SetDestPosition(EntityState.Position);
 	TargetYaw = EntityState.Yaw;
 	TargetPitch = EntityState.Pitch;
+}
+
+uint32 ANTPlayer::GetEntityId() const
+{
+	return NetworkEntityComponent ? NetworkEntityComponent->GetEntityId() : 0;
 }
 
 void ANTPlayer::SetYawApply(float InYaw)
