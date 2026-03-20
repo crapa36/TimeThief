@@ -7,7 +7,7 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
-#include "Weapon/TimeThiefRifle.h"
+#include "Weapon/TimeThiefWeaponBase.h"
 
 void UTimeThiefHUDWidget::NativeConstruct()
 {
@@ -22,6 +22,33 @@ void UTimeThiefHUDWidget::NativeConstruct()
 	{
 		InitializeHUD(PlayerChar);
 	}
+}
+
+void UTimeThiefHUDWidget::NativeDestruct()
+{
+	if (CachedWeapon.IsValid())
+	{
+		CachedWeapon->OnAmmoChanged_Delegate.RemoveAll(this);
+	}
+
+	if (CachedHealthComponent.IsValid())
+	{
+		CachedHealthComponent->OnHealthChanged_Delegate.RemoveAll(this);
+	}
+
+	if (CachedCombatComponent.IsValid())
+	{
+		CachedCombatComponent->OnWeaponEquipped_Delegate.RemoveAll(this);
+		CachedCombatComponent->OnWeaponUnequipped_Delegate.RemoveAll(this);
+	}
+
+	if (CachedTimePointSystemComponent.IsValid())
+	{
+		CachedTimePointSystemComponent->OnTimePointsChanged_Delegate.RemoveAll(this);
+	}
+
+	CachedWeapon.Reset();
+	Super::NativeDestruct();
 }
 
 void UTimeThiefHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -101,10 +128,7 @@ void UTimeThiefHUDWidget::OnWeaponEquipped(ATimeThiefWeaponBase* Weapon)
 {
 	if (CachedWeapon.IsValid() && CachedWeapon.Get() != Weapon)
 	{
-		if (ATimeThiefRifle* OldRifle = Cast<ATimeThiefRifle>(CachedWeapon.Get()))
-		{
-			OldRifle->OnAmmoChanged_Delegate.RemoveAll(this);
-		}
+		CachedWeapon->OnAmmoChanged_Delegate.RemoveAll(this);
 	}
 
 	CachedWeapon = Weapon;
@@ -114,10 +138,10 @@ void UTimeThiefHUDWidget::OnWeaponEquipped(ATimeThiefWeaponBase* Weapon)
 		Crosshair_Image->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 
-	if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(Weapon))
+	if (Weapon)
 	{
-		Rifle->OnAmmoChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::HandleAmmoChanged);
-		HandleAmmoChanged(Rifle->GetCurrentAmmo(), Rifle->GetMaxAmmo());
+		Weapon->OnAmmoChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::HandleAmmoChanged);
+		HandleAmmoChanged(Weapon->GetCurrentAmmo(), Weapon->GetMaxAmmo());
 	}
 	else
 	{
@@ -129,10 +153,7 @@ void UTimeThiefHUDWidget::OnWeaponUnequipped()
 {
 	if (CachedWeapon.IsValid())
 	{
-		if (ATimeThiefRifle* OldRifle = Cast<ATimeThiefRifle>(CachedWeapon.Get()))
-		{
-			OldRifle->OnAmmoChanged_Delegate.RemoveAll(this);
-		}
+		CachedWeapon->OnAmmoChanged_Delegate.RemoveAll(this);
 		CachedWeapon.Reset();
 	}
 
@@ -153,12 +174,7 @@ void UTimeThiefHUDWidget::UpdateCrosshairDisplay()
 {
 	if (CachedCombatComponent.IsValid() && Crosshair_Image && CachedWeapon.IsValid())
 	{
-		float SpreadMultiplier = 1.0f;
-
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CachedWeapon.Get()))
-		{
-			SpreadMultiplier += Rifle->GetCurrentSpread()*0.5; 
-		}
+		float SpreadMultiplier = 1.0f + (CachedWeapon->GetCurrentSpread() * 0.5f);
 
 		Crosshair_Image->SetRenderScale(FVector2D(SpreadMultiplier, SpreadMultiplier));
 	}

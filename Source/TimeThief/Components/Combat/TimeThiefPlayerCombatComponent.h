@@ -5,7 +5,6 @@
 #include "TimeThiefPlayerCombatComponent.generated.h"
 
 class ATimeThiefWeaponBase;
-class ATimeThiefRifle;
 class UCameraComponent;
 class UCharacterMovementComponent;
 class UTimeThiefWireComponent;
@@ -21,7 +20,7 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false);
+	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false, FGameplayTag PreferredWeaponTag = FGameplayTag());
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
@@ -70,6 +69,10 @@ protected:
 	float CombatRotationRate = 720.0f;
 
 private:
+	void EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag);
+	TSubclassOf<ATimeThiefWeaponBase> FindDefaultWeaponClassByTag(FGameplayTag WeaponTag) const;
+	FGameplayTag InferWeaponTagFromClass(TSubclassOf<ATimeThiefWeaponBase> WeaponClass) const;
+
 	void ApplyCombatRotationMode(bool bUseControllerFacing);
 	bool ShouldUseControllerFacing() const;
 	bool HasMovementIntent(const UCharacterMovementComponent* MovementComp) const;

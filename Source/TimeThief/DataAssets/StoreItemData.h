@@ -11,21 +11,21 @@
  * 
  */
 USTRUCT(BlueprintType)
-struct FStoreItemStat
+struct FStoreItemInfo
 {
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere)
-	FString Name;
+	FString Name = "None";
 	
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<UTexture2D> Icon;
+	TObjectPtr<UTexture2D> Icon = nullptr;
 	
 	UPROPERTY(EditAnywhere)
-	int Price;
+	int Price = 0;
 	
 	UPROPERTY(EditAnywhere)
-	int Increment;
+	int Increment = 0;
 };
 
 UCLASS()
@@ -35,5 +35,5 @@ class TIMETHIEF_API UStoreItemData : public UDataAsset
 	
 public:
 	UPROPERTY(EditAnywhere)
-	TMap<EStoreItemName, FStoreItemStat> StoreItems;
+	TMap<EStoreItemName, FStoreItemInfo> StoreItems;
 };

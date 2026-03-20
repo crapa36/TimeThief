@@ -4,162 +4,34 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/SoundBase.h"
-#include "Particles/ParticleSystem.h"
-#include "Engine/World.h"
-#include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 
 ATimeThiefRifle::ATimeThiefRifle()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = true;
-}
-
-void ATimeThiefRifle::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	CurrentAmmo = MaxAmmo;
-	CurrentSpread = 0.0f;
-}
-
-void ATimeThiefRifle::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
-		World->GetTimerManager().ClearTimer(ReloadTimerHandle);
-	}
-	
-	Super::EndPlay(EndPlayReason);
+	RoundsPerSecond = 10.0f;
 }
 
 void ATimeThiefRifle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!bIsFiring && CurrentSpread > 0.0f)
+	if (!IsFiring() && CurrentSpread > BaseSpread)
 	{
-		CurrentSpread = FMath::FInterpConstantTo(CurrentSpread, 0.0f, DeltaTime, SpreadDecreasePerSecond);
+		CurrentSpread = FMath::FInterpConstantTo(CurrentSpread, BaseSpread, DeltaTime, SpreadDecreasePerSecond);
 	}
 }
 
-void ATimeThiefRifle::StartFire()
+void ATimeThiefRifle::ExecuteFireShot()
 {
-	if (bIsReloading || bIsFiring)
-	{
-		return;
-	}
-
-	if (CurrentAmmo <= 0)
-	{
-		Reload();
-		return;
-	}
-
-	bIsFiring = true;
-
-	if (CanFire())
-	{
-		FireShot();
-
-		if (UWorld* World = GetWorld())
-		{
-			const float FireInterval = 60.0f / FireRate;
-			World->GetTimerManager().SetTimer(
-				AutoFireTimerHandle,
-				this,
-				&ATimeThiefRifle::FireShot,
-				FireInterval,
-				true
-			);
-		}
-	}
-}
-
-void ATimeThiefRifle::StopFire()
-{
-	bIsFiring = false;
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
-	}
-}
-
-void ATimeThiefRifle::Reload()
-{
-	if (bIsReloading || CurrentAmmo >= MaxAmmo)
-	{
-		return;
-	}
-
-	bIsReloading = true;
-	StopFire();
-
-	if (ReloadAnimation)
-	{
-		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()))
-		{
-			BaseChar->PlayAnimationOnAllMeshes(ReloadAnimation, WeaponAnimSlot);
-		}
-	}
-
-	if (ReloadSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, ReloadSound, GetActorLocation());
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &ATimeThiefRifle::FinishReload, ReloadTime, false);
-	}
-}
-
-void ATimeThiefRifle::FinishReload()
-{
-	CurrentAmmo = MaxAmmo;
-	bIsReloading = false;
-	OnAmmoChanged_Delegate.Broadcast(CurrentAmmo, MaxAmmo);
-}
-
-bool ATimeThiefRifle::CanFire() const
-{
-	return CurrentAmmo > 0 && !bIsReloading;
-}
-
-void ATimeThiefRifle::FireShot()
-{
-	if (!CanFire())
-	{
-		StopFire();
-		if (CurrentAmmo <= 0)
-		{
-			Reload();
-		}
-		return;
-	}
-
-	CurrentAmmo--;
-	OnAmmoChanged_Delegate.Broadcast(CurrentAmmo, MaxAmmo);
-
-	FHitScanResult HitResult = PerformHitScan();
-
-	if (HitResult.bHit)
-	{
-		ApplyDamage(HitResult);
-		PlayImpactEffects(HitResult);
-	}
-
+	const FRifleHitResult HitResult = PerformHitScan();
+	ApplyDamage(HitResult);
 	PlayFireEffects();
-	ApplyRecoilAndSpread();
-
-	CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, 0.0f, MaxSpread);
+	PlayImpactEffects(HitResult);
 }
 
-FHitScanResult ATimeThiefRifle::PerformHitScan() const
+FRifleHitResult ATimeThiefRifle::PerformHitScan() const
 {
-	FHitScanResult Result;
+	FRifleHitResult Result;
 
 	FVector CameraLocation = GetActorLocation();
 	FVector CameraAimDir = GetActorForwardVector();
@@ -179,9 +51,10 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 		}
 	}
 
-	if (CurrentSpread > 0.0f)
+	const float SpreadAngle = GetSpreadAngleForFire();
+	if (SpreadAngle > 0.0f)
 	{
-		const float HalfSpread = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+		const float HalfSpread = FMath::DegreesToRadians(SpreadAngle * 0.5f);
 		CameraAimDir = FMath::VRandCone(CameraAimDir, HalfSpread);
 	}
 
@@ -233,7 +106,7 @@ FHitScanResult ATimeThiefRifle::PerformHitScan() const
 	return Result;
 }
 
-void ATimeThiefRifle::ApplyDamage(const FHitScanResult& HitResult)
+void ATimeThiefRifle::ApplyDamage(const FRifleHitResult& HitResult)
 {
 	if (!HitResult.HitActor.IsValid())
 	{
@@ -285,7 +158,7 @@ void ATimeThiefRifle::PlayFireEffects()
 	}
 }
 
-void ATimeThiefRifle::PlayImpactEffects(const FHitScanResult& HitResult)
+void ATimeThiefRifle::PlayImpactEffects(const FRifleHitResult& HitResult)
 {
 	if (ImpactEffect && HitResult.bHit)
 	{
@@ -303,30 +176,6 @@ void ATimeThiefRifle::PlayImpactEffects(const FHitScanResult& HitResult)
 	}
 }
 
-FVector ATimeThiefRifle::GetMuzzleLocation() const
-{
-	if (WeaponMesh && WeaponMesh->DoesSocketExist(GetMuzzleSocketName()))
-	{
-		return WeaponMesh->GetSocketLocation(GetMuzzleSocketName());
-	}
-	return GetActorLocation();
-}
-
-FVector ATimeThiefRifle::GetAimDirection() const
-{
-	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
-	{
-		if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
-		{
-			FVector CameraLocation;
-			FRotator CameraRotation;
-			PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-			return CameraRotation.Vector();
-		}
-		return OwnerPawn->GetControlRotation().Vector();
-	}
-	return GetActorForwardVector();
-}
 
 void ATimeThiefRifle::ApplyRecoilAndSpread()
 {
@@ -341,6 +190,7 @@ void ATimeThiefRifle::ApplyRecoilAndSpread()
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
 			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadDecreasePerSecond);
+			CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, BaseSpread, MaxSpread);
 			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadIncreasePerShot);
 
 			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))

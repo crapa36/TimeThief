@@ -1,6 +1,5 @@
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Weapon/TimeThiefWeaponBase.h"
-#include "Weapon/TimeThiefRifle.h"
 #include "TimeThiefGameplayTags.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
@@ -9,6 +8,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/World.h"
+#include "Weapon/TimeThiefRifle.h"
+#include "Weapon/TimeThiefShotgun.h"
 
 UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent()
 {
@@ -25,6 +26,7 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 	if (WeaponToStateTagMap.Num() == 0)
 	{
 		WeaponToStateTagMap.Add(Tags.Weapon_Rifle, Tags.State_Combat_Rifle);
+		WeaponToStateTagMap.Add(Tags.Weapon_Shotgun, Tags.State_Combat_Shotgun);
 		WeaponToStateTagMap.Add(Tags.Weapon_Pistol, Tags.State_Combat_Pistol);
 	}
 
@@ -59,12 +61,12 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 	{
 		if (WeaponClass)
 		{
-			SpawnAndRegisterWeapon(WeaponClass, false);
+			SpawnAndRegisterWeapon(WeaponClass, false, InferWeaponTagFromClass(WeaponClass));
 		}
 	}
 }
 
-ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately)
+ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately, FGameplayTag PreferredWeaponTag)
 {
 	if (!WeaponClass)
 	{
@@ -94,7 +96,20 @@ ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TS
 	}
 
 	FGameplayTag WeaponTag = SpawnedWeapon->GetWeaponTag();
-	RegisterSpawnedWeapon(WeaponTag, SpawnedWeapon, bEquipImmediately);
+	if (!WeaponTag.IsValid())
+	{
+		WeaponTag = PreferredWeaponTag;
+	}
+
+	if (!WeaponTag.IsValid())
+	{
+		WeaponTag = InferWeaponTagFromClass(WeaponClass);
+	}
+
+	if (WeaponTag.IsValid())
+	{
+		RegisterSpawnedWeapon(WeaponTag, SpawnedWeapon, bEquipImmediately);
+	}
 
 	if (!bEquipImmediately)
 	{
@@ -102,6 +117,87 @@ ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TS
 	}
 
 	return SpawnedWeapon;
+}
+
+void UTimeThiefPlayerCombatComponent::EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid())
+	{
+		return;
+	}
+
+	if (GetCharacterCarriedWeaponByTag(WeaponTag))
+	{
+		EquipWeapon(WeaponTag);
+		return;
+	}
+
+	const TSubclassOf<ATimeThiefWeaponBase> WeaponClass = FindDefaultWeaponClassByTag(WeaponTag);
+	if (!WeaponClass)
+	{
+		return;
+	}
+
+	if (ATimeThiefWeaponBase* SpawnedWeapon = SpawnAndRegisterWeapon(WeaponClass, false, WeaponTag))
+	{
+		const FGameplayTag SpawnedWeaponTag = SpawnedWeapon->GetWeaponTag();
+		if (SpawnedWeaponTag.IsValid() && GetCharacterCarriedWeaponByTag(SpawnedWeaponTag))
+		{
+			EquipWeapon(SpawnedWeaponTag);
+			return;
+		}
+
+		EquipWeapon(WeaponTag);
+	}
+}
+
+TSubclassOf<ATimeThiefWeaponBase> UTimeThiefPlayerCombatComponent::FindDefaultWeaponClassByTag(FGameplayTag WeaponTag) const
+{
+	for (const TSubclassOf<ATimeThiefWeaponBase>& WeaponClass : DefaultWeaponClasses)
+	{
+		if (!WeaponClass)
+		{
+			continue;
+		}
+
+		if (const ATimeThiefWeaponBase* WeaponCDO = WeaponClass->GetDefaultObject<ATimeThiefWeaponBase>())
+		{
+			if (WeaponCDO->GetWeaponTag() == WeaponTag)
+			{
+				return WeaponClass;
+			}
+		}
+
+		if (InferWeaponTagFromClass(WeaponClass) == WeaponTag)
+		{
+			return WeaponClass;
+		}
+	}
+
+	return nullptr;
+}
+
+FGameplayTag UTimeThiefPlayerCombatComponent::InferWeaponTagFromClass(TSubclassOf<ATimeThiefWeaponBase> WeaponClass) const
+{
+	if (!WeaponClass)
+	{
+		return FGameplayTag();
+	}
+
+	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
+	UClass* NativeClass = WeaponClass.Get();
+
+	if (NativeClass->IsChildOf(ATimeThiefRifle::StaticClass()))
+	{
+		return Tags.Weapon_Rifle;
+	}
+
+	if (NativeClass->IsChildOf(ATimeThiefShotgun::StaticClass()))
+	{
+		return Tags.Weapon_Shotgun;
+	}
+
+	return FGameplayTag();
 }
 
 void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
@@ -117,17 +213,31 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		}
 		else
 		{
-			EquipWeapon(Tags.Weapon_Rifle);
+			EquipOrSpawnWeaponByTag(Tags.Weapon_Rifle);
+		}
+		return;
+	}
+
+	if (InputTag == Tags.InputTag_Action_EquipShotgun)
+	{
+		if (CurrentEquippedWeaponTag == Tags.Weapon_Shotgun)
+		{
+			StopAiming();
+			UnequipCurrentWeapon();
+		}
+		else
+		{
+			EquipOrSpawnWeaponByTag(Tags.Weapon_Shotgun);
 		}
 		return;
 	}
 
 	if (InputTag == Tags.InputTag_Action_Fire)
 	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+		if (CurrentEquippedWeapon)
 		{
 			SnapRotationToAim();
-			Rifle->StartFire();
+			CurrentEquippedWeapon->StartFire();
 			UpdateCombatRotation();
 		}
 		return;
@@ -135,9 +245,9 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Reload)
 	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+		if (CurrentEquippedWeapon)
 		{
-			Rifle->Reload();
+			CurrentEquippedWeapon->Reload();
 		}
 		return;
 	}
@@ -157,9 +267,9 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Fire)
 	{
-		if (ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
+		if (CurrentEquippedWeapon)
 		{
-			Rifle->StopFire();
+			CurrentEquippedWeapon->StopFire();
 			UpdateCombatRotation();
 		}
 		return;
@@ -294,11 +404,7 @@ void UTimeThiefPlayerCombatComponent::UpdateWorldAimLocation()
 
 bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
 {
-	if (const ATimeThiefRifle* Rifle = Cast<ATimeThiefRifle>(CurrentEquippedWeapon))
-	{
-		return Rifle->IsFiring();
-	}
-	return false;
+	return CurrentEquippedWeapon && CurrentEquippedWeapon->IsFiring();
 }
 
 bool UTimeThiefPlayerCombatComponent::ShouldUseWeaponControlRigRotation() const
