@@ -15,10 +15,12 @@
 #include "State/LocalPlayerInfo.h"
 #include "State/NetworkEntityState.h"
 #include "State/NetworkPlayState.h"
+#include "State/EntityRuntimeEntry.h"
 #include "State/RoomState.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+struct FEntityRuntimeEntry;
 struct FMoveSyncData;
 class SendBuffer;
 class PacketSession;
@@ -92,14 +94,12 @@ public:
 	void HandleTimePointChanged(const se::game::N_TimePointChanged& Pkt);
 	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
 	
-public:
-	void AddEntity(uint32 EntityId,  AActor* Actor);
-	void RemoveEntityState(uint32 EntityId);
+private:
+	void RemoveEntity(uint32 EntityId);
 	
 private:
 	AActor* FindEntityActor(uint32 EntityId) const;
 	AActor* SpawnEntityActor(const FNetworkEntityState& EntityState);
-	void DestroyEntityActor(uint32 EntityId);
 	AActor* GetOrSpawnEntityActor(uint32 EntityId);
 	
 	void PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
@@ -158,7 +158,6 @@ private:
 private:
 	FRoomState RoomState;
 	
-	TMap<uint32, FNetworkEntityState> NetworkEntities;   // 네트워크로부터 받은 엔티티 상태를 저장하는 맵 (key: ObjectId, value: FNetworkEntityState)
-	TMap<uint32, TWeakObjectPtr<AActor>> EntityActors;
+	TMap<uint32, FEntityRuntimeEntry> EntityEntries;
 	
 };

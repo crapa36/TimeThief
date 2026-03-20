@@ -12,6 +12,7 @@
 #include "ClientConfigLoader.h"
 #include "NetworkEntityComponent.h"
 #include "Network/State/MoveSyncData.h"
+#include "Network/State/EntityRuntimeEntry.h"
 #include "Network/TestPlayer/NTLocalPlayer.h"
 
 namespace
@@ -324,7 +325,9 @@ void UNetworkGameInstanceSubsystem::HandleEntitySpawn(const se::room::N_EntitySp
 	const auto& Info = Pkt.info();
 	const uint32 EntityId = Info.entity_id().value();
 	
-	FNetworkEntityState& EntityState = NetworkEntities.FindOrAdd(EntityId);
+	FEntityRuntimeEntry& EntityEntry = EntityEntries.FindOrAdd(EntityId);
+	EntityEntry.EntityId = EntityId;
+	FNetworkEntityState& EntityState = EntityEntry.State;
 	EntityState.EntityId = EntityId;
 	
 	EntityState.ObjectType = Info.type();
@@ -350,14 +353,7 @@ void UNetworkGameInstanceSubsystem::HandleEntityDespawn(const se::room::N_Entity
 	}
 	
 	const uint32 EntityId = Pkt.entity_id().value();
-	
-	DestroyEntityActor(EntityId);
-	RemoveEntityState(EntityId);
-	
-	if (EntityId == LocalPlayerEntityId)
-	{
-		LocalPlayerEntityId = 0;
-	}
+	RemoveEntity(EntityId);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Entity despawned: EntityId=%u"), EntityId);
 }
@@ -384,17 +380,18 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	}
 	
 	const uint32 EntityId = Pkt.entity_id().value();
-	FNetworkEntityState* EntityState = NetworkEntities.Find(EntityId);
-	if (EntityState == nullptr)
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr)
 	{
 		return;
 	}
 	
+	FNetworkEntityState& EntityState = EntityEntry->State;
 	const auto& Movement = Pkt.movement();
 	const auto& Pos = Movement.position();
-	EntityState->Position = FVector(Pos.x(), Pos.y(), Pos.z());
-	EntityState->Yaw = Movement.yaw();
-	EntityState->Pitch = Movement.pitch();
+	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+	EntityState.Yaw = Movement.yaw();
+	EntityState.Pitch = Movement.pitch();
 	
 	ApplyEntityStateToActor(EntityId);
 }
@@ -465,6 +462,43 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
 {
+}
+
+void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)
+{
+	if (EntityId == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] RemoveEntity failed: Invalid EntityId"));
+		return;
+	}
+
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] RemoveEntity failed: Entity entry not found for EntityId %u"), EntityId);
+		return;
+	}
+
+	if (EntityEntry->Actor.IsValid())
+	{
+		AActor* Actor = EntityEntry->Actor.Get();
+		if (Actor != nullptr)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntity: Destroy Actor. EntityId=%u, Actor=%s"), EntityId, *Actor->GetName());
+			Actor->Destroy();
+		}
+
+		EntityEntry->Actor.Reset();
+	}
+
+	EntityEntries.Remove(EntityId);
+
+	if (EntityId == LocalPlayerEntityId)
+	{
+		LocalPlayerEntityId = 0;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntity success: EntityId=%u"), EntityId);
 }
 
 bool UNetworkGameInstanceSubsystem::IsLocalPlayerEntity(uint32 EntityId) const
@@ -560,69 +594,26 @@ void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
 
 void UNetworkGameInstanceSubsystem::ClearRoomState()
 {
-	for (auto& Pair : EntityActors)
+	for (auto& Pair : EntityEntries)
 	{
-		if (Pair.Value.IsValid())
+		if (Pair.Value.Actor.IsValid())
 		{
-			Pair.Value->Destroy();
+			Pair.Value.Actor->Destroy();
+			Pair.Value.Actor.Reset();
 		}
 	}
 
-	EntityActors.Empty();
-	NetworkEntities.Empty();
+	EntityEntries.Empty();
 	LocalPlayerEntityId = 0;
 	RoomState = FRoomState();
 }
 
-void UNetworkGameInstanceSubsystem::AddEntity(uint32 EntityId, AActor* Actor)
-{
-	if (EntityId == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] AddEntity failed: Invalid EntityId (0)"));
-		return;
-	}
-	
-	if (Actor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] AddEntity failed: Actor is null for EntityId %u"), EntityId);
-		return;
-	}
-	
-	if (!IsValid(Actor))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] AddEntity failed: Actor is invalid for EntityId %u"), EntityId);
-		return;
-	}
-	
-	if (EntityActors.Contains(EntityId))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] AddEntity: EntityId %u already exists, replacing Actor"), EntityId);
-	}
-	
-	EntityActors.Add(EntityId, Actor);
-	
-	UE_LOG(LogTemp, Log, TEXT("[Network] AddEntity: EntityId=%u, Actor=%s"), EntityId, *Actor->GetName());
-}
-
-void UNetworkGameInstanceSubsystem::RemoveEntityState(uint32 EntityId)
-{
-	if (EntityId == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] RemoveEntityState failed: Invalid EntityId"));
-		return;
-	}
-	
-	const int32 RemovedCount = NetworkEntities.Remove(EntityId);
-	
-	UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntityState: EntityId=%u, Removed=%d"), EntityId, RemovedCount);
-}
-
 AActor* UNetworkGameInstanceSubsystem::FindEntityActor(uint32 EntityId) const
 {
-	const TWeakObjectPtr<AActor>* FoundActor = EntityActors.Find(EntityId);
-	if (FoundActor == nullptr) return nullptr;
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return nullptr;
 	
-	return FoundActor->Get();
+	return EntityEntry->Actor.Get();
 }
 
 AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityState& EntityState)
@@ -630,7 +621,8 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	UWorld* World = GetWorld();
 	if (World == nullptr) return nullptr;
 	
-	// TODO: World가 GameWorld가 아니면 안된다 (문제가 생긴 것)
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityState.EntityId);
+	if (EntityEntry == nullptr) return nullptr;
 	
 	TSubclassOf<AActor> ActorClass = ResolveActorClass(EntityState);
 	if (*ActorClass == nullptr) return nullptr;
@@ -638,42 +630,15 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	const FRotator SpawnRotation(0.0f, EntityState.Yaw, 0.0f);
 	const FTransform SpawnTransform(SpawnRotation, EntityState.Position);
 	
+	// TODO: World가 GameWorld가 아니면 안된다 (문제가 생긴 것)
 	AActor* SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform);
 	if (SpawnedActor == nullptr) return nullptr;
 	
-	AddEntity(EntityState.EntityId, SpawnedActor);
+	EntityEntry->Actor = SpawnedActor;
+	
 	PostSpawnEntityActor(SpawnedActor, EntityState);
 	
 	return SpawnedActor;
-}
-
-void UNetworkGameInstanceSubsystem::DestroyEntityActor(uint32 EntityId)
-{
-	if (EntityId == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] DestroyEntityActor failed: Invalid EntityId"));
-		return;
-	}
-	
-	TWeakObjectPtr<AActor>* FoundActor = EntityActors.Find(EntityId);
-	if (FoundActor == nullptr)
-	{
-		UE_LOG(LogTemp, Verbose, TEXT("[Network] DestroyEntityActor: Actor not found (EntityId=%u)"), EntityId);
-		return;
-	}
-	
-	if (FoundActor->IsValid())
-	{
-		AActor* Actor = FoundActor->Get();
-		if (Actor != nullptr)
-		{
-			UE_LOG(LogTemp, Log, TEXT("[Network] DestroyEntityActor: EntityId=%u, Actor=%s"), EntityId, *Actor->GetName());
-
-			Actor->Destroy();
-		}
-	}
-
-	EntityActors.Remove(EntityId);
 }
 
 AActor* UNetworkGameInstanceSubsystem::GetOrSpawnEntityActor(uint32 EntityId)
@@ -683,10 +648,10 @@ AActor* UNetworkGameInstanceSubsystem::GetOrSpawnEntityActor(uint32 EntityId)
 		return ExistingActor;
 	}
 	
-	const FNetworkEntityState* EntityState = NetworkEntities.Find(EntityId);
-	if (EntityState == nullptr) return nullptr;
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return nullptr;
 	
-	return SpawnEntityActor(*EntityState);
+	return SpawnEntityActor(EntityEntry->State);
 }
 
 void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
@@ -775,13 +740,13 @@ void UNetworkGameInstanceSubsystem::HandleLocalPlayerActorSpawned(AActor* Spawne
 
 void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
 {
-	const FNetworkEntityState* EntityState = NetworkEntities.Find(EntityId);
-	if (EntityState == nullptr) return;
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return;
 	
 	AActor* Actor = GetOrSpawnEntityActor(EntityId);
 	if (Actor == nullptr) return;
 	
-	ApplyEntityStateToActor(Actor, *EntityState);
+	ApplyEntityStateToActor(Actor, EntityEntry->State);
 }
 
 void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const FNetworkEntityState& EntityState)
@@ -801,7 +766,7 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const
 
 void UNetworkGameInstanceSubsystem::ApplyAllEntityStates()
 {
-	for (const TPair<uint32, FNetworkEntityState>& Pair : NetworkEntities)
+	for (const TPair<uint32, FEntityRuntimeEntry>& Pair : EntityEntries)
 	{
 		const uint32 EntityId = Pair.Key;
 		ApplyEntityStateToActor(EntityId);
