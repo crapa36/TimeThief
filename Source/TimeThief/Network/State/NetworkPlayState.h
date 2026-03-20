@@ -9,6 +9,8 @@ enum class ENetworkPlayState : uint8
 {
 	Disconnected,
 	Connected,
+	Handshaking,
+	InLobby,
 	EnteringRoom,
 	InRoom,
 	LeavingRoom,

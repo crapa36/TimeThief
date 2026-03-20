@@ -11,9 +11,11 @@
 #include "PacketSession.h"
 #include "ClientConfigLoader.h"
 #include "NetworkEntityComponent.h"
+#include "NetworkMoveComponent.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
 #include "Network/TestPlayer/NTLocalPlayer.h"
+#include "Protocol/ProtocolVersion.h"
 
 namespace
 {
@@ -44,7 +46,12 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 	
 	ConnectToServer(ClientConfig.ServerIp, ClientConfig.ServerPort);
 	
-	SpawnProcessPacketTimer();
+	if (bIsConnected)
+	{
+		Handshaking();
+		
+		SpawnProcessPacketTimer();
+	}
 }
 
 void UNetworkGameInstanceSubsystem::Deinitialize()
@@ -184,6 +191,19 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	UE_LOG(LogTemp, Log, TEXT("Disconnected and cleaned up"));
 }
 
+void UNetworkGameInstanceSubsystem::Handshaking()
+{
+	if (PlayState != ENetworkPlayState::Connected) return;
+	
+	se::auth::C_HandshakeReq HandshakeReq;
+	HandshakeReq.set_client_protocol_version(se::protocol::kProtocolVersion);
+	
+	PlayState = ENetworkPlayState::Handshaking;
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(HandshakeReq);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::SpawnProcessPacketTimer()
 {
 	if (not bIsConnected) return;
@@ -206,6 +226,30 @@ void UNetworkGameInstanceSubsystem::ProcessPacket()
 
 void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!Pkt.success())
+	{
+		const auto& Result = Pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Handshake failed: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		DisconnectFromServer();
+		return;
+	}
+	
+	LocalPlayerInfo.PlayerId = Pkt.session_player_id();
+	const auto& Config = Pkt.config();
+	
+	FRuntimeConfig NewRuntimeConfig{};
+	NewRuntimeConfig.MovementUpdateHz = Config.movement_update_hz();
+	NewRuntimeConfig.PingIntervalMs = Config.ping_interval_ms();
+	
+	if (NewRuntimeConfig.IsValid())
+	{
+		RuntimeConfig = NewRuntimeConfig;
+	}
+	
+	PlayState = ENetworkPlayState::InLobby;
 }
 
 void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& Pkt)
@@ -241,21 +285,21 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 		const auto& Result = Pkt.result();
 		
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
-		PlayState = ENetworkPlayState::Connected;
+		PlayState = ENetworkPlayState::InLobby;
 		return;
 	}
 	
 	if (!Pkt.has_my_entity_id())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing my_entity_id in response"));
-		PlayState = ENetworkPlayState::Connected;
+		PlayState = ENetworkPlayState::InLobby;
 		return;
 	}
 	
 	if (!Pkt.has_snapshot())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing room snapshot in response"));
-		PlayState = ENetworkPlayState::Connected;
+		PlayState = ENetworkPlayState::InLobby;
 		return;
 	}
 	
@@ -302,7 +346,7 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 	}
 	
 	ClearRoomState();
-	PlayState = ENetworkPlayState::Connected;
+	PlayState = ENetworkPlayState::InLobby;
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Room leave success"));
 }
@@ -536,7 +580,7 @@ void UNetworkGameInstanceSubsystem::RequestEnterRoom()
 		return;
 	}
 	
-	if (PlayState != ENetworkPlayState::Connected)
+	if (PlayState != ENetworkPlayState::InLobby)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter room: Invalid state"));
 		return;
@@ -659,6 +703,7 @@ void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, c
 	if (SpawnedActor == nullptr) return;
 	
 	InitializeNetworkEntityActor(SpawnedActor, EntityState);;
+	ApplyRuntimeConfigToActor(SpawnedActor);
 	
 	if (IsLocalPlayerEntity(EntityState.EntityId))
 	{
@@ -693,6 +738,28 @@ void UNetworkGameInstanceSubsystem::InitializeNetworkEntityActor(AActor* Spawned
 	default:
 		break;
 	}
+}
+
+void UNetworkGameInstanceSubsystem::ApplyRuntimeConfigToActor(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return;
+	}
+	
+	UNetworkMoveComponent* MoveComp = Actor->FindComponentByClass<UNetworkMoveComponent>();
+	if (MoveComp == nullptr)
+	{
+		return;
+	}
+	
+	if (!RuntimeConfig.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] RuntimeConfig invalid, skip applying to actor: %s"), *GetNameSafe(Actor));
+		return;
+	}
+	
+	MoveComp->SetMovementUpdateInterval(RuntimeConfig.GetMovementUpdateIntervalSeconds());
 }
 
 void UNetworkGameInstanceSubsystem::HandleLocalPlayerActorSpawned(AActor* SpawnedActor,

@@ -109,6 +109,18 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	InterpElapsed = 0.0f;
 }
 
+void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
+{
+	if (InInterval <= 0.0f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetMovementUpdateInterval failed: Interval must be greater than zero."));
+		return;
+	}
+	
+	InterpDuration = InInterval;
+	SendMoveInterval = InInterval;
+}
+
 bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 {
 	const AActor* Owner = GetOwner();

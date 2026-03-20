@@ -31,8 +31,7 @@ public:
 public:
 	void ApplyNetworkState(const FNetworkEntityState& EntityState);
 	
-	void SetInterpDuration(float Duration) { InterpDuration = Duration; }
-	float GetInterpDuration() const { return InterpDuration; }
+	void SetMovementUpdateInterval(float InInterval);
 	
 	FVector GetMoveStep() const { return MoveStep; }
 	

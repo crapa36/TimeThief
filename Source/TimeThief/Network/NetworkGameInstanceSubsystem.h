@@ -17,6 +17,7 @@
 #include "State/NetworkPlayState.h"
 #include "State/EntityRuntimeEntry.h"
 #include "State/RoomState.h"
+#include "State/RuntimeConfig.h"
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
@@ -54,6 +55,8 @@ public:
 private:
 	void ConnectToServer(const FString& IPAddress, int32 Port);
 	void DisconnectFromServer();
+	
+	void Handshaking();
 	
 	void SpawnProcessPacketTimer();
 	
@@ -104,6 +107,7 @@ private:
 	
 	void PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
+	void ApplyRuntimeConfigToActor(AActor* Actor);
 	void HandleLocalPlayerActorSpawned(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	
 private:
@@ -154,6 +158,9 @@ private:
 	FLocalPlayerInfo LocalPlayerInfo;
 	
 	uint32 LocalPlayerEntityId = 0;
+	
+	UPROPERTY()
+	FRuntimeConfig RuntimeConfig;
 	
 private:
 	FRoomState RoomState;
