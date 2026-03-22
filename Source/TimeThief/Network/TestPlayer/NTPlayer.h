@@ -42,7 +42,11 @@ public:
 	virtual float GetNetworkPitch() const override;
 	virtual void SetNetworkPitch(float NewPitch) override;
 	
+	virtual float GetNetworkSpeed() const override;
+	virtual void SetNetworkSpeed(float NewSpeed) override;
+	
 	virtual float GetLocalControlPitch() const override;
+	virtual float GetLocalControlSpeed() const override;
 	
 	virtual FVector GetNetworkVelocity() const override;
 	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) override;
@@ -68,5 +72,8 @@ private:
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Network")
 	float CurrentNetworkPitch = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Network")
+	float CurrentNetworkSpeed = 0.0f;
 	
 };

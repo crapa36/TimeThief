@@ -96,6 +96,7 @@ void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
 	
 	Movement->set_yaw(MoveData.Yaw);
 	Movement->set_pitch(MoveData.Pitch);
+	Movement->set_speed(MoveData.Speed);
 	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Pkt);
 	SendPacket(Buffer);
@@ -436,6 +437,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 	EntityState.Yaw = Movement.yaw();
 	EntityState.Pitch = Movement.pitch();
+	EntityState.Speed = Movement.speed();
 	
 	ApplyEntityStateToActor(EntityId);
 }

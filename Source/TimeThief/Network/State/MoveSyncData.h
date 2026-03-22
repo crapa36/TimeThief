@@ -16,4 +16,8 @@ struct FMoveSyncData
 	
 	UPROPERTY()
 	float Pitch = 0.0f;
+	
+	UPROPERTY()
+	float Speed = 0.0f;
+	
 };

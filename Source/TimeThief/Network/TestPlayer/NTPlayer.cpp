@@ -93,6 +93,16 @@ void ANTPlayer::SetNetworkPitch(float NewPitch)
 	CurrentNetworkPitch = FMath::Clamp(NormalizedPitch, -89.0f, 89.0f);
 }
 
+float ANTPlayer::GetNetworkSpeed() const
+{
+	return CurrentNetworkSpeed;
+}
+
+void ANTPlayer::SetNetworkSpeed(float NewSpeed)
+{
+	CurrentNetworkSpeed = NewSpeed;
+}
+
 float ANTPlayer::GetLocalControlPitch() const
 {
 	if (Controller == nullptr)
@@ -103,6 +113,16 @@ float ANTPlayer::GetLocalControlPitch() const
 	float ControlPitch = Controller->GetControlRotation().Pitch;
 	ControlPitch = FRotator::NormalizeAxis(ControlPitch);
 	return FMath::Clamp(ControlPitch, -89.0f, 89.0f);
+}
+
+float ANTPlayer::GetLocalControlSpeed() const
+{
+	if (GetCharacterMovement() == nullptr)
+	{
+		return 0.0f;
+	}
+	
+	return GetCharacterMovement()->Velocity.Size();
 }
 
 FVector ANTPlayer::GetNetworkVelocity() const

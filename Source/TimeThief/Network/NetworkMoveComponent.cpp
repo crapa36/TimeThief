@@ -96,6 +96,7 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	const FVector CurrentPosition = Movable->GetNetworkLocation();
 	const float CurrentYaw = Movable->GetNetworkYaw();
 	const float CurrentPitch = Movable->GetNetworkPitch();
+	const float CurrentSpeed = Movable->GetNetworkSpeed();
 	
 	InterpStartPosition = CurrentPosition;
 	InterpTargetPosition = EntityState.Position;
@@ -105,6 +106,9 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	
 	StartPitch = CurrentPitch;
 	TargetPitch = EntityState.Pitch;
+	
+	StartSpeed = CurrentSpeed;
+	TargetSpeed = EntityState.Speed;
 
 	InterpElapsed = 0.0f;
 }
@@ -133,6 +137,7 @@ bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 	OutSyncData.Position = Movable->GetNetworkLocation();
 	OutSyncData.Yaw = Movable->GetNetworkYaw();
 	OutSyncData.Pitch = Movable->GetLocalControlPitch();
+	OutSyncData.Speed = Movable->GetNetworkSpeed();
 	
 	return true;
 }
@@ -164,6 +169,8 @@ void UNetworkMoveComponent::TickLocal(float DeltaTime)
 	MoveStep = Owner->GetVelocity();
 	float CurrentPitch = Movable->GetLocalControlPitch();
 	Movable->SetNetworkPitch(CurrentPitch);
+	float CurrentSpeed = Movable->GetLocalControlSpeed();
+	Movable->SetNetworkSpeed(CurrentSpeed);
 	
 	SendMoveElapsed += DeltaTime;
 	// TODO: 시간이 되었거나 변동 사항이 있어 패킷을 보내야 하는 경우 이동 패킷 전송
@@ -238,6 +245,10 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	const float DeltaPitch = FMath::FindDeltaAngleDegrees(StartPitch, TargetPitch);
 	const float NewPitch = FRotator::NormalizeAxis(StartPitch + DeltaPitch * Alpha);
 	Movable->SetNetworkPitch(NewPitch);
+	
+	const float DeltaSpeed = FMath::Lerp(StartSpeed, TargetSpeed, Alpha);
+	Movable->SetNetworkSpeed(DeltaSpeed);
+	
 }
 
 void UNetworkMoveComponent::SnapToTarget()
@@ -252,6 +263,7 @@ void UNetworkMoveComponent::SnapToTarget()
 	Movable->SetNetworkLocation(InterpTargetPosition);
 	Movable->SetNetworkYaw(TargetYaw);
 	Movable->SetNetworkPitch(TargetPitch);
+	Movable->SetNetworkSpeed(TargetSpeed);
 }
 
 UNetworkGameInstanceSubsystem* UNetworkMoveComponent::GetNetworkGameInstanceSubsystem()
