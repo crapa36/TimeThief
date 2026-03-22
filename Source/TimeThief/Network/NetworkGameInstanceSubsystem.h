@@ -131,6 +131,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
 	
+public:
+	void Ping();
+	
+private:
+	void StartPingTimer();
+	void StopPingTimer();
+	
 private:
 	void ClearRoomState();
 	
@@ -148,6 +155,7 @@ private:
 	TSharedPtr<PacketSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
+	FTimerHandle PingTimer;
 	
 	FClientConfig ClientConfig;
 	

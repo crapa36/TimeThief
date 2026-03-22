@@ -12,6 +12,7 @@
 #include "ClientConfigLoader.h"
 #include "NetworkEntityComponent.h"
 #include "NetworkMoveComponent.h"
+#include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
 #include "Network/TestPlayer/NTLocalPlayer.h"
@@ -157,6 +158,8 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	// // 이미 연결이 끊겼거나 소켓이 유효하지 않은 경우에는 아무 작업도 수행하지 않습니다.
 	// if (bIsConnected == false or Socket == nullptr) return;
 	
+	StopPingTimer();
+	
 	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
 	
 	// 타이머 정지 (패킷 처리 타이머)
@@ -251,6 +254,8 @@ void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_Handsha
 	}
 	
 	PlayState = ENetworkPlayState::InLobby;
+	
+	StartPingTimer();
 }
 
 void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& Pkt)
@@ -259,6 +264,20 @@ void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& P
 
 void UNetworkGameInstanceSubsystem::HandlePong(const se::auth::S_Pong& Pkt)
 {
+	uint64 NowMs = static_cast<uint64>(FPlatformTime::Seconds() * 1000.0);
+	uint64 SentTimeMs = Pkt.client_time_ms();
+	// uint64 ServerTimeMs = Pkt.server_time_ms();
+	
+	if (NowMs < SentTimeMs)  // 시간 역전 방지
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandlePong: Invalid time delta"));
+		return;
+	}
+	
+	uint64 RTT = NowMs - SentTimeMs;
+	// uint64 EstimatedServerTimeMs = SentTimeMs + RTT / 2;
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Pong received. RTT = %llu ms"), RTT);
 }
 
 void UNetworkGameInstanceSubsystem::HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& Pkt)
@@ -636,6 +655,62 @@ void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
 	SendPacket(SendBuffer);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::Ping()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot send ping: Not connected to server"));
+		return;
+	}
+	
+	se::auth::C_Ping Request;
+	
+	uint64 NowMs = static_cast<uint64>(FPlatformTime::Seconds() * 1000.0);
+	Request.set_client_time_ms(NowMs);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	if (!SendBuffer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot send ping: Failed to create send buffer"));
+		return;
+	}
+	
+	SendPacket(SendBuffer);
+}
+
+void UNetworkGameInstanceSubsystem::StartPingTimer()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] StartPingTimer failed: World is null"));
+		return;
+	}
+	
+	if (RuntimeConfig.PingIntervalMs <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] StartPingTimer failed: Invalid PingIntervalMs = %d"), RuntimeConfig.PingIntervalMs);
+		return;
+	}
+	
+	const float PingIntervalSeconds = RuntimeConfig.GetPingIntervalSeconds();
+	
+	World->GetTimerManager().ClearTimer(PingTimer);
+	World->GetTimerManager().SetTimer(PingTimer, this, &UNetworkGameInstanceSubsystem::Ping, PingIntervalSeconds, true);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Ping timer started. Interval = %.3f sec"), PingIntervalSeconds);
+}
+
+void UNetworkGameInstanceSubsystem::StopPingTimer()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PingTimer);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Ping timer stopped"));
 }
 
 void UNetworkGameInstanceSubsystem::ClearRoomState()
