@@ -70,6 +70,7 @@ PROTOBUF_CONSTEXPR MovementState::MovementState(
     /*decltype(_impl_.position_)*/nullptr
   , /*decltype(_impl_.yaw_)*/0
   , /*decltype(_impl_.pitch_)*/0
+  , /*decltype(_impl_.speed_)*/0
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct MovementStateDefaultTypeInternal {
   PROTOBUF_CONSTEXPR MovementStateDefaultTypeInternal()
@@ -147,6 +148,7 @@ const uint32_t TableStruct_common_2fcommon_5ftypes_2eproto::offsets[] PROTOBUF_S
   PROTOBUF_FIELD_OFFSET(::se::common::MovementState, _impl_.position_),
   PROTOBUF_FIELD_OFFSET(::se::common::MovementState, _impl_.yaw_),
   PROTOBUF_FIELD_OFFSET(::se::common::MovementState, _impl_.pitch_),
+  PROTOBUF_FIELD_OFFSET(::se::common::MovementState, _impl_.speed_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::common::PlayerId, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -167,8 +169,8 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 8, -1, -1, sizeof(::se::common::Vector3)},
   { 17, -1, -1, sizeof(::se::common::Transform)},
   { 25, -1, -1, sizeof(::se::common::MovementState)},
-  { 34, -1, -1, sizeof(::se::common::PlayerId)},
-  { 41, -1, -1, sizeof(::se::common::ObjectId)},
+  { 35, -1, -1, sizeof(::se::common::PlayerId)},
+  { 42, -1, -1, sizeof(::se::common::ObjectId)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -186,18 +188,18 @@ const char descriptor_table_protodef_common_2fcommon_5ftypes_2eproto[] PROTOBUF_
   "ode\030\001 \001(\0162\024.se.common.ErrorCode\022\017\n\007messa"
   "ge\030\002 \001(\t\"*\n\007Vector3\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001("
   "\002\022\t\n\001z\030\003 \001(\002\">\n\tTransform\022$\n\010position\030\001 "
-  "\001(\0132\022.se.common.Vector3\022\013\n\003yaw\030\002 \001(\002\"Q\n\r"
+  "\001(\0132\022.se.common.Vector3\022\013\n\003yaw\030\002 \001(\002\"`\n\r"
   "MovementState\022$\n\010position\030\001 \001(\0132\022.se.com"
-  "mon.Vector3\022\013\n\003yaw\030\002 \001(\002\022\r\n\005pitch\030\003 \001(\002\""
-  "\031\n\010PlayerId\022\r\n\005value\030\001 \001(\004\"\031\n\010ObjectId\022\r"
-  "\n\005value\030\001 \001(\rb\006proto3"
+  "mon.Vector3\022\013\n\003yaw\030\002 \001(\002\022\r\n\005pitch\030\003 \001(\002\022"
+  "\r\n\005speed\030\004 \001(\002\"\031\n\010PlayerId\022\r\n\005value\030\001 \001("
+  "\004\"\031\n\010ObjectId\022\r\n\005value\030\001 \001(\rb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_common_2fcommon_5ftypes_2eproto_deps[1] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_common_2fcommon_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_common_2fcommon_5ftypes_2eproto = {
-    false, false, 381, descriptor_table_protodef_common_2fcommon_5ftypes_2eproto,
+    false, false, 396, descriptor_table_protodef_common_2fcommon_5ftypes_2eproto,
     "common/common_types.proto",
     &descriptor_table_common_2fcommon_5ftypes_2eproto_once, descriptor_table_common_2fcommon_5ftypes_2eproto_deps, 1, 6,
     schemas, file_default_instances, TableStruct_common_2fcommon_5ftypes_2eproto::offsets,
@@ -977,6 +979,7 @@ MovementState::MovementState(const MovementState& from)
       decltype(_impl_.position_){nullptr}
     , decltype(_impl_.yaw_){}
     , decltype(_impl_.pitch_){}
+    , decltype(_impl_.speed_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -984,8 +987,8 @@ MovementState::MovementState(const MovementState& from)
     _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
   }
   ::memcpy(&_impl_.yaw_, &from._impl_.yaw_,
-    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.pitch_) -
-    reinterpret_cast<char*>(&_impl_.yaw_)) + sizeof(_impl_.pitch_));
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.speed_) -
+    reinterpret_cast<char*>(&_impl_.yaw_)) + sizeof(_impl_.speed_));
   // @@protoc_insertion_point(copy_constructor:se.common.MovementState)
 }
 
@@ -997,6 +1000,7 @@ inline void MovementState::SharedCtor(
       decltype(_impl_.position_){nullptr}
     , decltype(_impl_.yaw_){0}
     , decltype(_impl_.pitch_){0}
+    , decltype(_impl_.speed_){0}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -1030,8 +1034,8 @@ void MovementState::Clear() {
   }
   _impl_.position_ = nullptr;
   ::memset(&_impl_.yaw_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&_impl_.pitch_) -
-      reinterpret_cast<char*>(&_impl_.yaw_)) + sizeof(_impl_.pitch_));
+      reinterpret_cast<char*>(&_impl_.speed_) -
+      reinterpret_cast<char*>(&_impl_.yaw_)) + sizeof(_impl_.speed_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1061,6 +1065,14 @@ const char* MovementState::_InternalParse(const char* ptr, ::_pbi::ParseContext*
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
           _impl_.pitch_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float speed = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 37)) {
+          _impl_.speed_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
           ptr += sizeof(float);
         } else
           goto handle_unusual;
@@ -1121,6 +1133,16 @@ uint8_t* MovementState::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_pitch(), target);
   }
 
+  // float speed = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_speed = this->_internal_speed();
+  uint32_t raw_speed;
+  memcpy(&raw_speed, &tmp_speed, sizeof(tmp_speed));
+  if (raw_speed != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(4, this->_internal_speed(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -1162,6 +1184,15 @@ size_t MovementState::ByteSizeLong() const {
     total_size += 1 + 4;
   }
 
+  // float speed = 4;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_speed = this->_internal_speed();
+  uint32_t raw_speed;
+  memcpy(&raw_speed, &tmp_speed, sizeof(tmp_speed));
+  if (raw_speed != 0) {
+    total_size += 1 + 4;
+  }
+
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1198,6 +1229,13 @@ void MovementState::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::
   if (raw_pitch != 0) {
     _this->_internal_set_pitch(from._internal_pitch());
   }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_speed = from._internal_speed();
+  uint32_t raw_speed;
+  memcpy(&raw_speed, &tmp_speed, sizeof(tmp_speed));
+  if (raw_speed != 0) {
+    _this->_internal_set_speed(from._internal_speed());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -1216,8 +1254,8 @@ void MovementState::InternalSwap(MovementState* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(MovementState, _impl_.pitch_)
-      + sizeof(MovementState::_impl_.pitch_)
+      PROTOBUF_FIELD_OFFSET(MovementState, _impl_.speed_)
+      + sizeof(MovementState::_impl_.speed_)
       - PROTOBUF_FIELD_OFFSET(MovementState, _impl_.position_)>(
           reinterpret_cast<char*>(&_impl_.position_),
           reinterpret_cast<char*>(&other->_impl_.position_));
