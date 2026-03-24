@@ -12,6 +12,9 @@
 #include "ClientConfigLoader.h"
 #include "NetworkEntityComponent.h"
 #include "NetworkMoveComponent.h"
+#include "TimeThiefNetworkSettings.h"
+#include "Character/TimeThiefPlayerCharacter.h"
+#include "Character/TimeThiefPlayerController.h"
 #include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
@@ -34,8 +37,21 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 	
-	LocalPlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/SSH/BP_NTLocalPlayer.BP_NTLocalPlayer_C"));
-	RemotePlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/SSH/BP_NTPlayer.BP_NTPlayer_C"));
+	const UTimeThiefNetworkSettings* Settings = GetDefault<UTimeThiefNetworkSettings>();
+	if (Settings == nullptr)
+	{
+		return;
+	}
+	
+	if (!Settings->SpawnClassData.IsNull())
+	{
+		SpawnData = Settings->SpawnClassData.LoadSynchronous();
+	}
+	
+	if (!Settings->DefaultLocalPlayerPawnData.IsNull())
+	{
+		DefaultLocalPlayerPawnData = Settings->DefaultLocalPlayerPawnData.LoadSynchronous();
+	}
 	
 	bool configLoaded = LoadClientConfig();
 	
@@ -585,13 +601,16 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 {
 	// TODO: EntityState의 정보를 바탕으로 어떤 Actor 클래스를 스폰할지 결정하는 로직을 구현해야 한다
 	//		 어떤 ObjectType, TemplateId 여도 처리할 수 있도록 (조합가능한 기준)
+	if (!SpawnData) return nullptr;
 	
-	if (IsLocalPlayerEntity(EntityState.EntityId))
+	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
+	
+	if (const TSubclassOf<AActor>* Found = SpawnData->SpawnClassMap.Find(ObjectTypeValue))
 	{
-		return LocalPlayerClass;
+		return *Found;
 	}
 	
-	return RemotePlayerClass;
+	return nullptr;
 }
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
@@ -756,7 +775,7 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	if (EntityEntry == nullptr) return nullptr;
 	
 	TSubclassOf<AActor> ActorClass = ResolveActorClass(EntityState);
-	if (*ActorClass == nullptr) return nullptr;
+	if (ActorClass == nullptr) return nullptr;
 	
 	const FRotator SpawnRotation(0.0f, EntityState.Yaw, 0.0f);
 	const FTransform SpawnTransform(SpawnRotation, EntityState.Position);
@@ -785,11 +804,35 @@ AActor* UNetworkGameInstanceSubsystem::GetOrSpawnEntityActor(uint32 EntityId)
 	return SpawnEntityActor(EntityEntry->State);
 }
 
+void UNetworkGameInstanceSubsystem::InitializeSpawnedPawnData(AActor* Actor)
+{
+	ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(Actor);
+	if (PlayerCharacter == nullptr)
+	{
+		return;
+	}
+	
+	const UTimeThiefPawnData* PawnData = GetDefaultPawnData();
+	if (PawnData == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] InitializeSpawnedPawnData: DefaultPawnData is null on %s"),
+			*GetNameSafe(PlayerCharacter));
+		return;
+	}
+	
+	PlayerCharacter->SetPawnData(PawnData);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Network] InitializeSpawnedPawnData: Set PawnData=%s on %s"),
+		*GetNameSafe(PawnData),
+		*GetNameSafe(PlayerCharacter));
+}
+
 void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
 {
 	if (SpawnedActor == nullptr) return;
 	
 	InitializeNetworkEntityActor(SpawnedActor, EntityState);;
+	InitializeSpawnedPawnData(SpawnedActor);
 	ApplyRuntimeConfigToActor(SpawnedActor);
 	
 	if (IsLocalPlayerEntity(EntityState.EntityId))

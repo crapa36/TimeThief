@@ -12,6 +12,8 @@
 #include "PacketSession.h"
 #include "ClientConfigTypes.h"
 #include "Protocol.pb.h"
+#include "Character/TimeThiefPawnData.h"
+#include "DataAssets/SpawnClassData.h"
 #include "State/LocalPlayerInfo.h"
 #include "State/NetworkEntityState.h"
 #include "State/NetworkPlayState.h"
@@ -108,7 +110,8 @@ private:
 	AActor* FindEntityActor(uint32 EntityId) const;
 	AActor* SpawnEntityActor(const FNetworkEntityState& EntityState);
 	AActor* GetOrSpawnEntityActor(uint32 EntityId);
-	
+
+	void InitializeSpawnedPawnData(AActor* Actor);
 	void PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void ApplyRuntimeConfigToActor(AActor* Actor);
@@ -146,11 +149,14 @@ private:
 	void ClearRoomState();
 	
 public:
+	const UTimeThiefPawnData* GetDefaultPawnData() const { return DefaultLocalPlayerPawnData; }
+	
+public:
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
-	TSubclassOf<AActor> RemotePlayerClass;
+	TObjectPtr<USpawnClassData> SpawnData;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
-	TSubclassOf<AActor> LocalPlayerClass;
+	TObjectPtr<const UTimeThiefPawnData> DefaultLocalPlayerPawnData;
 	
 private:
 	bool bIsConnected = false;
