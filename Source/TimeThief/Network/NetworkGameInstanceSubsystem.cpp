@@ -214,8 +214,8 @@ void UNetworkGameInstanceSubsystem::SpawnProcessPacketTimer()
 	
 	if (UWorld* World = GetWorld())
 	{
-		// TODO: 0.05초 값은 .ini나 .config 파일로 부터 읽어와서 적용해야 할 듯 싶다
-		World->GetTimerManager().SetTimer(QueueProcessingTimer, this, &UNetworkGameInstanceSubsystem::ProcessPacket, 0.05f, true);
+		// TODO: 0.01초 값은 .ini나 .config 파일로 부터 읽어와서 적용해야 할 듯 싶다
+		World->GetTimerManager().SetTimer(QueueProcessingTimer, this, &UNetworkGameInstanceSubsystem::ProcessPacket, 0.01f, true);
 	}
 }
 
