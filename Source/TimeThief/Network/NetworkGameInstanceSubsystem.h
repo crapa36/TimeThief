@@ -62,6 +62,10 @@ private:
 	
 	void ProcessPacket();
 	
+public:
+	bool IsConnected() const;
+	bool CanSendGameplayPacket() const;
+	
 // packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
 public:
 	void HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt);

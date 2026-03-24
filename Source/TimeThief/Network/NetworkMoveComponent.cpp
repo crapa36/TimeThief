@@ -58,7 +58,7 @@ void UNetworkMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		return;
 	}
 	
-	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
+	IMovableNetworkEntityInterface* Movable = GetMovableOwner();
 	if (Movable == nullptr)
 	{
 		return;
@@ -86,6 +86,16 @@ void UNetworkMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityState)
 {
+	if (NetworkEntityComponent == nullptr)
+	{
+		return;
+	}
+	
+	if (!NetworkEntityComponent->ShouldApplyNetworkState())
+	{
+		return;
+	}
+	
 	AActor* Owner = GetOwner();
 	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
 	if (Owner == nullptr || Movable == nullptr)
@@ -160,7 +170,7 @@ bool UNetworkMoveComponent::IsCloseEnoughPitch(float CurrentPitch) const
 void UNetworkMoveComponent::TickLocal(float DeltaTime)
 {
 	AActor* Owner = GetOwner();
-	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
+	IMovableNetworkEntityInterface* Movable = GetMovableOwner();
 	if (Owner == nullptr || Movable == nullptr)
 	{
 		return;
@@ -173,35 +183,53 @@ void UNetworkMoveComponent::TickLocal(float DeltaTime)
 	Movable->SetNetworkSpeed(CurrentSpeed);
 	
 	SendMoveElapsed += DeltaTime;
+	
+	if (!CanSendMovePacket())
+	{
+		return;
+	}
+	
 	// TODO: 시간이 되었거나 변동 사항이 있어 패킷을 보내야 하는 경우 이동 패킷 전송
 	//		 Movable에서 boolean IsMoveDirty 같은 걸 만들어서 위치나 회전이 변경되었는지 체크하는 방식으로 하는 게 좋아보임
-	if (SendMoveElapsed >= SendMoveInterval)
+	if (SendMoveElapsed < SendMoveInterval)
 	{
-		SendMoveElapsed = 0.0f;
-		
-		FMoveSyncData MoveData;
-		if (!BuildMoveSyncData(MoveData))
-		{
-			return;
-		}
-		
-		UNetworkGameInstanceSubsystem* NetworkGIS = GetNetworkGameInstanceSubsystem();
-		if (NetworkGIS == nullptr)
-		{
-			return;
-		}
-		
-		NetworkGIS->SendMove(MoveData);
+		return;
 	}
+	
+	SendMoveElapsed = 0.0f;
+		
+	FMoveSyncData MoveData;
+	if (!BuildMoveSyncData(MoveData))
+	{
+		return;
+	}
+		
+	UNetworkGameInstanceSubsystem* NetworkGIS = GetNetworkGameInstanceSubsystem();
+	if (NetworkGIS == nullptr)
+	{
+		return;
+	}
+		
+	NetworkGIS->SendMove(MoveData);
 }
 
 void UNetworkMoveComponent::TickRemote(float DeltaTime)
 {
+	if (!CanApplyRemoteInterpolation())
+	{
+		return;
+	}
+	
 	ApplyRemoteInterpolation(DeltaTime);
 }
 
 void UNetworkMoveComponent::TickServer(float DeltaTime)
 {
+	if (!CanApplyRemoteInterpolation())
+	{
+		return;
+	}
+	
 	ApplyRemoteInterpolation(DeltaTime);
 }
 
@@ -264,6 +292,69 @@ void UNetworkMoveComponent::SnapToTarget()
 	Movable->SetNetworkYaw(TargetYaw);
 	Movable->SetNetworkPitch(TargetPitch);
 	Movable->SetNetworkSpeed(TargetSpeed);
+}
+
+bool UNetworkMoveComponent::CanSendMovePacket() const
+{
+	if (NetworkEntityComponent == nullptr)
+	{
+		return false;
+	}
+	
+	if (!NetworkEntityComponent->IsLocalControlled())
+	{
+		return false;
+	}
+	
+	if (!NetworkEntityComponent->IsValidEntity())
+	{
+		return false;
+	}
+	
+	const UNetworkGameInstanceSubsystem* NetworkGIS = NGIS;
+	if (NetworkGIS == nullptr)
+	{
+		return false;
+	}
+	
+	return NetworkGIS->CanSendGameplayPacket();
+}
+
+bool UNetworkMoveComponent::CanApplyRemoteInterpolation() const
+{
+	if (NetworkEntityComponent == nullptr)
+	{
+		return false;
+	}
+	
+	if (!NetworkEntityComponent->IsValidEntity())
+	{
+		return false;
+	}
+	
+	if (NetworkEntityComponent->IsLocalControlled())
+	{
+		return false;
+	}
+	
+	const UNetworkGameInstanceSubsystem* NetworkGIS = NGIS;
+	if (NetworkGIS == nullptr)
+	{
+		return false;
+	}
+	
+	return NetworkGIS->IsConnected();
+}
+
+IMovableNetworkEntityInterface* UNetworkMoveComponent::GetMovableOwner() const
+{
+	AActor* Owner = GetOwner();
+	if (Owner == nullptr)
+	{
+		return nullptr;
+	}
+	
+	return Cast<IMovableNetworkEntityInterface>(Owner);
 }
 
 UNetworkGameInstanceSubsystem* UNetworkMoveComponent::GetNetworkGameInstanceSubsystem()

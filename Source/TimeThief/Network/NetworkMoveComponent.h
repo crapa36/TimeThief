@@ -5,6 +5,7 @@
 #include "NetworkMoveComponent.generated.h"
 
 
+class IMovableNetworkEntityInterface;
 struct FMoveSyncData;
 struct FNetworkEntityState;
 class UNetworkEntityComponent;
@@ -50,6 +51,11 @@ private:
 	
 	void ApplyRemoteInterpolation(float DeltaTime);
 	void SnapToTarget();
+	
+private:
+	bool CanSendMovePacket() const;
+	bool CanApplyRemoteInterpolation() const;
+	IMovableNetworkEntityInterface* GetMovableOwner() const;
 	
 private:
 	UNetworkGameInstanceSubsystem* GetNetworkGameInstanceSubsystem();

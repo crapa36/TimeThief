@@ -31,6 +31,19 @@ public:
 	void BroadcastRemoteAttackNotify(const FRemoteAttackNotify& AttackNotify) const;
 	
 private:
-	class UTimeThiefPawnCombatComponent* TTCombatComponent = nullptr;
+	class UNetworkGameInstanceSubsystem* GetNetworkGameInstanceSubsystem() const;
+	class UNetworkEntityComponent* GetNetworkEntityComponent() const;
+	
+	bool CanSendCombatPacket() const;
+	
+private:
+	UPROPERTY()
+	TObjectPtr<class UTimeThiefPawnCombatComponent> TTCombatComponent = nullptr;
+
+	UPROPERTY()
+	TObjectPtr<class UNetworkEntityComponent> NetworkEntityComponent = nullptr;
+	
+	UPROPERTY()
+	TObjectPtr<class UNetworkGameInstanceSubsystem> NGIS = nullptr;
 
 };

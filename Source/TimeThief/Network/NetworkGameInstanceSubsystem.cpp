@@ -228,6 +228,16 @@ void UNetworkGameInstanceSubsystem::ProcessPacket()
 	GameSession->HandleRecvPackets();
 }
 
+bool UNetworkGameInstanceSubsystem::IsConnected() const
+{
+	return bIsConnected;
+}
+
+bool UNetworkGameInstanceSubsystem::CanSendGameplayPacket() const
+{
+	return bIsConnected && GameSession != nullptr && IsRoomPlayableState(PlayState);
+}
+
 void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt)
 {
 	check(IsInGameThread());
