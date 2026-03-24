@@ -1,0 +1,97 @@
+﻿#pragma once
+
+#include "CoreMinimal.h"
+
+#include "TimeThiefCharacterBase.h"
+
+#include "Network/CombatSyncInterface.h"
+#include "Network/MovableNetworkEntityInterface.h"
+#include "Network/NetworkEntityInterface.h"
+
+#include "TimeThiefNetworkCharacterBase.generated.h"
+
+class UNetworkMoveComponent;
+
+UCLASS()
+class TIMETHIEF_API ATimeThiefNetworkCharacterBase 
+	: public ATimeThiefCharacterBase
+	, public INetworkEntityInterface
+	, public IMovableNetworkEntityInterface
+	, public ICombatSyncInterface
+{
+	GENERATED_BODY()
+
+public:
+	// Sets default values for this character's properties
+	ATimeThiefNetworkCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	virtual ~ATimeThiefNetworkCharacterBase();
+
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+public:
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+	// Called to bind functionality to input
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+// Network Entity
+public:
+	virtual UNetworkEntityComponent* GetNetworkEntityComponent() const override;
+
+// MovableNetworkEntity
+public:
+	virtual FVector GetNetworkLocation() const override;
+	virtual void SetNetworkLocation(const FVector& NewLocation) override;
+	
+	virtual float GetNetworkYaw() const override;
+	virtual void SetNetworkYaw(float NewYaw) override;
+	
+	virtual float GetNetworkPitch() const override;
+	virtual void SetNetworkPitch(float NewPitch) override;
+	
+	virtual float GetNetworkSpeed() const override;
+	virtual void SetNetworkSpeed(float NewSpeed) override;
+	
+	virtual float GetLocalControlPitch() const override;
+	virtual float GetLocalControlSpeed() const override;
+	
+	virtual FVector GetNetworkVelocity() const override;
+	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) override;
+
+// CombatSyncInterface
+public:
+	virtual class UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
+	virtual class UNetworkCombatSyncComponent* GetCombatSyncComponent() const override;
+	virtual uint32 GetCombatEntityId() const override;
+	
+// 공통 유틸
+public:
+	bool IsLocalPlayer() const;
+	uint32 GetEntityId() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "Network")
+	UNetworkMoveComponent* GetNetworkMoveComponent() const { return NetworkMoveComponent; }
+	
+	UFUNCTION(BlueprintCallable, Category = "Network")
+	UNetworkCombatSyncComponent* GetNetworkCombatSyncComponent() const { return NetworkCombatSyncComponent; }
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNetworkEntityComponent> NetworkEntityComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNetworkMoveComponent> NetworkMoveComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNetworkCombatSyncComponent> NetworkCombatSyncComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
+	float CurrentNetworkPitch = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
+	float CurrentNetworkSpeed = 0.0f;
+	
+};
