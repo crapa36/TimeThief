@@ -31,19 +31,38 @@ static constexpr ::_pbi::MigrationSchema* schemas = nullptr;
 static constexpr ::_pb::Message* const* file_default_instances = nullptr;
 
 const char descriptor_table_protodef_common_2fcommon_5fenums_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\031common/common_enums.proto\022\tse.common*\347"
-  "\001\n\tErrorCode\022\014\n\010ERR_NONE\020\000\022\017\n\013ERR_UNKNOW"
+  "\n\031common/common_enums.proto\022\tse.common*\337"
+  "\007\n\tErrorCode\022\014\n\010ERR_NONE\020\000\022\017\n\013ERR_UNKNOW"
   "N\020\001\022\026\n\022ERR_INVALID_PACKET\020\002\022\025\n\021ERR_INVAL"
-  "ID_STATE\020\003\022\031\n\025ERR_PERMISSION_DENIED\020\004\022\023\n"
-  "\017ERR_AUTH_FAILED\020d\022\031\n\025ERR_ALREADY_LOGGED"
-  "_IN\020e\022\026\n\021ERR_INVALID_LOBBY\020\310\001\022\025\n\020ERR_INV"
-  "ALID_ROOM\020\254\002\022\022\n\rERR_ROOM_FULL\020\255\002*E\n\nObje"
+  "ID_STATE\020\003\022\031\n\025ERR_PERMISSION_DENIED\020\004\022\026\n"
+  "\022ERR_INTERNAL_ERROR\020\005\022 \n\034ERR_INVALID_PRO"
+  "TOCOL_VERSION\020\n\022\033\n\027ERR_MALFORMED_HANDSHA"
+  "KE\020\013\022\023\n\017ERR_SERVER_FULL\020\014\022\023\n\017ERR_AUTH_FA"
+  "ILED\020d\022\031\n\025ERR_ALREADY_LOGGED_IN\020e\022\037\n\032ERR"
+  "_ALREADY_IN_MATCH_QUEUE\020\311\001\022\033\n\026ERR_NOT_IN"
+  "_MATCH_QUEUE\020\312\001\022\034\n\027ERR_MATCH_ALREADY_FOU"
+  "ND\020\313\001\022 \n\033ERR_MATCHMAKING_UNAVAILABLE\020\314\001\022"
+  "\025\n\020ERR_INVALID_ROOM\020\254\002\022\022\n\rERR_ROOM_FULL\020"
+  "\255\002\022\032\n\025ERR_ROOM_ENTER_DENIED\020\256\002\022\032\n\025ERR_RO"
+  "OM_NOT_ASSIGNED\020\257\002\022\024\n\017ERR_NOT_IN_ROOM\020\260\002"
+  "\022\027\n\022ERR_GAME_NOT_READY\020\220\003\022\035\n\030ERR_GAME_AL"
+  "READY_STARTED\020\221\003\022\033\n\026ERR_GAME_ALREADY_END"
+  "ED\020\222\003\022\034\n\027ERR_ENTITY_ALREADY_DEAD\020\223\003\022\033\n\026E"
+  "RR_ACTION_NOT_ALLOWED\020\224\003\022\034\n\027ERR_TARGET_O"
+  "UT_OF_RANGE\020\225\003\022\027\n\022ERR_INVALID_TARGET\020\226\003\022"
+  "\027\n\022ERR_ITEM_NOT_FOUND\020\227\003\022\035\n\030ERR_ITEM_USE"
+  "_NOT_ALLOWED\020\230\003\022\034\n\027ERR_WEAPON_NOT_EQUIPP"
+  "ED\020\231\003\022\033\n\026ERR_RELOAD_NOT_ALLOWED\020\232\003\022\023\n\016ER"
+  "R_AMMO_EMPTY\020\233\003\022\036\n\031ERR_ABILITY_NOT_AVAIL"
+  "ABLE\020\234\003\022#\n\036ERR_STORE_PURCHASE_NOT_ALLOWE"
+  "D\020\235\003\022!\n\034ERR_INSUFFICIENT_TIME_POINTS\020\236\003\022"
+  "\037\n\032ERR_SAVE_POINT_NOT_ALLOWED\020\237\003*E\n\nObje"
   "ctType\022\014\n\010OBJ_NONE\020\000\022\016\n\nOBJ_PLAYER\020\001\022\013\n\007"
   "OBJ_NPC\020\002\022\014\n\010OBJ_ITEM\020\003b\006proto3"
   ;
 static ::_pbi::once_flag descriptor_table_common_2fcommon_5fenums_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_common_2fcommon_5fenums_2eproto = {
-    false, false, 351, descriptor_table_protodef_common_2fcommon_5fenums_2eproto,
+    false, false, 1111, descriptor_table_protodef_common_2fcommon_5fenums_2eproto,
     "common/common_enums.proto",
     &descriptor_table_common_2fcommon_5fenums_2eproto_once, nullptr, 0, 0,
     schemas, file_default_instances, TableStruct_common_2fcommon_5fenums_2eproto::offsets,
@@ -69,11 +88,37 @@ bool ErrorCode_IsValid(int value) {
     case 2:
     case 3:
     case 4:
+    case 5:
+    case 10:
+    case 11:
+    case 12:
     case 100:
     case 101:
-    case 200:
+    case 201:
+    case 202:
+    case 203:
+    case 204:
     case 300:
     case 301:
+    case 302:
+    case 303:
+    case 304:
+    case 400:
+    case 401:
+    case 402:
+    case 403:
+    case 404:
+    case 405:
+    case 406:
+    case 407:
+    case 408:
+    case 409:
+    case 410:
+    case 411:
+    case 412:
+    case 413:
+    case 414:
+    case 415:
       return true;
     default:
       return false;

@@ -80,12 +80,13 @@ enum PacketRoute : int {
   AUTH = 1,
   LOBBY = 2,
   ROOM = 3,
+  GAME = 4,
   PacketRoute_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   PacketRoute_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 PROTOCOLSHAREDUE_API bool PacketRoute_IsValid(int value);
 constexpr PacketRoute PacketRoute_MIN = ROUTE_NONE;
-constexpr PacketRoute PacketRoute_MAX = ROOM;
+constexpr PacketRoute PacketRoute_MAX = GAME;
 constexpr int PacketRoute_ARRAYSIZE = PacketRoute_MAX + 1;
 
 PROTOCOLSHAREDUE_API const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* PacketRoute_descriptor();

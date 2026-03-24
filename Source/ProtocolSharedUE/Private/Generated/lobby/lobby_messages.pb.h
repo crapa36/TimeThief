@@ -50,60 +50,61 @@ struct PROTOCOLSHAREDUE_API TableStruct_lobby_2flobby_5fmessages_2eproto {
 PROTOCOLSHAREDUE_API extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_lobby_2flobby_5fmessages_2eproto;
 namespace se {
 namespace lobby {
-class C_LobbyEnterReq;
-struct C_LobbyEnterReqDefaultTypeInternal;
-PROTOCOLSHAREDUE_API extern C_LobbyEnterReqDefaultTypeInternal _C_LobbyEnterReq_default_instance_;
 class C_MatchQueueCancelReq;
 struct C_MatchQueueCancelReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_MatchQueueCancelReqDefaultTypeInternal _C_MatchQueueCancelReq_default_instance_;
 class C_MatchQueueEnterReq;
 struct C_MatchQueueEnterReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_MatchQueueEnterReqDefaultTypeInternal _C_MatchQueueEnterReq_default_instance_;
+class C_SetNicknameReq;
+struct C_SetNicknameReqDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern C_SetNicknameReqDefaultTypeInternal _C_SetNicknameReq_default_instance_;
 class N_MatchFound;
 struct N_MatchFoundDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_MatchFoundDefaultTypeInternal _N_MatchFound_default_instance_;
-class S_LobbyEnterRes;
-struct S_LobbyEnterResDefaultTypeInternal;
-PROTOCOLSHAREDUE_API extern S_LobbyEnterResDefaultTypeInternal _S_LobbyEnterRes_default_instance_;
 class S_MatchQueueCancelRes;
 struct S_MatchQueueCancelResDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern S_MatchQueueCancelResDefaultTypeInternal _S_MatchQueueCancelRes_default_instance_;
 class S_MatchQueueEnterRes;
 struct S_MatchQueueEnterResDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern S_MatchQueueEnterResDefaultTypeInternal _S_MatchQueueEnterRes_default_instance_;
+class S_SetNicknameRes;
+struct S_SetNicknameResDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern S_SetNicknameResDefaultTypeInternal _S_SetNicknameRes_default_instance_;
 }  // namespace lobby
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOCOLSHAREDUE_API ::se::lobby::C_LobbyEnterReq* Arena::CreateMaybeMessage<::se::lobby::C_LobbyEnterReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::lobby::C_MatchQueueCancelReq* Arena::CreateMaybeMessage<::se::lobby::C_MatchQueueCancelReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::lobby::C_MatchQueueEnterReq* Arena::CreateMaybeMessage<::se::lobby::C_MatchQueueEnterReq>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::lobby::C_SetNicknameReq* Arena::CreateMaybeMessage<::se::lobby::C_SetNicknameReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::lobby::N_MatchFound* Arena::CreateMaybeMessage<::se::lobby::N_MatchFound>(Arena*);
-template<> PROTOCOLSHAREDUE_API ::se::lobby::S_LobbyEnterRes* Arena::CreateMaybeMessage<::se::lobby::S_LobbyEnterRes>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::lobby::S_MatchQueueCancelRes* Arena::CreateMaybeMessage<::se::lobby::S_MatchQueueCancelRes>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::lobby::S_MatchQueueEnterRes* Arena::CreateMaybeMessage<::se::lobby::S_MatchQueueEnterRes>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::lobby::S_SetNicknameRes* Arena::CreateMaybeMessage<::se::lobby::S_SetNicknameRes>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
 namespace lobby {
 
 // ===================================================================
 
-class PROTOCOLSHAREDUE_API C_LobbyEnterReq final :
-    public ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase /* @@protoc_insertion_point(class_definition:se.lobby.C_LobbyEnterReq) */ {
+class PROTOCOLSHAREDUE_API C_SetNicknameReq final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.lobby.C_SetNicknameReq) */ {
  public:
-  inline C_LobbyEnterReq() : C_LobbyEnterReq(nullptr) {}
-  explicit PROTOBUF_CONSTEXPR C_LobbyEnterReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+  inline C_SetNicknameReq() : C_SetNicknameReq(nullptr) {}
+  ~C_SetNicknameReq() override;
+  explicit PROTOBUF_CONSTEXPR C_SetNicknameReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
 
-  C_LobbyEnterReq(const C_LobbyEnterReq& from);
-  C_LobbyEnterReq(C_LobbyEnterReq&& from) noexcept
-    : C_LobbyEnterReq() {
+  C_SetNicknameReq(const C_SetNicknameReq& from);
+  C_SetNicknameReq(C_SetNicknameReq&& from) noexcept
+    : C_SetNicknameReq() {
     *this = ::std::move(from);
   }
 
-  inline C_LobbyEnterReq& operator=(const C_LobbyEnterReq& from) {
+  inline C_SetNicknameReq& operator=(const C_SetNicknameReq& from) {
     CopyFrom(from);
     return *this;
   }
-  inline C_LobbyEnterReq& operator=(C_LobbyEnterReq&& from) noexcept {
+  inline C_SetNicknameReq& operator=(C_SetNicknameReq&& from) noexcept {
     if (this == &from) return *this;
     if (GetOwningArena() == from.GetOwningArena()
   #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
@@ -126,20 +127,20 @@ class PROTOCOLSHAREDUE_API C_LobbyEnterReq final :
   static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const C_LobbyEnterReq& default_instance() {
+  static const C_SetNicknameReq& default_instance() {
     return *internal_default_instance();
   }
-  static inline const C_LobbyEnterReq* internal_default_instance() {
-    return reinterpret_cast<const C_LobbyEnterReq*>(
-               &_C_LobbyEnterReq_default_instance_);
+  static inline const C_SetNicknameReq* internal_default_instance() {
+    return reinterpret_cast<const C_SetNicknameReq*>(
+               &_C_SetNicknameReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
     0;
 
-  friend void swap(C_LobbyEnterReq& a, C_LobbyEnterReq& b) {
+  friend void swap(C_SetNicknameReq& a, C_SetNicknameReq& b) {
     a.Swap(&b);
   }
-  inline void Swap(C_LobbyEnterReq* other) {
+  inline void Swap(C_SetNicknameReq* other) {
     if (other == this) return;
   #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
     if (GetOwningArena() != nullptr &&
@@ -152,7 +153,7 @@ class PROTOCOLSHAREDUE_API C_LobbyEnterReq final :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(C_LobbyEnterReq* other) {
+  void UnsafeArenaSwap(C_SetNicknameReq* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
     InternalSwap(other);
@@ -160,133 +161,14 @@ class PROTOCOLSHAREDUE_API C_LobbyEnterReq final :
 
   // implements Message ----------------------------------------------
 
-  C_LobbyEnterReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<C_LobbyEnterReq>(arena);
-  }
-  using ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyFrom;
-  inline void CopyFrom(const C_LobbyEnterReq& from) {
-    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyImpl(*this, from);
-  }
-  using ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeFrom;
-  void MergeFrom(const C_LobbyEnterReq& from) {
-    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeImpl(*this, from);
-  }
-  public:
-
-  private:
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "se.lobby.C_LobbyEnterReq";
-  }
-  protected:
-  explicit C_LobbyEnterReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                       bool is_message_owned = false);
-  public:
-
-  static const ClassData _class_data_;
-  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  // @@protoc_insertion_point(class_scope:se.lobby.C_LobbyEnterReq)
- private:
-  class _Internal;
-
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  struct Impl_ {
-  };
-  friend struct ::TableStruct_lobby_2flobby_5fmessages_2eproto;
-};
-// -------------------------------------------------------------------
-
-class PROTOCOLSHAREDUE_API S_LobbyEnterRes final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.lobby.S_LobbyEnterRes) */ {
- public:
-  inline S_LobbyEnterRes() : S_LobbyEnterRes(nullptr) {}
-  ~S_LobbyEnterRes() override;
-  explicit PROTOBUF_CONSTEXPR S_LobbyEnterRes(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
-
-  S_LobbyEnterRes(const S_LobbyEnterRes& from);
-  S_LobbyEnterRes(S_LobbyEnterRes&& from) noexcept
-    : S_LobbyEnterRes() {
-    *this = ::std::move(from);
-  }
-
-  inline S_LobbyEnterRes& operator=(const S_LobbyEnterRes& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline S_LobbyEnterRes& operator=(S_LobbyEnterRes&& from) noexcept {
-    if (this == &from) return *this;
-    if (GetOwningArena() == from.GetOwningArena()
-  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-        && GetOwningArena() != nullptr
-  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
-    ) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const S_LobbyEnterRes& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const S_LobbyEnterRes* internal_default_instance() {
-    return reinterpret_cast<const S_LobbyEnterRes*>(
-               &_S_LobbyEnterRes_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    1;
-
-  friend void swap(S_LobbyEnterRes& a, S_LobbyEnterRes& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(S_LobbyEnterRes* other) {
-    if (other == this) return;
-  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() != nullptr &&
-        GetOwningArena() == other->GetOwningArena()) {
-   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() == other->GetOwningArena()) {
-  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(S_LobbyEnterRes* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  S_LobbyEnterRes* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<S_LobbyEnterRes>(arena);
+  C_SetNicknameReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_SetNicknameReq>(arena);
   }
   using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const S_LobbyEnterRes& from);
+  void CopyFrom(const C_SetNicknameReq& from);
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const S_LobbyEnterRes& from) {
-    S_LobbyEnterRes::MergeImpl(*this, from);
+  void MergeFrom( const C_SetNicknameReq& from) {
+    C_SetNicknameReq::MergeImpl(*this, from);
   }
   private:
   static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
@@ -304,15 +186,15 @@ class PROTOCOLSHAREDUE_API S_LobbyEnterRes final :
   void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
   void SharedDtor();
   void SetCachedSize(int size) const final;
-  void InternalSwap(S_LobbyEnterRes* other);
+  void InternalSwap(C_SetNicknameReq* other);
 
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "se.lobby.S_LobbyEnterRes";
+    return "se.lobby.C_SetNicknameReq";
   }
   protected:
-  explicit S_LobbyEnterRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+  explicit C_SetNicknameReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                        bool is_message_owned = false);
   public:
 
@@ -326,10 +208,178 @@ class PROTOCOLSHAREDUE_API S_LobbyEnterRes final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kResultFieldNumber = 1,
-    kProfileFieldNumber = 2,
+    kNicknameFieldNumber = 1,
   };
-  // .se.common.Result result = 1;
+  // string nickname = 1;
+  void clear_nickname();
+  const std::string& nickname() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_nickname(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_nickname();
+  PROTOBUF_NODISCARD std::string* release_nickname();
+  void set_allocated_nickname(std::string* nickname);
+  private:
+  const std::string& _internal_nickname() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_nickname(const std::string& value);
+  std::string* _internal_mutable_nickname();
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.lobby.C_SetNicknameReq)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr nickname_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_lobby_2flobby_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API S_SetNicknameRes final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.lobby.S_SetNicknameRes) */ {
+ public:
+  inline S_SetNicknameRes() : S_SetNicknameRes(nullptr) {}
+  ~S_SetNicknameRes() override;
+  explicit PROTOBUF_CONSTEXPR S_SetNicknameRes(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_SetNicknameRes(const S_SetNicknameRes& from);
+  S_SetNicknameRes(S_SetNicknameRes&& from) noexcept
+    : S_SetNicknameRes() {
+    *this = ::std::move(from);
+  }
+
+  inline S_SetNicknameRes& operator=(const S_SetNicknameRes& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_SetNicknameRes& operator=(S_SetNicknameRes&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_SetNicknameRes& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_SetNicknameRes* internal_default_instance() {
+    return reinterpret_cast<const S_SetNicknameRes*>(
+               &_S_SetNicknameRes_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    1;
+
+  friend void swap(S_SetNicknameRes& a, S_SetNicknameRes& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_SetNicknameRes* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_SetNicknameRes* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_SetNicknameRes* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_SetNicknameRes>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const S_SetNicknameRes& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const S_SetNicknameRes& from) {
+    S_SetNicknameRes::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(S_SetNicknameRes* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.lobby.S_SetNicknameRes";
+  }
+  protected:
+  explicit S_SetNicknameRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kNicknameFieldNumber = 3,
+    kResultFieldNumber = 2,
+    kSuccessFieldNumber = 1,
+  };
+  // string nickname = 3;
+  void clear_nickname();
+  const std::string& nickname() const;
+  template <typename ArgT0 = const std::string&, typename... ArgT>
+  void set_nickname(ArgT0&& arg0, ArgT... args);
+  std::string* mutable_nickname();
+  PROTOBUF_NODISCARD std::string* release_nickname();
+  void set_allocated_nickname(std::string* nickname);
+  private:
+  const std::string& _internal_nickname() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_nickname(const std::string& value);
+  std::string* _internal_mutable_nickname();
+  public:
+
+  // .se.common.Result result = 2;
   bool has_result() const;
   private:
   bool _internal_has_result() const;
@@ -347,25 +397,16 @@ class PROTOCOLSHAREDUE_API S_LobbyEnterRes final :
       ::se::common::Result* result);
   ::se::common::Result* unsafe_arena_release_result();
 
-  // .se.lobby.PlayerProfile profile = 2;
-  bool has_profile() const;
+  // bool success = 1;
+  void clear_success();
+  bool success() const;
+  void set_success(bool value);
   private:
-  bool _internal_has_profile() const;
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
   public:
-  void clear_profile();
-  const ::se::lobby::PlayerProfile& profile() const;
-  PROTOBUF_NODISCARD ::se::lobby::PlayerProfile* release_profile();
-  ::se::lobby::PlayerProfile* mutable_profile();
-  void set_allocated_profile(::se::lobby::PlayerProfile* profile);
-  private:
-  const ::se::lobby::PlayerProfile& _internal_profile() const;
-  ::se::lobby::PlayerProfile* _internal_mutable_profile();
-  public:
-  void unsafe_arena_set_allocated_profile(
-      ::se::lobby::PlayerProfile* profile);
-  ::se::lobby::PlayerProfile* unsafe_arena_release_profile();
 
-  // @@protoc_insertion_point(class_scope:se.lobby.S_LobbyEnterRes)
+  // @@protoc_insertion_point(class_scope:se.lobby.S_SetNicknameRes)
  private:
   class _Internal;
 
@@ -373,8 +414,9 @@ class PROTOCOLSHAREDUE_API S_LobbyEnterRes final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr nickname_;
     ::se::common::Result* result_;
-    ::se::lobby::PlayerProfile* profile_;
+    bool success_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -383,10 +425,9 @@ class PROTOCOLSHAREDUE_API S_LobbyEnterRes final :
 // -------------------------------------------------------------------
 
 class PROTOCOLSHAREDUE_API C_MatchQueueEnterReq final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.lobby.C_MatchQueueEnterReq) */ {
+    public ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase /* @@protoc_insertion_point(class_definition:se.lobby.C_MatchQueueEnterReq) */ {
  public:
   inline C_MatchQueueEnterReq() : C_MatchQueueEnterReq(nullptr) {}
-  ~C_MatchQueueEnterReq() override;
   explicit PROTOBUF_CONSTEXPR C_MatchQueueEnterReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
 
   C_MatchQueueEnterReq(const C_MatchQueueEnterReq& from);
@@ -459,29 +500,15 @@ class PROTOCOLSHAREDUE_API C_MatchQueueEnterReq final :
   C_MatchQueueEnterReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
     return CreateMaybeMessage<C_MatchQueueEnterReq>(arena);
   }
-  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const C_MatchQueueEnterReq& from);
-  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const C_MatchQueueEnterReq& from) {
-    C_MatchQueueEnterReq::MergeImpl(*this, from);
+  using ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const C_MatchQueueEnterReq& from) {
+    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyImpl(*this, from);
   }
-  private:
-  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  using ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const C_MatchQueueEnterReq& from) {
+    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
   public:
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  uint8_t* _InternalSerialize(
-      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(C_MatchQueueEnterReq* other);
 
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
@@ -502,18 +529,6 @@ class PROTOCOLSHAREDUE_API C_MatchQueueEnterReq final :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kPlaylistIdFieldNumber = 1,
-  };
-  // uint32 playlist_id = 1;
-  void clear_playlist_id();
-  uint32_t playlist_id() const;
-  void set_playlist_id(uint32_t value);
-  private:
-  uint32_t _internal_playlist_id() const;
-  void _internal_set_playlist_id(uint32_t value);
-  public:
-
   // @@protoc_insertion_point(class_scope:se.lobby.C_MatchQueueEnterReq)
  private:
   class _Internal;
@@ -522,10 +537,7 @@ class PROTOCOLSHAREDUE_API C_MatchQueueEnterReq final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    uint32_t playlist_id_;
-    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
-  union { Impl_ _impl_; };
   friend struct ::TableStruct_lobby_2flobby_5fmessages_2eproto;
 };
 // -------------------------------------------------------------------
@@ -651,9 +663,10 @@ class PROTOCOLSHAREDUE_API S_MatchQueueEnterRes final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kResultFieldNumber = 1,
+    kResultFieldNumber = 2,
+    kSuccessFieldNumber = 1,
   };
-  // .se.common.Result result = 1;
+  // .se.common.Result result = 2;
   bool has_result() const;
   private:
   bool _internal_has_result() const;
@@ -671,6 +684,15 @@ class PROTOCOLSHAREDUE_API S_MatchQueueEnterRes final :
       ::se::common::Result* result);
   ::se::common::Result* unsafe_arena_release_result();
 
+  // bool success = 1;
+  void clear_success();
+  bool success() const;
+  void set_success(bool value);
+  private:
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.lobby.S_MatchQueueEnterRes)
  private:
   class _Internal;
@@ -680,6 +702,7 @@ class PROTOCOLSHAREDUE_API S_MatchQueueEnterRes final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::Result* result_;
+    bool success_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -926,9 +949,10 @@ class PROTOCOLSHAREDUE_API S_MatchQueueCancelRes final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kResultFieldNumber = 1,
+    kResultFieldNumber = 2,
+    kSuccessFieldNumber = 1,
   };
-  // .se.common.Result result = 1;
+  // .se.common.Result result = 2;
   bool has_result() const;
   private:
   bool _internal_has_result() const;
@@ -946,6 +970,15 @@ class PROTOCOLSHAREDUE_API S_MatchQueueCancelRes final :
       ::se::common::Result* result);
   ::se::common::Result* unsafe_arena_release_result();
 
+  // bool success = 1;
+  void clear_success();
+  bool success() const;
+  void set_success(bool value);
+  private:
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.lobby.S_MatchQueueCancelRes)
  private:
   class _Internal;
@@ -955,6 +988,7 @@ class PROTOCOLSHAREDUE_API S_MatchQueueCancelRes final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::Result* result_;
+    bool success_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1117,29 +1151,99 @@ class PROTOCOLSHAREDUE_API N_MatchFound final :
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// C_LobbyEnterReq
+// C_SetNicknameReq
+
+// string nickname = 1;
+inline void C_SetNicknameReq::clear_nickname() {
+  _impl_.nickname_.ClearToEmpty();
+}
+inline const std::string& C_SetNicknameReq::nickname() const {
+  // @@protoc_insertion_point(field_get:se.lobby.C_SetNicknameReq.nickname)
+  return _internal_nickname();
+}
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void C_SetNicknameReq::set_nickname(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.nickname_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:se.lobby.C_SetNicknameReq.nickname)
+}
+inline std::string* C_SetNicknameReq::mutable_nickname() {
+  std::string* _s = _internal_mutable_nickname();
+  // @@protoc_insertion_point(field_mutable:se.lobby.C_SetNicknameReq.nickname)
+  return _s;
+}
+inline const std::string& C_SetNicknameReq::_internal_nickname() const {
+  return _impl_.nickname_.Get();
+}
+inline void C_SetNicknameReq::_internal_set_nickname(const std::string& value) {
+  
+  _impl_.nickname_.Set(value, GetArenaForAllocation());
+}
+inline std::string* C_SetNicknameReq::_internal_mutable_nickname() {
+  
+  return _impl_.nickname_.Mutable(GetArenaForAllocation());
+}
+inline std::string* C_SetNicknameReq::release_nickname() {
+  // @@protoc_insertion_point(field_release:se.lobby.C_SetNicknameReq.nickname)
+  return _impl_.nickname_.Release();
+}
+inline void C_SetNicknameReq::set_allocated_nickname(std::string* nickname) {
+  if (nickname != nullptr) {
+    
+  } else {
+    
+  }
+  _impl_.nickname_.SetAllocated(nickname, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.nickname_.IsDefault()) {
+    _impl_.nickname_.Set("", GetArenaForAllocation());
+  }
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:se.lobby.C_SetNicknameReq.nickname)
+}
 
 // -------------------------------------------------------------------
 
-// S_LobbyEnterRes
+// S_SetNicknameRes
 
-// .se.common.Result result = 1;
-inline bool S_LobbyEnterRes::_internal_has_result() const {
+// bool success = 1;
+inline void S_SetNicknameRes::clear_success() {
+  _impl_.success_ = false;
+}
+inline bool S_SetNicknameRes::_internal_success() const {
+  return _impl_.success_;
+}
+inline bool S_SetNicknameRes::success() const {
+  // @@protoc_insertion_point(field_get:se.lobby.S_SetNicknameRes.success)
+  return _internal_success();
+}
+inline void S_SetNicknameRes::_internal_set_success(bool value) {
+  
+  _impl_.success_ = value;
+}
+inline void S_SetNicknameRes::set_success(bool value) {
+  _internal_set_success(value);
+  // @@protoc_insertion_point(field_set:se.lobby.S_SetNicknameRes.success)
+}
+
+// .se.common.Result result = 2;
+inline bool S_SetNicknameRes::_internal_has_result() const {
   return this != internal_default_instance() && _impl_.result_ != nullptr;
 }
-inline bool S_LobbyEnterRes::has_result() const {
+inline bool S_SetNicknameRes::has_result() const {
   return _internal_has_result();
 }
-inline const ::se::common::Result& S_LobbyEnterRes::_internal_result() const {
+inline const ::se::common::Result& S_SetNicknameRes::_internal_result() const {
   const ::se::common::Result* p = _impl_.result_;
   return p != nullptr ? *p : reinterpret_cast<const ::se::common::Result&>(
       ::se::common::_Result_default_instance_);
 }
-inline const ::se::common::Result& S_LobbyEnterRes::result() const {
-  // @@protoc_insertion_point(field_get:se.lobby.S_LobbyEnterRes.result)
+inline const ::se::common::Result& S_SetNicknameRes::result() const {
+  // @@protoc_insertion_point(field_get:se.lobby.S_SetNicknameRes.result)
   return _internal_result();
 }
-inline void S_LobbyEnterRes::unsafe_arena_set_allocated_result(
+inline void S_SetNicknameRes::unsafe_arena_set_allocated_result(
     ::se::common::Result* result) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.result_);
@@ -1150,9 +1254,9 @@ inline void S_LobbyEnterRes::unsafe_arena_set_allocated_result(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.lobby.S_LobbyEnterRes.result)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.lobby.S_SetNicknameRes.result)
 }
-inline ::se::common::Result* S_LobbyEnterRes::release_result() {
+inline ::se::common::Result* S_SetNicknameRes::release_result() {
   
   ::se::common::Result* temp = _impl_.result_;
   _impl_.result_ = nullptr;
@@ -1167,14 +1271,14 @@ inline ::se::common::Result* S_LobbyEnterRes::release_result() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::se::common::Result* S_LobbyEnterRes::unsafe_arena_release_result() {
-  // @@protoc_insertion_point(field_release:se.lobby.S_LobbyEnterRes.result)
+inline ::se::common::Result* S_SetNicknameRes::unsafe_arena_release_result() {
+  // @@protoc_insertion_point(field_release:se.lobby.S_SetNicknameRes.result)
   
   ::se::common::Result* temp = _impl_.result_;
   _impl_.result_ = nullptr;
   return temp;
 }
-inline ::se::common::Result* S_LobbyEnterRes::_internal_mutable_result() {
+inline ::se::common::Result* S_SetNicknameRes::_internal_mutable_result() {
   
   if (_impl_.result_ == nullptr) {
     auto* p = CreateMaybeMessage<::se::common::Result>(GetArenaForAllocation());
@@ -1182,12 +1286,12 @@ inline ::se::common::Result* S_LobbyEnterRes::_internal_mutable_result() {
   }
   return _impl_.result_;
 }
-inline ::se::common::Result* S_LobbyEnterRes::mutable_result() {
+inline ::se::common::Result* S_SetNicknameRes::mutable_result() {
   ::se::common::Result* _msg = _internal_mutable_result();
-  // @@protoc_insertion_point(field_mutable:se.lobby.S_LobbyEnterRes.result)
+  // @@protoc_insertion_point(field_mutable:se.lobby.S_SetNicknameRes.result)
   return _msg;
 }
-inline void S_LobbyEnterRes::set_allocated_result(::se::common::Result* result) {
+inline void S_SetNicknameRes::set_allocated_result(::se::common::Result* result) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.result_);
@@ -1205,123 +1309,88 @@ inline void S_LobbyEnterRes::set_allocated_result(::se::common::Result* result) 
     
   }
   _impl_.result_ = result;
-  // @@protoc_insertion_point(field_set_allocated:se.lobby.S_LobbyEnterRes.result)
+  // @@protoc_insertion_point(field_set_allocated:se.lobby.S_SetNicknameRes.result)
 }
 
-// .se.lobby.PlayerProfile profile = 2;
-inline bool S_LobbyEnterRes::_internal_has_profile() const {
-  return this != internal_default_instance() && _impl_.profile_ != nullptr;
+// string nickname = 3;
+inline void S_SetNicknameRes::clear_nickname() {
+  _impl_.nickname_.ClearToEmpty();
 }
-inline bool S_LobbyEnterRes::has_profile() const {
-  return _internal_has_profile();
+inline const std::string& S_SetNicknameRes::nickname() const {
+  // @@protoc_insertion_point(field_get:se.lobby.S_SetNicknameRes.nickname)
+  return _internal_nickname();
 }
-inline const ::se::lobby::PlayerProfile& S_LobbyEnterRes::_internal_profile() const {
-  const ::se::lobby::PlayerProfile* p = _impl_.profile_;
-  return p != nullptr ? *p : reinterpret_cast<const ::se::lobby::PlayerProfile&>(
-      ::se::lobby::_PlayerProfile_default_instance_);
+template <typename ArgT0, typename... ArgT>
+inline PROTOBUF_ALWAYS_INLINE
+void S_SetNicknameRes::set_nickname(ArgT0&& arg0, ArgT... args) {
+ 
+ _impl_.nickname_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
+  // @@protoc_insertion_point(field_set:se.lobby.S_SetNicknameRes.nickname)
 }
-inline const ::se::lobby::PlayerProfile& S_LobbyEnterRes::profile() const {
-  // @@protoc_insertion_point(field_get:se.lobby.S_LobbyEnterRes.profile)
-  return _internal_profile();
+inline std::string* S_SetNicknameRes::mutable_nickname() {
+  std::string* _s = _internal_mutable_nickname();
+  // @@protoc_insertion_point(field_mutable:se.lobby.S_SetNicknameRes.nickname)
+  return _s;
 }
-inline void S_LobbyEnterRes::unsafe_arena_set_allocated_profile(
-    ::se::lobby::PlayerProfile* profile) {
-  if (GetArenaForAllocation() == nullptr) {
-    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.profile_);
-  }
-  _impl_.profile_ = profile;
-  if (profile) {
+inline const std::string& S_SetNicknameRes::_internal_nickname() const {
+  return _impl_.nickname_.Get();
+}
+inline void S_SetNicknameRes::_internal_set_nickname(const std::string& value) {
+  
+  _impl_.nickname_.Set(value, GetArenaForAllocation());
+}
+inline std::string* S_SetNicknameRes::_internal_mutable_nickname() {
+  
+  return _impl_.nickname_.Mutable(GetArenaForAllocation());
+}
+inline std::string* S_SetNicknameRes::release_nickname() {
+  // @@protoc_insertion_point(field_release:se.lobby.S_SetNicknameRes.nickname)
+  return _impl_.nickname_.Release();
+}
+inline void S_SetNicknameRes::set_allocated_nickname(std::string* nickname) {
+  if (nickname != nullptr) {
     
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.lobby.S_LobbyEnterRes.profile)
-}
-inline ::se::lobby::PlayerProfile* S_LobbyEnterRes::release_profile() {
-  
-  ::se::lobby::PlayerProfile* temp = _impl_.profile_;
-  _impl_.profile_ = nullptr;
-#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
-  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
-  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  if (GetArenaForAllocation() == nullptr) { delete old; }
-#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
-  if (GetArenaForAllocation() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  _impl_.nickname_.SetAllocated(nickname, GetArenaForAllocation());
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (_impl_.nickname_.IsDefault()) {
+    _impl_.nickname_.Set("", GetArenaForAllocation());
   }
-#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
-  return temp;
-}
-inline ::se::lobby::PlayerProfile* S_LobbyEnterRes::unsafe_arena_release_profile() {
-  // @@protoc_insertion_point(field_release:se.lobby.S_LobbyEnterRes.profile)
-  
-  ::se::lobby::PlayerProfile* temp = _impl_.profile_;
-  _impl_.profile_ = nullptr;
-  return temp;
-}
-inline ::se::lobby::PlayerProfile* S_LobbyEnterRes::_internal_mutable_profile() {
-  
-  if (_impl_.profile_ == nullptr) {
-    auto* p = CreateMaybeMessage<::se::lobby::PlayerProfile>(GetArenaForAllocation());
-    _impl_.profile_ = p;
-  }
-  return _impl_.profile_;
-}
-inline ::se::lobby::PlayerProfile* S_LobbyEnterRes::mutable_profile() {
-  ::se::lobby::PlayerProfile* _msg = _internal_mutable_profile();
-  // @@protoc_insertion_point(field_mutable:se.lobby.S_LobbyEnterRes.profile)
-  return _msg;
-}
-inline void S_LobbyEnterRes::set_allocated_profile(::se::lobby::PlayerProfile* profile) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
-  if (message_arena == nullptr) {
-    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.profile_);
-  }
-  if (profile) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
-                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(profile));
-    if (message_arena != submessage_arena) {
-      profile = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, profile, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  _impl_.profile_ = profile;
-  // @@protoc_insertion_point(field_set_allocated:se.lobby.S_LobbyEnterRes.profile)
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:se.lobby.S_SetNicknameRes.nickname)
 }
 
 // -------------------------------------------------------------------
 
 // C_MatchQueueEnterReq
 
-// uint32 playlist_id = 1;
-inline void C_MatchQueueEnterReq::clear_playlist_id() {
-  _impl_.playlist_id_ = 0u;
-}
-inline uint32_t C_MatchQueueEnterReq::_internal_playlist_id() const {
-  return _impl_.playlist_id_;
-}
-inline uint32_t C_MatchQueueEnterReq::playlist_id() const {
-  // @@protoc_insertion_point(field_get:se.lobby.C_MatchQueueEnterReq.playlist_id)
-  return _internal_playlist_id();
-}
-inline void C_MatchQueueEnterReq::_internal_set_playlist_id(uint32_t value) {
-  
-  _impl_.playlist_id_ = value;
-}
-inline void C_MatchQueueEnterReq::set_playlist_id(uint32_t value) {
-  _internal_set_playlist_id(value);
-  // @@protoc_insertion_point(field_set:se.lobby.C_MatchQueueEnterReq.playlist_id)
-}
-
 // -------------------------------------------------------------------
 
 // S_MatchQueueEnterRes
 
-// .se.common.Result result = 1;
+// bool success = 1;
+inline void S_MatchQueueEnterRes::clear_success() {
+  _impl_.success_ = false;
+}
+inline bool S_MatchQueueEnterRes::_internal_success() const {
+  return _impl_.success_;
+}
+inline bool S_MatchQueueEnterRes::success() const {
+  // @@protoc_insertion_point(field_get:se.lobby.S_MatchQueueEnterRes.success)
+  return _internal_success();
+}
+inline void S_MatchQueueEnterRes::_internal_set_success(bool value) {
+  
+  _impl_.success_ = value;
+}
+inline void S_MatchQueueEnterRes::set_success(bool value) {
+  _internal_set_success(value);
+  // @@protoc_insertion_point(field_set:se.lobby.S_MatchQueueEnterRes.success)
+}
+
+// .se.common.Result result = 2;
 inline bool S_MatchQueueEnterRes::_internal_has_result() const {
   return this != internal_default_instance() && _impl_.result_ != nullptr;
 }
@@ -1414,7 +1483,27 @@ inline void S_MatchQueueEnterRes::set_allocated_result(::se::common::Result* res
 
 // S_MatchQueueCancelRes
 
-// .se.common.Result result = 1;
+// bool success = 1;
+inline void S_MatchQueueCancelRes::clear_success() {
+  _impl_.success_ = false;
+}
+inline bool S_MatchQueueCancelRes::_internal_success() const {
+  return _impl_.success_;
+}
+inline bool S_MatchQueueCancelRes::success() const {
+  // @@protoc_insertion_point(field_get:se.lobby.S_MatchQueueCancelRes.success)
+  return _internal_success();
+}
+inline void S_MatchQueueCancelRes::_internal_set_success(bool value) {
+  
+  _impl_.success_ = value;
+}
+inline void S_MatchQueueCancelRes::set_success(bool value) {
+  _internal_set_success(value);
+  // @@protoc_insertion_point(field_set:se.lobby.S_MatchQueueCancelRes.success)
+}
+
+// .se.common.Result result = 2;
 inline bool S_MatchQueueCancelRes::_internal_has_result() const {
   return this != internal_default_instance() && _impl_.result_ != nullptr;
 }

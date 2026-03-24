@@ -46,37 +46,37 @@ struct PROTOCOLSHAREDUE_API TableStruct_auth_2fauth_5ftypes_2eproto {
 PROTOCOLSHAREDUE_API extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_auth_2fauth_5ftypes_2eproto;
 namespace se {
 namespace auth {
-class AuthToken;
-struct AuthTokenDefaultTypeInternal;
-PROTOCOLSHAREDUE_API extern AuthTokenDefaultTypeInternal _AuthToken_default_instance_;
+class RuntimeConfig;
+struct RuntimeConfigDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern RuntimeConfigDefaultTypeInternal _RuntimeConfig_default_instance_;
 }  // namespace auth
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOCOLSHAREDUE_API ::se::auth::AuthToken* Arena::CreateMaybeMessage<::se::auth::AuthToken>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::auth::RuntimeConfig* Arena::CreateMaybeMessage<::se::auth::RuntimeConfig>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
 namespace auth {
 
 // ===================================================================
 
-class PROTOCOLSHAREDUE_API AuthToken final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.auth.AuthToken) */ {
+class PROTOCOLSHAREDUE_API RuntimeConfig final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.auth.RuntimeConfig) */ {
  public:
-  inline AuthToken() : AuthToken(nullptr) {}
-  ~AuthToken() override;
-  explicit PROTOBUF_CONSTEXPR AuthToken(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+  inline RuntimeConfig() : RuntimeConfig(nullptr) {}
+  ~RuntimeConfig() override;
+  explicit PROTOBUF_CONSTEXPR RuntimeConfig(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
 
-  AuthToken(const AuthToken& from);
-  AuthToken(AuthToken&& from) noexcept
-    : AuthToken() {
+  RuntimeConfig(const RuntimeConfig& from);
+  RuntimeConfig(RuntimeConfig&& from) noexcept
+    : RuntimeConfig() {
     *this = ::std::move(from);
   }
 
-  inline AuthToken& operator=(const AuthToken& from) {
+  inline RuntimeConfig& operator=(const RuntimeConfig& from) {
     CopyFrom(from);
     return *this;
   }
-  inline AuthToken& operator=(AuthToken&& from) noexcept {
+  inline RuntimeConfig& operator=(RuntimeConfig&& from) noexcept {
     if (this == &from) return *this;
     if (GetOwningArena() == from.GetOwningArena()
   #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
@@ -99,20 +99,20 @@ class PROTOCOLSHAREDUE_API AuthToken final :
   static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const AuthToken& default_instance() {
+  static const RuntimeConfig& default_instance() {
     return *internal_default_instance();
   }
-  static inline const AuthToken* internal_default_instance() {
-    return reinterpret_cast<const AuthToken*>(
-               &_AuthToken_default_instance_);
+  static inline const RuntimeConfig* internal_default_instance() {
+    return reinterpret_cast<const RuntimeConfig*>(
+               &_RuntimeConfig_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
     0;
 
-  friend void swap(AuthToken& a, AuthToken& b) {
+  friend void swap(RuntimeConfig& a, RuntimeConfig& b) {
     a.Swap(&b);
   }
-  inline void Swap(AuthToken* other) {
+  inline void Swap(RuntimeConfig* other) {
     if (other == this) return;
   #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
     if (GetOwningArena() != nullptr &&
@@ -125,7 +125,7 @@ class PROTOCOLSHAREDUE_API AuthToken final :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(AuthToken* other) {
+  void UnsafeArenaSwap(RuntimeConfig* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
     InternalSwap(other);
@@ -133,14 +133,14 @@ class PROTOCOLSHAREDUE_API AuthToken final :
 
   // implements Message ----------------------------------------------
 
-  AuthToken* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<AuthToken>(arena);
+  RuntimeConfig* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<RuntimeConfig>(arena);
   }
   using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const AuthToken& from);
+  void CopyFrom(const RuntimeConfig& from);
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const AuthToken& from) {
-    AuthToken::MergeImpl(*this, from);
+  void MergeFrom( const RuntimeConfig& from) {
+    RuntimeConfig::MergeImpl(*this, from);
   }
   private:
   static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
@@ -158,15 +158,15 @@ class PROTOCOLSHAREDUE_API AuthToken final :
   void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
   void SharedDtor();
   void SetCachedSize(int size) const final;
-  void InternalSwap(AuthToken* other);
+  void InternalSwap(RuntimeConfig* other);
 
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "se.auth.AuthToken";
+    return "se.auth.RuntimeConfig";
   }
   protected:
-  explicit AuthToken(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+  explicit RuntimeConfig(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                        bool is_message_owned = false);
   public:
 
@@ -180,23 +180,28 @@ class PROTOCOLSHAREDUE_API AuthToken final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kAccessTokenFieldNumber = 1,
+    kMovementUpdateHzFieldNumber = 1,
+    kPingIntervalMsFieldNumber = 2,
   };
-  // string access_token = 1;
-  void clear_access_token();
-  const std::string& access_token() const;
-  template <typename ArgT0 = const std::string&, typename... ArgT>
-  void set_access_token(ArgT0&& arg0, ArgT... args);
-  std::string* mutable_access_token();
-  PROTOBUF_NODISCARD std::string* release_access_token();
-  void set_allocated_access_token(std::string* access_token);
+  // uint32 movement_update_hz = 1;
+  void clear_movement_update_hz();
+  uint32_t movement_update_hz() const;
+  void set_movement_update_hz(uint32_t value);
   private:
-  const std::string& _internal_access_token() const;
-  inline PROTOBUF_ALWAYS_INLINE void _internal_set_access_token(const std::string& value);
-  std::string* _internal_mutable_access_token();
+  uint32_t _internal_movement_update_hz() const;
+  void _internal_set_movement_update_hz(uint32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:se.auth.AuthToken)
+  // uint32 ping_interval_ms = 2;
+  void clear_ping_interval_ms();
+  uint32_t ping_interval_ms() const;
+  void set_ping_interval_ms(uint32_t value);
+  private:
+  uint32_t _internal_ping_interval_ms() const;
+  void _internal_set_ping_interval_ms(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.auth.RuntimeConfig)
  private:
   class _Internal;
 
@@ -204,7 +209,8 @@ class PROTOCOLSHAREDUE_API AuthToken final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr access_token_;
+    uint32_t movement_update_hz_;
+    uint32_t ping_interval_ms_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -219,56 +225,46 @@ class PROTOCOLSHAREDUE_API AuthToken final :
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #endif  // __GNUC__
-// AuthToken
+// RuntimeConfig
 
-// string access_token = 1;
-inline void AuthToken::clear_access_token() {
-  _impl_.access_token_.ClearToEmpty();
+// uint32 movement_update_hz = 1;
+inline void RuntimeConfig::clear_movement_update_hz() {
+  _impl_.movement_update_hz_ = 0u;
 }
-inline const std::string& AuthToken::access_token() const {
-  // @@protoc_insertion_point(field_get:se.auth.AuthToken.access_token)
-  return _internal_access_token();
+inline uint32_t RuntimeConfig::_internal_movement_update_hz() const {
+  return _impl_.movement_update_hz_;
 }
-template <typename ArgT0, typename... ArgT>
-inline PROTOBUF_ALWAYS_INLINE
-void AuthToken::set_access_token(ArgT0&& arg0, ArgT... args) {
- 
- _impl_.access_token_.Set(static_cast<ArgT0 &&>(arg0), args..., GetArenaForAllocation());
-  // @@protoc_insertion_point(field_set:se.auth.AuthToken.access_token)
+inline uint32_t RuntimeConfig::movement_update_hz() const {
+  // @@protoc_insertion_point(field_get:se.auth.RuntimeConfig.movement_update_hz)
+  return _internal_movement_update_hz();
 }
-inline std::string* AuthToken::mutable_access_token() {
-  std::string* _s = _internal_mutable_access_token();
-  // @@protoc_insertion_point(field_mutable:se.auth.AuthToken.access_token)
-  return _s;
-}
-inline const std::string& AuthToken::_internal_access_token() const {
-  return _impl_.access_token_.Get();
-}
-inline void AuthToken::_internal_set_access_token(const std::string& value) {
+inline void RuntimeConfig::_internal_set_movement_update_hz(uint32_t value) {
   
-  _impl_.access_token_.Set(value, GetArenaForAllocation());
+  _impl_.movement_update_hz_ = value;
 }
-inline std::string* AuthToken::_internal_mutable_access_token() {
+inline void RuntimeConfig::set_movement_update_hz(uint32_t value) {
+  _internal_set_movement_update_hz(value);
+  // @@protoc_insertion_point(field_set:se.auth.RuntimeConfig.movement_update_hz)
+}
+
+// uint32 ping_interval_ms = 2;
+inline void RuntimeConfig::clear_ping_interval_ms() {
+  _impl_.ping_interval_ms_ = 0u;
+}
+inline uint32_t RuntimeConfig::_internal_ping_interval_ms() const {
+  return _impl_.ping_interval_ms_;
+}
+inline uint32_t RuntimeConfig::ping_interval_ms() const {
+  // @@protoc_insertion_point(field_get:se.auth.RuntimeConfig.ping_interval_ms)
+  return _internal_ping_interval_ms();
+}
+inline void RuntimeConfig::_internal_set_ping_interval_ms(uint32_t value) {
   
-  return _impl_.access_token_.Mutable(GetArenaForAllocation());
+  _impl_.ping_interval_ms_ = value;
 }
-inline std::string* AuthToken::release_access_token() {
-  // @@protoc_insertion_point(field_release:se.auth.AuthToken.access_token)
-  return _impl_.access_token_.Release();
-}
-inline void AuthToken::set_allocated_access_token(std::string* access_token) {
-  if (access_token != nullptr) {
-    
-  } else {
-    
-  }
-  _impl_.access_token_.SetAllocated(access_token, GetArenaForAllocation());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (_impl_.access_token_.IsDefault()) {
-    _impl_.access_token_.Set("", GetArenaForAllocation());
-  }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  // @@protoc_insertion_point(field_set_allocated:se.auth.AuthToken.access_token)
+inline void RuntimeConfig::set_ping_interval_ms(uint32_t value) {
+  _internal_set_ping_interval_ms(value);
+  // @@protoc_insertion_point(field_set:se.auth.RuntimeConfig.ping_interval_ms)
 }
 
 #ifdef __GNUC__

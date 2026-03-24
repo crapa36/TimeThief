@@ -17,7 +17,4 @@ struct FRoomPlayerInfo
 	UPROPERTY()
 	FString Nickname;
 	
-	UPROPERTY()
-	bool bReady = false;
-	
 };

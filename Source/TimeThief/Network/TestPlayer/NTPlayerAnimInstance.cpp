@@ -31,16 +31,15 @@ void UNTPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 	
-	Velocity = OwnerPlayer->GetVelocity();
+	Velocity = OwnerPlayer->GetNetworkVelocity();
 	Velocity.Z = 0.f;
 	
 	Speed = Velocity.Size();
-	
 	if (const UCharacterMovementComponent* MoveComp = OwnerPlayer->GetCharacterMovement())
 	{
 		IsAir = MoveComp->IsFalling();
 	}
 	
 	Direction = UKismetAnimationLibrary::CalculateDirection(OwnerPlayer->GetVelocity(), OwnerPlayer->GetActorRotation());
-	AimPitch = OwnerPlayer->GetNowPitch();
+	AimPitch = OwnerPlayer->GetNetworkPitch();
 }
