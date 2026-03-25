@@ -16,5 +16,8 @@ public:
 public:
 	UFUNCTION(CallInEditor, Category = "ServerMap")
 	void ExportSelectedBox();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap")
+	void ExportTaggedBoxes();
 
 };

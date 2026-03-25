@@ -1,5 +1,6 @@
 ﻿#include "ServerMapExporter.h"
 
+#include "EngineUtils.h"
 #include "Components/BoxComponent.h"
 #include "Engine/Selection.h"
 #include "Misc/FileHelper.h"
@@ -10,6 +11,60 @@
 #include "Editor.h"
 #endif
 
+
+bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath)
+{
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] World is null"));
+		return false;
+	}
+	
+	if (RequiredTag.IsNone())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] RequiredTag is None"));
+		return false;
+	}
+	
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+	
+	if (TaggedActors.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No actors found with tag: %s"), *RequiredTag.ToString());
+		return false;
+	}
+	
+	TArray<se::map::ColliderData> Colliders;
+	Colliders.Reserve(TaggedActors.Num());
+	
+	for (AActor* Actor : TaggedActors)
+	{
+		se::map::ColliderData ColliderData;
+		if (BuildColliderDataFromActor(Actor, ColliderData))
+		{
+			Colliders.Add(ColliderData);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Skipped actor: %s"), *GetNameSafe(Actor));
+		}
+	}
+	
+	if (Colliders.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No valid colliders built from tag: %s"), *RequiredTag.ToString());
+		return false;
+	}
+	
+	se::map::MapHeader MapHeader{};
+	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
+	
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Found %d tagged actors, exported %d colliders"),
+		TaggedActors.Num(), Colliders.Num());
+
+	return WriteServerMapFile(OutputPath, MapHeader, Colliders);
+}
 
 bool ServerMapExporter::ExportSelectedActorBoxToFile(const FString& OutputPath)
 {
@@ -157,4 +212,33 @@ bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::
 	
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Export success: %s"), *OutputPath);
 	return true;
+}
+
+void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors)
+{
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* Actor = *It;
+		if (Actor && Actor->ActorHasTag(RequiredTag))
+		{
+			OutActors.Add(Actor);
+		}
+	}
+}
+
+bool ServerMapExporter::BuildColliderDataFromActor(AActor* Actor, se::map::ColliderData& OutColliderData)
+{
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+	
+	UBoxComponent* BoxComponent = FindBoxComponent(Actor);
+	if (BoxComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UBoxComponent: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+	
+	return BuildColliderDataFromBoxComponent(BoxComponent, OutColliderData);
 }
