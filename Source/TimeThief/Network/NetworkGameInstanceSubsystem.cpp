@@ -6,9 +6,24 @@
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 
+#include "Protocol.pb.h"
+
 #include "PacketSession.h"
 #include "ClientConfigLoader.h"
-#include "TestPlayer/NTLocalPlayer.h"
+#include "NetworkEntityComponent.h"
+#include "NetworkMoveComponent.h"
+#include "Network/State/MoveSyncData.h"
+#include "Network/State/EntityRuntimeEntry.h"
+#include "Network/TestPlayer/NTLocalPlayer.h"
+#include "Protocol/ProtocolVersion.h"
+
+namespace
+{
+	static bool IsRoomPlayableState(ENetworkPlayState State)
+	{
+		return State == ENetworkPlayState::InRoom;
+	}
+}
 
 /*---------------------------------
    NetworkGameInstanceSubsystem
@@ -31,11 +46,18 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 	
 	ConnectToServer(ClientConfig.ServerIp, ClientConfig.ServerPort);
 	
-	SpawnProcessPacketTimer();
+	if (bIsConnected)
+	{
+		Handshaking();
+		
+		SpawnProcessPacketTimer();
+	}
 }
 
 void UNetworkGameInstanceSubsystem::Deinitialize()
 {
+	DisconnectFromServer();
+	
 	Super::Deinitialize();
 }
 
@@ -62,12 +84,40 @@ void UNetworkGameInstanceSubsystem::SendPacket(TSharedPtr<SendBuffer> Buffer)
 	GameSession->SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
+{
+	se::game::C_MoveReq Pkt;
+	
+	auto* Movement = Pkt.mutable_movement();
+	auto* Position = Movement->mutable_position();
+	Position->set_x(MoveData.Position.X);
+	Position->set_y(MoveData.Position.Y);
+	Position->set_z(MoveData.Position.Z);
+	
+	Movement->set_yaw(MoveData.Yaw);
+	Movement->set_pitch(MoveData.Pitch);
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Pkt);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, int32 Port)
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));
+	if (Socket == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Networkd] Failed to create socket"));
+		return;
+	}
 	
 	FIPv4Address ip;
-	FIPv4Address::Parse(IPAddress, ip);
+	if (FIPv4Address::Parse(IPAddress, ip) == false)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Network] Invalid IP address: %s"), *IPAddress);
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+		Socket = nullptr;
+		return;
+	}
 	
 	TSharedPtr<FInternetAddr> addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	addr->SetIp(ip.Value);
@@ -80,20 +130,78 @@ void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, in
 	if (connected)
 	{
 		bIsConnected = true;
+		PlayState = ENetworkPlayState::Connected;
 		
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Connection Success")));
 		
 		GameSession = MakeShared<PacketSession>(Socket);
 		GameSession->Run();
 		
-		se::lobby::C_LobbyEnterReq lobbyEnterReq;
-		auto packet = ClientPacketHandler::MakeSendBuffer(lobbyEnterReq);
-		SendPacket(packet);
+		// se::lobby::C_LobbyEnterReq lobbyEnterReq;
+		// auto packet = ClientPacketHandler::MakeSendBuffer(lobbyEnterReq);
+		// SendPacket(packet);
 	}
 	else
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Failed")));
+		
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+		Socket = nullptr;
+		bIsConnected = false;
 	}
+}
+
+void UNetworkGameInstanceSubsystem::DisconnectFromServer()
+{
+	// // 이미 연결이 끊겼거나 소켓이 유효하지 않은 경우에는 아무 작업도 수행하지 않습니다.
+	// if (bIsConnected == false or Socket == nullptr) return;
+	
+	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
+	
+	// 타이머 정지 (패킷 처리 타이머)
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(QueueProcessingTimer);
+	}
+	
+	// 세션 종료 (Worker 스레드 종료 포함)
+	if (GameSession.IsValid())
+	{
+		GameSession->Disconnect();
+		GameSession.Reset();
+	}
+	
+	// 소켓 닫기 및 정리
+	if (Socket)
+	{
+		Socket->Shutdown(ESocketShutdownMode::ReadWrite);
+		Socket->Close();
+		
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+		Socket = nullptr;
+	}
+	
+	ClearRoomState();
+	LocalPlayerInfo = FLocalPlayerInfo();
+	
+	PlayState = ENetworkPlayState::Disconnected;
+	
+	bIsConnected = false;
+	
+	UE_LOG(LogTemp, Log, TEXT("Disconnected and cleaned up"));
+}
+
+void UNetworkGameInstanceSubsystem::Handshaking()
+{
+	if (PlayState != ENetworkPlayState::Connected) return;
+	
+	se::auth::C_HandshakeReq HandshakeReq;
+	HandshakeReq.set_client_protocol_version(se::protocol::kProtocolVersion);
+	
+	PlayState = ENetworkPlayState::Handshaking;
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(HandshakeReq);
+	SendPacket(Buffer);
 }
 
 void UNetworkGameInstanceSubsystem::SpawnProcessPacketTimer()
@@ -102,235 +210,357 @@ void UNetworkGameInstanceSubsystem::SpawnProcessPacketTimer()
 	
 	if (UWorld* World = GetWorld())
 	{
-		// TODO: 0.1초 값은 .ini나 .config 파일로 부터 읽어와서 적용해야 할 듯 싶다
-		World->GetTimerManager().SetTimer(QueueProcessingTimer, this, &UNetworkGameInstanceSubsystem::ProcessPacket, 0.1f, true);
+		// TODO: 0.05초 값은 .ini나 .config 파일로 부터 읽어와서 적용해야 할 듯 싶다
+		World->GetTimerManager().SetTimer(QueueProcessingTimer, this, &UNetworkGameInstanceSubsystem::ProcessPacket, 0.05f, true);
 	}
 }
 
 void UNetworkGameInstanceSubsystem::ProcessPacket()
 {
+	check(IsInGameThread());
+	
 	if (not bIsConnected or GameSession == nullptr) return;
 	
 	GameSession->HandleRecvPackets();
 }
 
-void UNetworkGameInstanceSubsystem::HandleLobbyEnter(const se::lobby::S_LobbyEnterRes& LobbyEnterPkt)
+void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt)
 {
-	if (Socket == nullptr or GameSession == nullptr) return;
+	check(IsInGameThread());
 	
-	auto* World = GetWorld();
-	if (World == nullptr) return;
-	
-	const se::common::Result& Result = LobbyEnterPkt.result();
-	if (Result.code() != se::common::ERR_NONE) 
+	if (!Pkt.success())
 	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to enter lobby: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		const auto& Result = Pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Handshake failed: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		DisconnectFromServer();
 		return;
 	}
 	
-	const auto& PlayerInfo = LobbyEnterPkt.profile();
+	LocalPlayerInfo.PlayerId = Pkt.session_player_id();
+	const auto& Config = Pkt.config();
 	
-	if (!LocalPlayerInfo.IsSet())
+	FRuntimeConfig NewRuntimeConfig{};
+	NewRuntimeConfig.MovementUpdateHz = Config.movement_update_hz();
+	NewRuntimeConfig.PingIntervalMs = Config.ping_interval_ms();
+	
+	if (NewRuntimeConfig.IsValid())
 	{
-		LocalPlayerInfo.Emplace();	
+		RuntimeConfig = NewRuntimeConfig;
 	}
-	FLocalPlayerInfo& MyInfo = LocalPlayerInfo.GetValue();
-	MyInfo.PlayerId = PlayerInfo.player_id().value();
-	MyInfo.Nickname = UTF8_TO_TCHAR(PlayerInfo.nickname().c_str());
-	PlayerInfo.level();
+	
+	PlayState = ENetworkPlayState::InLobby;
 }
 
-void UNetworkGameInstanceSubsystem::HandleJoinRoom(const se::room::S_JoinRoom& JoinRoomPkt)
+void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& Pkt)
 {
-	if (Socket == nullptr or GameSession == nullptr) return;
+}
+
+void UNetworkGameInstanceSubsystem::HandlePong(const se::auth::S_Pong& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleMatchQueueEnterRes(const se::lobby::S_MatchQueueEnterRes& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleMatchQueueCancelRes(const se::lobby::S_MatchQueueCancelRes& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFound& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnterRes& Pkt)
+{
+	check(IsInGameThread());
 	
-	const auto& RoomSnapshot = JoinRoomPkt.snapshot();
-	
-	if (!LocalPlayerInfo.IsSet())
+	if (!Pkt.success())
 	{
-		LocalPlayerInfo.Emplace();
+		const auto& Result = Pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		PlayState = ENetworkPlayState::InLobby;
+		return;
 	}
-	FLocalPlayerInfo& MyInfo = LocalPlayerInfo.GetValue();
 	
-	if (!RoomState.IsSet())
+	if (!Pkt.has_my_entity_id())
 	{
-		RoomState.Emplace();
+		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing my_entity_id in response"));
+		PlayState = ENetworkPlayState::InLobby;
+		return;
 	}
 	
-	FRoomState& State = RoomState.GetValue();
-	State.RoomId = RoomSnapshot.room_id();
-	State.RoomStates.Empty();
-	
-	// TODO: RoomPlayer 정보 담기
-	// 임시로 RoomPlayer에서 PlayerId로 찾아서 LocalPlayerEntityId로 설정하는 방식으로 처리
-	
-	const auto& RoomPlayers = RoomSnapshot.players();
-	for (const auto& RoomPlayer : RoomPlayers)
+	if (!Pkt.has_snapshot())
 	{
-		if (RoomPlayer.player_id().value() == MyInfo.PlayerId)
+		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing room snapshot in response"));
+		PlayState = ENetworkPlayState::InLobby;
+		return;
+	}
+	
+	ClearRoomState();
+	
+	const auto& Snapshot = Pkt.snapshot();
+	
+	LocalPlayerEntityId = Pkt.my_entity_id().value();
+	RoomState.RoomId = Snapshot.room_id();
+	
+	for (const auto& PlayerInfo : Snapshot.players())
+	{
+		if (!PlayerInfo.has_player_id() || !PlayerInfo.has_entity_id())
 		{
-			LocalPlayerEntityId = RoomPlayer.entity_id().value();
-			MyInfo.Nickname = UTF8_TO_TCHAR(RoomPlayer.nickname().c_str());
+			UE_LOG(LogTemp, Warning, TEXT("[Network] Skip invalid player info in room snapshot"));
+			continue;
 		}
-		FRoomPlayerInfo PlayerInfo;
-		PlayerInfo.PlayerId = RoomPlayer.player_id().value();
-		PlayerInfo.EntityId = RoomPlayer.entity_id().value();
-		PlayerInfo.Nickname = UTF8_TO_TCHAR(RoomPlayer.nickname().c_str());
 		
-		State.RoomStates.Add(PlayerInfo);
-	}
-	
-	auto* World = GetWorld();
-	if (World == nullptr) return;
-	
-	const auto& EntitySpawns = JoinRoomPkt.existing_entities();
-	int Count = EntitySpawns.size();
-	for (const auto& EntitySpawn : EntitySpawns)
-	{
-		const auto& ObjectType = EntitySpawn.entity_type();
-		const auto& Entity = EntitySpawn.entity();
+		FRoomPlayerInfo Info;
+		Info.PlayerId = PlayerInfo.player_id().value();
+		Info.EntityId = PlayerInfo.entity_id().value();
+		Info.Nickname = UTF8_TO_TCHAR(PlayerInfo.nickname().c_str());
 		
-		SpawnEntity(ObjectType, Entity);
+		RoomState.Players.Add(Info);
 	}
+
+	PlayState = ENetworkPlayState::InRoom;
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room enter success. RoomId=%u, LocalEntityId=%u"), RoomState.RoomId, LocalPlayerEntityId);
+	RequestLoadingComplete();	// TEMP
 }
 
-void UNetworkGameInstanceSubsystem::HandleSpawn(const se::room::N_EntitySpawn& SpawnPkt)
+void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLeaveRes& Pkt)
 {
-	if (Socket == nullptr or GameSession == nullptr) return;
+	check(IsInGameThread());
 	
-	const auto& ObjectType = SpawnPkt.entity_type();
-	const auto& Entity = SpawnPkt.entity();
-	
-	SpawnEntity(ObjectType, Entity);
-}
-
-void UNetworkGameInstanceSubsystem::HandleMove(const se::room::S_EntityState& EntityStatePkt)
-{
-	if (Socket == nullptr or GameSession == nullptr) return;
-	
-	auto* World = GetWorld();
-	if (World == nullptr) return;
-	
-	for (const auto& Entity : EntityStatePkt.entities())
+	if (!Pkt.success())
 	{
-		const uint32 EntityId = Entity.entity_id().value();
+		const auto& Result = Pkt.result();
 		
-		FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
-		const auto& newPos = Entity.movement().position();
-		State.Position = FVector(newPos.x(), newPos.y(), newPos.z());
-		const float yaw = Entity.movement().yaw();
-		State.Yaw = yaw;
-		const float pitch = Entity.movement().pitch();
-		State.Pitch = pitch;
-		
-		ApplyEntityStateToActor(EntityId);
-	}
-}
-
-void UNetworkGameInstanceSubsystem::SpawnEntity(const se::common::ObjectType& ObjectType,
-	const se::room::EntityState& EntityState)
-{
-	auto* World = GetWorld();
-	if (World == nullptr) return;
-	
-	const uint32 EntityId = EntityState.entity_id().value();
-	
-	// 이미 존재하는 EntityId인 경우, 중복으로 Spawn하지 않도록 처리
-	if (TWeakObjectPtr<AActor>*  Existing = EntityActors.Find(EntityId))
-	{
-		if (Existing->IsValid())
-		{
-			return;
-		}
-		EntityActors.Remove(EntityId);
+		UE_LOG(LogTemp, Warning, TEXT("Failed to leave room: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		PlayState = ENetworkPlayState::InRoom;
+		return;
 	}
 	
-	const auto& Movement = EntityState.movement();
+	ClearRoomState();
+	PlayState = ENetworkPlayState::InLobby;
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room leave success"));
+}
+
+void UNetworkGameInstanceSubsystem::HandleEntitySpawn(const se::room::N_EntitySpawn& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	if (!Pkt.has_info())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing info"));
+		return;
+	}
+	
+	const auto& Info = Pkt.info();
+	const uint32 EntityId = Info.entity_id().value();
+	
+	FEntityRuntimeEntry& EntityEntry = EntityEntries.FindOrAdd(EntityId);
+	EntityEntry.EntityId = EntityId;
+	FNetworkEntityState& EntityState = EntityEntry.State;
+	EntityState.EntityId = EntityId;
+	
+	EntityState.ObjectType = Info.type();
+	EntityState.TemplateId = Info.template_id();
+	const auto& Movement = Info.movement();
 	const auto& Pos = Movement.position();
-	
-	const FVector SpawnLocation(Pos.x(), Pos.y(), Pos.z());
-	const FRotator SpawnRotation(0.0f, Movement.yaw(), 0.0f);
-	
-	FTransform SpawnTransform(SpawnRotation, SpawnLocation);
-	
-	FActorSpawnParameters Params;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	
-	AActor* SpawnActor = nullptr;
-	bool bSpawnedLocalPlayer = false;
-
-	switch (ObjectType)
-	{
-	case se::common::OBJ_PLAYER:
-		{
-			const bool bIsLocalPlayer = (LocalPlayerEntityId == EntityId);
-			
-			if (bIsLocalPlayer)
-			{
-				SpawnActor = World->SpawnActor<AActor>(LocalPlayerClass, SpawnTransform, Params);
-				bSpawnedLocalPlayer = true;
-			}
-			else
-			{
-				SpawnActor = World->SpawnActor<AActor>(RemotePlayerClass, SpawnTransform, Params);
-			}
-			
-			break;
-		}
-		
-	default:
-		return;
-	}
-	
-	if (SpawnActor == nullptr)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to spawn actor for EntityId %u"), EntityId);
-		return;
-	}
-	
-	EntityActors.Add(EntityId, SpawnActor);
-	
-	FNetworkEntityState& State = NetworkEntities.FindOrAdd(EntityId);
-	
-	State.Position = SpawnLocation;
-	State.Yaw = Movement.yaw();
-	State.Pitch = Movement.pitch();
+	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+	EntityState.Yaw = Movement.yaw();
+	EntityState.Pitch = Movement.pitch();
 	
 	ApplyEntityStateToActor(EntityId);
 	
-	if (bSpawnedLocalPlayer)
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawned: EntityId=%u"), EntityId);
+}
+
+void UNetworkGameInstanceSubsystem::HandleEntityDespawn(const se::room::N_EntityDespawn& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
 	{
-		if (ANTLocalPlayer* LocalPlayer = Cast<ANTLocalPlayer>(SpawnActor))
-		{
-			LocalPlayer->SetEntityId(LocalPlayerEntityId);
-		}
-		
-		if (APawn* SpawnPawn = Cast<APawn>(SpawnActor))
-		{
-			if (APlayerController* PC = World->GetFirstPlayerController())
-			{
-				World->GetTimerManager().SetTimerForNextTick([PC, SpawnPawn]()
-				{
-					if (!IsValid(PC) || !IsValid(SpawnPawn)) return;
-					
-					if (APawn* OldPawn = PC->GetPawn())
-					{
-						PC->UnPossess();
-					}
-					
-					PC->Possess(SpawnPawn);
-					PC->SetViewTarget(SpawnPawn);
-					
-				});
-			}
-			else
-			{
-			}
-		}
-		else
-		{
-		}
+		return;
 	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	RemoveEntity(EntityId);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity despawned: EntityId=%u"), EntityId);
+}
+
+void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr)
+	{
+		return;
+	}
+	
+	FNetworkEntityState& EntityState = EntityEntry->State;
+	const auto& Movement = Pkt.movement();
+	const auto& Pos = Movement.position();
+	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+	EntityState.Yaw = Movement.yaw();
+	EntityState.Pitch = Movement.pitch();
+	
+	ApplyEntityStateToActor(EntityId);
+}
+
+void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleReload(const se::game::N_Reload& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleUseAbility(const se::game::N_UseAbility& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlayer& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupItem& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleHealthChanged(const se::game::N_HealthChanged& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleEntityDied(const se::game::N_EntityDied& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_TimePointChanged& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)
+{
+	if (EntityId == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] RemoveEntity failed: Invalid EntityId"));
+		return;
+	}
+
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] RemoveEntity failed: Entity entry not found for EntityId %u"), EntityId);
+		return;
+	}
+
+	if (EntityEntry->Actor.IsValid())
+	{
+		AActor* Actor = EntityEntry->Actor.Get();
+		if (Actor != nullptr)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntity: Destroy Actor. EntityId=%u, Actor=%s"), EntityId, *Actor->GetName());
+			Actor->Destroy();
+		}
+
+		EntityEntry->Actor.Reset();
+	}
+
+	EntityEntries.Remove(EntityId);
+
+	if (EntityId == LocalPlayerEntityId)
+	{
+		LocalPlayerEntityId = 0;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntity success: EntityId=%u"), EntityId);
+}
+
+bool UNetworkGameInstanceSubsystem::IsLocalPlayerEntity(uint32 EntityId) const
+{
+	return LocalPlayerEntityId != 0 && LocalPlayerEntityId == EntityId;
+}
+
+TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetworkEntityState& EntityState) const
+{
+	// TODO: EntityState의 정보를 바탕으로 어떤 Actor 클래스를 스폰할지 결정하는 로직을 구현해야 한다
+	//		 어떤 ObjectType, TemplateId 여도 처리할 수 있도록 (조합가능한 기준)
+	
+	if (IsLocalPlayerEntity(EntityState.EntityId))
+	{
+		return LocalPlayerClass;
+	}
+	
+	return RemotePlayerClass;
 }
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
@@ -342,33 +572,270 @@ bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 	return FClientConfigLoader::LoadClientConfigFromFile(FilePath, ClientConfig);
 }
 
+void UNetworkGameInstanceSubsystem::RequestEnterRoom()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter room: Not connected to server"));
+		return;
+	}
+	
+	if (PlayState != ENetworkPlayState::InLobby)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter room: Invalid state"));
+		return;
+	}
+	
+	se::room::C_RoomEnterReq Request;
+	Request.set_room_id(1); // TEMP;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	PlayState = ENetworkPlayState::EnteringRoom;
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomEnterReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestLeaveRoom()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to leave room: Not connected to server"));
+		return;
+	}
+	
+	if (PlayState != ENetworkPlayState::InRoom)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to leave room: Invalid state"));
+		return;
+	}
+	
+	se::room::C_RoomLeaveReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	PlayState = ENetworkPlayState::LeavingRoom;
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomLeaveReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request loading complete: Not connected to server"));
+		return;
+	}
+	
+	se::game::C_LoadingCompleteReq Request;
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::ClearRoomState()
+{
+	for (auto& Pair : EntityEntries)
+	{
+		if (Pair.Value.Actor.IsValid())
+		{
+			Pair.Value.Actor->Destroy();
+			Pair.Value.Actor.Reset();
+		}
+	}
+
+	EntityEntries.Empty();
+	LocalPlayerEntityId = 0;
+	RoomState = FRoomState();
+}
+
+AActor* UNetworkGameInstanceSubsystem::FindEntityActor(uint32 EntityId) const
+{
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return nullptr;
+	
+	return EntityEntry->Actor.Get();
+}
+
+AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityState& EntityState)
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr) return nullptr;
+	
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityState.EntityId);
+	if (EntityEntry == nullptr) return nullptr;
+	
+	TSubclassOf<AActor> ActorClass = ResolveActorClass(EntityState);
+	if (*ActorClass == nullptr) return nullptr;
+	
+	const FRotator SpawnRotation(0.0f, EntityState.Yaw, 0.0f);
+	const FTransform SpawnTransform(SpawnRotation, EntityState.Position);
+	
+	// TODO: World가 GameWorld가 아니면 안된다 (문제가 생긴 것)
+	AActor* SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform);
+	if (SpawnedActor == nullptr) return nullptr;
+	
+	EntityEntry->Actor = SpawnedActor;
+	
+	PostSpawnEntityActor(SpawnedActor, EntityState);
+	
+	return SpawnedActor;
+}
+
+AActor* UNetworkGameInstanceSubsystem::GetOrSpawnEntityActor(uint32 EntityId)
+{
+	if (AActor* ExistingActor = FindEntityActor(EntityId))
+	{
+		return ExistingActor;
+	}
+	
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return nullptr;
+	
+	return SpawnEntityActor(EntityEntry->State);
+}
+
+void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
+{
+	if (SpawnedActor == nullptr) return;
+	
+	InitializeNetworkEntityActor(SpawnedActor, EntityState);;
+	ApplyRuntimeConfigToActor(SpawnedActor);
+	
+	if (IsLocalPlayerEntity(EntityState.EntityId))
+	{
+		HandleLocalPlayerActorSpawned(SpawnedActor, EntityState);
+	}
+}
+
+void UNetworkGameInstanceSubsystem::InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
+{
+	if (SpawnedActor == nullptr) return;
+	
+	UNetworkEntityComponent* NetworkEntityComp = SpawnedActor->FindComponentByClass<UNetworkEntityComponent>();
+	if (NetworkEntityComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Spawned actor has no NetworkEntityComponent: %s"), *GetNameSafe(SpawnedActor));
+		return;
+	}
+	
+	NetworkEntityComp->SetEntityId(EntityState.EntityId);
+	switch (EntityState.ObjectType)
+	{
+	case se::common::OBJ_PLAYER:
+		if (IsLocalPlayerEntity(EntityState.EntityId))
+		{
+			NetworkEntityComp->SetControlType(ENetworkControlType::Local);
+		}
+		else
+		{
+			NetworkEntityComp->SetControlType(ENetworkControlType::Remote);
+		}
+		break;
+	default:
+		break;
+	}
+}
+
+void UNetworkGameInstanceSubsystem::ApplyRuntimeConfigToActor(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return;
+	}
+	
+	UNetworkMoveComponent* MoveComp = Actor->FindComponentByClass<UNetworkMoveComponent>();
+	if (MoveComp == nullptr)
+	{
+		return;
+	}
+	
+	if (!RuntimeConfig.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] RuntimeConfig invalid, skip applying to actor: %s"), *GetNameSafe(Actor));
+		return;
+	}
+	
+	MoveComp->SetMovementUpdateInterval(RuntimeConfig.GetMovementUpdateIntervalSeconds());
+}
+
+void UNetworkGameInstanceSubsystem::HandleLocalPlayerActorSpawned(AActor* SpawnedActor,
+                                                                  const FNetworkEntityState& EntityState)
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr || SpawnedActor == nullptr) return;
+	
+	APawn* SpawnPawn = Cast<APawn>(SpawnedActor);
+	if (SpawnPawn == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Local player actor is not a Pawn. EntityId=%u"), EntityState.EntityId);
+		return;
+	}
+	
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (PC == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Failed to possess local player: PlayerController is null"));
+		return;
+	}
+	
+	TWeakObjectPtr<APlayerController> WeakPC = PC;
+	TWeakObjectPtr<APawn> WeakPawn = SpawnPawn;
+	
+	World->GetTimerManager().SetTimerForNextTick([WeakPC, WeakPawn]()
+	{
+		if (!WeakPC.IsValid() || !WeakPawn.IsValid()) return;
+		
+		APlayerController* LocalPC = WeakPC.Get();
+		APawn* NewPawn = WeakPawn.Get();
+		
+		if (APawn* OldPawn = LocalPC->GetPawn())
+		{
+			if (OldPawn != NewPawn)
+			{
+				LocalPC->UnPossess();
+			}
+		}
+		
+		LocalPC->Possess(NewPawn);
+		LocalPC->SetViewTarget(NewPawn);
+	});
+}
+
 void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(uint32 EntityId)
 {
-	FNetworkEntityState* State = NetworkEntities.Find(EntityId);
-	if (!State) return;
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return;
 	
-	TWeakObjectPtr<AActor>* ActorPtr = EntityActors.Find(EntityId);
-	if (!ActorPtr) return;
-	if (!ActorPtr->IsValid()) return;
+	AActor* Actor = GetOrSpawnEntityActor(EntityId);
+	if (Actor == nullptr) return;
 	
-	AActor* Actor = ActorPtr->Get();
-	if (!Actor) return;
+	ApplyEntityStateToActor(Actor, EntityEntry->State);
+}
+
+void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const FNetworkEntityState& EntityState)
+{
+	if (Actor == nullptr) return;
 	
-	FRotator NewRotation(0.0f, State->Yaw, 0.0f);
-	
-	if (ANTPlayer* Player = Cast<ANTPlayer>(Actor))
+	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Actor))
 	{
-		Player->SetDestPosition(State->Position);
-		Player->SetTargetYaw(State->Yaw);
-		Player->SetTargetPitch(State->Pitch);
-	}
-	else
-	{
-		Actor->SetActorLocation(State->Position);
-		Actor->SetActorRotation(NewRotation);
+		Movable->ApplyNetworkMovementState(EntityState);
+		return;
 	}
 	
-	// TODO: 좀더 다른 방향으로 State를 전달해야 한다
-	// 임시로 NTPlayer에 함수를 추가하고 해당 객체로 캐스팅하여 함수 호출 하는 방식
-	// 다음에는 interface 등 더 우아한 방법으로 교체하도록
+	const FRotator NewRotation{0.0f, EntityState.Yaw, 0.0f};
+	Actor->SetActorLocation(EntityState.Position);
+	Actor->SetActorRotation(NewRotation);
+}
+
+void UNetworkGameInstanceSubsystem::ApplyAllEntityStates()
+{
+	for (const TPair<uint32, FEntityRuntimeEntry>& Pair : EntityEntries)
+	{
+		const uint32 EntityId = Pair.Key;
+		ApplyEntityStateToActor(EntityId);
+	}
 }

@@ -2,15 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+
+#include "Network/MovableNetworkEntityInterface.h"
+#include "Network/State/NetworkControlType.h"
+#include "Network/NetworkEntityInterface.h"
+
 #include "NTPlayer.generated.h"
 
+class UNetworkMoveComponent;
+class UNetworkEntityComponent;
 struct FNetworkEntityState;
-constexpr  float PositionTolerance = 5.0f;
-constexpr  float RotationTolerance = 2.0f;
-constexpr  float PitchTolerance = 2.0f;
 
 UCLASS()
-class TIMETHIEF_API ANTPlayer : public ACharacter
+class TIMETHIEF_API ANTPlayer : public ACharacter, public INetworkEntityInterface, public IMovableNetworkEntityInterface
 // Network Test Player
 {
 	GENERATED_BODY()
@@ -27,52 +31,42 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+public:
+	virtual FVector GetNetworkLocation() const override;
+	virtual void SetNetworkLocation(const FVector& NewLocation) override;
+	
+	virtual float GetNetworkYaw() const override;
+	virtual void SetNetworkYaw(float NewYaw) override;
+	
+	virtual float GetNetworkPitch() const override;
+	virtual void SetNetworkPitch(float NewPitch) override;
+	
+	virtual float GetLocalControlPitch() const override;
+	
+	virtual FVector GetNetworkVelocity() const override;
+	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) override;
+	
+public:
+	virtual UNetworkEntityComponent* GetNetworkEntityComponent() const override;
 	
 public:
 	bool IsLocalPlayer() const;
-	
-public:
-	void SetEntityId(uint32 InEntityId) { EntityId = InEntityId; }
-	
-public:
-	void SetNetworkEntityState(const FNetworkEntityState& EntityState);
-	
-public:
-	void SetNowPosition(const FVector& NewPosition) { NowPosition = NewPosition; }
-	void SetDestPosition(const FVector& NewPosition) { DestPosition = NewPosition; InterpStartPosition = GetActorLocation(); InterpTargetPosition = NewPosition; InterpElapsed = 0.f; }
-	
-	uint32 GetEntityId() const { return EntityId; }
-	FVector GetNowPosition() const { return NowPosition; }
-	
-	void SetTargetYaw(float InYaw) { TargetYaw = InYaw; }
-	float GetNowYaw() const { return NowYaw; }
-	
-	void SetTargetPitch(float InPitch) { TargetPitch = InPitch; }
-	float GetNowPitch() const { return NowPitch; }
-	
-private:
-	void SetYawApply(float InYaw);
-	void SetPitchApply(float InPitch);
+	uint32 GetEntityId() const;
 	
 public:
 	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNetworkEntityComponent> NetworkEntityComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNetworkMoveComponent> NetworkMoveComponent = nullptr;
 	
 protected:
-	uint32 EntityId = 0;
-	
-	FVector NowPosition = FVector::ZeroVector;
-	float NowYaw = 0.0f;
-	float NowPitch = 0.0f;
-	
-	FVector DestPosition = FVector::ZeroVector;
-	float TargetYaw = 0.0f;
-	float TargetPitch = 0.0f;
-	
-	FVector InterpStartPosition = FVector::ZeroVector;
-	FVector InterpTargetPosition = FVector::ZeroVector;
-
-	float InterpElapsed = 0.f;
-	float InterpDuration = 0.1f;
+	UPROPERTY(VisibleAnywhere, Category = "Network")
+	float CurrentNetworkPitch = 0.0f;
 	
 };

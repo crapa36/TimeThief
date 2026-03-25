@@ -36,25 +36,32 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   ".proto\032\031common/common_types.proto\032\025auth/"
   "auth_types.proto\032\030auth/auth_messages.pro"
   "to\032\027lobby/lobby_types.proto\032\032lobby/lobby"
-  "_messages.proto\032\025room/room_types.proto\032\030"
-  "room/room_messages.protob\006proto3"
+  "_messages.proto\032\025room/room_enums.proto\032\025"
+  "room/room_types.proto\032\030room/room_message"
+  "s.proto\032\025game/game_enums.proto\032\025game/gam"
+  "e_types.proto\032\030game/game_messages.protob"
+  "\006proto3"
   ;
-static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[9] = {
+static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[13] = {
   &::descriptor_table_auth_2fauth_5fmessages_2eproto,
   &::descriptor_table_auth_2fauth_5ftypes_2eproto,
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
   &::descriptor_table_common_2fcommon_5ftypes_2eproto,
+  &::descriptor_table_game_2fgame_5fenums_2eproto,
+  &::descriptor_table_game_2fgame_5fmessages_2eproto,
+  &::descriptor_table_game_2fgame_5ftypes_2eproto,
   &::descriptor_table_lobby_2flobby_5fmessages_2eproto,
   &::descriptor_table_lobby_2flobby_5ftypes_2eproto,
   &::descriptor_table_options_2fpacket_5foptions_2eproto,
+  &::descriptor_table_room_2froom_5fenums_2eproto,
   &::descriptor_table_room_2froom_5fmessages_2eproto,
   &::descriptor_table_room_2froom_5ftypes_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 272, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 367, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
-    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 9, 0,
+    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 13, 0,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
     nullptr, file_level_enum_descriptors_Protocol_2eproto,
     file_level_service_descriptors_Protocol_2eproto,

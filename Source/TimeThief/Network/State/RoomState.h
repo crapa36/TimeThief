@@ -14,6 +14,6 @@ struct FRoomState
 	uint32 RoomId = 0;
 	
 	UPROPERTY()
-	TArray<FRoomPlayerInfo> RoomStates;
+	TArray<FRoomPlayerInfo> Players;
 	
 };

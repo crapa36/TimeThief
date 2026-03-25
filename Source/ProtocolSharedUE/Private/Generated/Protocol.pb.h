@@ -35,8 +35,12 @@
 #include "auth/auth_messages.pb.h"
 #include "lobby/lobby_types.pb.h"
 #include "lobby/lobby_messages.pb.h"
+#include "room/room_enums.pb.h"
 #include "room/room_types.pb.h"
 #include "room/room_messages.pb.h"
+#include "game/game_enums.pb.h"
+#include "game/game_types.pb.h"
+#include "game/game_messages.pb.h"
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_Protocol_2eproto PROTOCOLSHAREDUE_API

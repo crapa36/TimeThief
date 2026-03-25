@@ -48,9 +48,6 @@ struct PROTOCOLSHAREDUE_API TableStruct_room_2froom_5ftypes_2eproto {
 PROTOCOLSHAREDUE_API extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_room_2froom_5ftypes_2eproto;
 namespace se {
 namespace room {
-class EntityState;
-struct EntityStateDefaultTypeInternal;
-PROTOCOLSHAREDUE_API extern EntityStateDefaultTypeInternal _EntityState_default_instance_;
 class RoomPlayer;
 struct RoomPlayerDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern RoomPlayerDefaultTypeInternal _RoomPlayer_default_instance_;
@@ -63,7 +60,6 @@ PROTOCOLSHAREDUE_API extern SpawnInfoDefaultTypeInternal _SpawnInfo_default_inst
 }  // namespace room
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
-template<> PROTOCOLSHAREDUE_API ::se::room::EntityState* Arena::CreateMaybeMessage<::se::room::EntityState>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::RoomPlayer* Arena::CreateMaybeMessage<::se::room::RoomPlayer>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::RoomSnapshot* Arena::CreateMaybeMessage<::se::room::RoomSnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::SpawnInfo* Arena::CreateMaybeMessage<::se::room::SpawnInfo>(Arena*);
@@ -555,11 +551,12 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kEntityIdFieldNumber = 2,
-    kMovementFieldNumber = 3,
+    kEntityIdFieldNumber = 3,
+    kMovementFieldNumber = 4,
     kTypeFieldNumber = 1,
+    kTemplateIdFieldNumber = 2,
   };
-  // .se.common.ObjectId entity_id = 2;
+  // .se.common.ObjectId entity_id = 3;
   bool has_entity_id() const;
   private:
   bool _internal_has_entity_id() const;
@@ -577,7 +574,7 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
       ::se::common::ObjectId* entity_id);
   ::se::common::ObjectId* unsafe_arena_release_entity_id();
 
-  // .se.common.MovementState movement = 3;
+  // .se.common.MovementState movement = 4;
   bool has_movement() const;
   private:
   bool _internal_has_movement() const;
@@ -604,6 +601,15 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
   void _internal_set_type(::se::common::ObjectType value);
   public:
 
+  // uint32 template_id = 2;
+  void clear_template_id();
+  uint32_t template_id() const;
+  void set_template_id(uint32_t value);
+  private:
+  uint32_t _internal_template_id() const;
+  void _internal_set_template_id(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.room.SpawnInfo)
  private:
   class _Internal;
@@ -615,183 +621,7 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
     ::se::common::ObjectId* entity_id_;
     ::se::common::MovementState* movement_;
     int type_;
-    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
-  };
-  union { Impl_ _impl_; };
-  friend struct ::TableStruct_room_2froom_5ftypes_2eproto;
-};
-// -------------------------------------------------------------------
-
-class PROTOCOLSHAREDUE_API EntityState final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.EntityState) */ {
- public:
-  inline EntityState() : EntityState(nullptr) {}
-  ~EntityState() override;
-  explicit PROTOBUF_CONSTEXPR EntityState(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
-
-  EntityState(const EntityState& from);
-  EntityState(EntityState&& from) noexcept
-    : EntityState() {
-    *this = ::std::move(from);
-  }
-
-  inline EntityState& operator=(const EntityState& from) {
-    CopyFrom(from);
-    return *this;
-  }
-  inline EntityState& operator=(EntityState&& from) noexcept {
-    if (this == &from) return *this;
-    if (GetOwningArena() == from.GetOwningArena()
-  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-        && GetOwningArena() != nullptr
-  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
-    ) {
-      InternalSwap(&from);
-    } else {
-      CopyFrom(from);
-    }
-    return *this;
-  }
-
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
-    return GetDescriptor();
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
-    return default_instance().GetMetadata().descriptor;
-  }
-  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
-    return default_instance().GetMetadata().reflection;
-  }
-  static const EntityState& default_instance() {
-    return *internal_default_instance();
-  }
-  static inline const EntityState* internal_default_instance() {
-    return reinterpret_cast<const EntityState*>(
-               &_EntityState_default_instance_);
-  }
-  static constexpr int kIndexInFileMessages =
-    3;
-
-  friend void swap(EntityState& a, EntityState& b) {
-    a.Swap(&b);
-  }
-  inline void Swap(EntityState* other) {
-    if (other == this) return;
-  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() != nullptr &&
-        GetOwningArena() == other->GetOwningArena()) {
-   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
-    if (GetOwningArena() == other->GetOwningArena()) {
-  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
-      InternalSwap(other);
-    } else {
-      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
-    }
-  }
-  void UnsafeArenaSwap(EntityState* other) {
-    if (other == this) return;
-    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
-    InternalSwap(other);
-  }
-
-  // implements Message ----------------------------------------------
-
-  EntityState* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<EntityState>(arena);
-  }
-  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const EntityState& from);
-  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const EntityState& from) {
-    EntityState::MergeImpl(*this, from);
-  }
-  private:
-  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
-  public:
-  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
-  bool IsInitialized() const final;
-
-  size_t ByteSizeLong() const final;
-  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
-  uint8_t* _InternalSerialize(
-      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
-  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
-
-  private:
-  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
-  void SharedDtor();
-  void SetCachedSize(int size) const final;
-  void InternalSwap(EntityState* other);
-
-  private:
-  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
-  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "se.room.EntityState";
-  }
-  protected:
-  explicit EntityState(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                       bool is_message_owned = false);
-  public:
-
-  static const ClassData _class_data_;
-  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
-
-  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
-
-  // nested types ----------------------------------------------------
-
-  // accessors -------------------------------------------------------
-
-  enum : int {
-    kEntityIdFieldNumber = 1,
-    kMovementFieldNumber = 2,
-  };
-  // .se.common.ObjectId entity_id = 1;
-  bool has_entity_id() const;
-  private:
-  bool _internal_has_entity_id() const;
-  public:
-  void clear_entity_id();
-  const ::se::common::ObjectId& entity_id() const;
-  PROTOBUF_NODISCARD ::se::common::ObjectId* release_entity_id();
-  ::se::common::ObjectId* mutable_entity_id();
-  void set_allocated_entity_id(::se::common::ObjectId* entity_id);
-  private:
-  const ::se::common::ObjectId& _internal_entity_id() const;
-  ::se::common::ObjectId* _internal_mutable_entity_id();
-  public:
-  void unsafe_arena_set_allocated_entity_id(
-      ::se::common::ObjectId* entity_id);
-  ::se::common::ObjectId* unsafe_arena_release_entity_id();
-
-  // .se.common.MovementState movement = 2;
-  bool has_movement() const;
-  private:
-  bool _internal_has_movement() const;
-  public:
-  void clear_movement();
-  const ::se::common::MovementState& movement() const;
-  PROTOBUF_NODISCARD ::se::common::MovementState* release_movement();
-  ::se::common::MovementState* mutable_movement();
-  void set_allocated_movement(::se::common::MovementState* movement);
-  private:
-  const ::se::common::MovementState& _internal_movement() const;
-  ::se::common::MovementState* _internal_mutable_movement();
-  public:
-  void unsafe_arena_set_allocated_movement(
-      ::se::common::MovementState* movement);
-  ::se::common::MovementState* unsafe_arena_release_movement();
-
-  // @@protoc_insertion_point(class_scope:se.room.EntityState)
- private:
-  class _Internal;
-
-  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
-  typedef void InternalArenaConstructable_;
-  typedef void DestructorSkippable_;
-  struct Impl_ {
-    ::se::common::ObjectId* entity_id_;
-    ::se::common::MovementState* movement_;
+    uint32_t template_id_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1116,7 +946,27 @@ inline void SpawnInfo::set_type(::se::common::ObjectType value) {
   // @@protoc_insertion_point(field_set:se.room.SpawnInfo.type)
 }
 
-// .se.common.ObjectId entity_id = 2;
+// uint32 template_id = 2;
+inline void SpawnInfo::clear_template_id() {
+  _impl_.template_id_ = 0u;
+}
+inline uint32_t SpawnInfo::_internal_template_id() const {
+  return _impl_.template_id_;
+}
+inline uint32_t SpawnInfo::template_id() const {
+  // @@protoc_insertion_point(field_get:se.room.SpawnInfo.template_id)
+  return _internal_template_id();
+}
+inline void SpawnInfo::_internal_set_template_id(uint32_t value) {
+  
+  _impl_.template_id_ = value;
+}
+inline void SpawnInfo::set_template_id(uint32_t value) {
+  _internal_set_template_id(value);
+  // @@protoc_insertion_point(field_set:se.room.SpawnInfo.template_id)
+}
+
+// .se.common.ObjectId entity_id = 3;
 inline bool SpawnInfo::_internal_has_entity_id() const {
   return this != internal_default_instance() && _impl_.entity_id_ != nullptr;
 }
@@ -1201,7 +1051,7 @@ inline void SpawnInfo::set_allocated_entity_id(::se::common::ObjectId* entity_id
   // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.entity_id)
 }
 
-// .se.common.MovementState movement = 3;
+// .se.common.MovementState movement = 4;
 inline bool SpawnInfo::_internal_has_movement() const {
   return this != internal_default_instance() && _impl_.movement_ != nullptr;
 }
@@ -1286,185 +1136,9 @@ inline void SpawnInfo::set_allocated_movement(::se::common::MovementState* movem
   // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.movement)
 }
 
-// -------------------------------------------------------------------
-
-// EntityState
-
-// .se.common.ObjectId entity_id = 1;
-inline bool EntityState::_internal_has_entity_id() const {
-  return this != internal_default_instance() && _impl_.entity_id_ != nullptr;
-}
-inline bool EntityState::has_entity_id() const {
-  return _internal_has_entity_id();
-}
-inline const ::se::common::ObjectId& EntityState::_internal_entity_id() const {
-  const ::se::common::ObjectId* p = _impl_.entity_id_;
-  return p != nullptr ? *p : reinterpret_cast<const ::se::common::ObjectId&>(
-      ::se::common::_ObjectId_default_instance_);
-}
-inline const ::se::common::ObjectId& EntityState::entity_id() const {
-  // @@protoc_insertion_point(field_get:se.room.EntityState.entity_id)
-  return _internal_entity_id();
-}
-inline void EntityState::unsafe_arena_set_allocated_entity_id(
-    ::se::common::ObjectId* entity_id) {
-  if (GetArenaForAllocation() == nullptr) {
-    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.entity_id_);
-  }
-  _impl_.entity_id_ = entity_id;
-  if (entity_id) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.room.EntityState.entity_id)
-}
-inline ::se::common::ObjectId* EntityState::release_entity_id() {
-  
-  ::se::common::ObjectId* temp = _impl_.entity_id_;
-  _impl_.entity_id_ = nullptr;
-#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
-  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
-  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  if (GetArenaForAllocation() == nullptr) { delete old; }
-#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
-  if (GetArenaForAllocation() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
-  return temp;
-}
-inline ::se::common::ObjectId* EntityState::unsafe_arena_release_entity_id() {
-  // @@protoc_insertion_point(field_release:se.room.EntityState.entity_id)
-  
-  ::se::common::ObjectId* temp = _impl_.entity_id_;
-  _impl_.entity_id_ = nullptr;
-  return temp;
-}
-inline ::se::common::ObjectId* EntityState::_internal_mutable_entity_id() {
-  
-  if (_impl_.entity_id_ == nullptr) {
-    auto* p = CreateMaybeMessage<::se::common::ObjectId>(GetArenaForAllocation());
-    _impl_.entity_id_ = p;
-  }
-  return _impl_.entity_id_;
-}
-inline ::se::common::ObjectId* EntityState::mutable_entity_id() {
-  ::se::common::ObjectId* _msg = _internal_mutable_entity_id();
-  // @@protoc_insertion_point(field_mutable:se.room.EntityState.entity_id)
-  return _msg;
-}
-inline void EntityState::set_allocated_entity_id(::se::common::ObjectId* entity_id) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
-  if (message_arena == nullptr) {
-    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.entity_id_);
-  }
-  if (entity_id) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
-                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(entity_id));
-    if (message_arena != submessage_arena) {
-      entity_id = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, entity_id, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  _impl_.entity_id_ = entity_id;
-  // @@protoc_insertion_point(field_set_allocated:se.room.EntityState.entity_id)
-}
-
-// .se.common.MovementState movement = 2;
-inline bool EntityState::_internal_has_movement() const {
-  return this != internal_default_instance() && _impl_.movement_ != nullptr;
-}
-inline bool EntityState::has_movement() const {
-  return _internal_has_movement();
-}
-inline const ::se::common::MovementState& EntityState::_internal_movement() const {
-  const ::se::common::MovementState* p = _impl_.movement_;
-  return p != nullptr ? *p : reinterpret_cast<const ::se::common::MovementState&>(
-      ::se::common::_MovementState_default_instance_);
-}
-inline const ::se::common::MovementState& EntityState::movement() const {
-  // @@protoc_insertion_point(field_get:se.room.EntityState.movement)
-  return _internal_movement();
-}
-inline void EntityState::unsafe_arena_set_allocated_movement(
-    ::se::common::MovementState* movement) {
-  if (GetArenaForAllocation() == nullptr) {
-    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.movement_);
-  }
-  _impl_.movement_ = movement;
-  if (movement) {
-    
-  } else {
-    
-  }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.room.EntityState.movement)
-}
-inline ::se::common::MovementState* EntityState::release_movement() {
-  
-  ::se::common::MovementState* temp = _impl_.movement_;
-  _impl_.movement_ = nullptr;
-#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
-  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
-  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  if (GetArenaForAllocation() == nullptr) { delete old; }
-#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
-  if (GetArenaForAllocation() != nullptr) {
-    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
-  }
-#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
-  return temp;
-}
-inline ::se::common::MovementState* EntityState::unsafe_arena_release_movement() {
-  // @@protoc_insertion_point(field_release:se.room.EntityState.movement)
-  
-  ::se::common::MovementState* temp = _impl_.movement_;
-  _impl_.movement_ = nullptr;
-  return temp;
-}
-inline ::se::common::MovementState* EntityState::_internal_mutable_movement() {
-  
-  if (_impl_.movement_ == nullptr) {
-    auto* p = CreateMaybeMessage<::se::common::MovementState>(GetArenaForAllocation());
-    _impl_.movement_ = p;
-  }
-  return _impl_.movement_;
-}
-inline ::se::common::MovementState* EntityState::mutable_movement() {
-  ::se::common::MovementState* _msg = _internal_mutable_movement();
-  // @@protoc_insertion_point(field_mutable:se.room.EntityState.movement)
-  return _msg;
-}
-inline void EntityState::set_allocated_movement(::se::common::MovementState* movement) {
-  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
-  if (message_arena == nullptr) {
-    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.movement_);
-  }
-  if (movement) {
-    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
-        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
-                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(movement));
-    if (message_arena != submessage_arena) {
-      movement = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
-          message_arena, movement, submessage_arena);
-    }
-    
-  } else {
-    
-  }
-  _impl_.movement_ = movement;
-  // @@protoc_insertion_point(field_set_allocated:se.room.EntityState.movement)
-}
-
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
-// -------------------------------------------------------------------
-
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

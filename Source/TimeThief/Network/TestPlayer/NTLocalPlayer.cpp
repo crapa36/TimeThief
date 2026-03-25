@@ -3,16 +3,10 @@
 
 #include "NTLocalPlayer.h"
 
-#include <Generated/ClientPacketHandler.h>
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Protocol.pb.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "Network/NetworkGameInstanceSubsystem.h"
 
 // Sets default values
 ANTLocalPlayer::ANTLocalPlayer()
@@ -42,45 +36,6 @@ void ANTLocalPlayer::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	bool ForceSendPacket = false;
-	
-	if (LastDesiredInput != DesiredInput)
-	{
-		ForceSendPacket = true;
-		LastDesiredInput = DesiredInput;
-	}
-	
-	if (FMath::Abs(LastSentPitch - NowPitch) > 1.0f)
-	{
-		ForceSendPacket = true;
-	}
-	
-	MovePacketElapsed += DeltaTime;
-	
-	if (MovePacketElapsed >= MOVE_PACKET_SEND_DELAY || ForceSendPacket)
-	{
-		MovePacketElapsed = 0.f;
-		LastSentPitch = NowPitch;
-		
-		se::room::C_MoveInput pkt;
-		{
-			se::room::EntityState* entityState = pkt.mutable_entity_state();
-         
-			se::common::ObjectId* entityId = entityState->mutable_entity_id();
-			entityId->set_value(EntityId);
-			se::common::MovementState* movementState = entityState->mutable_movement();
-			se::common::Vector3* postion = movementState->mutable_position();
-			
-			postion->set_x(NowPosition.X);
-			postion->set_y(NowPosition.Y);
-			postion->set_z(NowPosition.Z);
-			movementState->set_yaw(NowYaw);
-			movementState->set_pitch(NowPitch);
-		}
-		
-		SendBufferRef sendBuffer = ClientPacketHandler::MakeSendBuffer(pkt);
-		GetWorld()->GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>()->SendPacket(sendBuffer);
-	}
 }
 
 // Called to bind functionality to input
@@ -107,8 +62,8 @@ void ANTLocalPlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	{
 		if (JumpAction)
 		{
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ANTLocalPlayer::DoJumpStart);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ANTLocalPlayer::DoJumpEnd);
 		}
 		
 		if (MoveAction)
@@ -159,18 +114,6 @@ void ANTLocalPlayer::DoMove(float Right, float Forward)
 		
 		AddMovementInput(ForwardDirection, Forward);
 		AddMovementInput(RightDirection, Right);
-		
-		{
-			DesiredInput = FVector2D(Right, Forward);
-			
-			DesiredMoveDirection = FVector::ZeroVector;
-			DesiredMoveDirection += ForwardDirection * Forward;
-			DesiredMoveDirection += RightDirection * Right;
-			DesiredMoveDirection.Normalize();
-			
-			const FVector Location = GetActorLocation();
-			FRotator Rotator = UKismetMathLibrary::FindLookAtRotation(Location, Location + DesiredMoveDirection);
-		}
 	}
 }
 
