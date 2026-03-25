@@ -41,5 +41,15 @@ public class TimeThief : ModuleRules
 		PublicIncludePaths.AddRange(new string[] {
 			"TimeThief",
 		});
+		
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"UnrealEd"
+				}
+			);
+		}
     }
 }
