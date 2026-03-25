@@ -27,6 +27,6 @@ public:
 	virtual void Interact(const ATimeThiefPlayerCharacter* Player) override;
 	
 protected:
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true), Category="Item Name")
-	EItemName ItemName;
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true), Category="Item")
+	EItemID ItemName;
 };

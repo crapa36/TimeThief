@@ -4,19 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "ItemCommons.h"
 #include "ItemToolTipWidget.generated.h"
 
 /**
  * 
  */
 
+class UImage;
 class UTextBlock;
-
-struct FItemToolTipData
-{
-	FString Name;
-	FString Description;
-};
 
 UCLASS()
 class TIMETHIEF_API UItemToolTipWidget : public UUserWidget
@@ -28,7 +24,16 @@ public:
 	TObjectPtr<UTextBlock> ItemName_Text;
 	
 	UPROPERTY(meta =(BindWidget))
+	TObjectPtr<UTextBlock> CategoryName_Text;
+	
+	UPROPERTY(meta =(BindWidget))
+	TObjectPtr<UImage> Item_Image;
+	
+	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UTextBlock> ItemDesc_Text;
 	
-	void SetupTooltip(const FItemToolTipData& Tooltip);
+	UPROPERTY(meta =(BindWidget))
+	TObjectPtr<UTextBlock> Stat_Text;
+	
+	void SetupToolTip(EItemID InItemID);
 };

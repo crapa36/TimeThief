@@ -26,13 +26,13 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
-	void AddItem(EItemName Item, int Amount = 1);
-	bool RemoveItem(EItemName Item, int Amount = 1);
+	void AddItem(EItemID Item, int Amount = 1);
+	bool RemoveItem(EItemID Item, int Amount = 1);
 
 private:
 	UPROPERTY()
-	TMap<EItemName, int> ItemQuantities;
+	TMap<EItemID, int> ItemQuantities;
 	
 	UPROPERTY()
-	EItemName Equipment;
+	EItemID Equipment;
 };

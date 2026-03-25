@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "StoreCommons.h"
+#include "ItemCommons.h"
 #include "Blueprint/UserWidget.h"
 #include "StoreCategoryWidget.generated.h"
 
 class UTextBlock;
 class UStoreCategoryData;
-class UStoreItemData;
+class UGameItemData;
 class UStoreSlotWidget;
 class UHorizontalBox;
 /**
@@ -24,7 +24,7 @@ protected:
 	virtual void NativePreConstruct() override;
 	
 	UPROPERTY(EditAnywhere, Category = "Store")
-	EStoreItemType ItemType;
+	EItemCategory ItemType;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Store")
 	TSubclassOf<UStoreSlotWidget> SlotClass;

@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UI/Item/ItemSlotWidget.h"
+#include "UI/Item/ItemSlotWidgetBase.h"
 #include "VicinityItemSlotWidget.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TIMETHIEF_API UVicinityItemSlotWidget : public UItemSlotWidget
+class TIMETHIEF_API UVicinityItemSlotWidget : public UItemSlotWidgetBase
 {
 	GENERATED_BODY()
 };

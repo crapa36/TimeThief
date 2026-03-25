@@ -8,7 +8,7 @@
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Game/StoreSettings.h"
+#include "Game/ItemSettings.h"
 
 void UStoreSlotWidget::NativeConstruct()
 {
@@ -26,26 +26,26 @@ void UStoreSlotWidget::OnSlotClicked()
 	{
 		if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
 		{
-			const FStoreItemInfo& ItemInfo = GetDefault<UStoreSettings>()->ItemData->StoreItems[ItemName];
+			const FItemData& ItemInfo = GetDefault<UItemSettings>()->ItemData->StoreItems[ItemID];
 			FStoreOrder Order;
-			Order.ItemName = ItemName;
+			Order.ItemName = ItemID;
 			Order.Price = ItemInfo.Price;
 			int Level = 0;
-			switch (ItemName)
+			switch (ItemID)
 			{
-			case EStoreItemName::DamageUpgrade:
+			case EItemID::DamageUpgrade:
 				Level = PS->Status.Damage;
 				break;
-			case EStoreItemName::StabilityUpgrade:
+			case EItemID::StabilityUpgrade:
 				Level = PS->Status.Stability;
 				break;
-			case EStoreItemName::CapacityUpgrade:
+			case EItemID::CapacityUpgrade:
 				Level = PS->Status.Capacity;
 				break;
-			case EStoreItemName::HealthUpgrade:
+			case EItemID::HealthUpgrade:
 				Level = PS->Status.Health;
 				break;
-			case EStoreItemName::SpeedUpgrade:
+			case EItemID::SpeedUpgrade:
 				Level = PS->Status.Speed;
 				break;
 			default:
@@ -59,28 +59,28 @@ void UStoreSlotWidget::OnSlotClicked()
 	}
 }
 
-void UStoreSlotWidget::Init(EStoreItemName InItemName)
+void UStoreSlotWidget::Init(EItemID InItemID)
 {
-	ItemName = InItemName;
+	UpdateItem(InItemID);
 
 	UpdateUI();
 }
 
 void UStoreSlotWidget::UpdateUI()
 {
-	const UStoreSettings* StoreSettings = GetDefault<UStoreSettings>();
-	if (UStoreItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
+	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
-		const FStoreItemInfo& ItemStat = LoadedData->StoreItems[ItemName];
+		const FItemData& ItemStat = LoadedData->StoreItems[ItemID];
 
-		if (Item_Image)
+		if (ItemIcon_Image)
 		{
-			Item_Image->SetBrushFromTexture(ItemStat.Icon);
+			ItemIcon_Image->SetBrushFromTexture(ItemStat.Icon);
 		}
 
-		if (Item_Text)
+		if (ItemName_Text)
 		{
-			Item_Text->SetText(FText::FromString(ItemStat.Name));
+			ItemName_Text->SetText(FText::FromString(ItemStat.Name));
 		}
 
 		if (Price_Text)
@@ -92,17 +92,17 @@ void UStoreSlotWidget::UpdateUI()
 				{
 					Price += ItemStat.Increment * [&]()
 					{
-						switch (ItemName)
+						switch (ItemID)
 						{
-						case EStoreItemName::DamageUpgrade:
+						case EItemID::DamageUpgrade:
 							return PS->Status.Damage;
-						case EStoreItemName::StabilityUpgrade:
+						case EItemID::StabilityUpgrade:
 							return PS->Status.Stability;
-						case EStoreItemName::CapacityUpgrade:
+						case EItemID::CapacityUpgrade:
 							return PS->Status.Capacity;
-						case EStoreItemName::HealthUpgrade:
+						case EItemID::HealthUpgrade:
 							return PS->Status.Health;
-						case EStoreItemName::SpeedUpgrade:
+						case EItemID::SpeedUpgrade:
 							return PS->Status.Speed;
 						default:
 							return 0;
