@@ -4,6 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "TimeThiefAnimInstance.generated.h"
 
+class IMovableNetworkEntityInterface;
 class ACharacter;
 class UCharacterMovementComponent;
 
@@ -21,6 +22,8 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<ACharacter> CharacterOwner;
+	
+	TScriptInterface<IMovableNetworkEntityInterface> MovableNetworkInterface;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<UCharacterMovementComponent> CharacterMovement;

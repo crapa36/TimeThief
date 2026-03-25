@@ -296,14 +296,14 @@ void UNetworkGameInstanceSubsystem::HandlePong(const se::auth::S_Pong& Pkt)
 	
 	if (NowMs < SentTimeMs)  // 시간 역전 방지
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] HandlePong: Invalid time delta"));
+		// UE_LOG(LogTemp, Warning, TEXT("[Network] HandlePong: Invalid time delta"));
 		return;
 	}
 	
 	uint64 RTT = NowMs - SentTimeMs;
 	// uint64 EstimatedServerTimeMs = SentTimeMs + RTT / 2;
 	
-	UE_LOG(LogTemp, Log, TEXT("[Network] Pong received. RTT = %llu ms"), RTT);
+	// UE_LOG(LogTemp, Log, TEXT("[Network] Pong received. RTT = %llu ms"), RTT);
 }
 
 void UNetworkGameInstanceSubsystem::HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& Pkt)
