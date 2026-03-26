@@ -21,7 +21,8 @@ private:
 	
 	static bool BuildColliderDataFromBoxComponent(const UBoxComponent* BoxComponent, se::map::ColliderData& ColliderData);
 	static int32 BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliderData);
-
+	static uint32 BuildColliderFlagsFromBoxComponent(const UBoxComponent* BoxComponent);
+	
 	static bool WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader, const TArray<se::map::ColliderData>& Colliders);
 	static void CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors);
 	

@@ -154,7 +154,7 @@ bool ServerMapExporter::BuildColliderDataFromBoxComponent(const UBoxComponent* B
 	
 	ColliderData = {};
 	ColliderData.type = se::map::ColliderType::OBB;
-	ColliderData.flags = se::map::Collider_BlockMovement | se::map::Collider_BlockProjectile;
+	ColliderData.flags = BuildColliderFlagsFromBoxComponent(BoxComponent);
 	
 	ColliderData.position = { 
 		static_cast<float>(Location.X), 
@@ -214,6 +214,37 @@ int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se
 	}
 	
 	return OutColliderData.Num() - PrevCount;
+}
+
+uint32 ServerMapExporter::BuildColliderFlagsFromBoxComponent(const UBoxComponent* BoxComponent)
+{
+	if (BoxComponent == nullptr)
+	{
+		return se::map::Collider_None;
+	}
+
+	const bool bHasMovementTag = BoxComponent->ComponentHasTag(TEXT("ServerBlockMovement"));
+	const bool bHasProjectileTag = BoxComponent->ComponentHasTag(TEXT("ServerBlockProjectile"));
+
+	// 아무 태그도 없으면 기본값
+	if (!bHasMovementTag && !bHasProjectileTag)
+	{
+		return se::map::Collider_BlockMovement | se::map::Collider_BlockProjectile;
+	}
+
+	uint32 Flags = se::map::Collider_None;
+
+	if (bHasMovementTag)
+	{
+		Flags |= se::map::Collider_BlockMovement;
+	}
+
+	if (bHasProjectileTag)
+	{
+		Flags |= se::map::Collider_BlockProjectile;
+	}
+
+	return Flags;
 }
 
 bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader,
