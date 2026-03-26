@@ -12,6 +12,29 @@
 #endif
 
 
+bool ServerMapExporter::ExportSelectedActorBoxesToFile(const FString& OutputPath)
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	TArray<se::map::ColliderData> Colliders;
+	const int32 AddedCount = BuildColliderDataListFromActor(SelectedActor, Colliders);
+	if (AddedCount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider data from selected actor: %s"), *GetNameSafe(SelectedActor));
+		return false;
+	}
+
+	se::map::MapHeader MapHeader{};
+	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
+
+	return WriteServerMapFile(OutputPath, MapHeader, Colliders);
+}
+
 bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath)
 {
 	if (World == nullptr)
@@ -36,14 +59,14 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	}
 	
 	TArray<se::map::ColliderData> Colliders;
-	Colliders.Reserve(TaggedActors.Num());
 	
+	int32 ExportedActorCount = 0;
 	for (AActor* Actor : TaggedActors)
 	{
-		se::map::ColliderData ColliderData;
-		if (BuildColliderDataFromActor(Actor, ColliderData))
+		const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders);
+		if (AddedCount > 0)
 		{
-			Colliders.Add(ColliderData);
+			++ExportedActorCount;
 		}
 		else
 		{
@@ -60,41 +83,9 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	se::map::MapHeader MapHeader{};
 	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
 	
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Found %d tagged actors, exported %d colliders"),
-		TaggedActors.Num(), Colliders.Num());
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Found %d tagged actors, exported %d actors, %d colliders"),
+		TaggedActors.Num(), ExportedActorCount, Colliders.Num());
 
-	return WriteServerMapFile(OutputPath, MapHeader, Colliders);
-}
-
-bool ServerMapExporter::ExportSelectedActorBoxToFile(const FString& OutputPath)
-{
-	AActor* SelectedActor = GetFirstSelectedActor();
-	if (SelectedActor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
-		return false;
-	}
-	
-	UBoxComponent* BoxComponent = FindBoxComponent(SelectedActor);
-	if (BoxComponent == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Selected actor has no UBoxComponent: %s"), *GetNameSafe(SelectedActor));
-		return false;
-	}
-	
-	se::map::ColliderData ColliderData;
-	if (!BuildColliderDataFromBoxComponent(BoxComponent, ColliderData))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider data"));
-		return false;
-	}
-	
-	se::map::MapHeader MapHeader{};
-	MapHeader.colliderCount = 1;
-	
-	TArray<se::map::ColliderData> Colliders;
-	Colliders.Add(ColliderData);
-	
 	return WriteServerMapFile(OutputPath, MapHeader, Colliders);
 }
 
@@ -137,8 +128,20 @@ UBoxComponent* ServerMapExporter::FindBoxComponent(AActor* Actor)
 	return Actor->FindComponentByClass<UBoxComponent>();
 }
 
+void ServerMapExporter::CollectBoxComponents(AActor* Actor, TArray<UBoxComponent*>& OutBoxComponents)
+{
+	OutBoxComponents.Reset();
+	
+	if (Actor == nullptr)
+	{
+		return;
+	}
+	
+	Actor->GetComponents<UBoxComponent>(OutBoxComponents);
+}
+
 bool ServerMapExporter::BuildColliderDataFromBoxComponent(const UBoxComponent* BoxComponent,
-	se::map::ColliderData& ColliderData)
+                                                          se::map::ColliderData& ColliderData)
 {
 	if (BoxComponent == nullptr)
 	{
@@ -174,8 +177,47 @@ bool ServerMapExporter::BuildColliderDataFromBoxComponent(const UBoxComponent* B
 	return true;
 }
 
+int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliderData)
+{
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+	
+	TArray<UBoxComponent*> BoxComponents;
+	CollectBoxComponents(Actor, BoxComponents);
+	
+	if (BoxComponents.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UBoxComponent: %s"), *GetNameSafe(Actor));
+		return 0;
+	}
+	
+	const int32 PrevCount = OutColliderData.Num();
+	
+	for (const UBoxComponent* BoxComponent : BoxComponents)
+	{
+		if (BoxComponent == nullptr)
+		{
+			continue;
+		}
+		
+		se::map::ColliderData ColliderData;
+		if (BuildColliderDataFromBoxComponent(BoxComponent, ColliderData))
+		{
+			OutColliderData.Add(ColliderData);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider from BoxComponent in actor: %s"), *GetNameSafe(Actor));
+		}
+	}
+	
+	return OutColliderData.Num() - PrevCount;
+}
+
 bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader,
-	const TArray<se::map::ColliderData>& Colliders)
+                                           const TArray<se::map::ColliderData>& Colliders)
 {
 	if (OutputPath.IsEmpty())
 	{
@@ -226,19 +268,19 @@ void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& Require
 	}
 }
 
-bool ServerMapExporter::BuildColliderDataFromActor(AActor* Actor, se::map::ColliderData& OutColliderData)
-{
-	if (Actor == nullptr)
-	{
-		return false;
-	}
-	
-	UBoxComponent* BoxComponent = FindBoxComponent(Actor);
-	if (BoxComponent == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UBoxComponent: %s"), *GetNameSafe(Actor));
-		return false;
-	}
-	
-	return BuildColliderDataFromBoxComponent(BoxComponent, OutColliderData);
-}
+// bool ServerMapExporter::BuildColliderDataFromActor(AActor* Actor, se::map::ColliderData& OutColliderData)
+// {
+// 	if (Actor == nullptr)
+// 	{
+// 		return false;
+// 	}
+// 	
+// 	UBoxComponent* BoxComponent = FindBoxComponent(Actor);
+// 	if (BoxComponent == nullptr)
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UBoxComponent: %s"), *GetNameSafe(Actor));
+// 		return false;
+// 	}
+// 	
+// 	return BuildColliderDataFromBoxComponent(BoxComponent, OutColliderData);
+// }

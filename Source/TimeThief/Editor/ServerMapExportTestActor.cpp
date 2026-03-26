@@ -17,7 +17,7 @@ AServerMapExportTestActor::AServerMapExportTestActor()
 void AServerMapExportTestActor::ExportSelectedBox()
 {
 	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap.servermap");
-	const bool bResult = ServerMapExporter::ExportSelectedActorBoxToFile(OutputPath);
+	const bool bResult = ServerMapExporter::ExportSelectedActorBoxesToFile(OutputPath);
 
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] Export result: %s"), bResult ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
