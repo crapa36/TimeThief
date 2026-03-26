@@ -19,6 +19,8 @@
 #include "ServerCollisionPresetDataAsset.h"
 #include "UObject/Package.h"
 #include "Misc/MessageDialog.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Modules/ModuleManager.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -91,24 +93,14 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 
 	for (AActor* Actor : TaggedActors)
 	{
-		if (HasValidShapeComponent(Actor))
+		const int32 AddedCount = BuildColliderDataListFromActorResolved(Actor, Colliders, DebugRecords, Summary);
+		if (AddedCount > 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using ShapeComponents: %s"), *GetNameSafe(Actor));
-			
-			const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders, DebugRecords, Summary);
-			if (AddedCount > 0)
-			{
-				++Summary.ExportedActorCount;
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Skipped actor: %s"), *GetNameSafe(Actor));
-			}
+			++Summary.ExportedActorCount;
 		}
 		else
 		{
-			// StaticMesh fallback.. (자동 추출)
-			UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using StaticMesh fallback: %s"), *GetNameSafe(Actor));
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Skipped actor: %s"), *GetNameSafe(Actor));
 		}
 	}
 	
@@ -741,6 +733,40 @@ AActor* ServerMapExporter::GetFirstSelectedActor()
 	
 }
 
+UServerCollisionPresetDataAsset* ServerMapExporter::FindPresetForStaticMesh(UStaticMesh* StaticMesh)
+{
+	if (StaticMesh == nullptr)
+	{
+		return nullptr;
+	}
+
+	FAssetRegistryModule& AssetRegistryModule =
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+
+	TArray<FAssetData> AssetDataList;
+	AssetRegistryModule.Get().GetAssetsByClass(
+		UServerCollisionPresetDataAsset::StaticClass()->GetClassPathName(),
+		AssetDataList);
+
+	for (const FAssetData& AssetData : AssetDataList)
+	{
+		UServerCollisionPresetDataAsset* PresetAsset =
+			Cast<UServerCollisionPresetDataAsset>(AssetData.GetAsset());
+
+		if (PresetAsset == nullptr)
+		{
+			continue;
+		}
+
+		if (PresetAsset->SourceStaticMesh == StaticMesh)
+		{
+			return PresetAsset;
+		}
+	}
+
+	return nullptr;
+}
+
 UStaticMeshComponent* ServerMapExporter::FindFirstStaticMeshComponent(AActor* Actor)
 {
 	if (Actor == nullptr)
@@ -865,6 +891,56 @@ bool ServerMapExporter::HasValidShapeComponent(AActor* Actor)
 	}
 
 	return false;
+}
+
+int32 ServerMapExporter::BuildColliderDataListFromActorResolved(AActor* Actor,
+	TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords,
+	FServerMapExportSummary& Summary)
+{
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+
+	if (HasValidShapeComponent(Actor))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using ShapeComponents: %s"), *GetNameSafe(Actor));
+		++Summary.ShapeSourceActorCount;
+
+		return BuildColliderDataListFromActor(Actor, OutColliders, OutDebugRecords, Summary);
+	}
+
+	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+	if (StaticMeshComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No UStaticMeshComponent and no valid shapes: %s"), *GetNameSafe(Actor));
+		++Summary.MissingPresetActorCount;
+		return 0;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] StaticMesh is null: %s"), *GetNameSafe(Actor));
+		++Summary.MissingPresetActorCount;
+		return 0;
+	}
+
+	UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
+	if (PresetAsset == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No preset found for StaticMesh: %s"), *GetNameSafe(StaticMesh));
+		++Summary.MissingPresetActorCount;
+		return 0;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using Preset: Actor=%s Preset=%s"),
+		*GetNameSafe(Actor),
+		*GetNameSafe(PresetAsset));
+
+	++Summary.PresetSourceActorCount;
+
+	return BuildColliderDataListFromPreset(Actor, StaticMeshComponent, PresetAsset, OutColliders, OutDebugRecords, Summary);
 }
 
 uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent)
@@ -1116,6 +1192,9 @@ void ServerMapExporter::LogExportSummary(const FName& RequiredTag, const FString
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Capsule Count      : %d"), Summary.CapsuleCount);
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Ignored Components : %d"), Summary.IgnoredComponentCount);
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Invalid Components : %d"), Summary.InvalidComponentCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Shape Source Actors : %d"), Summary.ShapeSourceActorCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Preset Source Actors: %d"), Summary.PresetSourceActorCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Missing Preset Actors: %d"), Summary.MissingPresetActorCount);
 	UE_LOG(LogTemp, Log, TEXT("=============================================="));
 }
 

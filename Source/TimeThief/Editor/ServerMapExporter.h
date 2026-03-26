@@ -27,6 +27,10 @@ struct FServerMapExportSummary
 
 	int32 IgnoredComponentCount = 0;
 	int32 InvalidComponentCount = 0;
+	
+	int32 ShapeSourceActorCount = 0;
+	int32 PresetSourceActorCount = 0;
+	int32 MissingPresetActorCount = 0;
 };
 
 struct FServerMapDebugColliderRecord
@@ -64,6 +68,7 @@ public:
 private:
 	static AActor* GetFirstSelectedActor();
 
+	static UServerCollisionPresetDataAsset* FindPresetForStaticMesh(UStaticMesh* StaticMesh);
 	static UStaticMeshComponent* FindFirstStaticMeshComponent(AActor* Actor);
 	static void RemoveGeneratedShapeComponents(AActor* Actor);
 
@@ -73,6 +78,8 @@ private:
 	static bool ShouldExportShapeComponent(const UShapeComponent* ShapeComponent);
 	static bool IsValidShapeComponentForExport(const UShapeComponent* ShapeComponent);
 	static bool HasValidShapeComponent(AActor* Actor);
+	
+	static int32 BuildColliderDataListFromActorResolved(AActor* Actor, TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords,	FServerMapExportSummary& Summary);
 	
 	static uint32 BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent);
 
