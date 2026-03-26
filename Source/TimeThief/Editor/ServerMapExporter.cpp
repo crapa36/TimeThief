@@ -8,6 +8,9 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/PlatformFileManager.h"
+#include "Serialization/JsonWriter.h"
+#include "Serialization/JsonSerializer.h"
+#include "Dom/JsonObject.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -24,10 +27,11 @@ bool ServerMapExporter::ExportSelectedActorBoxesToFile(const FString& OutputPath
 	}
 
 	TArray<se::map::ColliderData> Colliders;
+	TArray<FServerMapDebugColliderRecord> DebugRecords;
 	FServerMapExportSummary Summary;
 	Summary.TaggedActorCount = 1;
 
-	const int32 AddedCount = BuildColliderDataListFromActor(SelectedActor, Colliders, Summary);
+	const int32 AddedCount = BuildColliderDataListFromActor(SelectedActor, Colliders, DebugRecords, Summary);
 	if (AddedCount <= 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider data from selected actor: %s"), *GetNameSafe(SelectedActor));
@@ -75,10 +79,11 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	}
 	
 	TArray<se::map::ColliderData> Colliders;
-	
+	TArray<FServerMapDebugColliderRecord> DebugRecords;
+
 	for (AActor* Actor : TaggedActors)
 	{
-		const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders, Summary);
+		const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders, DebugRecords, Summary);
 		if (AddedCount > 0)
 		{
 			++Summary.ExportedActorCount;
@@ -98,13 +103,17 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	se::map::MapHeader MapHeader{};
 	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
 
-	const bool bResult = WriteServerMapFile(OutputPath, MapHeader, Colliders);
-	if (bResult)
+	const bool bBinarySaved = WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	if (!bBinarySaved)
 	{
-		LogExportSummary(RequiredTag, OutputPath, Summary);
+		return false;
 	}
 
-	return bResult;
+	const FString DebugJsonPath = MakeDebugJsonOutputPath(OutputPath);
+	WriteDebugJsonFile(DebugJsonPath, DebugRecords);
+
+	LogExportSummary(RequiredTag, OutputPath, Summary);
+	return true;
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()
@@ -134,6 +143,18 @@ AActor* ServerMapExporter::GetFirstSelectedActor()
 	return nullptr;
 #endif
 	
+}
+
+void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors)
+{
+	for (TActorIterator<AActor> It(World); It; ++It)
+	{
+		AActor* Actor = *It;
+		if (Actor && Actor->ActorHasTag(RequiredTag))
+		{
+			OutActors.Add(Actor);
+		}
+	}
 }
 
 void ServerMapExporter::CollectShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents)
@@ -352,7 +373,8 @@ bool ServerMapExporter::BuildColliderDataFromCapsuleComponent(const UCapsuleComp
 	return true;
 }
 
-int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders, FServerMapExportSummary& Summary)
+int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders,
+	TArray<FServerMapDebugColliderRecord>& OutDebugRecords, FServerMapExportSummary& Summary)
 {
 	if (Actor == nullptr)
 	{
@@ -396,6 +418,7 @@ int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se
 		if (BuildColliderDataFromShapeComponent(ShapeComponent, ColliderData))
 		{
 			OutColliders.Add(ColliderData);
+			AppendDebugRecord(Actor, ShapeComponent, ColliderData, OutDebugRecords);
 			AccumulateSummary(ColliderData, Summary);
 		}
 	}
@@ -484,14 +507,87 @@ bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::
 	return true;
 }
 
-void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors)
+bool ServerMapExporter::WriteDebugJsonFile(const FString& OutputPath,
+	const TArray<FServerMapDebugColliderRecord>& DebugRecords)
 {
-	for (TActorIterator<AActor> It(World); It; ++It)
+	TSharedRef<FJsonObject> RootObject = MakeShared<FJsonObject>();
+
+	RootObject->SetNumberField(TEXT("colliderCount"), DebugRecords.Num());
+
+	TArray<TSharedPtr<FJsonValue>> ColliderArray;
+	ColliderArray.Reserve(DebugRecords.Num());
+
+	for (int32 Index = 0; Index < DebugRecords.Num(); ++Index)
 	{
-		AActor* Actor = *It;
-		if (Actor && Actor->ActorHasTag(RequiredTag))
-		{
-			OutActors.Add(Actor);
-		}
+		const FServerMapDebugColliderRecord& Record = DebugRecords[Index];
+
+		TSharedRef<FJsonObject> ColliderObject = MakeShared<FJsonObject>();
+		ColliderObject->SetNumberField(TEXT("index"), Index);
+		ColliderObject->SetStringField(TEXT("actorName"), Record.ActorName);
+		ColliderObject->SetStringField(TEXT("componentName"), Record.ComponentName);
+		ColliderObject->SetNumberField(TEXT("type"), static_cast<int32>(Record.ColliderData.type));
+		ColliderObject->SetNumberField(TEXT("flags"), static_cast<int32>(Record.ColliderData.flags));
+
+		TSharedRef<FJsonObject> PositionObject = MakeShared<FJsonObject>();
+		PositionObject->SetNumberField(TEXT("x"), Record.ColliderData.position.x);
+		PositionObject->SetNumberField(TEXT("y"), Record.ColliderData.position.y);
+		PositionObject->SetNumberField(TEXT("z"), Record.ColliderData.position.z);
+		ColliderObject->SetObjectField(TEXT("position"), PositionObject);
+
+		TSharedRef<FJsonObject> RotationObject = MakeShared<FJsonObject>();
+		RotationObject->SetNumberField(TEXT("x"), Record.ColliderData.rotationDeg.x);
+		RotationObject->SetNumberField(TEXT("y"), Record.ColliderData.rotationDeg.y);
+		RotationObject->SetNumberField(TEXT("z"), Record.ColliderData.rotationDeg.z);
+		ColliderObject->SetObjectField(TEXT("rotationDeg"), RotationObject);
+
+		TSharedRef<FJsonObject> ExtentsObject = MakeShared<FJsonObject>();
+		ExtentsObject->SetNumberField(TEXT("x"), Record.ColliderData.extents.x);
+		ExtentsObject->SetNumberField(TEXT("y"), Record.ColliderData.extents.y);
+		ExtentsObject->SetNumberField(TEXT("z"), Record.ColliderData.extents.z);
+		ColliderObject->SetObjectField(TEXT("extents"), ExtentsObject);
+
+		ColliderObject->SetNumberField(TEXT("radius"), Record.ColliderData.radius);
+		ColliderObject->SetNumberField(TEXT("halfHeight"), Record.ColliderData.halfHeight);
+
+		ColliderArray.Add(MakeShared<FJsonValueObject>(ColliderObject));
 	}
+
+	RootObject->SetArrayField(TEXT("colliders"), ColliderArray);
+
+	FString JsonString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+
+	if (!FJsonSerializer::Serialize(RootObject, Writer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to serialize debug json"));
+		return false;
+	}
+
+	if (!FFileHelper::SaveStringToFile(JsonString, *OutputPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to save debug json: %s"), *OutputPath);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Debug json saved: %s"), *OutputPath);
+	return true;
 }
+
+FString ServerMapExporter::MakeDebugJsonOutputPath(const FString& BinaryOutputPath)
+{
+	const FString Directory = FPaths::GetPath(BinaryOutputPath);
+	const FString BaseName = FPaths::GetBaseFilename(BinaryOutputPath);
+	return Directory / (BaseName + TEXT(".debug.json"));
+}
+
+void ServerMapExporter::AppendDebugRecord(const AActor* Actor, const UActorComponent* Component,
+	const se::map::ColliderData& ColliderData, TArray<FServerMapDebugColliderRecord>& OutDebugRecords)
+{
+	FServerMapDebugColliderRecord Record;
+	Record.ActorName = GetNameSafe(Actor);
+	Record.ComponentName = GetNameSafe(Component);
+	Record.ColliderData = ColliderData;
+
+	OutDebugRecords.Add(MoveTemp(Record));
+}
+

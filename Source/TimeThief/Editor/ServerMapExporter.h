@@ -24,6 +24,14 @@ struct FServerMapExportSummary
 	int32 InvalidComponentCount = 0;
 };
 
+struct FServerMapDebugColliderRecord
+{
+	FString ActorName;
+	FString ComponentName;
+
+	se::map::ColliderData ColliderData;
+};
+
 class ServerMapExporter
 {
 public:
@@ -46,10 +54,14 @@ private:
 	static bool BuildColliderDataFromSphereComponent(const USphereComponent* SphereComponent, se::map::ColliderData& OutColliderData);
 	static bool BuildColliderDataFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent, se::map::ColliderData& OutColliderData);
 
-	static int32 BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders, FServerMapExportSummary& Summary);
-
+	static int32 BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords, FServerMapExportSummary& Summary);
+	
 	static void AccumulateSummary(const se::map::ColliderData& ColliderData, FServerMapExportSummary& Summary);
 	static void LogExportSummary(const FName& RequiredTag, const FString& OutputPath, const FServerMapExportSummary& Summary);
 	
 	static bool WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader, const TArray<se::map::ColliderData>& Colliders);
+	static bool WriteDebugJsonFile(const FString& OutputPath, const TArray<FServerMapDebugColliderRecord>& DebugRecords);
+	static FString MakeDebugJsonOutputPath(const FString& BinaryOutputPath);
+	static void AppendDebugRecord(const AActor* Actor, const UActorComponent* Component, const se::map::ColliderData& ColliderData, TArray<FServerMapDebugColliderRecord>& OutDebugRecords);
+
 };
