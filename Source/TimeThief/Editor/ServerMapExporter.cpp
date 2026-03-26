@@ -134,6 +134,63 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	return true;
 }
 
+bool ServerMapExporter::ExportPresetToFile(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset,
+	const FString& OutputPath)
+{
+	if (Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor is null"));
+		return false;
+	}
+
+	if (PresetAsset == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] PresetAsset is null"));
+		return false;
+	}
+
+	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+	if (StaticMeshComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	TArray<se::map::ColliderData> Colliders;
+	TArray<FServerMapDebugColliderRecord> DebugRecords;
+	FServerMapExportSummary Summary;
+	Summary.TaggedActorCount = 1;
+
+	const int32 AddedCount = BuildColliderDataListFromPreset(Actor, StaticMeshComponent, PresetAsset, Colliders, DebugRecords, Summary);
+	if (AddedCount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build colliders from preset: %s"), *GetNameSafe(PresetAsset));
+		return false;
+	}
+
+	Summary.ExportedActorCount = 1;
+
+	se::map::MapHeader MapHeader{};
+	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
+
+	const bool bBinarySaved = WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	if (!bBinarySaved)
+	{
+		return false;
+	}
+
+	const FString DebugJsonPath = MakeDebugJsonOutputPath(OutputPath);
+	WriteDebugJsonFile(DebugJsonPath, DebugRecords);
+
+	LogExportSummary(TEXT("PresetExport"), OutputPath, Summary);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Exported preset to file: Actor=%s Preset=%s"),
+		*GetNameSafe(Actor),
+		*GetNameSafe(PresetAsset));
+
+	return true;
+}
+
 bool ServerMapExporter::GenerateBoxFromSelectedStaticMesh()
 {
 	AActor* SelectedActor = GetFirstSelectedActor();
@@ -1388,5 +1445,128 @@ bool ServerMapExporter::BuildPresetColliderFromCapsuleComponent(const UCapsuleCo
 	OutPresetCollider.DebugName = FName(GetNameSafe(CapsuleComponent));
 
 	return true;
+}
+
+int32 ServerMapExporter::BuildColliderDataListFromPreset(AActor* Actor, UStaticMeshComponent* StaticMeshComponent,
+	const UServerCollisionPresetDataAsset* PresetAsset, TArray<se::map::ColliderData>& OutColliders,
+	TArray<FServerMapDebugColliderRecord>& OutDebugRecords, FServerMapExportSummary& Summary)
+{
+	if (Actor == nullptr || StaticMeshComponent == nullptr || PresetAsset == nullptr)
+	{
+		return 0;
+	}
+
+	const int32 PrevCount = OutColliders.Num();
+	const FTransform MeshWorldTransform = StaticMeshComponent->GetComponentTransform();
+
+	for (const FServerCollisionPresetCollider& PresetCollider : PresetAsset->Colliders)
+	{
+		se::map::ColliderData ColliderData;
+		if (!BuildWorldColliderDataFromPresetCollider(PresetCollider, MeshWorldTransform, ColliderData))
+		{
+			continue;
+		}
+
+		OutColliders.Add(ColliderData);
+		AccumulateSummary(ColliderData, Summary);
+
+		FServerMapDebugColliderRecord Record;
+		Record.ActorName = GetNameSafe(Actor);
+		Record.ComponentName = PresetCollider.DebugName.IsNone()
+			? TEXT("PresetCollider")
+			: PresetCollider.DebugName.ToString();
+		Record.ColliderData = ColliderData;
+		OutDebugRecords.Add(MoveTemp(Record));
+	}
+
+	return OutColliders.Num() - PrevCount;
+}
+
+bool ServerMapExporter::BuildWorldColliderDataFromPresetCollider(const FServerCollisionPresetCollider& PresetCollider,
+	const FTransform& MeshComponentWorldTransform, se::map::ColliderData& OutColliderData)
+{
+	OutColliderData = {};
+
+	const FTransform LocalTransform(PresetCollider.LocalRotation, PresetCollider.LocalPosition, FVector::OneVector);
+	const FTransform WorldTransform = LocalTransform * MeshComponentWorldTransform;
+
+	const FVector WorldLocation = WorldTransform.GetLocation();
+	const FRotator WorldRotation = WorldTransform.Rotator();
+	const FVector WorldScale = MeshComponentWorldTransform.GetScale3D().GetAbs();
+
+	OutColliderData.position = {
+		static_cast<float>(WorldLocation.X),
+		static_cast<float>(WorldLocation.Y),
+		static_cast<float>(WorldLocation.Z)
+	};
+
+	OutColliderData.rotationDeg = {
+		static_cast<float>(WorldRotation.Pitch),
+		static_cast<float>(WorldRotation.Yaw),
+		static_cast<float>(WorldRotation.Roll)
+	};
+
+	uint32 Flags = se::map::Collider_None;
+	if (PresetCollider.bBlockMovement)
+	{
+		Flags |= se::map::Collider_BlockMovement;
+	}
+	if (PresetCollider.bBlockProjectile)
+	{
+		Flags |= se::map::Collider_BlockProjectile;
+	}
+	OutColliderData.flags = Flags;
+
+	switch (PresetCollider.ShapeType)
+	{
+	case EServerColliderShapeType::Box:
+	{
+		OutColliderData.type = se::map::ColliderType::OBB;
+
+		const FVector ScaledExtent = FVector(
+			PresetCollider.BoxExtent.X * WorldScale.X,
+			PresetCollider.BoxExtent.Y * WorldScale.Y,
+			PresetCollider.BoxExtent.Z * WorldScale.Z);
+
+		OutColliderData.extents = {
+			static_cast<float>(ScaledExtent.X),
+			static_cast<float>(ScaledExtent.Y),
+			static_cast<float>(ScaledExtent.Z)
+		};
+
+		OutColliderData.radius = 0.0f;
+		OutColliderData.halfHeight = 0.0f;
+		return true;
+	}
+
+	case EServerColliderShapeType::Sphere:
+	{
+		OutColliderData.type = se::map::ColliderType::Sphere;
+
+		const float UniformScale = FMath::Max3(WorldScale.X, WorldScale.Y, WorldScale.Z);
+		const float ScaledRadius = PresetCollider.Radius * UniformScale;
+
+		OutColliderData.extents = { 0.0f, 0.0f, 0.0f };
+		OutColliderData.radius = ScaledRadius;
+		OutColliderData.halfHeight = 0.0f;
+		return true;
+	}
+
+	case EServerColliderShapeType::Capsule:
+	{
+		OutColliderData.type = se::map::ColliderType::Capsule;
+
+		const float RadiusScale = FMath::Max(WorldScale.X, WorldScale.Y);
+		const float HeightScale = WorldScale.Z;
+
+		OutColliderData.extents = { 0.0f, 0.0f, 0.0f };
+		OutColliderData.radius = PresetCollider.Radius * RadiusScale;
+		OutColliderData.halfHeight = PresetCollider.HalfHeight * HeightScale;
+		return true;
+	}
+
+	default:
+		return false;
+	}
 }
 

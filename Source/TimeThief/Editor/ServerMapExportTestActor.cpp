@@ -5,6 +5,7 @@
 #include "ServerCollisionPresetDataAsset.h"
 #include "ServerMapTags.h"
 #include "ServerMapExporter.h"
+#include "Selection.h"
 
 
 // Sets default values
@@ -46,5 +47,32 @@ void AServerMapExportTestActor::SaveSelectedGeneratedShapesToPreset()
 	const bool bResult = ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(TargetPresetAsset);
 
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] SaveSelectedGeneratedShapesToPreset result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
+void AServerMapExportTestActor::ExportSelectedActorUsingPreset()
+{
+	AActor* SelectedActor = nullptr;
+
+#if WITH_EDITOR
+	if (GEditor)
+	{
+		if (USelection* SelectedActors = GEditor->GetSelectedActors())
+		{
+			SelectedActor = Cast<AActor>(SelectedActors->GetSelectedObject(0));
+		}
+	}
+#endif
+
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapTest] No selected actor"));
+		return;
+	}
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap_Preset.servermap");
+	const bool bResult = ServerMapExporter::ExportPresetToFile(SelectedActor, TargetPresetAsset, OutputPath);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportSelectedActorUsingPreset result: %s"),
 		bResult ? TEXT("true") : TEXT("false"));
 }

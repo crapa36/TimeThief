@@ -42,6 +42,7 @@ class ServerMapExporter
 public:
 	static bool ExportSelectedActorBoxesToFile(const FString& OutputPath);
 	static bool ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath);
+	static bool ExportPresetToFile(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset, const FString& OutputPath);
 
 	static bool GenerateBoxFromSelectedStaticMesh();
 	static bool GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes = true);
@@ -97,5 +98,8 @@ private:
 	static bool BuildPresetColliderFromBoxComponent(const UBoxComponent* BoxComponent, FServerCollisionPresetCollider& OutPresetCollider);
 	static bool BuildPresetColliderFromSphereComponent(const USphereComponent* SphereComponent, FServerCollisionPresetCollider& OutPresetCollider);
 	static bool BuildPresetColliderFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent, FServerCollisionPresetCollider& OutPresetCollider);
+
+	static int32 BuildColliderDataListFromPreset(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, const UServerCollisionPresetDataAsset* PresetAsset, TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords, FServerMapExportSummary& Summary);
+	static bool BuildWorldColliderDataFromPresetCollider(const FServerCollisionPresetCollider& PresetCollider, const FTransform& MeshComponentWorldTransform, se::map::ColliderData& OutColliderData);
 	
 };

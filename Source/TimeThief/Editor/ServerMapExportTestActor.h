@@ -31,4 +31,7 @@ public:
 	UFUNCTION(CallInEditor, Category = "ServerMap")
 	void SaveSelectedGeneratedShapesToPreset();
 	
+	UFUNCTION(CallInEditor, Category = "ServerMap")
+	void ExportSelectedActorUsingPreset();
+	
 };
