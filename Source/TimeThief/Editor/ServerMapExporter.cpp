@@ -83,14 +83,24 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 
 	for (AActor* Actor : TaggedActors)
 	{
-		const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders, DebugRecords, Summary);
-		if (AddedCount > 0)
+		if (HasValidShapeComponent(Actor))
 		{
-			++Summary.ExportedActorCount;
+			UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using ShapeComponents: %s"), *GetNameSafe(Actor));
+			
+			const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders, DebugRecords, Summary);
+			if (AddedCount > 0)
+			{
+				++Summary.ExportedActorCount;
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Skipped actor: %s"), *GetNameSafe(Actor));
+			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Skipped actor: %s"), *GetNameSafe(Actor));
+			// StaticMesh fallback.. (자동 추출)
+			UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using StaticMesh fallback: %s"), *GetNameSafe(Actor));
 		}
 	}
 	
@@ -176,7 +186,7 @@ bool ServerMapExporter::ShouldExportShapeComponent(const UShapeComponent* ShapeC
 		return false;
 	}
 	
-	if (ShapeComponent->ComponentHasTag(TEXT("ServerIgnore")))
+	if (ShapeComponent->ComponentHasTag(ServerTags::Ignore))
 	{
 		return false;
 	}
@@ -215,6 +225,28 @@ bool ServerMapExporter::IsValidShapeComponentForExport(const UShapeComponent* Sh
 	return false;
 }
 
+bool ServerMapExporter::HasValidShapeComponent(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+
+	TArray<UShapeComponent*> Shapes;
+	CollectShapeComponents(Actor, Shapes);
+
+	for (UShapeComponent* Shape : Shapes)
+	{
+		if (ShouldExportShapeComponent(Shape) &&
+			IsValidShapeComponentForExport(Shape))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent)
 {
 	if (ShapeComponent == nullptr)
@@ -222,8 +254,8 @@ uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeCompo
 		return se::map::Collider_None;
 	}
 
-	const bool bHasMovementTag = ShapeComponent->ComponentHasTag(TEXT("ServerBlockMovement"));
-	const bool bHasProjectileTag = ShapeComponent->ComponentHasTag(TEXT("ServerBlockProjectile"));
+	const bool bHasMovementTag = ShapeComponent->ComponentHasTag(ServerTags::BlockMovement);
+	const bool bHasProjectileTag = ShapeComponent->ComponentHasTag(ServerTags::BlockProjectile);
 
 	if (!bHasMovementTag && !bHasProjectileTag)
 	{

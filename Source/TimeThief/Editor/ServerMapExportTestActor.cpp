@@ -3,6 +3,7 @@
 
 #include "ServerMapExportTestActor.h"
 
+#include "ServerMapTags.h"
 #include "ServerMapExporter.h"
 
 
@@ -26,7 +27,7 @@ void AServerMapExportTestActor::ExportSelectedBox()
 void AServerMapExportTestActor::ExportTaggedShapes()
 {
 	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap_Tagged.servermap");
-	const bool bResult = ServerMapExporter::ExportActorsWithTagToFile(GetWorld(), TEXT("ServerCollision"), OutputPath);
+	const bool bResult = ServerMapExporter::ExportActorsWithTagToFile(GetWorld(), ServerTags::Collision, OutputPath);
 
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportTaggedBoxes result: %s"), bResult ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);

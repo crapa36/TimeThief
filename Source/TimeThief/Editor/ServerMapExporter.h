@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "ServerMapTags.h"
 #include "ServerMapExportTypes.h"
 
 class AActor;
@@ -46,6 +47,8 @@ private:
 
 	static bool ShouldExportShapeComponent(const UShapeComponent* ShapeComponent);
 	static bool IsValidShapeComponentForExport(const UShapeComponent* ShapeComponent);
+	
+	static bool HasValidShapeComponent(AActor* Actor);
 	
 	static uint32 BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent);
 
