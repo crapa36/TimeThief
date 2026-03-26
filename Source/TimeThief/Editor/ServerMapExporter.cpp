@@ -2,6 +2,8 @@
 
 #include "EngineUtils.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "Engine/Selection.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -128,16 +130,72 @@ UBoxComponent* ServerMapExporter::FindBoxComponent(AActor* Actor)
 	return Actor->FindComponentByClass<UBoxComponent>();
 }
 
-void ServerMapExporter::CollectBoxComponents(AActor* Actor, TArray<UBoxComponent*>& OutBoxComponents)
+void ServerMapExporter::CollectShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents)
 {
-	OutBoxComponents.Reset();
+	OutShapeComponents.Reset();
 	
 	if (Actor == nullptr)
 	{
 		return;
 	}
 	
-	Actor->GetComponents<UBoxComponent>(OutBoxComponents);
+	Actor->GetComponents<UShapeComponent>(OutShapeComponents);
+}
+
+uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent)
+{
+	if (ShapeComponent == nullptr)
+	{
+		return se::map::Collider_None;
+	}
+
+	const bool bHasMovementTag = ShapeComponent->ComponentHasTag(TEXT("ServerBlockMovement"));
+	const bool bHasProjectileTag = ShapeComponent->ComponentHasTag(TEXT("ServerBlockProjectile"));
+
+	if (!bHasMovementTag && !bHasProjectileTag)
+	{
+		return se::map::Collider_BlockMovement | se::map::Collider_BlockProjectile;
+	}
+
+	uint32 Flags = se::map::Collider_None;
+
+	if (bHasMovementTag)
+	{
+		Flags |= se::map::Collider_BlockMovement;
+	}
+
+	if (bHasProjectileTag)
+	{
+		Flags |= se::map::Collider_BlockProjectile;
+	}
+
+	return Flags;
+}
+
+bool ServerMapExporter::BuildColliderDataFromShapeComponent(const UShapeComponent* ShapeComponent,
+	se::map::ColliderData& OutColliderData)
+{
+	if (ShapeComponent == nullptr)
+	{
+		return false;
+	}
+
+	if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(ShapeComponent))
+	{
+		return BuildColliderDataFromBoxComponent(BoxComponent, OutColliderData);
+	}
+
+	if (const USphereComponent* SphereComponent = Cast<USphereComponent>(ShapeComponent))
+	{
+		return BuildColliderDataFromSphereComponent(SphereComponent, OutColliderData);
+	}
+
+	if (const UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(ShapeComponent))
+	{
+		return BuildColliderDataFromCapsuleComponent(CapsuleComponent, OutColliderData);
+	}
+
+	return false;
 }
 
 bool ServerMapExporter::BuildColliderDataFromBoxComponent(const UBoxComponent* BoxComponent,
@@ -154,7 +212,7 @@ bool ServerMapExporter::BuildColliderDataFromBoxComponent(const UBoxComponent* B
 	
 	ColliderData = {};
 	ColliderData.type = se::map::ColliderType::OBB;
-	ColliderData.flags = BuildColliderFlagsFromBoxComponent(BoxComponent);
+	ColliderData.flags = BuildColliderFlagsFromShapeComponent(BoxComponent);
 	
 	ColliderData.position = { 
 		static_cast<float>(Location.X), 
@@ -177,74 +235,104 @@ bool ServerMapExporter::BuildColliderDataFromBoxComponent(const UBoxComponent* B
 	return true;
 }
 
-int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliderData)
+bool ServerMapExporter::BuildColliderDataFromSphereComponent(const USphereComponent* SphereComponent,
+	se::map::ColliderData& OutColliderData)
+{
+	if (SphereComponent == nullptr)
+	{
+		return false;
+	}
+
+	const FVector Location = SphereComponent->GetComponentLocation();
+	const float Radius = SphereComponent->GetScaledSphereRadius();
+
+	OutColliderData = {};
+	OutColliderData.type = se::map::ColliderType::Sphere;
+	OutColliderData.flags = BuildColliderFlagsFromShapeComponent(SphereComponent);
+
+	OutColliderData.position = {
+		static_cast<float>(Location.X),
+		static_cast<float>(Location.Y),
+		static_cast<float>(Location.Z)
+	};
+
+	OutColliderData.rotationDeg = { 0.0f, 0.0f, 0.0f };
+	OutColliderData.extents = { 0.0f, 0.0f, 0.0f };
+	OutColliderData.radius = Radius;
+	OutColliderData.halfHeight = 0.0f;
+
+	return true;
+}
+
+bool ServerMapExporter::BuildColliderDataFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent,
+	se::map::ColliderData& OutColliderData)
+{
+	if (CapsuleComponent == nullptr)
+	{
+		return false;
+	}
+
+	const FVector Location = CapsuleComponent->GetComponentLocation();
+	const FRotator Rotation = CapsuleComponent->GetComponentRotation();
+	const float Radius = CapsuleComponent->GetScaledCapsuleRadius();
+	const float HalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
+
+	OutColliderData = {};
+	OutColliderData.type = se::map::ColliderType::Capsule;
+	OutColliderData.flags = BuildColliderFlagsFromShapeComponent(CapsuleComponent);
+
+	OutColliderData.position = {
+		static_cast<float>(Location.X),
+		static_cast<float>(Location.Y),
+		static_cast<float>(Location.Z)
+	};
+
+	OutColliderData.rotationDeg = {
+		static_cast<float>(Rotation.Pitch),
+		static_cast<float>(Rotation.Yaw),
+		static_cast<float>(Rotation.Roll)
+	};
+
+	OutColliderData.extents = { 0.0f, 0.0f, 0.0f };
+	OutColliderData.radius = Radius;
+	OutColliderData.halfHeight = HalfHeight;
+
+	return true;
+}
+
+int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders)
 {
 	if (Actor == nullptr)
 	{
 		return 0;
 	}
-	
-	TArray<UBoxComponent*> BoxComponents;
-	CollectBoxComponents(Actor, BoxComponents);
-	
-	if (BoxComponents.IsEmpty())
+
+	TArray<UShapeComponent*> ShapeComponents;
+	CollectShapeComponents(Actor, ShapeComponents);
+
+	if (ShapeComponents.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UBoxComponent: %s"), *GetNameSafe(Actor));
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no supported shape component: %s"), *GetNameSafe(Actor));
 		return 0;
 	}
-	
-	const int32 PrevCount = OutColliderData.Num();
-	
-	for (const UBoxComponent* BoxComponent : BoxComponents)
+
+	const int32 PrevCount = OutColliders.Num();
+
+	for (const UShapeComponent* ShapeComponent : ShapeComponents)
 	{
-		if (BoxComponent == nullptr)
+		if (ShapeComponent == nullptr)
 		{
 			continue;
 		}
-		
+
 		se::map::ColliderData ColliderData;
-		if (BuildColliderDataFromBoxComponent(BoxComponent, ColliderData))
+		if (BuildColliderDataFromShapeComponent(ShapeComponent, ColliderData))
 		{
-			OutColliderData.Add(ColliderData);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider from BoxComponent in actor: %s"), *GetNameSafe(Actor));
+			OutColliders.Add(ColliderData);
 		}
 	}
-	
-	return OutColliderData.Num() - PrevCount;
-}
 
-uint32 ServerMapExporter::BuildColliderFlagsFromBoxComponent(const UBoxComponent* BoxComponent)
-{
-	if (BoxComponent == nullptr)
-	{
-		return se::map::Collider_None;
-	}
-
-	const bool bHasMovementTag = BoxComponent->ComponentHasTag(TEXT("ServerBlockMovement"));
-	const bool bHasProjectileTag = BoxComponent->ComponentHasTag(TEXT("ServerBlockProjectile"));
-
-	// 아무 태그도 없으면 기본값
-	if (!bHasMovementTag && !bHasProjectileTag)
-	{
-		return se::map::Collider_BlockMovement | se::map::Collider_BlockProjectile;
-	}
-
-	uint32 Flags = se::map::Collider_None;
-
-	if (bHasMovementTag)
-	{
-		Flags |= se::map::Collider_BlockMovement;
-	}
-
-	if (bHasProjectileTag)
-	{
-		Flags |= se::map::Collider_BlockProjectile;
-	}
-
-	return Flags;
+	return OutColliders.Num() - PrevCount;
 }
 
 bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader,
