@@ -33,4 +33,12 @@ void AServerMapExportTestActor::ExportTaggedShapes()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
+void AServerMapExportTestActor::GenerateBoxFromSelectedStaticMesh()
+{
+	const bool bResult = ServerMapExporter::GenerateBoxFromSelectedStaticMesh();
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] GenerateBoxFromSelectedStaticMesh result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
 

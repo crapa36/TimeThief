@@ -39,15 +39,20 @@ public:
 	static bool ExportSelectedActorBoxesToFile(const FString& OutputPath);
 	static bool ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath);
 
+	static bool GenerateBoxFromSelectedStaticMesh();
+	static bool GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes = true);
+
 private:
 	static AActor* GetFirstSelectedActor();
+
+	static UStaticMeshComponent* FindFirstStaticMeshComponent(AActor* Actor);
+	static void RemoveGeneratedShapeComponents(AActor* Actor);
 
 	static void CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors);
 	static void CollectShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents);
 
 	static bool ShouldExportShapeComponent(const UShapeComponent* ShapeComponent);
 	static bool IsValidShapeComponentForExport(const UShapeComponent* ShapeComponent);
-	
 	static bool HasValidShapeComponent(AActor* Actor);
 	
 	static uint32 BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent);

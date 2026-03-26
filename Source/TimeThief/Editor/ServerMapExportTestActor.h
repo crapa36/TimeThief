@@ -19,5 +19,8 @@ public:
 	
 	UFUNCTION(CallInEditor, Category = "ServerMap")
 	void ExportTaggedShapes();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap")
+	void GenerateBoxFromSelectedStaticMesh();
 
 };

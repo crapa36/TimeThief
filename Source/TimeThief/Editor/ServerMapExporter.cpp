@@ -11,6 +11,8 @@
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonSerializer.h"
 #include "Dom/JsonObject.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -126,6 +128,98 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	return true;
 }
 
+bool ServerMapExporter::GenerateBoxFromSelectedStaticMesh()
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	return GenerateBoxFromActorStaticMesh(SelectedActor, true);
+}
+
+bool ServerMapExporter::GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes)
+{
+	if (Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor is null"));
+		return false;
+	}
+
+	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+	if (StaticMeshComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] StaticMesh is null: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	if (bClearExistingGeneratedShapes)
+	{
+		RemoveGeneratedShapeComponents(Actor);
+	}
+
+	const FBox LocalMeshBox = StaticMesh->GetBoundingBox();
+	if (!LocalMeshBox.IsValid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Invalid mesh bounds: %s"), *GetNameSafe(StaticMesh));
+		return false;
+	}
+
+	const FVector LocalCenter = LocalMeshBox.GetCenter();
+	const FVector LocalExtent = LocalMeshBox.GetExtent();
+
+	if (LocalExtent.X <= KINDA_SMALL_NUMBER ||
+		LocalExtent.Y <= KINDA_SMALL_NUMBER ||
+		LocalExtent.Z <= KINDA_SMALL_NUMBER)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Mesh bounds extent too small: %s"), *GetNameSafe(StaticMesh));
+		return false;
+	}
+
+	UBoxComponent* NewBoxComponent = NewObject<UBoxComponent>(Actor);
+	if (NewBoxComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to create UBoxComponent"));
+		return false;
+	}
+
+	NewBoxComponent->SetBoxExtent(LocalExtent);
+
+	NewBoxComponent->ComponentTags.AddUnique(ServerTags::Generated);
+	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
+	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+
+	NewBoxComponent->SetupAttachment(StaticMeshComponent);
+	NewBoxComponent->SetRelativeLocation(LocalCenter);
+	NewBoxComponent->SetRelativeRotation(FRotator::ZeroRotator);
+
+	NewBoxComponent->RegisterComponent();
+
+	Actor->AddInstanceComponent(NewBoxComponent);
+
+#if WITH_EDITOR
+	Actor->Modify();
+	NewBoxComponent->Modify();
+#endif
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated BoxComponent from StaticMesh: Actor=%s Mesh=%s Center=%s Extent=%s"),
+		*GetNameSafe(Actor),
+		*GetNameSafe(StaticMesh),
+		*LocalCenter.ToString(),
+		*LocalExtent.ToString());
+
+	return true;
+}
+
 AActor* ServerMapExporter::GetFirstSelectedActor()
 {
 #if WITH_EDITOR
@@ -153,6 +247,40 @@ AActor* ServerMapExporter::GetFirstSelectedActor()
 	return nullptr;
 #endif
 	
+}
+
+UStaticMeshComponent* ServerMapExporter::FindFirstStaticMeshComponent(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return nullptr;
+	}
+
+	return Actor->FindComponentByClass<UStaticMeshComponent>();
+}
+
+void ServerMapExporter::RemoveGeneratedShapeComponents(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UShapeComponent*> ShapeComponents;
+	CollectShapeComponents(Actor, ShapeComponents);
+
+	for (UShapeComponent* ShapeComponent : ShapeComponents)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (ShapeComponent->ComponentHasTag(ServerTags::Generated))
+		{
+			ShapeComponent->DestroyComponent();
+		}
+	}
 }
 
 void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors)

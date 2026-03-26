@@ -6,4 +6,5 @@ namespace ServerTags
 	inline const FName Ignore				= TEXT("ServerIgnore");
 	inline const FName BlockMovement		= TEXT("ServerBlockMovement");
 	inline const FName BlockProjectile		= TEXT("ServerBlockProjectile");
+	static const FName Generated			= TEXT("ServerGenerated");
 }
