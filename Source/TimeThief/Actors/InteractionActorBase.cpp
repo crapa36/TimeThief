@@ -3,9 +3,11 @@
 
 #include "InteractionActorBase.h"
 
+#include "Blueprint/UserWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/SphereComponent.h"
-
+#include "Components/WidgetComponent.h"
+#include "ChannelCommons.h"
 
 // Sets default values
 AInteractionActorBase::AInteractionActorBase()
@@ -19,9 +21,15 @@ AInteractionActorBase::AInteractionActorBase()
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>("InteractionSphere");
 	InteractionSphere->SetupAttachment(RootComponent);
 	InteractionSphere->SetHiddenInGame(false);
+	InteractionSphere->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
 	
 	InteractionSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddUniqueDynamic(this, &ThisClass::OnEndOverlap);
+	
+	InteractionWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("InteractionWidgetComponent");
+	InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	InteractionWidgetComponent->SetupAttachment(RootComponent);
+	InteractionWidgetComponent->SetVisibility(false);
 }
 
 // Called when the game starts or when spawned
@@ -36,20 +44,7 @@ void AInteractionActorBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AInteractionActorBase::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AInteractionActorBase::SetVisibilityInteractionUI(bool bShow)
 {
-	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(OtherActor))
-	{
-		Player->AddNearInteractionActor(this);
-	}
-}
-
-void AInteractionActorBase::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                         UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
-{
-	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(OtherActor))
-	{
-		Player->RemoveNearInteractionActor(this);
-	}
+	InteractionWidgetComponent->SetVisibility(bShow);
 }

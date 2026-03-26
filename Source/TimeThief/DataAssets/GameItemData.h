@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ItemCommons.h"
 #include "Engine/DataAsset.h"
-#include "StoreCommons.h"
-#include "StoreItemData.generated.h"
+#include "GameItemData.generated.h"
 
 /**
  * 
  */
 USTRUCT(BlueprintType)
-struct FStoreItemInfo
+struct FItemData
 {
 	GENERATED_BODY()
 	
@@ -19,7 +19,16 @@ struct FStoreItemInfo
 	FString Name = "None";
 	
 	UPROPERTY(EditAnywhere)
+	FString Description = "None";
+	
+	UPROPERTY(EditAnywhere)
+	FString Stat = "";
+	
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UTexture2D> Icon = nullptr;
+	
+	UPROPERTY(EditAnywhere)
+	EItemCategory Category;
 	
 	UPROPERTY(EditAnywhere)
 	int Price = 0;
@@ -29,11 +38,13 @@ struct FStoreItemInfo
 };
 
 UCLASS()
-class TIMETHIEF_API UStoreItemData : public UDataAsset
+class TIMETHIEF_API UGameItemData : public UDataAsset
 {
 	GENERATED_BODY()
 	
 public:
+	UGameItemData();
+	
 	UPROPERTY(EditAnywhere)
-	TMap<EStoreItemName, FStoreItemInfo> StoreItems;
+	TMap<EItemID, FItemData> StoreItems;
 };

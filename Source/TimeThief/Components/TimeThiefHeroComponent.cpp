@@ -221,7 +221,6 @@ void UTimeThiefHeroComponent::Input_Interact(const FInputActionValue& Value)
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 	{
 		Player->OnInteract();
-		UKismetSystemLibrary::PrintString(this, TEXT("Interact Pressed"));
 	}
 }
 

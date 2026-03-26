@@ -6,7 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
-#include "StoreCommons.h"
+#include "ItemCommons.h"
 #include "TimeThiefPlayerState.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -52,20 +52,20 @@ bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
 		ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(GetPlayerState());
 			switch (Order.ItemName)
 			{
-			case EStoreItemName::DamageUpgrade:
+			case EItemID::DamageUpgrade:
 				PS->Status.Damage++;
 				break;
-			case EStoreItemName::StabilityUpgrade:
+			case EItemID::StabilityUpgrade:
 				PS->Status.Stability++;
 				break;
-			case EStoreItemName::CapacityUpgrade:
+			case EItemID::CapacityUpgrade:
 				PS->Status.Capacity++;
 				break;
-			case EStoreItemName::HealthUpgrade:
+			case EItemID::HealthUpgrade:
 				PS->Status.Health++;
 				HealthComponent->Upgrade();
 				break;
-			case EStoreItemName::SpeedUpgrade:
+			case EItemID::SpeedUpgrade:
 				PS->Status.Speed++;
 				break;
 			default:

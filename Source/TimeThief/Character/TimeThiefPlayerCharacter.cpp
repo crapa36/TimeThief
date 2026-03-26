@@ -12,6 +12,7 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "ChannelCommons.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -47,13 +48,9 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
 void ATimeThiefPlayerCharacter::OnInteract()
 {
-	for (auto Actor : NearInteractionActors)
+	if (CurrentLookingActor.IsValid())
 	{
-		if (Actor.IsValid())
-		{
-			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Interacted with %s"), *Actor->GetName()));
-			Actor->Interact(this);
-		}
+		CurrentLookingActor->Interact(this);
 	}
 }
 
@@ -107,6 +104,14 @@ void ATimeThiefPlayerCharacter::BeginPlay() {
 	{
 		FollowCamera->SetActive(false);
 	}
+	
+	GetWorldTimerManager().SetTimer(
+		InteractCheckTimerHandle, 
+		this, 
+		&ATimeThiefPlayerCharacter::CheckInteractableObject, 
+		0.1f, 
+		true
+		);
 }
 
 void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
@@ -116,14 +121,50 @@ void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
 	GetCharacterMovement()->DisableMovement();
 }
 
-void ATimeThiefPlayerCharacter::SetNearStore(const AStoreActor* InNearStore)
+void ATimeThiefPlayerCharacter::CheckInteractableObject()
 {
-	NearStore = InNearStore;
-}
-
-const AStoreActor* ATimeThiefPlayerCharacter::GetNearStore() const
-{
-	return NearStore;
+	if (!FollowCamera)
+	{
+		return;
+	}
+	
+	FVector StartLocation = FollowCamera->GetComponentLocation();
+	FVector ForwardVector = FollowCamera->GetForwardVector();
+	FVector EndLocation = StartLocation + ForwardVector * (CameraBoom->TargetArmLength + LookingDistance);
+	
+	FHitResult Hit;
+	
+	bool bHit = GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		StartLocation,
+		EndLocation,
+		ECC_InteractTrace
+	);
+	
+	if (bHit && Hit.GetActor())
+	{
+		if (AInteractionActorBase* InteractionActor = Cast<AInteractionActorBase>(Hit.GetActor()))
+		{
+			if (CurrentLookingActor != InteractionActor)
+			{
+				if (CurrentLookingActor.IsValid())
+				{
+					CurrentLookingActor->SetVisibilityInteractionUI(false);
+				}
+				
+				CurrentLookingActor = InteractionActor;
+				CurrentLookingActor->SetVisibilityInteractionUI(true);
+			}
+			
+			return;
+		}
+	}
+	
+	if (CurrentLookingActor.IsValid())
+	{
+		CurrentLookingActor->SetVisibilityInteractionUI(false);
+		CurrentLookingActor.Reset();
+	}
 }
 
 void ATimeThiefPlayerCharacter::AddNearInteractionActor(AInteractionActorBase* InteractionActor)
