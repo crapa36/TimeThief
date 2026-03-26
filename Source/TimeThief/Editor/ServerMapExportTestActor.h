@@ -18,6 +18,6 @@ public:
 	void ExportSelectedBox();
 	
 	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void ExportTaggedBoxes();
+	void ExportTaggedShapes();
 
 };

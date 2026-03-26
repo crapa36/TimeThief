@@ -24,17 +24,28 @@ bool ServerMapExporter::ExportSelectedActorBoxesToFile(const FString& OutputPath
 	}
 
 	TArray<se::map::ColliderData> Colliders;
-	const int32 AddedCount = BuildColliderDataListFromActor(SelectedActor, Colliders);
+	FServerMapExportSummary Summary;
+	Summary.TaggedActorCount = 1;
+
+	const int32 AddedCount = BuildColliderDataListFromActor(SelectedActor, Colliders, Summary);
 	if (AddedCount <= 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider data from selected actor: %s"), *GetNameSafe(SelectedActor));
 		return false;
 	}
 
+	Summary.ExportedActorCount = 1;
+
 	se::map::MapHeader MapHeader{};
 	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
 
-	return WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	const bool bResult = WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	if (bResult)
+	{
+		LogExportSummary(TEXT("SelectedActor"), OutputPath, Summary);
+	}
+
+	return bResult;
 }
 
 bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath)
@@ -54,6 +65,9 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	TArray<AActor*> TaggedActors;
 	CollectActorsWithTag(World, RequiredTag, TaggedActors);
 	
+	FServerMapExportSummary Summary;
+	Summary.TaggedActorCount = TaggedActors.Num();
+
 	if (TaggedActors.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No actors found with tag: %s"), *RequiredTag.ToString());
@@ -62,13 +76,12 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	
 	TArray<se::map::ColliderData> Colliders;
 	
-	int32 ExportedActorCount = 0;
 	for (AActor* Actor : TaggedActors)
 	{
-		const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders);
+		const int32 AddedCount = BuildColliderDataListFromActor(Actor, Colliders, Summary);
 		if (AddedCount > 0)
 		{
-			++ExportedActorCount;
+			++Summary.ExportedActorCount;
 		}
 		else
 		{
@@ -84,11 +97,14 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	
 	se::map::MapHeader MapHeader{};
 	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
-	
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Found %d tagged actors, exported %d actors, %d colliders"),
-		TaggedActors.Num(), ExportedActorCount, Colliders.Num());
 
-	return WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	const bool bResult = WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	if (bResult)
+	{
+		LogExportSummary(RequiredTag, OutputPath, Summary);
+	}
+
+	return bResult;
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()
@@ -120,16 +136,6 @@ AActor* ServerMapExporter::GetFirstSelectedActor()
 	
 }
 
-UBoxComponent* ServerMapExporter::FindBoxComponent(AActor* Actor)
-{
-	if (Actor == nullptr)
-	{
-		return nullptr;
-	}
-	
-	return Actor->FindComponentByClass<UBoxComponent>();
-}
-
 void ServerMapExporter::CollectShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents)
 {
 	OutShapeComponents.Reset();
@@ -140,6 +146,52 @@ void ServerMapExporter::CollectShapeComponents(AActor* Actor, TArray<UShapeCompo
 	}
 	
 	Actor->GetComponents<UShapeComponent>(OutShapeComponents);
+}
+
+bool ServerMapExporter::ShouldExportShapeComponent(const UShapeComponent* ShapeComponent)
+{
+	if (ShapeComponent == nullptr)
+	{
+		return false;
+	}
+	
+	if (ShapeComponent->ComponentHasTag(TEXT("ServerIgnore")))
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+bool ServerMapExporter::IsValidShapeComponentForExport(const UShapeComponent* ShapeComponent)
+{
+	if (ShapeComponent == nullptr)
+	{
+		return false;
+	}
+	
+	if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(ShapeComponent))
+	{
+		const FVector Extent = BoxComponent->GetScaledBoxExtent();
+		return Extent.X > KINDA_SMALL_NUMBER 
+			&& Extent.Y > KINDA_SMALL_NUMBER 
+			&& Extent.Z > KINDA_SMALL_NUMBER;
+	}
+	
+	if (const USphereComponent* SphereComponent = Cast<USphereComponent>(ShapeComponent))
+	{
+		const float Radius = SphereComponent->GetScaledSphereRadius();
+		return Radius > KINDA_SMALL_NUMBER;
+	}
+	
+	if (const UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(ShapeComponent))
+	{
+		const float Radius = CapsuleComponent->GetScaledCapsuleRadius();
+		const float HalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
+		return Radius > KINDA_SMALL_NUMBER && HalfHeight > KINDA_SMALL_NUMBER;
+	}
+	
+	return false;
 }
 
 uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent)
@@ -300,7 +352,7 @@ bool ServerMapExporter::BuildColliderDataFromCapsuleComponent(const UCapsuleComp
 	return true;
 }
 
-int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders)
+int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders, FServerMapExportSummary& Summary)
 {
 	if (Actor == nullptr)
 	{
@@ -325,14 +377,71 @@ int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se
 			continue;
 		}
 
+		if (!ShouldExportShapeComponent(ShapeComponent))
+		{
+			++Summary.IgnoredComponentCount;
+			continue;
+		}
+
+		if (!IsValidShapeComponentForExport(ShapeComponent))
+		{
+			++Summary.InvalidComponentCount;
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Invalid shape component skipped: %s (%s)"),
+				*GetNameSafe(ShapeComponent),
+				*GetNameSafe(Actor));
+			continue;
+		}
+
 		se::map::ColliderData ColliderData;
 		if (BuildColliderDataFromShapeComponent(ShapeComponent, ColliderData))
 		{
 			OutColliders.Add(ColliderData);
+			AccumulateSummary(ColliderData, Summary);
 		}
 	}
 
 	return OutColliders.Num() - PrevCount;
+}
+
+void ServerMapExporter::AccumulateSummary(const se::map::ColliderData& ColliderData, FServerMapExportSummary& Summary)
+{
+	++Summary.ExportedColliderCount;
+
+	switch (ColliderData.type)
+	{
+	case se::map::ColliderType::AABB:
+	case se::map::ColliderType::OBB:
+		++Summary.BoxCount;
+		break;
+		
+	case se::map::ColliderType::Sphere:
+		++Summary.SphereCount;
+		break;
+		
+	case se::map::ColliderType::Capsule:
+		++Summary.CapsuleCount;
+		break;
+		
+	default:
+		break;
+	}
+}
+
+void ServerMapExporter::LogExportSummary(const FName& RequiredTag, const FString& OutputPath,
+	const FServerMapExportSummary& Summary)
+{
+	UE_LOG(LogTemp, Log, TEXT("========== ServerMap Export Summary =========="));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Tag                : %s"), *RequiredTag.ToString());
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Output             : %s"), *OutputPath);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Tagged Actors      : %d"), Summary.TaggedActorCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Exported Actors    : %d"), Summary.ExportedActorCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Exported Colliders : %d"), Summary.ExportedColliderCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Box Count          : %d"), Summary.BoxCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Sphere Count       : %d"), Summary.SphereCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Capsule Count      : %d"), Summary.CapsuleCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Ignored Components : %d"), Summary.IgnoredComponentCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Invalid Components : %d"), Summary.InvalidComponentCount);
+	UE_LOG(LogTemp, Log, TEXT("=============================================="));
 }
 
 bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader,
@@ -386,20 +495,3 @@ void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& Require
 		}
 	}
 }
-
-// bool ServerMapExporter::BuildColliderDataFromActor(AActor* Actor, se::map::ColliderData& OutColliderData)
-// {
-// 	if (Actor == nullptr)
-// 	{
-// 		return false;
-// 	}
-// 	
-// 	UBoxComponent* BoxComponent = FindBoxComponent(Actor);
-// 	if (BoxComponent == nullptr)
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UBoxComponent: %s"), *GetNameSafe(Actor));
-// 		return false;
-// 	}
-// 	
-// 	return BuildColliderDataFromBoxComponent(BoxComponent, OutColliderData);
-// }

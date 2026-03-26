@@ -10,6 +10,20 @@ class UShapeComponent;
 class USphereComponent;
 class UCapsuleComponent;
 
+struct FServerMapExportSummary
+{
+	int32 TaggedActorCount = 0;
+	int32 ExportedActorCount = 0;
+	int32 ExportedColliderCount = 0;
+
+	int32 BoxCount = 0;
+	int32 SphereCount = 0;
+	int32 CapsuleCount = 0;
+
+	int32 IgnoredComponentCount = 0;
+	int32 InvalidComponentCount = 0;
+};
+
 class ServerMapExporter
 {
 public:
@@ -19,10 +33,12 @@ public:
 private:
 	static AActor* GetFirstSelectedActor();
 
-	static UBoxComponent* FindBoxComponent(AActor* Actor);
 	static void CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors);
 	static void CollectShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents);
 
+	static bool ShouldExportShapeComponent(const UShapeComponent* ShapeComponent);
+	static bool IsValidShapeComponentForExport(const UShapeComponent* ShapeComponent);
+	
 	static uint32 BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent);
 
 	static bool BuildColliderDataFromShapeComponent(const UShapeComponent* ShapeComponent, se::map::ColliderData& OutColliderData);
@@ -30,7 +46,10 @@ private:
 	static bool BuildColliderDataFromSphereComponent(const USphereComponent* SphereComponent, se::map::ColliderData& OutColliderData);
 	static bool BuildColliderDataFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent, se::map::ColliderData& OutColliderData);
 
-	static int32 BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders);
+	static int32 BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders, FServerMapExportSummary& Summary);
 
+	static void AccumulateSummary(const se::map::ColliderData& ColliderData, FServerMapExportSummary& Summary);
+	static void LogExportSummary(const FName& RequiredTag, const FString& OutputPath, const FServerMapExportSummary& Summary);
+	
 	static bool WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader, const TArray<se::map::ColliderData>& Colliders);
 };

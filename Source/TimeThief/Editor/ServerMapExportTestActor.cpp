@@ -23,7 +23,7 @@ void AServerMapExportTestActor::ExportSelectedBox()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
-void AServerMapExportTestActor::ExportTaggedBoxes()
+void AServerMapExportTestActor::ExportTaggedShapes()
 {
 	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap_Tagged.servermap");
 	const bool bResult = ServerMapExporter::ExportActorsWithTagToFile(GetWorld(), TEXT("ServerCollision"), OutputPath);
