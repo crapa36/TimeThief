@@ -19,6 +19,7 @@ public class TimeThief : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
+			"SlateCore",
             "MotionTrajectory",
             "PoseSearch",
             "GameplayTags",

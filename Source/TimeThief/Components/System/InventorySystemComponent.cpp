@@ -13,7 +13,7 @@ UInventorySystemComponent::UInventorySystemComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	for (EItemName Item : TEnumRange<EItemName>())
+	for (EItemID Item : TEnumRange<EItemID>())
 	{
 		ItemQuantities.Add(Item, 0);
 	}
@@ -39,15 +39,12 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	// ...
 }
 
-void UInventorySystemComponent::AddItem(EItemName Item, int Amount)
+void UInventorySystemComponent::AddItem(EItemID Item, int Amount)
 {
 	ItemQuantities[Item] += Amount;
-
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Added %d of item %s. Total now: %d"), 
-		Amount, *UEnum::GetValueAsString(Item), ItemQuantities[Item]));
 }
 
-bool UInventorySystemComponent::RemoveItem(EItemName Item, int Amount)
+bool UInventorySystemComponent::RemoveItem(EItemID Item, int Amount)
 {
 	if (ItemQuantities[Item] >= Amount)
 	{

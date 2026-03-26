@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
-#include "StoreCommons.h"
+#include "UI/Item/ItemSlotWidgetBase.h"
+#include "ItemCommons.h"
 #include "StoreSlotWidget.generated.h"
 
 class UTextBlock;
@@ -14,7 +14,7 @@ class UButton;
  * 
  */
 UCLASS()
-class TIMETHIEF_API UStoreSlotWidget : public UUserWidget
+class TIMETHIEF_API UStoreSlotWidget : public UItemSlotWidgetBase
 {
 	GENERATED_BODY()
 	
@@ -22,24 +22,13 @@ protected:
 	virtual void NativeConstruct() override;
 	
 	UPROPERTY(meta =(BindWidget))
-	TObjectPtr<UButton> Slot_Button;
-	
-	UPROPERTY(meta =(BindWidget))
-	TObjectPtr<UImage> Item_Image;
-	
-	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UTextBlock> Price_Text;
-	
-	UPROPERTY(meta =(BindWidget))
-	TObjectPtr<UTextBlock> Item_Text;
-	
-	EStoreItemName ItemName;
 	
 public:
 	UFUNCTION()
 	void OnSlotClicked();
 	
-	void Init(EStoreItemName InItemName);
+	void Init(EItemID InItemID);
 	
 	void UpdateUI();
 };

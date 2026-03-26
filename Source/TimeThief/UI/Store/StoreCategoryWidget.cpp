@@ -7,7 +7,7 @@
 #include "StoreSlotWidget.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/TextBlock.h"
-#include "Game/StoreSettings.h"
+#include "Game/ItemSettings.h"
 
 void UStoreCategoryWidget::NativePreConstruct()
 {
@@ -16,13 +16,12 @@ void UStoreCategoryWidget::NativePreConstruct()
 	{
 		Items_HorizontalBox->ClearChildren();
 	}
-
-	// 2. 디자이너에서 SlotClass가 할당되어 있는지 반드시 체크해야 에디터 크래시를 막습니다.
+	
 	if (!SlotClass)
 	{
 		return; 
 	}
-	const UStoreSettings* StoreSettings = GetDefault<UStoreSettings>();
+	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
 
 	if (UStoreCategoryData* LoadedData = StoreSettings->CategoryData.LoadSynchronous())
 	{
@@ -34,7 +33,7 @@ void UStoreCategoryWidget::NativePreConstruct()
 		{
 			Category_Text->SetText(FText::FromString(LoadedData->StoreItemMap[ItemType].CategoryName));
 		}
-		for (EStoreItemName ItemName : LoadedData->StoreItemMap[ItemType].ItemList)
+		for (EItemID ItemName : LoadedData->StoreItemMap[ItemType].ItemList)
 		{
 			auto NewWidget = CreateWidget<UStoreSlotWidget>(this, SlotClass);
 			NewWidget->Init(ItemName);

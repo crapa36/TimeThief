@@ -11,15 +11,10 @@
 // Sets default values
 AStoreActor::AStoreActor()
 {
+	Priority = 0;
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	
-	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("MeshComponent");
-	RootComponent = MeshComponent;
-	
-	InteractionSphere = CreateDefaultSubobject<USphereComponent>("InteractionSphere");
-	InteractionSphere->SetupAttachment(RootComponent);
-	
+
 	InteractionSphere->OnComponentBeginOverlap.AddDynamic(this, &AStoreActor::OnBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddDynamic(this, &AStoreActor::OnEndOverlap);
 }
@@ -28,7 +23,6 @@ AStoreActor::AStoreActor()
 void AStoreActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -37,34 +31,22 @@ void AStoreActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void AStoreActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AStoreActor::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+                               UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
 {
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(OtherActor))
 	{
-		Player->SetNearStore(this);
 		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 		{
-			PC->SetStoreVisibility(true);
+			PC->SetStoreVisibility(false);
 		}
 	}
 }
 
-void AStoreActor::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
+void AStoreActor::Interact(const ATimeThiefPlayerCharacter* Player)
 {
-	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(OtherActor))
+	if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 	{
-		if (Player->GetNearStore() == this)
-		{
-			Player->SetNearStore(nullptr);
-			if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
-			{
-				PC->SetStoreVisibility(false);
-			}
-		}
+		PC->SetStoreVisibility(true);
 	}
 }
-
-
-

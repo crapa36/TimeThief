@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "InteractionActorBase.h"
+#include "../InteractionActorBase.h"
 #include "ItemCommons.h"
 #include "ItemBase.generated.h"
 
@@ -23,25 +23,10 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	virtual void OnBeginOverlap(
-		UPrimitiveComponent* OverlappedComponent,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComponent,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult) override;
-
-	virtual void OnEndOverlap(
-		UPrimitiveComponent* OverlappedComponent,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComponent,
-		int32 OtherBodyIndex
-	) override;
 	
 	virtual void Interact(const ATimeThiefPlayerCharacter* Player) override;
 	
 protected:
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true), Category="Item Name")
-	EItemName ItemName;
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true), Category="Item")
+	EItemID ItemName;
 };

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "StoreCommons.h"
+#include "ItemCommons.h"
 #include "StoreCategoryData.generated.h"
 
 /**
@@ -19,7 +19,7 @@ struct FStoreItemList
 	FString CategoryName;
 	
 	UPROPERTY(EditAnywhere)
-	TArray<EStoreItemName> ItemList;
+	TArray<EItemID> ItemList;
 };
 
 UCLASS()
@@ -29,5 +29,5 @@ class TIMETHIEF_API UStoreCategoryData : public UDataAsset
 	
 public:
 	UPROPERTY(EditAnywhere)
-	TMap<EStoreItemType, FStoreItemList> StoreItemMap;
+	TMap<EItemCategory, FStoreItemList> StoreItemMap;
 };

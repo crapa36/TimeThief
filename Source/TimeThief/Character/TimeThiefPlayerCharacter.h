@@ -37,12 +37,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	UTimeThiefWireComponent* GetWireComponent() const { return WireComponent; }
-
+	
+	UInventorySystemComponent* GetInventoryComponent() const { return InventoryComponent; }
+	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-	void SetNearStore(const AStoreActor* InNearStore);
-	const AStoreActor* GetNearStore() const;
 	
 	void AddNearInteractionActor(AInteractionActorBase* InteractionActor);
 	void RemoveNearInteractionActor(AInteractionActorBase* InteractionActor);
@@ -56,6 +55,7 @@ protected:
 	UFUNCTION()
 	void OnDeath(AActor* OwningActor);
 
+	void CheckInteractableObject();
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -80,13 +80,17 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
-
-	UPROPERTY()
-	const AStoreActor* NearStore;
 	
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AInteractionActorBase>> NearInteractionActors;
 	
+	UPROPERTY()
+	TWeakObjectPtr<AInteractionActorBase> CurrentLookingActor;
+	
+	UPROPERTY(EditDefaultsOnly)
+	float LookingDistance = 250.f;
+	
+	FTimerHandle InteractCheckTimerHandle;
 private:
 	UFUNCTION()
 	void OnRep_PawnData();

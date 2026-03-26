@@ -89,9 +89,7 @@ bool ATimeThiefPlayerController::ShouldUseTouchControls() const
 
 void ATimeThiefPlayerController::ToggleMinimap()
 {
-	IsShowingMinimap = !IsShowingMinimap;
-	
-	if (IsShowingMinimap)
+	if (!MinimapWidget->IsInViewport())
 	{
 		MinimapWidget->AddToViewport();
 	}
