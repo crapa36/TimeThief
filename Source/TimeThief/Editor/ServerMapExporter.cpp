@@ -385,20 +385,15 @@ int32 ServerMapExporter::GeneratePrimitiveShapesFromBodySetup(UStaticMeshCompone
 		}
 	}
 
-	// Fallback: primitive가 하나도 없고 convex만 있으면 bounds box 1개 생성
 	if (GeneratedCount == 0 && AggGeom.ConvexElems.Num() > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using Convex fallback(bounds box): Mesh=%s ConvexCount=%d"),
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using Convex fallback(per-convex box): Mesh=%s ConvexCount=%d"),
 			*GetNameSafe(StaticMesh),
 			AggGeom.ConvexElems.Num());
 
-		if (CreateGeneratedBoundsBoxComponent(StaticMeshComponent, OwnerActor) != nullptr)
-		{
-			++GeneratedCount;
-		}
+		GeneratedCount += GenerateConvexFallbackShapes(StaticMeshComponent, OwnerActor);
 	}
 
-	// 최후 fallback: convex도 없지만 혹시라도 메쉬 자체 bounds는 있으면 1박스 생성
 	if (GeneratedCount == 0)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using final mesh bounds fallback: Mesh=%s"),
@@ -413,8 +408,85 @@ int32 ServerMapExporter::GeneratePrimitiveShapesFromBodySetup(UStaticMeshCompone
 	return GeneratedCount;
 }
 
+int32 ServerMapExporter::GenerateConvexFallbackShapes(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor)
+{
+	if (StaticMeshComponent == nullptr || OwnerActor == nullptr)
+	{
+		return 0;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		return 0;
+	}
+
+	UBodySetup* BodySetup = StaticMesh->GetBodySetup();
+	if (BodySetup == nullptr)
+	{
+		return 0;
+	}
+
+	int32 GeneratedCount = 0;
+	const FKAggregateGeom& AggGeom = BodySetup->AggGeom;
+
+	for (int32 ConvexIndex = 0; ConvexIndex < AggGeom.ConvexElems.Num(); ++ConvexIndex)
+	{
+		const FKConvexElem& ConvexElem = AggGeom.ConvexElems[ConvexIndex];
+
+		if (ConvexElem.VertexData.IsEmpty())
+		{
+			continue;
+		}
+
+		FBox LocalBox(ForceInit);
+
+		for (const FVector& Vertex : ConvexElem.VertexData)
+		{
+			LocalBox += Vertex;
+		}
+
+		if (!LocalBox.IsValid)
+		{
+			continue;
+		}
+
+		const FVector LocalCenter = LocalBox.GetCenter();
+		const FVector LocalExtent = LocalBox.GetExtent();
+
+		if (LocalExtent.X <= KINDA_SMALL_NUMBER ||
+			LocalExtent.Y <= KINDA_SMALL_NUMBER ||
+			LocalExtent.Z <= KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		const FVector RelativeLocation = FVector(ConvexElem.ElemBox.GetCenter());
+		const FRotator RelativeRotation = FRotator::ZeroRotator;
+
+		UBoxComponent* NewBox = CreateGeneratedBoxComponent(
+			OwnerActor,
+			StaticMeshComponent,
+			LocalCenter,
+			RelativeRotation,
+			LocalExtent);
+
+		if (NewBox != nullptr)
+		{
+			++GeneratedCount;
+
+			UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated convex fallback box %d: Center=%s Extent=%s"),
+				ConvexIndex,
+				*LocalCenter.ToString(),
+				*LocalExtent.ToString());
+		}
+	}
+
+	return GeneratedCount;
+}
+
 UBoxComponent* ServerMapExporter::CreateGeneratedBoxComponent(AActor* OwnerActor, USceneComponent* AttachParent,
-	const FVector& RelativeLocation, const FRotator& RelativeRotation, const FVector& BoxExtent)
+                                                              const FVector& RelativeLocation, const FRotator& RelativeRotation, const FVector& BoxExtent)
 {
 	if (OwnerActor == nullptr || AttachParent == nullptr)
 	{

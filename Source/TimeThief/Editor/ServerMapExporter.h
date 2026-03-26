@@ -49,7 +49,8 @@ public:
 
 	static bool GenerateShapesFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
 	static int32 GeneratePrimitiveShapesFromBodySetup(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
-
+	static int32 GenerateConvexFallbackShapes(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
+	
 	static UBoxComponent* CreateGeneratedBoxComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, const FRotator& RelativeRotation, const FVector& BoxExtent);
 	static USphereComponent* CreateGeneratedSphereComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, float Radius);
 	static UCapsuleComponent* CreateGeneratedCapsuleComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, const FRotator& RelativeRotation, float Radius, float HalfHeight);
