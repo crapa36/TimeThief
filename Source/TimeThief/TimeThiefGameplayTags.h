@@ -20,6 +20,7 @@ public:
 	FGameplayTag InputTag_Action_Melee;
 	FGameplayTag InputTag_Action_EquipRifle;
 	FGameplayTag InputTag_Action_EquipShotgun;
+	FGameplayTag InputTag_Action_EquipRocketLauncher;
 	FGameplayTag InputTag_Action_Wire;
 	FGameplayTag InputTag_Action_TogglePerspective;
 	FGameplayTag InputTag_Action_ToggleMinimap;
@@ -27,10 +28,12 @@ public:
 	
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Shotgun;
+	FGameplayTag Weapon_RocketLauncher;
 	FGameplayTag Weapon_Pistol;
 
 	FGameplayTag State_Combat_Rifle;
 	FGameplayTag State_Combat_Shotgun;
+	FGameplayTag State_Combat_RocketLauncher;
 	FGameplayTag State_Combat_Pistol;
 
 	FGameplayTag InitState_Spawned;

@@ -300,6 +300,17 @@ void UTimeThiefWireComponent::OnAnchorAttached()
 	{
 		CachedMovementComponent->Velocity -= WireDirection * VelocityTowardAnchor;
 	}
+
+	const float GravityZ = CachedMovementComponent->GetGravityZ();
+	if (!FMath::IsNearlyZero(GravityZ))
+	{
+		const FVector GravityDirection = FVector::UpVector * FMath::Sign(GravityZ);
+		const float VelocityTowardGravity = FVector::DotProduct(CachedMovementComponent->Velocity, GravityDirection);
+		if (VelocityTowardGravity > 0.0f)
+		{
+			CachedMovementComponent->Velocity -= GravityDirection * VelocityTowardGravity;
+		}
+	}
 }
 
 void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
