@@ -4,6 +4,8 @@
 #include "GameFramework/Actor.h"
 #include "ServerMapExportTestActor.generated.h"
 
+class UServerCollisionPresetDataAsset;
+
 UCLASS()
 class TIMETHIEF_API AServerMapExportTestActor : public AActor
 {
@@ -23,4 +25,10 @@ public:
 	UFUNCTION(CallInEditor, Category = "ServerMap")
 	void GenerateShapesFromSelectedStaticMesh();
 
+	UPROPERTY(EditAnywhere, Category = "ServerMap")
+	TObjectPtr<UServerCollisionPresetDataAsset> TargetPresetAsset = nullptr;
+
+	UFUNCTION(CallInEditor, Category = "ServerMap")
+	void SaveSelectedGeneratedShapesToPreset();
+	
 };

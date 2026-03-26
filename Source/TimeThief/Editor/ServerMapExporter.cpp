@@ -16,6 +16,9 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Math/Quat.h"
+#include "ServerCollisionPresetDataAsset.h"
+#include "UObject/Package.h"
+#include "Misc/MessageDialog.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -640,6 +643,18 @@ UBoxComponent* ServerMapExporter::CreateGeneratedBoundsBoxComponent(UStaticMeshC
 	return NewBoxComponent;
 }
 
+bool ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(UServerCollisionPresetDataAsset* PresetAsset)
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	return SaveActorGeneratedShapesToPreset(SelectedActor, PresetAsset);
+}
+
 AActor* ServerMapExporter::GetFirstSelectedActor()
 {
 #if WITH_EDITOR
@@ -1169,5 +1184,209 @@ void ServerMapExporter::AppendDebugRecord(const AActor* Actor, const UActorCompo
 	Record.ColliderData = ColliderData;
 
 	OutDebugRecords.Add(MoveTemp(Record));
+}
+
+bool ServerMapExporter::SaveActorGeneratedShapesToPreset(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset)
+{
+	if (Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor is null"));
+		return false;
+	}
+
+	if (PresetAsset == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] PresetAsset is null"));
+		return false;
+	}
+
+	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+	if (StaticMeshComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] StaticMesh is null: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	TArray<UShapeComponent*> GeneratedShapes;
+	CollectGeneratedShapeComponents(Actor, GeneratedShapes);
+
+	if (GeneratedShapes.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No generated shape components found: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	TArray<FServerCollisionPresetCollider> NewColliders;
+	NewColliders.Reserve(GeneratedShapes.Num());
+
+	for (const UShapeComponent* ShapeComponent : GeneratedShapes)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (!ShouldExportShapeComponent(ShapeComponent) || !IsValidShapeComponentForExport(ShapeComponent))
+		{
+			continue;
+		}
+
+		FServerCollisionPresetCollider PresetCollider;
+		if (BuildPresetColliderFromShapeComponent(ShapeComponent, PresetCollider))
+		{
+			NewColliders.Add(MoveTemp(PresetCollider));
+		}
+	}
+
+	if (NewColliders.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build preset colliders from generated shapes: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+#if WITH_EDITOR
+	PresetAsset->Modify();
+#endif
+
+	PresetAsset->SourceStaticMesh = StaticMesh;
+	PresetAsset->Colliders = MoveTemp(NewColliders);
+
+#if WITH_EDITOR
+	PresetAsset->MarkPackageDirty();
+#endif
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Saved %d colliders to preset: %s (Mesh=%s)"),
+		PresetAsset->Colliders.Num(),
+		*GetNameSafe(PresetAsset),
+		*GetNameSafe(StaticMesh));
+
+	return true;
+}
+
+void ServerMapExporter::CollectGeneratedShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents)
+{
+	OutShapeComponents.Reset();
+
+	if (Actor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UShapeComponent*> AllShapes;
+	CollectShapeComponents(Actor, AllShapes);
+
+	for (UShapeComponent* ShapeComponent : AllShapes)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (!ShapeComponent->ComponentHasTag(ServerTags::Generated))
+		{
+			continue;
+		}
+
+		OutShapeComponents.Add(ShapeComponent);
+	}
+}
+
+bool ServerMapExporter::BuildPresetColliderFromShapeComponent(const UShapeComponent* ShapeComponent,
+	FServerCollisionPresetCollider& OutPresetCollider)
+{
+	if (ShapeComponent == nullptr)
+	{
+		return false;
+	}
+
+	if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(ShapeComponent))
+	{
+		return BuildPresetColliderFromBoxComponent(BoxComponent, OutPresetCollider);
+	}
+
+	if (const USphereComponent* SphereComponent = Cast<USphereComponent>(ShapeComponent))
+	{
+		return BuildPresetColliderFromSphereComponent(SphereComponent, OutPresetCollider);
+	}
+
+	if (const UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(ShapeComponent))
+	{
+		return BuildPresetColliderFromCapsuleComponent(CapsuleComponent, OutPresetCollider);
+	}
+
+	return false;
+}
+
+bool ServerMapExporter::BuildPresetColliderFromBoxComponent(const UBoxComponent* BoxComponent,
+	FServerCollisionPresetCollider& OutPresetCollider)
+{
+	if (BoxComponent == nullptr)
+	{
+		return false;
+	}
+
+	OutPresetCollider = {};
+	OutPresetCollider.ShapeType = EServerColliderShapeType::Box;
+	OutPresetCollider.LocalPosition = BoxComponent->GetRelativeLocation();
+	OutPresetCollider.LocalRotation = BoxComponent->GetRelativeRotation();
+	OutPresetCollider.BoxExtent = BoxComponent->GetUnscaledBoxExtent();
+	OutPresetCollider.Radius = 0.0f;
+	OutPresetCollider.HalfHeight = 0.0f;
+	OutPresetCollider.bBlockMovement = BoxComponent->ComponentHasTag(ServerTags::BlockMovement);
+	OutPresetCollider.bBlockProjectile = BoxComponent->ComponentHasTag(ServerTags::BlockProjectile);
+	OutPresetCollider.DebugName = FName(GetNameSafe(BoxComponent));
+
+	return true;
+}
+
+bool ServerMapExporter::BuildPresetColliderFromSphereComponent(const USphereComponent* SphereComponent,
+	FServerCollisionPresetCollider& OutPresetCollider)
+{
+	if (SphereComponent == nullptr)
+	{
+		return false;
+	}
+
+	OutPresetCollider = {};
+	OutPresetCollider.ShapeType = EServerColliderShapeType::Sphere;
+	OutPresetCollider.LocalPosition = SphereComponent->GetRelativeLocation();
+	OutPresetCollider.LocalRotation = FRotator::ZeroRotator;
+	OutPresetCollider.BoxExtent = FVector::ZeroVector;
+	OutPresetCollider.Radius = SphereComponent->GetUnscaledSphereRadius();
+	OutPresetCollider.HalfHeight = 0.0f;
+	OutPresetCollider.bBlockMovement = SphereComponent->ComponentHasTag(ServerTags::BlockMovement);
+	OutPresetCollider.bBlockProjectile = SphereComponent->ComponentHasTag(ServerTags::BlockProjectile);
+	OutPresetCollider.DebugName = FName(GetNameSafe(SphereComponent));
+
+	return true;
+}
+
+bool ServerMapExporter::BuildPresetColliderFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent,
+	FServerCollisionPresetCollider& OutPresetCollider)
+{
+	if (CapsuleComponent == nullptr)
+	{
+		return false;
+	}
+
+	OutPresetCollider = {};
+	OutPresetCollider.ShapeType = EServerColliderShapeType::Capsule;
+	OutPresetCollider.LocalPosition = CapsuleComponent->GetRelativeLocation();
+	OutPresetCollider.LocalRotation = CapsuleComponent->GetRelativeRotation();
+	OutPresetCollider.BoxExtent = FVector::ZeroVector;
+	OutPresetCollider.Radius = CapsuleComponent->GetUnscaledCapsuleRadius();
+	OutPresetCollider.HalfHeight = CapsuleComponent->GetUnscaledCapsuleHalfHeight();
+	OutPresetCollider.bBlockMovement = CapsuleComponent->ComponentHasTag(ServerTags::BlockMovement);
+	OutPresetCollider.bBlockProjectile = CapsuleComponent->ComponentHasTag(ServerTags::BlockProjectile);
+	OutPresetCollider.DebugName = FName(GetNameSafe(CapsuleComponent));
+
+	return true;
 }
 

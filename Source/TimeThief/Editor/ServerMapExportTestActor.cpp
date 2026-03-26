@@ -2,7 +2,7 @@
 
 
 #include "ServerMapExportTestActor.h"
-
+#include "ServerCollisionPresetDataAsset.h"
 #include "ServerMapTags.h"
 #include "ServerMapExporter.h"
 
@@ -41,3 +41,10 @@ void AServerMapExportTestActor::GenerateShapesFromSelectedStaticMesh()
 		bResult ? TEXT("true") : TEXT("false"));
 }
 
+void AServerMapExportTestActor::SaveSelectedGeneratedShapesToPreset()
+{
+	const bool bResult = ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(TargetPresetAsset);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] SaveSelectedGeneratedShapesToPreset result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}

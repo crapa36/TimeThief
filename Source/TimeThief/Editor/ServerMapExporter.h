@@ -12,6 +12,8 @@ class UBoxComponent;
 class UShapeComponent;
 class USphereComponent;
 class UCapsuleComponent;
+class UServerCollisionPresetDataAsset;
+struct FServerCollisionPresetCollider;
 
 struct FServerMapExportSummary
 {
@@ -55,6 +57,9 @@ public:
 	static USphereComponent* CreateGeneratedSphereComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, float Radius);
 	static UCapsuleComponent* CreateGeneratedCapsuleComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, const FRotator& RelativeRotation, float Radius, float HalfHeight);
 	static UBoxComponent* CreateGeneratedBoundsBoxComponent(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
+	
+	static bool SaveSelectedActorGeneratedShapesToPreset(UServerCollisionPresetDataAsset* PresetAsset);
+	
 private:
 	static AActor* GetFirstSelectedActor();
 
@@ -85,4 +90,12 @@ private:
 	static FString MakeDebugJsonOutputPath(const FString& BinaryOutputPath);
 	static void AppendDebugRecord(const AActor* Actor, const UActorComponent* Component, const se::map::ColliderData& ColliderData, TArray<FServerMapDebugColliderRecord>& OutDebugRecords);
 
+	static bool SaveActorGeneratedShapesToPreset(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset);
+	static void CollectGeneratedShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents);
+
+	static bool BuildPresetColliderFromShapeComponent(const UShapeComponent* ShapeComponent, FServerCollisionPresetCollider& OutPresetCollider);
+	static bool BuildPresetColliderFromBoxComponent(const UBoxComponent* BoxComponent, FServerCollisionPresetCollider& OutPresetCollider);
+	static bool BuildPresetColliderFromSphereComponent(const USphereComponent* SphereComponent, FServerCollisionPresetCollider& OutPresetCollider);
+	static bool BuildPresetColliderFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent, FServerCollisionPresetCollider& OutPresetCollider);
+	
 };
