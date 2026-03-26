@@ -6,6 +6,8 @@
 
 class AActor;
 class UWorld;
+class UStaticMeshComponent;
+class USceneComponent;
 class UBoxComponent;
 class UShapeComponent;
 class USphereComponent;
@@ -41,7 +43,17 @@ public:
 
 	static bool GenerateBoxFromSelectedStaticMesh();
 	static bool GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes = true);
+	
+	static bool GenerateShapesFromSelectedStaticMesh();
+	static bool GenerateShapesFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes = true);
 
+	static bool GenerateShapesFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
+	static int32 GeneratePrimitiveShapesFromBodySetup(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
+
+	static UBoxComponent* CreateGeneratedBoxComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, const FRotator& RelativeRotation, const FVector& BoxExtent);
+	static USphereComponent* CreateGeneratedSphereComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, float Radius);
+	static UCapsuleComponent* CreateGeneratedCapsuleComponent(AActor* OwnerActor, USceneComponent* AttachParent, const FVector& RelativeLocation, const FRotator& RelativeRotation, float Radius, float HalfHeight);
+	static UBoxComponent* CreateGeneratedBoundsBoxComponent(UStaticMeshComponent* StaticMeshComponent, AActor* OwnerActor);
 private:
 	static AActor* GetFirstSelectedActor();
 

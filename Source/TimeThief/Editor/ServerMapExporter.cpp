@@ -13,6 +13,9 @@
 #include "Dom/JsonObject.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/AggregateGeom.h"
+#include "Math/Quat.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
@@ -218,6 +221,351 @@ bool ServerMapExporter::GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClea
 		*LocalExtent.ToString());
 
 	return true;
+}
+
+bool ServerMapExporter::GenerateShapesFromSelectedStaticMesh()
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	return GenerateShapesFromActorStaticMesh(SelectedActor, true);
+}
+
+bool ServerMapExporter::GenerateShapesFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes)
+{
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+
+	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+	if (StaticMeshComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
+		return false;
+	}
+
+	if (bClearExistingGeneratedShapes)
+	{
+		RemoveGeneratedShapeComponents(Actor);
+	}
+
+	return GenerateShapesFromStaticMeshComponent(StaticMeshComponent, Actor);
+}
+
+bool ServerMapExporter::GenerateShapesFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent,
+	AActor* OwnerActor)
+{
+	if (StaticMeshComponent == nullptr || OwnerActor == nullptr)
+	{
+		return false;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		return false;
+	}
+
+	UBodySetup* BodySetup = StaticMesh->GetBodySetup();
+	if (BodySetup == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] BodySetup is null: %s"), *GetNameSafe(StaticMesh));
+		return false;
+	}
+
+	const int32 GeneratedCount = GeneratePrimitiveShapesFromBodySetup(StaticMeshComponent, OwnerActor);
+	if (GeneratedCount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No simple collision primitives generated: %s"), *GetNameSafe(StaticMesh));
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated %d shape components from StaticMesh simple collision: Actor=%s Mesh=%s"),
+		GeneratedCount,
+		*GetNameSafe(OwnerActor),
+		*GetNameSafe(StaticMesh));
+
+	return true;
+}
+
+int32 ServerMapExporter::GeneratePrimitiveShapesFromBodySetup(UStaticMeshComponent* StaticMeshComponent,
+	AActor* OwnerActor)
+{
+	if (StaticMeshComponent == nullptr || OwnerActor == nullptr)
+	{
+		return 0;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		return 0;
+	}
+
+	UBodySetup* BodySetup = StaticMesh->GetBodySetup();
+	if (BodySetup == nullptr)
+	{
+		return 0;
+	}
+
+	int32 GeneratedCount = 0;
+
+	const FKAggregateGeom& AggGeom = BodySetup->AggGeom;
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SimpleCollision counts: Box=%d Sphere=%d Capsule=%d Convex=%d"),
+		AggGeom.BoxElems.Num(),
+		AggGeom.SphereElems.Num(),
+		AggGeom.SphylElems.Num(),
+		AggGeom.ConvexElems.Num());
+
+	// Box
+	for (int32 Index = 0; Index < AggGeom.BoxElems.Num(); ++Index)
+	{
+		const FKBoxElem& BoxElem = AggGeom.BoxElems[Index];
+
+		const FVector RelativeLocation = FVector(BoxElem.Center);
+		const FRotator RelativeRotation = FRotator(BoxElem.Rotation);
+		const FVector BoxExtent = FVector(BoxElem.X * 0.5f, BoxElem.Y * 0.5f, BoxElem.Z * 0.5f);
+
+		if (BoxExtent.X <= KINDA_SMALL_NUMBER ||
+			BoxExtent.Y <= KINDA_SMALL_NUMBER ||
+			BoxExtent.Z <= KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		if (CreateGeneratedBoxComponent(OwnerActor, StaticMeshComponent, RelativeLocation, RelativeRotation, BoxExtent) != nullptr)
+		{
+			++GeneratedCount;
+		}
+	}
+
+	// Sphere
+	for (int32 Index = 0; Index < AggGeom.SphereElems.Num(); ++Index)
+	{
+		const FKSphereElem& SphereElem = AggGeom.SphereElems[Index];
+
+		const FVector RelativeLocation = FVector(SphereElem.Center);
+		const float Radius = SphereElem.Radius;
+
+		if (Radius <= KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		if (CreateGeneratedSphereComponent(OwnerActor, StaticMeshComponent, RelativeLocation, Radius) != nullptr)
+		{
+			++GeneratedCount;
+		}
+	}
+
+	// Capsule
+	for (int32 Index = 0; Index < AggGeom.SphylElems.Num(); ++Index)
+	{
+		const FKSphylElem& SphylElem = AggGeom.SphylElems[Index];
+
+		const FVector RelativeLocation = FVector(SphylElem.Center);
+		const FRotator RelativeRotation = FRotator(SphylElem.Rotation);
+		const float Radius = SphylElem.Radius;
+		const float HalfHeight = SphylElem.Length * 0.5f + Radius;
+
+		if (Radius <= KINDA_SMALL_NUMBER || HalfHeight <= KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		if (CreateGeneratedCapsuleComponent(OwnerActor, StaticMeshComponent, RelativeLocation, RelativeRotation, Radius, HalfHeight) != nullptr)
+		{
+			++GeneratedCount;
+		}
+	}
+
+	// Fallback: primitive가 하나도 없고 convex만 있으면 bounds box 1개 생성
+	if (GeneratedCount == 0 && AggGeom.ConvexElems.Num() > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using Convex fallback(bounds box): Mesh=%s ConvexCount=%d"),
+			*GetNameSafe(StaticMesh),
+			AggGeom.ConvexElems.Num());
+
+		if (CreateGeneratedBoundsBoxComponent(StaticMeshComponent, OwnerActor) != nullptr)
+		{
+			++GeneratedCount;
+		}
+	}
+
+	// 최후 fallback: convex도 없지만 혹시라도 메쉬 자체 bounds는 있으면 1박스 생성
+	if (GeneratedCount == 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using final mesh bounds fallback: Mesh=%s"),
+			*GetNameSafe(StaticMesh));
+
+		if (CreateGeneratedBoundsBoxComponent(StaticMeshComponent, OwnerActor) != nullptr)
+		{
+			++GeneratedCount;
+		}
+	}
+
+	return GeneratedCount;
+}
+
+UBoxComponent* ServerMapExporter::CreateGeneratedBoxComponent(AActor* OwnerActor, USceneComponent* AttachParent,
+	const FVector& RelativeLocation, const FRotator& RelativeRotation, const FVector& BoxExtent)
+{
+	if (OwnerActor == nullptr || AttachParent == nullptr)
+	{
+		return nullptr;
+	}
+
+	UBoxComponent* NewBoxComponent = NewObject<UBoxComponent>(OwnerActor);
+	if (NewBoxComponent == nullptr)
+	{
+		return nullptr;
+	}
+
+	NewBoxComponent->SetBoxExtent(BoxExtent);
+	NewBoxComponent->ComponentTags.AddUnique(ServerTags::Generated);
+	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
+	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+
+	NewBoxComponent->SetupAttachment(AttachParent);
+	NewBoxComponent->SetRelativeLocation(RelativeLocation);
+	NewBoxComponent->SetRelativeRotation(RelativeRotation);
+
+	OwnerActor->AddInstanceComponent(NewBoxComponent);
+	NewBoxComponent->RegisterComponent();
+
+#if WITH_EDITOR
+	OwnerActor->Modify();
+	NewBoxComponent->Modify();
+#endif
+
+	return NewBoxComponent;
+}
+
+USphereComponent* ServerMapExporter::CreateGeneratedSphereComponent(AActor* OwnerActor, USceneComponent* AttachParent,
+	const FVector& RelativeLocation, float Radius)
+{
+	if (OwnerActor == nullptr || AttachParent == nullptr)
+	{
+		return nullptr;
+	}
+
+	USphereComponent* NewSphereComponent = NewObject<USphereComponent>(OwnerActor);
+	if (NewSphereComponent == nullptr)
+	{
+		return nullptr;
+	}
+
+	NewSphereComponent->SetSphereRadius(Radius);
+	NewSphereComponent->ComponentTags.AddUnique(ServerTags::Generated);
+	NewSphereComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
+	NewSphereComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+
+	NewSphereComponent->SetupAttachment(AttachParent);
+	NewSphereComponent->SetRelativeLocation(RelativeLocation);
+	NewSphereComponent->SetRelativeRotation(FRotator::ZeroRotator);
+
+	OwnerActor->AddInstanceComponent(NewSphereComponent);
+	NewSphereComponent->RegisterComponent();
+
+#if WITH_EDITOR
+	OwnerActor->Modify();
+	NewSphereComponent->Modify();
+#endif
+
+	return NewSphereComponent;
+}
+
+UCapsuleComponent* ServerMapExporter::CreateGeneratedCapsuleComponent(AActor* OwnerActor, USceneComponent* AttachParent,
+	const FVector& RelativeLocation, const FRotator& RelativeRotation, float Radius, float HalfHeight)
+{
+	if (OwnerActor == nullptr || AttachParent == nullptr)
+	{
+		return nullptr;
+	}
+
+	UCapsuleComponent* NewCapsuleComponent = NewObject<UCapsuleComponent>(OwnerActor);
+	if (NewCapsuleComponent == nullptr)
+	{
+		return nullptr;
+	}
+
+	NewCapsuleComponent->SetCapsuleRadius(Radius);
+	NewCapsuleComponent->SetCapsuleHalfHeight(HalfHeight);
+
+	NewCapsuleComponent->ComponentTags.AddUnique(ServerTags::Generated);
+	NewCapsuleComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
+	NewCapsuleComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+
+	NewCapsuleComponent->SetupAttachment(AttachParent);
+	NewCapsuleComponent->SetRelativeLocation(RelativeLocation);
+	NewCapsuleComponent->SetRelativeRotation(RelativeRotation);
+
+	OwnerActor->AddInstanceComponent(NewCapsuleComponent);
+	NewCapsuleComponent->RegisterComponent();
+
+#if WITH_EDITOR
+	OwnerActor->Modify();
+	NewCapsuleComponent->Modify();
+#endif
+
+	return NewCapsuleComponent;
+}
+
+UBoxComponent* ServerMapExporter::CreateGeneratedBoundsBoxComponent(UStaticMeshComponent* StaticMeshComponent,
+	AActor* OwnerActor)
+{
+	if (StaticMeshComponent == nullptr || OwnerActor == nullptr)
+	{
+		return nullptr;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		return nullptr;
+	}
+
+	const FBox LocalMeshBox = StaticMesh->GetBoundingBox();
+	if (!LocalMeshBox.IsValid)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Invalid mesh bounds: %s"), *GetNameSafe(StaticMesh));
+		return nullptr;
+	}
+
+	const FVector LocalCenter = LocalMeshBox.GetCenter();
+	const FVector LocalExtent = LocalMeshBox.GetExtent();
+
+	if (LocalExtent.X <= KINDA_SMALL_NUMBER ||
+		LocalExtent.Y <= KINDA_SMALL_NUMBER ||
+		LocalExtent.Z <= KINDA_SMALL_NUMBER)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Mesh bounds extent too small: %s"), *GetNameSafe(StaticMesh));
+		return nullptr;
+	}
+
+	UBoxComponent* NewBoxComponent = CreateGeneratedBoxComponent(
+		OwnerActor,
+		StaticMeshComponent,
+		LocalCenter,
+		FRotator::ZeroRotator,
+		LocalExtent);
+
+	if (NewBoxComponent != nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated bounds fallback box: Actor=%s Mesh=%s Center=%s Extent=%s"),
+			*GetNameSafe(OwnerActor),
+			*GetNameSafe(StaticMesh),
+			*LocalCenter.ToString(),
+			*LocalExtent.ToString());
+	}
+
+	return NewBoxComponent;
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()

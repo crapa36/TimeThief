@@ -21,6 +21,6 @@ public:
 	void ExportTaggedShapes();
 	
 	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void GenerateBoxFromSelectedStaticMesh();
+	void GenerateShapesFromSelectedStaticMesh();
 
 };
