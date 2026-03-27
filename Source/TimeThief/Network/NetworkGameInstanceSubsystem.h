@@ -12,6 +12,8 @@
 #include "PacketSession.h"
 #include "ClientConfigTypes.h"
 #include "Protocol.pb.h"
+#include "Character/TimeThiefPawnData.h"
+#include "DataAssets/SpawnClassData.h"
 #include "State/LocalPlayerInfo.h"
 #include "State/NetworkEntityState.h"
 #include "State/NetworkPlayState.h"
@@ -62,6 +64,10 @@ private:
 	
 	void ProcessPacket();
 	
+public:
+	bool IsConnected() const;
+	bool CanSendGameplayPacket() const;
+	
 // packet을 처리할 때 필요한 함수들 (예: 패킷 디스패치, 핸들러 등)
 public:
 	void HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt);
@@ -104,7 +110,8 @@ private:
 	AActor* FindEntityActor(uint32 EntityId) const;
 	AActor* SpawnEntityActor(const FNetworkEntityState& EntityState);
 	AActor* GetOrSpawnEntityActor(uint32 EntityId);
-	
+
+	void InitializeSpawnedPawnData(AActor* Actor);
 	void PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void ApplyRuntimeConfigToActor(AActor* Actor);
@@ -131,15 +138,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
 	
+public:
+	void Ping();
+	
+private:
+	void StartPingTimer();
+	void StopPingTimer();
+	
 private:
 	void ClearRoomState();
 	
 public:
+	const UTimeThiefPawnData* GetDefaultPawnData() const { return DefaultLocalPlayerPawnData; }
+	
+public:
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
-	TSubclassOf<AActor> RemotePlayerClass;
+	TObjectPtr<USpawnClassData> SpawnData;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")
-	TSubclassOf<AActor> LocalPlayerClass;
+	TObjectPtr<const UTimeThiefPawnData> DefaultLocalPlayerPawnData;
 	
 private:
 	bool bIsConnected = false;
@@ -148,6 +165,7 @@ private:
 	TSharedPtr<PacketSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
+	FTimerHandle PingTimer;
 	
 	FClientConfig ClientConfig;
 	

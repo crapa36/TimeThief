@@ -16,6 +16,7 @@ struct FNetworkEntityState
 	FVector Position = FVector::ZeroVector;
 	float Yaw = 0.0f;
 	float Pitch = 0.0f;
+	float Speed = 0.0f;
 	float Hp = 0.0f;
 	bool bSpawned = false;
 };

@@ -6,10 +6,16 @@
 #include "TimeThief.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Network/TestPlayer/NTCheatManager.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "UI/Minimap/MinimapWidget.h"
 #include "UI/Store/StoreWidget.h"
+
+ATimeThiefPlayerController::ATimeThiefPlayerController()
+{
+	CheatClass = UNTCheatManager::StaticClass();
+}
 
 void ATimeThiefPlayerController::BeginPlay()
 {

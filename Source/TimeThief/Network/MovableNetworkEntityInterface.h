@@ -31,7 +31,11 @@ public:
 	virtual float GetNetworkPitch() const = 0;
 	virtual void SetNetworkPitch(float NewPitch) = 0;
 	
+	virtual float GetNetworkSpeed() const = 0;
+	virtual void SetNetworkSpeed(float NewSpeed) = 0;
+	
 	virtual float GetLocalControlPitch() const = 0;
+	virtual float GetLocalControlSpeed() const = 0;
 	
 	virtual FVector GetNetworkVelocity() const = 0;
 	

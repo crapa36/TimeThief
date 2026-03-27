@@ -6,6 +6,7 @@
 #include <Generated/ClientPacketHandler.h>
 
 #include "NetworkGameInstanceSubsystem.h"
+#include "Network/NetworkEntityComponent.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "State/CombatAttackRequest.h"
 #include "Protocol.pb.h"
@@ -25,7 +26,15 @@ void UNetworkCombatSyncComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	TTCombatComponent = GetOwner()->FindComponentByClass<UTimeThiefPawnCombatComponent>();
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		TTCombatComponent = Owner->FindComponentByClass<UTimeThiefPawnCombatComponent>();
+		NetworkEntityComponent = Owner->FindComponentByClass<UNetworkEntityComponent>();
+	}
+
+	NGIS = UNetworkGameInstanceSubsystem::Get(this);
+	
 	if (TTCombatComponent)
 	{
 		// TODO: TTPCC에 공격에 관한 델리게이트가 생기면 그쪽에 바인딩
@@ -43,15 +52,24 @@ void UNetworkCombatSyncComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 		 // TTCombatComponent->OnLocalAttackRequest.RemoveAll(this);
 	}
 	
+	TTCombatComponent = nullptr;
+	NetworkEntityComponent = nullptr;
+	NGIS = nullptr;
+	
 	Super::EndPlay(EndPlayReason);
 }
 
 void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRequest& AttackRequest)
 {
+	if (!CanSendCombatPacket())
+	{
+		return;
+	}
+	
 	SendBufferRef Buffer;
 	switch (AttackRequest.NotifyType)
 	{
-	case Fire:
+	case ECombatNotifyType::Fire:
 		{
 			se::game::C_FireReq Request;
 			Request.set_weapon_id(AttackRequest.WeaponId);
@@ -67,7 +85,7 @@ void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRe
 			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 		}
 		break;
-	case Throw:
+	case ECombatNotifyType::Throw:
 		{
 			se::game::C_ThrowGrenadeReq Request;
 			auto* StartPos = Request.mutable_start_position();
@@ -82,7 +100,7 @@ void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRe
 			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 		}
 		break;
-	case Reload:
+	case ECombatNotifyType::Reload:
 		{
 			se::game::C_ReloadReq Request;
 			Request.set_weapon_id(AttackRequest.WeaponId);
@@ -92,23 +110,74 @@ void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRe
 		break;
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("HandleLocalAttackRequest: Unknown AttackId %u"), AttackRequest.AttackId);
-		break;
+		return;;
 	}
 	
-	if (Buffer)
+	if (!Buffer)
 	{
-		if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
-		{
-			NGIS->SendPacket(Buffer);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("HandleLocalAttackRequest: Failed to get NetworkGameInstanceSubsystem"));
-		}
+		return;
+	}
+	
+	if (UNetworkGameInstanceSubsystem* NetworkGIS = GetNetworkGameInstanceSubsystem())
+	{
+		NetworkGIS->SendPacket(Buffer);
 	}
 }
 
 void UNetworkCombatSyncComponent::BroadcastRemoteAttackNotify(const FRemoteAttackNotify& AttackNotify) const
 {
 	OnRemoteAttackNotify.Broadcast(AttackNotify);
+}
+
+bool UNetworkCombatSyncComponent::CanSendCombatPacket() const
+{
+	const UNetworkEntityComponent* EntityComp = GetNetworkEntityComponent();
+	if (EntityComp == nullptr)
+	{
+		return false;
+	}
+	
+	if (!EntityComp->IsLocalControlled())
+	{
+		return false;
+	}
+	
+	if (!EntityComp->IsValidEntity())
+	{
+		return false;
+	}
+	
+	const UNetworkGameInstanceSubsystem* NetworkGIS = GetNetworkGameInstanceSubsystem();
+	if (NetworkGIS == nullptr)
+	{
+		return false;
+	}
+	
+	return NetworkGIS->CanSendGameplayPacket();
+}
+
+class UNetworkEntityComponent* UNetworkCombatSyncComponent::GetNetworkEntityComponent() const
+{
+	if (NetworkEntityComponent)
+	{
+		return NetworkEntityComponent;
+	}
+	
+	AActor* Owner = GetOwner();
+	if (Owner == nullptr)
+	{
+		return nullptr;
+	}
+	
+	return Owner->FindComponentByClass<UNetworkEntityComponent>();
+}
+
+class UNetworkGameInstanceSubsystem* UNetworkCombatSyncComponent::GetNetworkGameInstanceSubsystem() const
+{
+	if (NGIS)
+	{
+		return NGIS;
+	}
+	
+	return UNetworkGameInstanceSubsystem::Get(const_cast<UNetworkCombatSyncComponent*>(this));
 }

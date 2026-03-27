@@ -142,6 +142,7 @@ PROTOBUF_CONSTEXPR C_ThrowGrenadeReq::C_ThrowGrenadeReq(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.start_position_)*/nullptr
   , /*decltype(_impl_.direction_)*/nullptr
+  , /*decltype(_impl_.grenade_type_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_ThrowGrenadeReqDefaultTypeInternal {
   PROTOBUF_CONSTEXPR C_ThrowGrenadeReqDefaultTypeInternal()
@@ -157,6 +158,7 @@ PROTOBUF_CONSTEXPR N_ThrowGrenade::N_ThrowGrenade(
     /*decltype(_impl_.entity_id_)*/nullptr
   , /*decltype(_impl_.start_position_)*/nullptr
   , /*decltype(_impl_.direction_)*/nullptr
+  , /*decltype(_impl_.grenade_type_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct N_ThrowGrenadeDefaultTypeInternal {
   PROTOBUF_CONSTEXPR N_ThrowGrenadeDefaultTypeInternal()
@@ -546,6 +548,7 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::C_ThrowGrenadeReq, _impl_.grenade_type_),
   PROTOBUF_FIELD_OFFSET(::se::game::C_ThrowGrenadeReq, _impl_.start_position_),
   PROTOBUF_FIELD_OFFSET(::se::game::C_ThrowGrenadeReq, _impl_.direction_),
   ~0u,  // no _has_bits_
@@ -555,6 +558,7 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.entity_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.grenade_type_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.start_position_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.direction_),
   ~0u,  // no _has_bits_
@@ -737,29 +741,29 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 52, -1, -1, sizeof(::se::game::C_AttackReq)},
   { 58, -1, -1, sizeof(::se::game::N_Attack)},
   { 66, -1, -1, sizeof(::se::game::C_ThrowGrenadeReq)},
-  { 74, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
-  { 83, -1, -1, sizeof(::se::game::C_ReloadReq)},
-  { 90, -1, -1, sizeof(::se::game::N_Reload)},
-  { 98, -1, -1, sizeof(::se::game::C_WeaponChangeReq)},
-  { 105, -1, -1, sizeof(::se::game::N_WeaponChanged)},
-  { 113, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
-  { 120, -1, -1, sizeof(::se::game::N_UseAbility)},
-  { 128, -1, -1, sizeof(::se::game::N_KillPlayer)},
-  { 136, -1, -1, sizeof(::se::game::C_UseItemReq)},
-  { 143, -1, -1, sizeof(::se::game::N_UseItem)},
-  { 151, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
-  { 158, -1, -1, sizeof(::se::game::C_PickupItemReq)},
-  { 165, -1, -1, sizeof(::se::game::N_PickupItem)},
-  { 173, -1, -1, sizeof(::se::game::C_UseStoreReq)},
-  { 181, -1, -1, sizeof(::se::game::S_UseStoreRes)},
-  { 190, -1, -1, sizeof(::se::game::N_ItemGained)},
-  { 198, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
-  { 205, -1, -1, sizeof(::se::game::N_HealthChanged)},
-  { 213, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 220, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 228, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 235, -1, -1, sizeof(::se::game::N_TimePointChanged)},
-  { 243, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 75, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
+  { 85, -1, -1, sizeof(::se::game::C_ReloadReq)},
+  { 92, -1, -1, sizeof(::se::game::N_Reload)},
+  { 100, -1, -1, sizeof(::se::game::C_WeaponChangeReq)},
+  { 107, -1, -1, sizeof(::se::game::N_WeaponChanged)},
+  { 115, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
+  { 122, -1, -1, sizeof(::se::game::N_UseAbility)},
+  { 130, -1, -1, sizeof(::se::game::N_KillPlayer)},
+  { 138, -1, -1, sizeof(::se::game::C_UseItemReq)},
+  { 145, -1, -1, sizeof(::se::game::N_UseItem)},
+  { 153, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
+  { 160, -1, -1, sizeof(::se::game::C_PickupItemReq)},
+  { 167, -1, -1, sizeof(::se::game::N_PickupItem)},
+  { 175, -1, -1, sizeof(::se::game::C_UseStoreReq)},
+  { 183, -1, -1, sizeof(::se::game::S_UseStoreRes)},
+  { 192, -1, -1, sizeof(::se::game::N_ItemGained)},
+  { 200, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
+  { 207, -1, -1, sizeof(::se::game::N_HealthChanged)},
+  { 215, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 222, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 230, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 237, -1, -1, sizeof(::se::game::N_TimePointChanged)},
+  { 245, -1, -1, sizeof(::se::game::N_TimeStormChange)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -819,59 +823,60 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "2\022.se.common.Vector3:\r\210\265\030\205 \220\265\030\002\230\265\030\004\"\034\n\013C"
   "_AttackReq:\r\210\265\030\206 \220\265\030\001\230\265\030\004\"V\n\010N_Attack\022&\n"
   "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\023\n"
-  "\013attack_type\030\002 \001(\r:\r\210\265\030\207 \220\265\030\002\230\265\030\004\"u\n\021C_T"
-  "hrowGrenadeReq\022*\n\016start_position\030\001 \001(\0132\022"
-  ".se.common.Vector3\022%\n\tdirection\030\002 \001(\0132\022."
-  "se.common.Vector3:\r\210\265\030\210 \220\265\030\001\230\265\030\004\"\232\001\n\016N_T"
-  "hrowGrenade\022&\n\tentity_id\030\001 \001(\0132\023.se.comm"
-  "on.ObjectId\022*\n\016start_position\030\002 \001(\0132\022.se"
-  ".common.Vector3\022%\n\tdirection\030\003 \001(\0132\022.se."
-  "common.Vector3:\r\210\265\030\211 \220\265\030\002\230\265\030\004\"/\n\013C_Reloa"
-  "dReq\022\021\n\tweapon_id\030\001 \001(\r:\r\210\265\030\212 \220\265\030\001\230\265\030\004\"T"
-  "\n\010N_Reload\022&\n\tentity_id\030\001 \001(\0132\023.se.commo"
-  "n.ObjectId\022\021\n\tweapon_id\030\002 \001(\r:\r\210\265\030\213 \220\265\030\002"
-  "\230\265\030\004\"5\n\021C_WeaponChangeReq\022\021\n\tweapon_id\030\001"
-  " \001(\r:\r\210\265\030\214 \220\265\030\001\230\265\030\004\"[\n\017N_WeaponChanged\022&"
-  "\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\021"
-  "\n\tweapon_id\030\002 \001(\r:\r\210\265\030\215 \220\265\030\002\230\265\030\004\"4\n\017C_Us"
-  "eAbilityReq\022\022\n\nability_id\030\001 \001(\r:\r\210\265\030\216 \220\265"
-  "\030\001\230\265\030\004\"Y\n\014N_UseAbility\022&\n\tentity_id\030\001 \001("
-  "\0132\023.se.common.ObjectId\022\022\n\nability_id\030\002 \001"
-  "(\r:\r\210\265\030\217 \220\265\030\002\230\265\030\004\"m\n\014N_KillPlayer\022&\n\tkil"
-  "ler_id\030\001 \001(\0132\023.se.common.ObjectId\022&\n\tvic"
-  "tim_id\030\002 \001(\0132\023.se.common.ObjectId:\r\210\265\030\220 "
-  "\220\265\030\002\230\265\030\004\".\n\014C_UseItemReq\022\017\n\007item_id\030\001 \001("
-  "\r:\r\210\265\030\350 \220\265\030\001\230\265\030\004\"S\n\tN_UseItem\022&\n\tentity_"
-  "id\030\001 \001(\0132\023.se.common.ObjectId\022\017\n\007item_id"
-  "\030\002 \001(\r:\r\210\265\030\351 \220\265\030\002\230\265\030\004\"Q\n\022C_ChestInteract"
-  "Req\022,\n\017chest_entity_id\030\001 \001(\0132\023.se.common"
-  ".ObjectId:\r\210\265\030\352 \220\265\030\001\230\265\030\004\"M\n\017C_PickupItem"
-  "Req\022+\n\016item_entity_id\030\001 \001(\0132\023.se.common."
-  "ObjectId:\r\210\265\030\353 \220\265\030\001\230\265\030\004\"r\n\014N_PickupItem\022"
-  "&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022"
-  "+\n\016item_entity_id\030\002 \001(\0132\023.se.common.Obje"
-  "ctId:\r\210\265\030\354 \220\265\030\002\230\265\030\004\"Z\n\rC_UseStoreReq\022,\n\017"
-  "store_entity_id\030\001 \001(\0132\023.se.common.Object"
-  "Id\022\014\n\004slot\030\002 \001(\r:\r\210\265\030\355 \220\265\030\001\230\265\030\004\"`\n\rS_Use"
-  "StoreRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001("
-  "\0132\021.se.common.Result\022\014\n\004slot\030\003 \001(\r:\r\210\265\030\356"
-  " \220\265\030\002\230\265\030\004\"@\n\014N_ItemGained\022\017\n\007item_id\030\001 \001"
-  "(\r\022\020\n\010quantity\030\002 \001(\r:\r\210\265\030\357 \220\265\030\002\230\265\030\004\"H\n\021C"
-  "_SetSavePointReq\022$\n\010position\030\001 \001(\0132\022.se."
-  "common.Vector3:\r\210\265\030\360 \220\265\030\001\230\265\030\004\"C\n\017N_Healt"
-  "hChanged\022\022\n\nnew_health\030\001 \001(\005\022\r\n\005delta\030\002 "
-  "\001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDied\022&\n\ten"
-  "tity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\315"
-  "!\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022&\n\tentity"
-  "_id\030\001 \001(\0132\023.se.common.ObjectId\022\'\n\ttransf"
-  "orm\030\002 \001(\0132\024.se.common.Transform:\r\210\265\030\316!\220\265"
-  "\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\tentity_id"
-  "\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\317!\220\265\030\002\230\265"
-  "\030\004\"K\n\022N_TimePointChanged\022\027\n\017new_time_poi"
-  "nts\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\320!\220\265\030\002\230\265\030\004\""
-  "V\n\021N_TimeStormChange\022\"\n\006center\030\001 \001(\0132\022.s"
-  "e.common.Vector3\022\016\n\006radius\030\002 \001(\002:\r\210\265\030\260\"\220"
-  "\265\030\002\230\265\030\004b\006proto3"
+  "\013attack_type\030\002 \001(\r:\r\210\265\030\207 \220\265\030\002\230\265\030\004\"\213\001\n\021C_"
+  "ThrowGrenadeReq\022\024\n\014grenade_type\030\001 \001(\r\022*\n"
+  "\016start_position\030\002 \001(\0132\022.se.common.Vector"
+  "3\022%\n\tdirection\030\003 \001(\0132\022.se.common.Vector3"
+  ":\r\210\265\030\210 \220\265\030\001\230\265\030\004\"\260\001\n\016N_ThrowGrenade\022&\n\ten"
+  "tity_id\030\001 \001(\0132\023.se.common.ObjectId\022\024\n\014gr"
+  "enade_type\030\002 \001(\r\022*\n\016start_position\030\003 \001(\013"
+  "2\022.se.common.Vector3\022%\n\tdirection\030\004 \001(\0132"
+  "\022.se.common.Vector3:\r\210\265\030\211 \220\265\030\002\230\265\030\004\"/\n\013C_"
+  "ReloadReq\022\021\n\tweapon_id\030\001 \001(\r:\r\210\265\030\212 \220\265\030\001\230"
+  "\265\030\004\"T\n\010N_Reload\022&\n\tentity_id\030\001 \001(\0132\023.se."
+  "common.ObjectId\022\021\n\tweapon_id\030\002 \001(\r:\r\210\265\030\213"
+  " \220\265\030\002\230\265\030\004\"5\n\021C_WeaponChangeReq\022\021\n\tweapon"
+  "_id\030\001 \001(\r:\r\210\265\030\214 \220\265\030\001\230\265\030\004\"[\n\017N_WeaponChan"
+  "ged\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
+  "tId\022\021\n\tweapon_id\030\002 \001(\r:\r\210\265\030\215 \220\265\030\002\230\265\030\004\"4\n"
+  "\017C_UseAbilityReq\022\022\n\nability_id\030\001 \001(\r:\r\210\265"
+  "\030\216 \220\265\030\001\230\265\030\004\"Y\n\014N_UseAbility\022&\n\tentity_id"
+  "\030\001 \001(\0132\023.se.common.ObjectId\022\022\n\nability_i"
+  "d\030\002 \001(\r:\r\210\265\030\217 \220\265\030\002\230\265\030\004\"m\n\014N_KillPlayer\022&"
+  "\n\tkiller_id\030\001 \001(\0132\023.se.common.ObjectId\022&"
+  "\n\tvictim_id\030\002 \001(\0132\023.se.common.ObjectId:\r"
+  "\210\265\030\220 \220\265\030\002\230\265\030\004\".\n\014C_UseItemReq\022\017\n\007item_id"
+  "\030\001 \001(\r:\r\210\265\030\350 \220\265\030\001\230\265\030\004\"S\n\tN_UseItem\022&\n\ten"
+  "tity_id\030\001 \001(\0132\023.se.common.ObjectId\022\017\n\007it"
+  "em_id\030\002 \001(\r:\r\210\265\030\351 \220\265\030\002\230\265\030\004\"Q\n\022C_ChestInt"
+  "eractReq\022,\n\017chest_entity_id\030\001 \001(\0132\023.se.c"
+  "ommon.ObjectId:\r\210\265\030\352 \220\265\030\001\230\265\030\004\"M\n\017C_Picku"
+  "pItemReq\022+\n\016item_entity_id\030\001 \001(\0132\023.se.co"
+  "mmon.ObjectId:\r\210\265\030\353 \220\265\030\001\230\265\030\004\"r\n\014N_Pickup"
+  "Item\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obje"
+  "ctId\022+\n\016item_entity_id\030\002 \001(\0132\023.se.common"
+  ".ObjectId:\r\210\265\030\354 \220\265\030\002\230\265\030\004\"Z\n\rC_UseStoreRe"
+  "q\022,\n\017store_entity_id\030\001 \001(\0132\023.se.common.O"
+  "bjectId\022\014\n\004slot\030\002 \001(\r:\r\210\265\030\355 \220\265\030\001\230\265\030\004\"`\n\r"
+  "S_UseStoreRes\022\017\n\007success\030\001 \001(\010\022!\n\006result"
+  "\030\002 \001(\0132\021.se.common.Result\022\014\n\004slot\030\003 \001(\r:"
+  "\r\210\265\030\356 \220\265\030\002\230\265\030\004\"@\n\014N_ItemGained\022\017\n\007item_i"
+  "d\030\001 \001(\r\022\020\n\010quantity\030\002 \001(\r:\r\210\265\030\357 \220\265\030\002\230\265\030\004"
+  "\"H\n\021C_SetSavePointReq\022$\n\010position\030\001 \001(\0132"
+  "\022.se.common.Vector3:\r\210\265\030\360 \220\265\030\001\230\265\030\004\"C\n\017N_"
+  "HealthChanged\022\022\n\nnew_health\030\001 \001(\005\022\r\n\005del"
+  "ta\030\002 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDied\022"
+  "&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId:"
+  "\r\210\265\030\315!\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022&\n\te"
+  "ntity_id\030\001 \001(\0132\023.se.common.ObjectId\022\'\n\tt"
+  "ransform\030\002 \001(\0132\024.se.common.Transform:\r\210\265"
+  "\030\316!\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\tenti"
+  "ty_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\317!\220"
+  "\265\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n\017new_tim"
+  "e_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\320!\220\265\030\002"
+  "\230\265\030\004\"V\n\021N_TimeStormChange\022\"\n\006center\030\001 \001("
+  "\0132\022.se.common.Vector3\022\016\n\006radius\030\002 \001(\002:\r\210"
+  "\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[4] = {
   &::descriptor_table_common_2fcommon_5ftypes_2eproto,
@@ -881,7 +886,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 2895, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 2940, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
     &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 4, 33,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
@@ -2378,6 +2383,7 @@ C_ThrowGrenadeReq::C_ThrowGrenadeReq(const C_ThrowGrenadeReq& from)
   new (&_impl_) Impl_{
       decltype(_impl_.start_position_){nullptr}
     , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.grenade_type_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -2387,6 +2393,7 @@ C_ThrowGrenadeReq::C_ThrowGrenadeReq(const C_ThrowGrenadeReq& from)
   if (from._internal_has_direction()) {
     _this->_impl_.direction_ = new ::se::common::Vector3(*from._impl_.direction_);
   }
+  _this->_impl_.grenade_type_ = from._impl_.grenade_type_;
   // @@protoc_insertion_point(copy_constructor:se.game.C_ThrowGrenadeReq)
 }
 
@@ -2397,6 +2404,7 @@ inline void C_ThrowGrenadeReq::SharedCtor(
   new (&_impl_) Impl_{
       decltype(_impl_.start_position_){nullptr}
     , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.grenade_type_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -2434,6 +2442,7 @@ void C_ThrowGrenadeReq::Clear() {
     delete _impl_.direction_;
   }
   _impl_.direction_ = nullptr;
+  _impl_.grenade_type_ = 0u;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2443,17 +2452,25 @@ const char* C_ThrowGrenadeReq::_InternalParse(const char* ptr, ::_pbi::ParseCont
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .se.common.Vector3 start_position = 1;
+      // uint32 grenade_type = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.grenade_type_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 start_position = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_start_position(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 direction = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+      // .se.common.Vector3 direction = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_direction(), ptr);
           CHK_(ptr);
         } else
@@ -2488,17 +2505,23 @@ uint8_t* C_ThrowGrenadeReq::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .se.common.Vector3 start_position = 1;
+  // uint32 grenade_type = 1;
+  if (this->_internal_grenade_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_grenade_type(), target);
+  }
+
+  // .se.common.Vector3 start_position = 2;
   if (this->_internal_has_start_position()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::start_position(this),
+      InternalWriteMessage(2, _Internal::start_position(this),
         _Internal::start_position(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.Vector3 direction = 2;
+  // .se.common.Vector3 direction = 3;
   if (this->_internal_has_direction()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(2, _Internal::direction(this),
+      InternalWriteMessage(3, _Internal::direction(this),
         _Internal::direction(this).GetCachedSize(), target, stream);
   }
 
@@ -2518,18 +2541,23 @@ size_t C_ThrowGrenadeReq::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .se.common.Vector3 start_position = 1;
+  // .se.common.Vector3 start_position = 2;
   if (this->_internal_has_start_position()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.start_position_);
   }
 
-  // .se.common.Vector3 direction = 2;
+  // .se.common.Vector3 direction = 3;
   if (this->_internal_has_direction()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.direction_);
+  }
+
+  // uint32 grenade_type = 1;
+  if (this->_internal_grenade_type() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_grenade_type());
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -2558,6 +2586,9 @@ void C_ThrowGrenadeReq::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, cons
     _this->_internal_mutable_direction()->::se::common::Vector3::MergeFrom(
         from._internal_direction());
   }
+  if (from._internal_grenade_type() != 0) {
+    _this->_internal_set_grenade_type(from._internal_grenade_type());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -2576,8 +2607,8 @@ void C_ThrowGrenadeReq::InternalSwap(C_ThrowGrenadeReq* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(C_ThrowGrenadeReq, _impl_.direction_)
-      + sizeof(C_ThrowGrenadeReq::_impl_.direction_)
+      PROTOBUF_FIELD_OFFSET(C_ThrowGrenadeReq, _impl_.grenade_type_)
+      + sizeof(C_ThrowGrenadeReq::_impl_.grenade_type_)
       - PROTOBUF_FIELD_OFFSET(C_ThrowGrenadeReq, _impl_.start_position_)>(
           reinterpret_cast<char*>(&_impl_.start_position_),
           reinterpret_cast<char*>(&other->_impl_.start_position_));
@@ -2641,6 +2672,7 @@ N_ThrowGrenade::N_ThrowGrenade(const N_ThrowGrenade& from)
       decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.start_position_){nullptr}
     , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.grenade_type_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
@@ -2653,6 +2685,7 @@ N_ThrowGrenade::N_ThrowGrenade(const N_ThrowGrenade& from)
   if (from._internal_has_direction()) {
     _this->_impl_.direction_ = new ::se::common::Vector3(*from._impl_.direction_);
   }
+  _this->_impl_.grenade_type_ = from._impl_.grenade_type_;
   // @@protoc_insertion_point(copy_constructor:se.game.N_ThrowGrenade)
 }
 
@@ -2664,6 +2697,7 @@ inline void N_ThrowGrenade::SharedCtor(
       decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.start_position_){nullptr}
     , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.grenade_type_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
 }
@@ -2706,6 +2740,7 @@ void N_ThrowGrenade::Clear() {
     delete _impl_.direction_;
   }
   _impl_.direction_ = nullptr;
+  _impl_.grenade_type_ = 0u;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2723,17 +2758,25 @@ const char* N_ThrowGrenade::_InternalParse(const char* ptr, ::_pbi::ParseContext
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 start_position = 2;
+      // uint32 grenade_type = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.grenade_type_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 start_position = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
           ptr = ctx->ParseMessage(_internal_mutable_start_position(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 direction = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+      // .se.common.Vector3 direction = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_direction(), ptr);
           CHK_(ptr);
         } else
@@ -2775,17 +2818,23 @@ uint8_t* N_ThrowGrenade::_InternalSerialize(
         _Internal::entity_id(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.Vector3 start_position = 2;
+  // uint32 grenade_type = 2;
+  if (this->_internal_grenade_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_grenade_type(), target);
+  }
+
+  // .se.common.Vector3 start_position = 3;
   if (this->_internal_has_start_position()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(2, _Internal::start_position(this),
+      InternalWriteMessage(3, _Internal::start_position(this),
         _Internal::start_position(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.Vector3 direction = 3;
+  // .se.common.Vector3 direction = 4;
   if (this->_internal_has_direction()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(3, _Internal::direction(this),
+      InternalWriteMessage(4, _Internal::direction(this),
         _Internal::direction(this).GetCachedSize(), target, stream);
   }
 
@@ -2812,18 +2861,23 @@ size_t N_ThrowGrenade::ByteSizeLong() const {
         *_impl_.entity_id_);
   }
 
-  // .se.common.Vector3 start_position = 2;
+  // .se.common.Vector3 start_position = 3;
   if (this->_internal_has_start_position()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.start_position_);
   }
 
-  // .se.common.Vector3 direction = 3;
+  // .se.common.Vector3 direction = 4;
   if (this->_internal_has_direction()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.direction_);
+  }
+
+  // uint32 grenade_type = 2;
+  if (this->_internal_grenade_type() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_grenade_type());
   }
 
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
@@ -2856,6 +2910,9 @@ void N_ThrowGrenade::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
     _this->_internal_mutable_direction()->::se::common::Vector3::MergeFrom(
         from._internal_direction());
   }
+  if (from._internal_grenade_type() != 0) {
+    _this->_internal_set_grenade_type(from._internal_grenade_type());
+  }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
 
@@ -2874,8 +2931,8 @@ void N_ThrowGrenade::InternalSwap(N_ThrowGrenade* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(N_ThrowGrenade, _impl_.direction_)
-      + sizeof(N_ThrowGrenade::_impl_.direction_)
+      PROTOBUF_FIELD_OFFSET(N_ThrowGrenade, _impl_.grenade_type_)
+      + sizeof(N_ThrowGrenade::_impl_.grenade_type_)
       - PROTOBUF_FIELD_OFFSET(N_ThrowGrenade, _impl_.entity_id_)>(
           reinterpret_cast<char*>(&_impl_.entity_id_),
           reinterpret_cast<char*>(&other->_impl_.entity_id_));

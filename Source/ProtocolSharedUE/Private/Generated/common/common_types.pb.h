@@ -706,6 +706,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
     kPositionFieldNumber = 1,
     kYawFieldNumber = 2,
     kPitchFieldNumber = 3,
+    kSpeedFieldNumber = 4,
   };
   // .se.common.Vector3 position = 1;
   bool has_position() const;
@@ -743,6 +744,15 @@ class PROTOCOLSHAREDUE_API MovementState final :
   void _internal_set_pitch(float value);
   public:
 
+  // float speed = 4;
+  void clear_speed();
+  float speed() const;
+  void set_speed(float value);
+  private:
+  float _internal_speed() const;
+  void _internal_set_speed(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.common.MovementState)
  private:
   class _Internal;
@@ -754,6 +764,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
     ::se::common::Vector3* position_;
     float yaw_;
     float pitch_;
+    float speed_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1446,6 +1457,26 @@ inline void MovementState::_internal_set_pitch(float value) {
 inline void MovementState::set_pitch(float value) {
   _internal_set_pitch(value);
   // @@protoc_insertion_point(field_set:se.common.MovementState.pitch)
+}
+
+// float speed = 4;
+inline void MovementState::clear_speed() {
+  _impl_.speed_ = 0;
+}
+inline float MovementState::_internal_speed() const {
+  return _impl_.speed_;
+}
+inline float MovementState::speed() const {
+  // @@protoc_insertion_point(field_get:se.common.MovementState.speed)
+  return _internal_speed();
+}
+inline void MovementState::_internal_set_speed(float value) {
+  
+  _impl_.speed_ = value;
+}
+inline void MovementState::set_speed(float value) {
+  _internal_set_speed(value);
+  // @@protoc_insertion_point(field_set:se.common.MovementState.speed)
 }
 
 // -------------------------------------------------------------------

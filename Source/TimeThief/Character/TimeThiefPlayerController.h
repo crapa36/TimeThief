@@ -49,6 +49,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UStoreWidget> StoreWidget;
 	
+	ATimeThiefPlayerController();
+	
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 

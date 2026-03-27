@@ -62,7 +62,7 @@ bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
 	{
 		FMemoryReader Reader(HeaderBuffer);
 		Reader << Header;
-		UE_LOG(LogTemp, Log, TEXT("PacketId: %d, PacketSize: %d"), Header.PacketId, Header.PacketSize);
+		// UE_LOG(LogTemp, Log, TEXT("PacketId: %d, PacketSize: %d"), Header.PacketId, Header.PacketSize);
 	}
 	
 	OutPacket = HeaderBuffer;

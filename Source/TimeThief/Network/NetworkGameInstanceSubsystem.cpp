@@ -12,6 +12,10 @@
 #include "ClientConfigLoader.h"
 #include "NetworkEntityComponent.h"
 #include "NetworkMoveComponent.h"
+#include "TimeThiefNetworkSettings.h"
+#include "Character/TimeThiefPlayerCharacter.h"
+#include "Character/TimeThiefPlayerController.h"
+#include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
 #include "Network/TestPlayer/NTLocalPlayer.h"
@@ -33,8 +37,21 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 {
 	Super::Initialize(Collection);
 	
-	LocalPlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/SSH/BP_NTLocalPlayer.BP_NTLocalPlayer_C"));
-	RemotePlayerClass = LoadClass<AActor>(nullptr, TEXT("/Game/SSH/BP_NTPlayer.BP_NTPlayer_C"));
+	const UTimeThiefNetworkSettings* Settings = GetDefault<UTimeThiefNetworkSettings>();
+	if (Settings == nullptr)
+	{
+		return;
+	}
+	
+	if (!Settings->SpawnClassData.IsNull())
+	{
+		SpawnData = Settings->SpawnClassData.LoadSynchronous();
+	}
+	
+	if (!Settings->DefaultLocalPlayerPawnData.IsNull())
+	{
+		DefaultLocalPlayerPawnData = Settings->DefaultLocalPlayerPawnData.LoadSynchronous();
+	}
 	
 	bool configLoaded = LoadClientConfig();
 	
@@ -96,6 +113,7 @@ void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
 	
 	Movement->set_yaw(MoveData.Yaw);
 	Movement->set_pitch(MoveData.Pitch);
+	Movement->set_speed(MoveData.Speed);
 	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Pkt);
 	SendPacket(Buffer);
@@ -156,6 +174,8 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	// // 이미 연결이 끊겼거나 소켓이 유효하지 않은 경우에는 아무 작업도 수행하지 않습니다.
 	// if (bIsConnected == false or Socket == nullptr) return;
 	
+	StopPingTimer();
+	
 	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
 	
 	// 타이머 정지 (패킷 처리 타이머)
@@ -210,8 +230,8 @@ void UNetworkGameInstanceSubsystem::SpawnProcessPacketTimer()
 	
 	if (UWorld* World = GetWorld())
 	{
-		// TODO: 0.05초 값은 .ini나 .config 파일로 부터 읽어와서 적용해야 할 듯 싶다
-		World->GetTimerManager().SetTimer(QueueProcessingTimer, this, &UNetworkGameInstanceSubsystem::ProcessPacket, 0.05f, true);
+		// TODO: 0.01초 값은 .ini나 .config 파일로 부터 읽어와서 적용해야 할 듯 싶다
+		World->GetTimerManager().SetTimer(QueueProcessingTimer, this, &UNetworkGameInstanceSubsystem::ProcessPacket, 0.01f, true);
 	}
 }
 
@@ -222,6 +242,16 @@ void UNetworkGameInstanceSubsystem::ProcessPacket()
 	if (not bIsConnected or GameSession == nullptr) return;
 	
 	GameSession->HandleRecvPackets();
+}
+
+bool UNetworkGameInstanceSubsystem::IsConnected() const
+{
+	return bIsConnected;
+}
+
+bool UNetworkGameInstanceSubsystem::CanSendGameplayPacket() const
+{
+	return bIsConnected && GameSession != nullptr && IsRoomPlayableState(PlayState);
 }
 
 void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_HandshakeRes& Pkt)
@@ -250,6 +280,8 @@ void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_Handsha
 	}
 	
 	PlayState = ENetworkPlayState::InLobby;
+	
+	StartPingTimer();
 }
 
 void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& Pkt)
@@ -258,6 +290,20 @@ void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& P
 
 void UNetworkGameInstanceSubsystem::HandlePong(const se::auth::S_Pong& Pkt)
 {
+	uint64 NowMs = static_cast<uint64>(FPlatformTime::Seconds() * 1000.0);
+	uint64 SentTimeMs = Pkt.client_time_ms();
+	// uint64 ServerTimeMs = Pkt.server_time_ms();
+	
+	if (NowMs < SentTimeMs)  // 시간 역전 방지
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("[Network] HandlePong: Invalid time delta"));
+		return;
+	}
+	
+	uint64 RTT = NowMs - SentTimeMs;
+	// uint64 EstimatedServerTimeMs = SentTimeMs + RTT / 2;
+	
+	// UE_LOG(LogTemp, Log, TEXT("[Network] Pong received. RTT = %llu ms"), RTT);
 }
 
 void UNetworkGameInstanceSubsystem::HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& Pkt)
@@ -436,6 +482,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 	EntityState.Yaw = Movement.yaw();
 	EntityState.Pitch = Movement.pitch();
+	EntityState.Speed = Movement.speed();
 	
 	ApplyEntityStateToActor(EntityId);
 }
@@ -554,13 +601,16 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 {
 	// TODO: EntityState의 정보를 바탕으로 어떤 Actor 클래스를 스폰할지 결정하는 로직을 구현해야 한다
 	//		 어떤 ObjectType, TemplateId 여도 처리할 수 있도록 (조합가능한 기준)
+	if (!SpawnData) return nullptr;
 	
-	if (IsLocalPlayerEntity(EntityState.EntityId))
+	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
+	
+	if (const TSubclassOf<AActor>* Found = SpawnData->SpawnClassMap.Find(ObjectTypeValue))
 	{
-		return LocalPlayerClass;
+		return *Found;
 	}
 	
-	return RemotePlayerClass;
+	return nullptr;
 }
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
@@ -636,6 +686,62 @@ void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
 }
 
+void UNetworkGameInstanceSubsystem::Ping()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot send ping: Not connected to server"));
+		return;
+	}
+	
+	se::auth::C_Ping Request;
+	
+	uint64 NowMs = static_cast<uint64>(FPlatformTime::Seconds() * 1000.0);
+	Request.set_client_time_ms(NowMs);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	if (!SendBuffer)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot send ping: Failed to create send buffer"));
+		return;
+	}
+	
+	SendPacket(SendBuffer);
+}
+
+void UNetworkGameInstanceSubsystem::StartPingTimer()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] StartPingTimer failed: World is null"));
+		return;
+	}
+	
+	if (RuntimeConfig.PingIntervalMs <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] StartPingTimer failed: Invalid PingIntervalMs = %d"), RuntimeConfig.PingIntervalMs);
+		return;
+	}
+	
+	const float PingIntervalSeconds = RuntimeConfig.GetPingIntervalSeconds();
+	
+	World->GetTimerManager().ClearTimer(PingTimer);
+	World->GetTimerManager().SetTimer(PingTimer, this, &UNetworkGameInstanceSubsystem::Ping, PingIntervalSeconds, true);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Ping timer started. Interval = %.3f sec"), PingIntervalSeconds);
+}
+
+void UNetworkGameInstanceSubsystem::StopPingTimer()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PingTimer);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Ping timer stopped"));
+}
+
 void UNetworkGameInstanceSubsystem::ClearRoomState()
 {
 	for (auto& Pair : EntityEntries)
@@ -669,7 +775,7 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	if (EntityEntry == nullptr) return nullptr;
 	
 	TSubclassOf<AActor> ActorClass = ResolveActorClass(EntityState);
-	if (*ActorClass == nullptr) return nullptr;
+	if (ActorClass == nullptr) return nullptr;
 	
 	const FRotator SpawnRotation(0.0f, EntityState.Yaw, 0.0f);
 	const FTransform SpawnTransform(SpawnRotation, EntityState.Position);
@@ -698,11 +804,35 @@ AActor* UNetworkGameInstanceSubsystem::GetOrSpawnEntityActor(uint32 EntityId)
 	return SpawnEntityActor(EntityEntry->State);
 }
 
+void UNetworkGameInstanceSubsystem::InitializeSpawnedPawnData(AActor* Actor)
+{
+	ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(Actor);
+	if (PlayerCharacter == nullptr)
+	{
+		return;
+	}
+	
+	const UTimeThiefPawnData* PawnData = GetDefaultPawnData();
+	if (PawnData == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] InitializeSpawnedPawnData: DefaultPawnData is null on %s"),
+			*GetNameSafe(PlayerCharacter));
+		return;
+	}
+	
+	PlayerCharacter->SetPawnData(PawnData);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Network] InitializeSpawnedPawnData: Set PawnData=%s on %s"),
+		*GetNameSafe(PawnData),
+		*GetNameSafe(PlayerCharacter));
+}
+
 void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
 {
 	if (SpawnedActor == nullptr) return;
 	
 	InitializeNetworkEntityActor(SpawnedActor, EntityState);;
+	InitializeSpawnedPawnData(SpawnedActor);
 	ApplyRuntimeConfigToActor(SpawnedActor);
 	
 	if (IsLocalPlayerEntity(EntityState.EntityId))

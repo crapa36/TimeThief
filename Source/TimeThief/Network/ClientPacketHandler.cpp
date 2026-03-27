@@ -35,6 +35,19 @@ bool Handle_S_LoginRes(PacketSessionRef& session, const se::auth::S_LoginRes& pk
 
 bool Handle_S_Pong(PacketSessionRef& session, const se::auth::S_Pong& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandlePong(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_S_Pong: Failed to get NGIS"));
 	return false;	
 }
 	

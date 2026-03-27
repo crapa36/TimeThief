@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TimeThiefNetworkCharacterBase.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
@@ -16,7 +17,7 @@ class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
 
 UCLASS()
-class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefCharacterBase {
+class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefNetworkCharacterBase {
 	GENERATED_BODY()
 
 public:

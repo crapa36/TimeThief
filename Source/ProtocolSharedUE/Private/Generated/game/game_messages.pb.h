@@ -1683,10 +1683,11 @@ class PROTOCOLSHAREDUE_API C_ThrowGrenadeReq final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kStartPositionFieldNumber = 1,
-    kDirectionFieldNumber = 2,
+    kStartPositionFieldNumber = 2,
+    kDirectionFieldNumber = 3,
+    kGrenadeTypeFieldNumber = 1,
   };
-  // .se.common.Vector3 start_position = 1;
+  // .se.common.Vector3 start_position = 2;
   bool has_start_position() const;
   private:
   bool _internal_has_start_position() const;
@@ -1704,7 +1705,7 @@ class PROTOCOLSHAREDUE_API C_ThrowGrenadeReq final :
       ::se::common::Vector3* start_position);
   ::se::common::Vector3* unsafe_arena_release_start_position();
 
-  // .se.common.Vector3 direction = 2;
+  // .se.common.Vector3 direction = 3;
   bool has_direction() const;
   private:
   bool _internal_has_direction() const;
@@ -1722,6 +1723,15 @@ class PROTOCOLSHAREDUE_API C_ThrowGrenadeReq final :
       ::se::common::Vector3* direction);
   ::se::common::Vector3* unsafe_arena_release_direction();
 
+  // uint32 grenade_type = 1;
+  void clear_grenade_type();
+  uint32_t grenade_type() const;
+  void set_grenade_type(uint32_t value);
+  private:
+  uint32_t _internal_grenade_type() const;
+  void _internal_set_grenade_type(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.game.C_ThrowGrenadeReq)
  private:
   class _Internal;
@@ -1732,6 +1742,7 @@ class PROTOCOLSHAREDUE_API C_ThrowGrenadeReq final :
   struct Impl_ {
     ::se::common::Vector3* start_position_;
     ::se::common::Vector3* direction_;
+    uint32_t grenade_type_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -1861,8 +1872,9 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
 
   enum : int {
     kEntityIdFieldNumber = 1,
-    kStartPositionFieldNumber = 2,
-    kDirectionFieldNumber = 3,
+    kStartPositionFieldNumber = 3,
+    kDirectionFieldNumber = 4,
+    kGrenadeTypeFieldNumber = 2,
   };
   // .se.common.ObjectId entity_id = 1;
   bool has_entity_id() const;
@@ -1882,7 +1894,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
       ::se::common::ObjectId* entity_id);
   ::se::common::ObjectId* unsafe_arena_release_entity_id();
 
-  // .se.common.Vector3 start_position = 2;
+  // .se.common.Vector3 start_position = 3;
   bool has_start_position() const;
   private:
   bool _internal_has_start_position() const;
@@ -1900,7 +1912,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
       ::se::common::Vector3* start_position);
   ::se::common::Vector3* unsafe_arena_release_start_position();
 
-  // .se.common.Vector3 direction = 3;
+  // .se.common.Vector3 direction = 4;
   bool has_direction() const;
   private:
   bool _internal_has_direction() const;
@@ -1918,6 +1930,15 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
       ::se::common::Vector3* direction);
   ::se::common::Vector3* unsafe_arena_release_direction();
 
+  // uint32 grenade_type = 2;
+  void clear_grenade_type();
+  uint32_t grenade_type() const;
+  void set_grenade_type(uint32_t value);
+  private:
+  uint32_t _internal_grenade_type() const;
+  void _internal_set_grenade_type(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.game.N_ThrowGrenade)
  private:
   class _Internal;
@@ -1929,6 +1950,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
     ::se::common::ObjectId* entity_id_;
     ::se::common::Vector3* start_position_;
     ::se::common::Vector3* direction_;
+    uint32_t grenade_type_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -6378,7 +6400,27 @@ inline void N_Attack::set_attack_type(uint32_t value) {
 
 // C_ThrowGrenadeReq
 
-// .se.common.Vector3 start_position = 1;
+// uint32 grenade_type = 1;
+inline void C_ThrowGrenadeReq::clear_grenade_type() {
+  _impl_.grenade_type_ = 0u;
+}
+inline uint32_t C_ThrowGrenadeReq::_internal_grenade_type() const {
+  return _impl_.grenade_type_;
+}
+inline uint32_t C_ThrowGrenadeReq::grenade_type() const {
+  // @@protoc_insertion_point(field_get:se.game.C_ThrowGrenadeReq.grenade_type)
+  return _internal_grenade_type();
+}
+inline void C_ThrowGrenadeReq::_internal_set_grenade_type(uint32_t value) {
+  
+  _impl_.grenade_type_ = value;
+}
+inline void C_ThrowGrenadeReq::set_grenade_type(uint32_t value) {
+  _internal_set_grenade_type(value);
+  // @@protoc_insertion_point(field_set:se.game.C_ThrowGrenadeReq.grenade_type)
+}
+
+// .se.common.Vector3 start_position = 2;
 inline bool C_ThrowGrenadeReq::_internal_has_start_position() const {
   return this != internal_default_instance() && _impl_.start_position_ != nullptr;
 }
@@ -6463,7 +6505,7 @@ inline void C_ThrowGrenadeReq::set_allocated_start_position(::se::common::Vector
   // @@protoc_insertion_point(field_set_allocated:se.game.C_ThrowGrenadeReq.start_position)
 }
 
-// .se.common.Vector3 direction = 2;
+// .se.common.Vector3 direction = 3;
 inline bool C_ThrowGrenadeReq::_internal_has_direction() const {
   return this != internal_default_instance() && _impl_.direction_ != nullptr;
 }
@@ -6637,7 +6679,27 @@ inline void N_ThrowGrenade::set_allocated_entity_id(::se::common::ObjectId* enti
   // @@protoc_insertion_point(field_set_allocated:se.game.N_ThrowGrenade.entity_id)
 }
 
-// .se.common.Vector3 start_position = 2;
+// uint32 grenade_type = 2;
+inline void N_ThrowGrenade::clear_grenade_type() {
+  _impl_.grenade_type_ = 0u;
+}
+inline uint32_t N_ThrowGrenade::_internal_grenade_type() const {
+  return _impl_.grenade_type_;
+}
+inline uint32_t N_ThrowGrenade::grenade_type() const {
+  // @@protoc_insertion_point(field_get:se.game.N_ThrowGrenade.grenade_type)
+  return _internal_grenade_type();
+}
+inline void N_ThrowGrenade::_internal_set_grenade_type(uint32_t value) {
+  
+  _impl_.grenade_type_ = value;
+}
+inline void N_ThrowGrenade::set_grenade_type(uint32_t value) {
+  _internal_set_grenade_type(value);
+  // @@protoc_insertion_point(field_set:se.game.N_ThrowGrenade.grenade_type)
+}
+
+// .se.common.Vector3 start_position = 3;
 inline bool N_ThrowGrenade::_internal_has_start_position() const {
   return this != internal_default_instance() && _impl_.start_position_ != nullptr;
 }
@@ -6722,7 +6784,7 @@ inline void N_ThrowGrenade::set_allocated_start_position(::se::common::Vector3* 
   // @@protoc_insertion_point(field_set_allocated:se.game.N_ThrowGrenade.start_position)
 }
 
-// .se.common.Vector3 direction = 3;
+// .se.common.Vector3 direction = 4;
 inline bool N_ThrowGrenade::_internal_has_direction() const {
   return this != internal_default_instance() && _impl_.direction_ != nullptr;
 }
