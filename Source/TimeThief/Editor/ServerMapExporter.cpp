@@ -24,8 +24,34 @@
 
 #if WITH_EDITOR
 #include "Editor.h"
+#include "AssetToolsModule.h"
+#include "Factories/DataAssetFactory.h"
 #endif
 
+namespace
+{
+	static void AddDefaultGeneratedTags(UShapeComponent* ShapeComponent)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			return;
+		}
+
+		ShapeComponent->ComponentTags.AddUnique(ServerTags::Generated);
+		ShapeComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
+		ShapeComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+	}
+
+	static void AddGeneratedSourceTag(UShapeComponent* ShapeComponent, const FName& SourceTag)
+	{
+		if (ShapeComponent == nullptr || SourceTag.IsNone())
+		{
+			return;
+		}
+
+		ShapeComponent->ComponentTags.AddUnique(SourceTag);
+	}
+}
 
 bool ServerMapExporter::ExportSelectedActorBoxesToFile(const FString& OutputPath)
 {
@@ -249,9 +275,8 @@ bool ServerMapExporter::GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClea
 
 	NewBoxComponent->SetBoxExtent(LocalExtent);
 
-	NewBoxComponent->ComponentTags.AddUnique(ServerTags::Generated);
-	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
-	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+	AddDefaultGeneratedTags(NewBoxComponent);
+	AddGeneratedSourceTag(NewBoxComponent, ServerTags::AutoBoundsFallback);
 
 	NewBoxComponent->SetupAttachment(StaticMeshComponent);
 	NewBoxComponent->SetRelativeLocation(LocalCenter);
@@ -309,8 +334,222 @@ bool ServerMapExporter::GenerateShapesFromActorStaticMesh(AActor* Actor, bool bC
 	return GenerateShapesFromStaticMeshComponent(StaticMeshComponent, Actor);
 }
 
+int32 ServerMapExporter::GenerateShapesForActorsWithTag(UWorld* World, const FName& RequiredTag,
+	bool bSkipActorsWithExistingShapes, bool bSkipActorsWithExistingPreset,
+	bool bClearExistingGeneratedShapesBeforeRegenerate)
+{
+	if (World == nullptr || RequiredTag.IsNone())
+	{
+		return 0;
+	}
+
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+
+	int32 GeneratedActorCount = 0;
+
+	for (AActor* Actor : TaggedActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		if (bSkipActorsWithExistingShapes && HasValidShapeComponent(Actor))
+		{
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+		if (StaticMeshComponent == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Generate skipped. No StaticMeshComponent: %s"), *GetNameSafe(Actor));
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Generate skipped. StaticMesh is null: %s"), *GetNameSafe(Actor));
+			continue;
+		}
+
+		if (bSkipActorsWithExistingPreset)
+		{
+			if (UServerCollisionPresetDataAsset* Preset = FindPresetForStaticMesh(StaticMesh))
+			{
+				continue;
+			}
+		}
+
+		if (bClearExistingGeneratedShapesBeforeRegenerate)
+		{
+			RemoveGeneratedShapeComponents(Actor);
+		}
+
+		if (GenerateShapesFromStaticMeshComponent(StaticMeshComponent, Actor))
+		{
+			++GeneratedActorCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] GenerateShapesForActorsWithTag finished. Tag=%s GeneratedActorCount=%d"),
+		*RequiredTag.ToString(),
+		GeneratedActorCount);
+
+	return GeneratedActorCount;
+}
+
+int32 ServerMapExporter::ClearGeneratedShapesForActorsWithTag(UWorld* World, const FName& RequiredTag)
+{
+	if (World == nullptr || RequiredTag.IsNone())
+	{
+		return 0;
+	}
+
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+
+	int32 ClearedActorCount = 0;
+
+	for (AActor* Actor : TaggedActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		const int32 BeforeCount = CountGeneratedShapeComponents(Actor);
+		if (BeforeCount <= 0)
+		{
+			continue;
+		}
+
+		RemoveGeneratedShapeComponents(Actor);
+		++ClearedActorCount;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] ClearGeneratedShapesForActorsWithTag finished. Tag=%s ClearedActorCount=%d"),
+		*RequiredTag.ToString(),
+		ClearedActorCount);
+
+	return ClearedActorCount;
+}
+
+int32 ServerMapExporter::SaveGeneratedShapesToPresetsForActorsWithTag(UWorld* World, const FName& RequiredTag,
+	const FString& PresetFolderPath, bool bOnlySaveGeneratedShapes)
+{
+	if (World == nullptr || RequiredTag.IsNone())
+	{
+		return 0;
+	}
+
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+
+	int32 SavedCount = 0;
+
+	for (AActor* Actor : TaggedActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			continue;
+		}
+
+		UServerCollisionPresetDataAsset* PresetAsset = FindOrCreatePresetForStaticMesh(StaticMesh, PresetFolderPath);
+		if (PresetAsset == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to find/create preset: %s"), *GetNameSafe(StaticMesh));
+			continue;
+		}
+
+		if (SaveActorGeneratedShapesToPreset(Actor, PresetAsset, bOnlySaveGeneratedShapes))
+		{
+			++SavedCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SaveGeneratedShapesToPresetsForActorsWithTag finished. Tag=%s SavedCount=%d"),
+		*RequiredTag.ToString(),
+		SavedCount);
+
+	return SavedCount;
+}
+
+bool ServerMapExporter::ValidateActorsWithTag(UWorld* World, const FName& RequiredTag,
+	FServerMapValidationReport& OutReport)
+{
+	OutReport = {};
+
+	if (World == nullptr || RequiredTag.IsNone())
+	{
+		return false;
+	}
+
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+
+	OutReport.TaggedActorCount = TaggedActors.Num();
+
+	for (AActor* Actor : TaggedActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		if (HasValidShapeComponent(Actor))
+		{
+			++OutReport.ActorsWithValidShapes;
+			AccumulateGeneratedSourceStats(Actor, OutReport);
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
+		if (StaticMeshComponent == nullptr)
+		{
+			++OutReport.ActorsMissingStaticMesh;
+			AppendValidationItem(OutReport, Actor, TEXT("No StaticMeshComponent"));
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			++OutReport.ActorsWithNullStaticMesh;
+			AppendValidationItem(OutReport, Actor, TEXT("StaticMesh is null"));
+			continue;
+		}
+
+		UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
+		if (PresetAsset == nullptr)
+		{
+			++OutReport.ActorsMissingPreset;
+			AppendValidationItem(OutReport, Actor, TEXT("Missing preset"), StaticMesh, nullptr);
+			continue;
+		}
+
+		++OutReport.ActorsUsingPreset;
+	}
+
+	LogValidationReport(RequiredTag, OutReport);
+	return true;
+}
+
 bool ServerMapExporter::GenerateShapesFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent,
-	AActor* OwnerActor)
+                                                              AActor* OwnerActor)
 {
 	if (StaticMeshComponent == nullptr || OwnerActor == nullptr)
 	{
@@ -391,8 +630,14 @@ int32 ServerMapExporter::GeneratePrimitiveShapesFromBodySetup(UStaticMeshCompone
 			continue;
 		}
 
-		if (CreateGeneratedBoxComponent(OwnerActor, StaticMeshComponent, RelativeLocation, RelativeRotation, BoxExtent) != nullptr)
+		if (UBoxComponent* NewBox = CreateGeneratedBoxComponent(
+			OwnerActor,
+			StaticMeshComponent,
+			RelativeLocation,
+			RelativeRotation,
+			BoxExtent))
 		{
+			AddGeneratedSourceTag(NewBox, ServerTags::AutoSimple);
 			++GeneratedCount;
 		}
 	}
@@ -410,8 +655,13 @@ int32 ServerMapExporter::GeneratePrimitiveShapesFromBodySetup(UStaticMeshCompone
 			continue;
 		}
 
-		if (CreateGeneratedSphereComponent(OwnerActor, StaticMeshComponent, RelativeLocation, Radius) != nullptr)
+		if (USphereComponent* NewSphere = CreateGeneratedSphereComponent(
+			OwnerActor,
+			StaticMeshComponent,
+			RelativeLocation,
+			Radius))
 		{
+			AddGeneratedSourceTag(NewSphere, ServerTags::AutoSimple);
 			++GeneratedCount;
 		}
 	}
@@ -431,8 +681,15 @@ int32 ServerMapExporter::GeneratePrimitiveShapesFromBodySetup(UStaticMeshCompone
 			continue;
 		}
 
-		if (CreateGeneratedCapsuleComponent(OwnerActor, StaticMeshComponent, RelativeLocation, RelativeRotation, Radius, HalfHeight) != nullptr)
+		if (UCapsuleComponent* NewCapsule = CreateGeneratedCapsuleComponent(
+			OwnerActor,
+			StaticMeshComponent,
+			RelativeLocation,
+			RelativeRotation,
+			Radius,
+			HalfHeight))
 		{
+			AddGeneratedSourceTag(NewCapsule, ServerTags::AutoSimple);
 			++GeneratedCount;
 		}
 	}
@@ -513,7 +770,7 @@ int32 ServerMapExporter::GenerateConvexFallbackShapes(UStaticMeshComponent* Stat
 			continue;
 		}
 
-		const FVector RelativeLocation = FVector(ConvexElem.ElemBox.GetCenter());
+		// const FVector RelativeLocation = FVector(ConvexElem.ElemBox.GetCenter());
 		const FRotator RelativeRotation = FRotator::ZeroRotator;
 
 		UBoxComponent* NewBox = CreateGeneratedBoxComponent(
@@ -525,6 +782,7 @@ int32 ServerMapExporter::GenerateConvexFallbackShapes(UStaticMeshComponent* Stat
 
 		if (NewBox != nullptr)
 		{
+			AddGeneratedSourceTag(NewBox, ServerTags::AutoConvexFallback);
 			++GeneratedCount;
 
 			UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated convex fallback box %d: Center=%s Extent=%s"),
@@ -552,9 +810,7 @@ UBoxComponent* ServerMapExporter::CreateGeneratedBoxComponent(AActor* OwnerActor
 	}
 
 	NewBoxComponent->SetBoxExtent(BoxExtent);
-	NewBoxComponent->ComponentTags.AddUnique(ServerTags::Generated);
-	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
-	NewBoxComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+	AddDefaultGeneratedTags(NewBoxComponent);
 
 	NewBoxComponent->SetupAttachment(AttachParent);
 	NewBoxComponent->SetRelativeLocation(RelativeLocation);
@@ -586,9 +842,7 @@ USphereComponent* ServerMapExporter::CreateGeneratedSphereComponent(AActor* Owne
 	}
 
 	NewSphereComponent->SetSphereRadius(Radius);
-	NewSphereComponent->ComponentTags.AddUnique(ServerTags::Generated);
-	NewSphereComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
-	NewSphereComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+	AddDefaultGeneratedTags(NewSphereComponent);
 
 	NewSphereComponent->SetupAttachment(AttachParent);
 	NewSphereComponent->SetRelativeLocation(RelativeLocation);
@@ -622,9 +876,7 @@ UCapsuleComponent* ServerMapExporter::CreateGeneratedCapsuleComponent(AActor* Ow
 	NewCapsuleComponent->SetCapsuleRadius(Radius);
 	NewCapsuleComponent->SetCapsuleHalfHeight(HalfHeight);
 
-	NewCapsuleComponent->ComponentTags.AddUnique(ServerTags::Generated);
-	NewCapsuleComponent->ComponentTags.AddUnique(ServerTags::BlockMovement);
-	NewCapsuleComponent->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+	AddDefaultGeneratedTags(NewCapsuleComponent);
 
 	NewCapsuleComponent->SetupAttachment(AttachParent);
 	NewCapsuleComponent->SetRelativeLocation(RelativeLocation);
@@ -682,6 +934,8 @@ UBoxComponent* ServerMapExporter::CreateGeneratedBoundsBoxComponent(UStaticMeshC
 
 	if (NewBoxComponent != nullptr)
 	{
+		AddGeneratedSourceTag(NewBoxComponent, ServerTags::AutoBoundsFallback);
+
 		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated bounds fallback box: Actor=%s Mesh=%s Center=%s Extent=%s"),
 			*GetNameSafe(OwnerActor),
 			*GetNameSafe(StaticMesh),
@@ -692,7 +946,8 @@ UBoxComponent* ServerMapExporter::CreateGeneratedBoundsBoxComponent(UStaticMeshC
 	return NewBoxComponent;
 }
 
-bool ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(UServerCollisionPresetDataAsset* PresetAsset)
+bool ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(UServerCollisionPresetDataAsset* PresetAsset,
+	bool bOnlyGeneratedShapes)
 {
 	AActor* SelectedActor = GetFirstSelectedActor();
 	if (SelectedActor == nullptr)
@@ -700,8 +955,8 @@ bool ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(UServerCollisio
 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
 		return false;
 	}
-
-	return SaveActorGeneratedShapesToPreset(SelectedActor, PresetAsset);
+	
+	return SaveActorGeneratedShapesToPreset(SelectedActor, PresetAsset, bOnlyGeneratedShapes);
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()
@@ -767,6 +1022,59 @@ UServerCollisionPresetDataAsset* ServerMapExporter::FindPresetForStaticMesh(USta
 	return nullptr;
 }
 
+UServerCollisionPresetDataAsset* ServerMapExporter::FindOrCreatePresetForStaticMesh(UStaticMesh* StaticMesh,
+	const FString& PresetFolderPath)
+{
+	if (StaticMesh == nullptr)
+	{
+		return nullptr;
+	}
+
+	if (UServerCollisionPresetDataAsset* ExistingPreset = FindPresetForStaticMesh(StaticMesh))
+	{
+		return ExistingPreset;
+	}
+
+#if WITH_EDITOR
+	FString PackagePath = PresetFolderPath;
+	if (PackagePath.IsEmpty())
+	{
+		PackagePath = TEXT("/Game/ServerMap/Presets");
+	}
+
+	const FString AssetName = FString::Printf(TEXT("DA_%s_ServerCollision"), *StaticMesh->GetName());
+
+	FAssetToolsModule& AssetToolsModule =
+		FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+
+	UDataAssetFactory* Factory = NewObject<UDataAssetFactory>();
+	Factory->DataAssetClass = UServerCollisionPresetDataAsset::StaticClass();
+
+	UObject* NewAssetObject = AssetToolsModule.Get().CreateAsset(
+		AssetName,
+		PackagePath,
+		UServerCollisionPresetDataAsset::StaticClass(),
+		Factory);
+
+	UServerCollisionPresetDataAsset* NewPreset =
+		Cast<UServerCollisionPresetDataAsset>(NewAssetObject);
+
+	if (NewPreset != nullptr)
+	{
+		NewPreset->SourceStaticMesh = StaticMesh;
+		NewPreset->MarkPackageDirty();
+
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Created preset: %s for mesh %s"),
+			*GetNameSafe(NewPreset),
+			*GetNameSafe(StaticMesh));
+	}
+
+	return NewPreset;
+#else
+	return nullptr;
+#endif
+}
+
 UStaticMeshComponent* ServerMapExporter::FindFirstStaticMeshComponent(AActor* Actor)
 {
 	if (Actor == nullptr)
@@ -801,6 +1109,27 @@ void ServerMapExporter::RemoveGeneratedShapeComponents(AActor* Actor)
 	}
 }
 
+int32 ServerMapExporter::CountGeneratedShapeComponents(AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+
+	TArray<UShapeComponent*> Shapes;
+	CollectShapeComponents(Actor, Shapes);
+
+	int32 Count = 0;
+	for (UShapeComponent* Shape : Shapes)
+	{
+		if (Shape && Shape->ComponentHasTag(ServerTags::Generated))
+		{
+			++Count;
+		}
+	}
+	return Count;
+}
+
 void ServerMapExporter::CollectActorsWithTag(UWorld* World, const FName& RequiredTag, TArray<AActor*>& OutActors)
 {
 	for (TActorIterator<AActor> It(World); It; ++It)
@@ -823,6 +1152,53 @@ void ServerMapExporter::CollectShapeComponents(AActor* Actor, TArray<UShapeCompo
 	}
 	
 	Actor->GetComponents<UShapeComponent>(OutShapeComponents);
+}
+
+void ServerMapExporter::CollectAuthoringShapeComponents(AActor* Actor, bool bOnlyGeneratedShapes,
+	TArray<UShapeComponent*>& OutShapeComponents)
+{
+	OutShapeComponents.Reset();
+
+	if (Actor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UShapeComponent*> AllShapes;
+	CollectShapeComponents(Actor, AllShapes);
+
+	for (UShapeComponent* ShapeComponent : AllShapes)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (ShapeComponent->ComponentHasTag(ServerTags::Ignore))
+		{
+			continue;
+		}
+
+		if (bOnlyGeneratedShapes)
+		{
+			if (!ShapeComponent->ComponentHasTag(ServerTags::Generated))
+			{
+				continue;
+			}
+		}
+		else
+		{
+			const bool bIsGenerated = ShapeComponent->ComponentHasTag(ServerTags::Generated);
+			const bool bIsManualApproved = ShapeComponent->ComponentHasTag(ServerTags::ManualApproved);
+
+			if (!bIsGenerated && !bIsManualApproved)
+			{
+				continue;
+			}
+		}
+
+		OutShapeComponents.Add(ShapeComponent);
+	}
 }
 
 bool ServerMapExporter::ShouldExportShapeComponent(const UShapeComponent* ShapeComponent)
@@ -893,9 +1269,45 @@ bool ServerMapExporter::HasValidShapeComponent(AActor* Actor)
 	return false;
 }
 
+void ServerMapExporter::AppendValidationItem(FServerMapValidationReport& Report, AActor* Actor, const FString& Reason,
+	UStaticMesh* StaticMesh, UServerCollisionPresetDataAsset* PresetAsset)
+{
+	FServerMapValidationItem Item;
+	Item.ActorName = GetNameSafe(Actor);
+	Item.Reason = Reason;
+	Item.StaticMeshName = GetNameSafe(StaticMesh);
+	Item.PresetName = GetNameSafe(PresetAsset);
+	Report.Items.Add(MoveTemp(Item));
+}
+
+void ServerMapExporter::LogValidationReport(const FName& RequiredTag, const FServerMapValidationReport& Report)
+{
+	UE_LOG(LogTemp, Log, TEXT("========== ServerMap Validation Report =========="));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Tag                    : %s"), *RequiredTag.ToString());
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Tagged Actors          : %d"), Report.TaggedActorCount);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Actors With Shapes     : %d"), Report.ActorsWithValidShapes);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Actors Using Preset    : %d"), Report.ActorsUsingPreset);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Missing StaticMeshComp : %d"), Report.ActorsMissingStaticMesh);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Null StaticMesh        : %d"), Report.ActorsWithNullStaticMesh);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Missing Preset         : %d"), Report.ActorsMissingPreset);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated Simple      : %d"), Report.ActorsGeneratedFromSimple);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated Convex FB   : %d"), Report.ActorsGeneratedFromConvexFallback);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Generated Bounds FB   : %d"), Report.ActorsGeneratedFromBoundsFallback);
+	for (const FServerMapValidationItem& Item : Report.Items)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] ValidationItem Actor=%s Reason=%s StaticMesh=%s Preset=%s"),
+			*Item.ActorName,
+			*Item.Reason,
+			*Item.StaticMeshName,
+			*Item.PresetName);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("================================================="));
+}
+
 int32 ServerMapExporter::BuildColliderDataListFromActorResolved(AActor* Actor,
-	TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords,
-	FServerMapExportSummary& Summary)
+                                                                TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords,
+                                                                FServerMapExportSummary& Summary)
 {
 	if (Actor == nullptr)
 	{
@@ -1322,7 +1734,8 @@ void ServerMapExporter::AppendDebugRecord(const AActor* Actor, const UActorCompo
 	OutDebugRecords.Add(MoveTemp(Record));
 }
 
-bool ServerMapExporter::SaveActorGeneratedShapesToPreset(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset)
+bool ServerMapExporter::SaveActorGeneratedShapesToPreset(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset,
+	bool bOnlyGeneratedShapes)
 {
 	if (Actor == nullptr)
 	{
@@ -1350,19 +1763,19 @@ bool ServerMapExporter::SaveActorGeneratedShapesToPreset(AActor* Actor, UServerC
 		return false;
 	}
 
-	TArray<UShapeComponent*> GeneratedShapes;
-	CollectGeneratedShapeComponents(Actor, GeneratedShapes);
+	TArray<UShapeComponent*> AuthoringShapes;
+	CollectAuthoringShapeComponents(Actor, bOnlyGeneratedShapes, AuthoringShapes);
 
-	if (GeneratedShapes.IsEmpty())
+	if (AuthoringShapes.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No generated shape components found: %s"), *GetNameSafe(Actor));
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No authoring shape components found: %s"), *GetNameSafe(Actor));
 		return false;
 	}
 
 	TArray<FServerCollisionPresetCollider> NewColliders;
-	NewColliders.Reserve(GeneratedShapes.Num());
+	NewColliders.Reserve(AuthoringShapes.Num());
 
-	for (const UShapeComponent* ShapeComponent : GeneratedShapes)
+	for (const UShapeComponent* ShapeComponent : AuthoringShapes)
 	{
 		if (ShapeComponent == nullptr)
 		{
@@ -1646,6 +2059,51 @@ bool ServerMapExporter::BuildWorldColliderDataFromPresetCollider(const FServerCo
 
 	default:
 		return false;
+	}
+}
+
+void ServerMapExporter::AccumulateGeneratedSourceStats(AActor* Actor, FServerMapValidationReport& Report)
+{
+	if (Actor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UShapeComponent*> Shapes;
+	CollectShapeComponents(Actor, Shapes);
+
+	bool bHasSimple = false;
+	bool bHasConvex = false;
+	bool bHasBounds = false;
+
+	for (UShapeComponent* Shape : Shapes)
+	{
+		if (Shape == nullptr)
+		{
+			continue;
+		}
+
+		if (!Shape->ComponentHasTag(ServerTags::Generated))
+		{
+			continue;
+		}
+
+		bHasSimple |= Shape->ComponentHasTag(ServerTags::AutoSimple);
+		bHasConvex |= Shape->ComponentHasTag(ServerTags::AutoConvexFallback);
+		bHasBounds |= Shape->ComponentHasTag(ServerTags::AutoBoundsFallback);
+	}
+
+	if (bHasSimple)
+	{
+		++Report.ActorsGeneratedFromSimple;
+	}
+	if (bHasConvex)
+	{
+		++Report.ActorsGeneratedFromConvexFallback;
+	}
+	if (bHasBounds)
+	{
+		++Report.ActorsGeneratedFromBoundsFallback;
 	}
 }
 

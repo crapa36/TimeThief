@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "ServerMapTags.h"
 #include "GameFramework/Actor.h"
 #include "ServerMapExportTestActor.generated.h"
 
@@ -33,5 +34,39 @@ public:
 	
 	UFUNCTION(CallInEditor, Category = "ServerMap")
 	void ExportSelectedActorUsingPreset();
+
+public:
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	FName RequiredActorTag = ServerTags::Collision;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	FString PresetFolderPath = TEXT("/Game/ServerMap/Presets");
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	bool bSkipActorsWithExistingShapes = true;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	bool bSkipActorsWithExistingPreset = false;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	bool bClearExistingGeneratedShapesBeforeRegenerate = true;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	bool bOnlySaveGeneratedShapes = true;
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
+	void GenerateShapesForTaggedActors();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
+	void ClearGeneratedShapesForTaggedActors();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
+	void SaveTaggedGeneratedShapesToPresets();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
+	void ValidateTaggedActors();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
+	void ExportTaggedActorsResolved();
 	
 };
