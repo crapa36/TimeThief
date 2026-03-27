@@ -167,14 +167,14 @@ void ATimeThiefPlayerCharacter::CheckInteractableObject()
 	}
 }
 
-void ATimeThiefPlayerCharacter::AddNearInteractionActor(AInteractionActorBase* InteractionActor)
+void ATimeThiefPlayerCharacter::AddVicinityItem(AItemBase* Item)
 {
-	NearInteractionActors.AddUnique(InteractionActor);
+	VicinityItem.AddUnique(Item);
 }
 
-void ATimeThiefPlayerCharacter::RemoveNearInteractionActor(AInteractionActorBase* InteractionActor)
+void ATimeThiefPlayerCharacter::RemoveVicinityItem(AItemBase* Item)
 {
-	NearInteractionActors.Remove(InteractionActor);
+	VicinityItem.Remove(Item);
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

@@ -28,7 +28,12 @@ public:
 
 	void AddItem(EItemID Item, int Amount = 1);
 	bool RemoveItem(EItemID Item, int Amount = 1);
-
+	
+	const TMap<EItemID, int>& GetInventory() const { return ItemQuantities; }
+	
+	void SetEquipment(EItemID Item) { Equipment = Item; }
+	EItemID GetEquipment() const { return Equipment; }
+	
 private:
 	UPROPERTY()
 	TMap<EItemID, int> ItemQuantities;
