@@ -59,3 +59,30 @@ namespace se::map
 static_assert(sizeof(se::map::Float3) == 12);
 static_assert(sizeof(se::map::MapHeader) == 20);
 static_assert(sizeof(se::map::ColliderData) == 52);
+
+struct FServerMapExportStats
+{
+	int32 TaggedActorCount = 0;
+	int32 ExportedActorCount = 0;
+	int32 ExportedColliderCount = 0;
+
+	int32 BoxCount = 0;
+	int32 SphereCount = 0;
+	int32 CapsuleCount = 0;
+
+	int32 IgnoredComponentCount = 0;
+	int32 InvalidComponentCount = 0;
+	
+	int32 ShapeSourceActorCount = 0;
+	int32 PresetSourceActorCount = 0;
+	int32 MissingPresetActorCount = 0;
+};
+
+struct FServerMapColliderDebugRecord
+{
+	FString ActorName;
+	FString ComponentName;
+
+	se::map::ColliderData ColliderData;
+};
+

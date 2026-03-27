@@ -1,11 +1,5 @@
-﻿
-
-
-#include "ServerMapExportTestActor.h"
-#include "ServerCollisionPresetDataAsset.h"
-#include "ServerMapTags.h"
+﻿#include "ServerMapExportTestActor.h"
 #include "ServerMapExporter.h"
-#include "Selection.h"
 
 
 // Sets default values
@@ -17,65 +11,50 @@ AServerMapExportTestActor::AServerMapExportTestActor()
 #endif
 }
 
-void AServerMapExportTestActor::ExportSelectedBox()
+void AServerMapExportTestActor::GenerateShapesForSelectedActor()
 {
-	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap.servermap");
-	const bool bResult = ServerMapExporter::ExportSelectedActorBoxesToFile(OutputPath);
+	const bool bResult = ServerMapExporter::GenerateShapesFromSelectedActor(
+		bClearExistingGeneratedShapesBeforeRegenerate);
 
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] Export result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] GenerateShapesForSelectedActor result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
+void AServerMapExportTestActor::ClearGeneratedShapesForSelectedActor()
+{
+	const bool bResult = ServerMapExporter::ClearGeneratedShapesFromSelectedActor();
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ClearGeneratedShapesForSelectedActor result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
+void AServerMapExportTestActor::SaveSelectedActorShapesToPresets()
+{
+	const bool bResult = ServerMapExporter::SaveSelectedActorShapesToPresets(
+		PresetFolderPath,
+		bOnlySaveGeneratedShapes);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] SaveSelectedActorShapesToPresets result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
+void AServerMapExportTestActor::ValidateSelectedActor()
+{
+	FServerMapValidationReport Report;
+	const bool bResult = ServerMapExporter::ValidateSelectedActor(Report);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ValidateSelectedActor result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
+void AServerMapExportTestActor::ExportSelectedActorResolved()
+{
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap_SelectedResolved.servermap");
+	const bool bResult = ServerMapExporter::ExportSelectedActorResolvedToFile(OutputPath);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportSelectedActorResolved result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
-}
-
-void AServerMapExportTestActor::ExportTaggedShapes()
-{
-	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap_Tagged.servermap");
-	const bool bResult = ServerMapExporter::ExportActorsWithTagToFile(GetWorld(), RequiredActorTag, OutputPath);
-
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportTaggedShapes result: %s"), bResult ? TEXT("true") : TEXT("false"));
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
-}
-
-void AServerMapExportTestActor::GenerateShapesFromSelectedStaticMesh()
-{
-	const bool bResult = ServerMapExporter::GenerateShapesFromSelectedStaticMesh();
-
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] GenerateShapesFromSelectedStaticMesh result: %s"),
-		bResult ? TEXT("true") : TEXT("false"));
-}
-
-void AServerMapExportTestActor::SaveSelectedGeneratedShapesToPreset()
-{
-	const bool bResult = ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(TargetPresetAsset, bOnlySaveGeneratedShapes);
-	
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] SaveSelectedGeneratedShapesToPreset result: %s"),
-		bResult ? TEXT("true") : TEXT("false"));
-}
-
-void AServerMapExportTestActor::ExportSelectedActorUsingPreset()
-{
-	AActor* SelectedActor = nullptr;
-
-#if WITH_EDITOR
-	if (GEditor)
-	{
-		if (USelection* SelectedActors = GEditor->GetSelectedActors())
-		{
-			SelectedActor = Cast<AActor>(SelectedActors->GetSelectedObject(0));
-		}
-	}
-#endif
-
-	if (SelectedActor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapTest] No selected actor"));
-		return;
-	}
-
-	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMap_Preset.servermap");
-	const bool bResult = ServerMapExporter::ExportPresetToFile(SelectedActor, TargetPresetAsset, OutputPath);
-
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportSelectedActorUsingPreset result: %s"),
-		bResult ? TEXT("true") : TEXT("false"));
 }
 
 void AServerMapExportTestActor::GenerateShapesForTaggedActors()
@@ -115,7 +94,10 @@ void AServerMapExportTestActor::ValidateTaggedActors()
 {
 	UWorld* World = GetWorld();
 	FServerMapValidationReport Report;
-	ServerMapExporter::ValidateActorsWithTag(World, RequiredActorTag, Report);
+	const bool bResult = ServerMapExporter::ValidateActorsWithTag(World, RequiredActorTag, Report);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ValidateTaggedActors result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
 }
 
 void AServerMapExportTestActor::ExportTaggedActorsResolved()

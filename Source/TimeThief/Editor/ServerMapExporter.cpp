@@ -53,41 +53,6 @@ namespace
 	}
 }
 
-bool ServerMapExporter::ExportSelectedActorBoxesToFile(const FString& OutputPath)
-{
-	AActor* SelectedActor = GetFirstSelectedActor();
-	if (SelectedActor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
-		return false;
-	}
-
-	TArray<se::map::ColliderData> Colliders;
-	TArray<FServerMapDebugColliderRecord> DebugRecords;
-	FServerMapExportSummary Summary;
-	Summary.TaggedActorCount = 1;
-
-	const int32 AddedCount = BuildColliderDataListFromActor(SelectedActor, Colliders, DebugRecords, Summary);
-	if (AddedCount <= 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider data from selected actor: %s"), *GetNameSafe(SelectedActor));
-		return false;
-	}
-
-	Summary.ExportedActorCount = 1;
-
-	se::map::MapHeader MapHeader{};
-	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
-
-	const bool bResult = WriteServerMapFile(OutputPath, MapHeader, Colliders);
-	if (bResult)
-	{
-		LogExportSummary(TEXT("SelectedActor"), OutputPath, Summary);
-	}
-
-	return bResult;
-}
-
 bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath)
 {
 	if (World == nullptr)
@@ -105,7 +70,7 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	TArray<AActor*> TaggedActors;
 	CollectActorsWithTag(World, RequiredTag, TaggedActors);
 	
-	FServerMapExportSummary Summary;
+	FServerMapExportStats Summary;
 	Summary.TaggedActorCount = TaggedActors.Num();
 
 	if (TaggedActors.IsEmpty())
@@ -115,7 +80,7 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	}
 	
 	TArray<se::map::ColliderData> Colliders;
-	TArray<FServerMapDebugColliderRecord> DebugRecords;
+	TArray<FServerMapColliderDebugRecord> DebugRecords;
 
 	for (AActor* Actor : TaggedActors)
 	{
@@ -175,8 +140,8 @@ bool ServerMapExporter::ExportPresetToFile(AActor* Actor, UServerCollisionPreset
 	}
 
 	TArray<se::map::ColliderData> Colliders;
-	TArray<FServerMapDebugColliderRecord> DebugRecords;
-	FServerMapExportSummary Summary;
+	TArray<FServerMapColliderDebugRecord> DebugRecords;
+	FServerMapExportStats Summary;
 	Summary.TaggedActorCount = 1;
 
 	const int32 AddedCount = BuildColliderDataListFromPreset(Actor, StaticMeshComponent, PresetAsset, Colliders, DebugRecords, Summary);
@@ -207,18 +172,6 @@ bool ServerMapExporter::ExportPresetToFile(AActor* Actor, UServerCollisionPreset
 		*GetNameSafe(PresetAsset));
 
 	return true;
-}
-
-bool ServerMapExporter::GenerateBoxFromSelectedStaticMesh()
-{
-	AActor* SelectedActor = GetFirstSelectedActor();
-	if (SelectedActor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
-		return false;
-	}
-
-	return GenerateBoxFromActorStaticMesh(SelectedActor, true);
 }
 
 bool ServerMapExporter::GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes)
@@ -300,18 +253,6 @@ bool ServerMapExporter::GenerateBoxFromActorStaticMesh(AActor* Actor, bool bClea
 	return true;
 }
 
-bool ServerMapExporter::GenerateShapesFromSelectedStaticMesh()
-{
-	AActor* SelectedActor = GetFirstSelectedActor();
-	if (SelectedActor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
-		return false;
-	}
-
-	return GenerateShapesFromActorStaticMesh(SelectedActor, true);
-}
-
 bool ServerMapExporter::GenerateShapesFromActorStaticMesh(AActor* Actor, bool bClearExistingGeneratedShapes)
 {
 	if (Actor == nullptr)
@@ -319,19 +260,7 @@ bool ServerMapExporter::GenerateShapesFromActorStaticMesh(AActor* Actor, bool bC
 		return false;
 	}
 
-	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
-	if (StaticMeshComponent == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
-		return false;
-	}
-
-	if (bClearExistingGeneratedShapes)
-	{
-		RemoveGeneratedShapeComponents(Actor);
-	}
-
-	return GenerateShapesFromStaticMeshComponent(StaticMeshComponent, Actor);
+	return GenerateShapesFromActorStaticMeshComponents(Actor, bClearExistingGeneratedShapes) > 0;
 }
 
 int32 ServerMapExporter::GenerateShapesForActorsWithTag(UWorld* World, const FName& RequiredTag,
@@ -360,34 +289,52 @@ int32 ServerMapExporter::GenerateShapesForActorsWithTag(UWorld* World, const FNa
 			continue;
 		}
 
-		UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
-		if (StaticMeshComponent == nullptr)
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		CollectStaticMeshComponents(Actor, StaticMeshComponents);
+
+		if (StaticMeshComponents.IsEmpty())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Generate skipped. No StaticMeshComponent: %s"), *GetNameSafe(Actor));
 			continue;
 		}
 
-		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
-		if (StaticMesh == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Generate skipped. StaticMesh is null: %s"), *GetNameSafe(Actor));
-			continue;
-		}
+		bool bHasAnyValidStaticMesh = false;
+		bool bAllHavePreset = true;
 
-		if (bSkipActorsWithExistingPreset)
+		for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
 		{
-			if (UServerCollisionPresetDataAsset* Preset = FindPresetForStaticMesh(StaticMesh))
+			if (StaticMeshComponent == nullptr)
 			{
 				continue;
 			}
+
+			UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+			if (StaticMesh == nullptr)
+			{
+				continue;
+			}
+
+			bHasAnyValidStaticMesh = true;
+
+			if (FindPresetForStaticMesh(StaticMesh) == nullptr)
+			{
+				bAllHavePreset = false;
+			}
 		}
 
-		if (bClearExistingGeneratedShapesBeforeRegenerate)
+		if (!bHasAnyValidStaticMesh)
 		{
-			RemoveGeneratedShapeComponents(Actor);
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Generate skipped. All StaticMeshComponent meshes are null: %s"),
+				*GetNameSafe(Actor));
+			continue;
 		}
 
-		if (GenerateShapesFromStaticMeshComponent(StaticMeshComponent, Actor))
+		if (bSkipActorsWithExistingPreset && bAllHavePreset)
+		{
+			continue;
+		}
+
+		if (GenerateShapesFromActorStaticMeshComponents(Actor, bClearExistingGeneratedShapesBeforeRegenerate) > 0)
 		{
 			++GeneratedActorCount;
 		}
@@ -455,30 +402,9 @@ int32 ServerMapExporter::SaveGeneratedShapesToPresetsForActorsWithTag(UWorld* Wo
 		{
 			continue;
 		}
-
-		UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
-		if (StaticMeshComponent == nullptr)
-		{
-			continue;
-		}
-
-		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
-		if (StaticMesh == nullptr)
-		{
-			continue;
-		}
-
-		UServerCollisionPresetDataAsset* PresetAsset = FindOrCreatePresetForStaticMesh(StaticMesh, PresetFolderPath);
-		if (PresetAsset == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to find/create preset: %s"), *GetNameSafe(StaticMesh));
-			continue;
-		}
-
-		if (SaveActorGeneratedShapesToPreset(Actor, PresetAsset, bOnlySaveGeneratedShapes))
-		{
-			++SavedCount;
-		}
+		
+		const int32 ActorSavedCount = SaveActorShapesToPresets(Actor, PresetFolderPath, bOnlySaveGeneratedShapes);
+		SavedCount += ActorSavedCount;
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SaveGeneratedShapesToPresetsForActorsWithTag finished. Tag=%s SavedCount=%d"),
@@ -510,42 +436,138 @@ bool ServerMapExporter::ValidateActorsWithTag(UWorld* World, const FName& Requir
 			continue;
 		}
 
-		if (HasValidShapeComponent(Actor))
-		{
-			++OutReport.ActorsWithValidShapes;
-			AccumulateGeneratedSourceStats(Actor, OutReport);
-			continue;
-		}
-
-		UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
-		if (StaticMeshComponent == nullptr)
-		{
-			++OutReport.ActorsMissingStaticMesh;
-			AppendValidationItem(OutReport, Actor, TEXT("No StaticMeshComponent"));
-			continue;
-		}
-
-		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
-		if (StaticMesh == nullptr)
-		{
-			++OutReport.ActorsWithNullStaticMesh;
-			AppendValidationItem(OutReport, Actor, TEXT("StaticMesh is null"));
-			continue;
-		}
-
-		UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
-		if (PresetAsset == nullptr)
-		{
-			++OutReport.ActorsMissingPreset;
-			AppendValidationItem(OutReport, Actor, TEXT("Missing preset"), StaticMesh, nullptr);
-			continue;
-		}
-
-		++OutReport.ActorsUsingPreset;
+		ValidateActor(Actor, OutReport);
 	}
 
 	LogValidationReport(RequiredTag, OutReport);
 	return true;
+}
+
+bool ServerMapExporter::GenerateShapesFromSelectedActor(bool bClearExistingGeneratedShapes)
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	return GenerateShapesFromActorStaticMesh(SelectedActor, bClearExistingGeneratedShapes);
+}
+
+bool ServerMapExporter::ClearGeneratedShapesFromSelectedActor()
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	const int32 BeforeCount = CountGeneratedShapeComponents(SelectedActor);
+	if (BeforeCount <= 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] No generated shapes to clear: %s"), *GetNameSafe(SelectedActor));
+		return true;
+	}
+
+	RemoveGeneratedShapeComponents(SelectedActor);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Cleared %d generated shapes from selected actor: %s"),
+		BeforeCount,
+		*GetNameSafe(SelectedActor));
+
+	return true;
+}
+
+bool ServerMapExporter::SaveSelectedActorShapesToPresets(const FString& PresetFolderPath, bool bOnlyGeneratedShapes)
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	const int32 SavedCount = SaveActorShapesToPresets(SelectedActor, PresetFolderPath, bOnlyGeneratedShapes);
+	return SavedCount > 0;
+}
+
+bool ServerMapExporter::ValidateSelectedActor(FServerMapValidationReport& OutReport)
+{
+	OutReport = {};
+
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	OutReport.TaggedActorCount = 1;
+
+	const bool bResult = ValidateActor(SelectedActor, OutReport);
+	LogValidationReport(TEXT("SelectedActor"), OutReport);
+
+	return bResult;
+}
+
+bool ServerMapExporter::ExportSelectedActorResolvedToFile(const FString& OutputPath)
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	TArray<se::map::ColliderData> Colliders;
+	TArray<FServerMapColliderDebugRecord> DebugRecords;
+
+	FServerMapExportStats Summary;
+	Summary.TaggedActorCount = 1;
+
+	const int32 AddedCount = BuildColliderDataListFromActorResolved(SelectedActor, Colliders, DebugRecords, Summary);
+	if (AddedCount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build collider data from selected actor: %s"),
+			*GetNameSafe(SelectedActor));
+		return false;
+	}
+
+	Summary.ExportedActorCount = 1;
+
+	se::map::MapHeader MapHeader{};
+	MapHeader.colliderCount = static_cast<uint32>(Colliders.Num());
+
+	const bool bBinarySaved = WriteServerMapFile(OutputPath, MapHeader, Colliders);
+	if (!bBinarySaved)
+	{
+		return false;
+	}
+
+	const FString DebugJsonPath = MakeDebugJsonOutputPath(OutputPath);
+	WriteDebugJsonFile(DebugJsonPath, DebugRecords);
+
+	LogExportSummary(TEXT("SelectedActorResolved"), OutputPath, Summary);
+	return true;
+}
+
+AActor* ServerMapExporter::GetFirstSelectedActor()
+{
+#if WITH_EDITOR
+	if (GEditor == nullptr)
+	{
+		return nullptr;
+	}
+
+	if (USelection* SelectedActors = GEditor->GetSelectedActors())
+	{
+		return Cast<AActor>(SelectedActors->GetSelectedObject(0));
+	}
+#endif
+
+	return nullptr;
 }
 
 bool ServerMapExporter::GenerateShapesFromStaticMeshComponent(UStaticMeshComponent* StaticMeshComponent,
@@ -946,48 +968,6 @@ UBoxComponent* ServerMapExporter::CreateGeneratedBoundsBoxComponent(UStaticMeshC
 	return NewBoxComponent;
 }
 
-bool ServerMapExporter::SaveSelectedActorGeneratedShapesToPreset(UServerCollisionPresetDataAsset* PresetAsset,
-	bool bOnlyGeneratedShapes)
-{
-	AActor* SelectedActor = GetFirstSelectedActor();
-	if (SelectedActor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
-		return false;
-	}
-	
-	return SaveActorGeneratedShapesToPreset(SelectedActor, PresetAsset, bOnlyGeneratedShapes);
-}
-
-AActor* ServerMapExporter::GetFirstSelectedActor()
-{
-#if WITH_EDITOR
-	if (GEditor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] GEditor is null"));
-		return nullptr;
-	}
-	
-	USelection* SelectedActors = GEditor->GetSelectedActors();
-	if (SelectedActors == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] SelectedActors is null"));
-		return nullptr;
-	}
-
-	if (SelectedActors->Num() <= 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No actor selected"));
-		return nullptr;
-	}
-	
-	return Cast<AActor>(SelectedActors->GetSelectedObject(0));
-#else
-	return nullptr;
-#endif
-	
-}
-
 UServerCollisionPresetDataAsset* ServerMapExporter::FindPresetForStaticMesh(UStaticMesh* StaticMesh)
 {
 	if (StaticMesh == nullptr)
@@ -1083,6 +1063,29 @@ UStaticMeshComponent* ServerMapExporter::FindFirstStaticMeshComponent(AActor* Ac
 	}
 
 	return Actor->FindComponentByClass<UStaticMeshComponent>();
+}
+
+void ServerMapExporter::CollectStaticMeshComponents(AActor* Actor, TArray<UStaticMeshComponent*>& OutComponents)
+{
+	OutComponents.Reset();
+
+	if (Actor == nullptr)
+	{
+		return;
+	}
+
+	TArray<UStaticMeshComponent*> FoundComponents;
+	Actor->GetComponents<UStaticMeshComponent>(FoundComponents);
+
+	for (UStaticMeshComponent* StaticMeshComponent : FoundComponents)
+	{
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		OutComponents.Add(StaticMeshComponent);
+	}
 }
 
 void ServerMapExporter::RemoveGeneratedShapeComponents(AActor* Actor)
@@ -1201,6 +1204,284 @@ void ServerMapExporter::CollectAuthoringShapeComponents(AActor* Actor, bool bOnl
 	}
 }
 
+void ServerMapExporter::CollectAuthoringShapeComponentsForStaticMeshComponent(AActor* Actor,
+	UStaticMeshComponent* StaticMeshComponent, bool bOnlyGeneratedShapes, TArray<UShapeComponent*>& OutShapeComponents)
+{
+	OutShapeComponents.Reset();
+
+	if (Actor == nullptr || StaticMeshComponent == nullptr)
+	{
+		return;
+	}
+
+	TArray<UShapeComponent*> AllShapes;
+	CollectAuthoringShapeComponents(Actor, bOnlyGeneratedShapes, AllShapes);
+
+	for (UShapeComponent* ShapeComponent : AllShapes)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (ShapeComponent->GetAttachParent() == StaticMeshComponent)
+		{
+			OutShapeComponents.Add(ShapeComponent);
+		}
+	}
+}
+
+int32 ServerMapExporter::GenerateShapesFromActorStaticMeshComponents(AActor* Actor, bool bClearExistingGeneratedShapes)
+{
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	CollectStaticMeshComponents(Actor, StaticMeshComponents);
+
+	if (StaticMeshComponents.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
+		return 0;
+	}
+
+	if (bClearExistingGeneratedShapes)
+	{
+		RemoveGeneratedShapeComponents(Actor);
+	}
+
+	int32 GeneratedComponentCount = 0;
+
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
+	{
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (GenerateShapesFromStaticMeshComponent(StaticMeshComponent, Actor))
+		{
+			++GeneratedComponentCount;
+		}
+	}
+
+	return GeneratedComponentCount;
+}
+
+int32 ServerMapExporter::SaveActorShapesToPresets(AActor* Actor, const FString& PresetFolderPath,
+	bool bOnlyGeneratedShapes)
+{
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	CollectStaticMeshComponents(Actor, StaticMeshComponents);
+
+	if (StaticMeshComponents.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"),
+			*GetNameSafe(Actor));
+		return 0;
+	}
+
+	int32 SavedCount = 0;
+
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
+	{
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			continue;
+		}
+
+		UServerCollisionPresetDataAsset* PresetAsset = FindOrCreatePresetForStaticMesh(StaticMesh, PresetFolderPath);
+		if (PresetAsset == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to find/create preset: %s"),
+				*GetNameSafe(StaticMesh));
+			continue;
+		}
+
+		if (SaveActorShapesToPresetForStaticMeshComponent(
+			Actor,
+			StaticMeshComponent,
+			PresetAsset,
+			bOnlyGeneratedShapes))
+		{
+			++SavedCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SaveActorShapesToPresets finished. Actor=%s SavedCount=%d"),
+		*GetNameSafe(Actor),
+		SavedCount);
+
+	return SavedCount;
+}
+
+bool ServerMapExporter::SaveActorShapesToPresetForStaticMeshComponent(AActor* Actor,
+	UStaticMeshComponent* StaticMeshComponent, UServerCollisionPresetDataAsset* PresetAsset, bool bOnlyGeneratedShapes)
+{
+	if (Actor == nullptr || StaticMeshComponent == nullptr || PresetAsset == nullptr)
+	{
+		return false;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] StaticMesh is null for component: %s"),
+			*GetNameSafe(StaticMeshComponent));
+		return false;
+	}
+
+	TArray<UShapeComponent*> AuthoringShapes;
+	CollectAuthoringShapeComponentsForStaticMeshComponent(
+		Actor,
+		StaticMeshComponent,
+		bOnlyGeneratedShapes,
+		AuthoringShapes);
+
+	if (AuthoringShapes.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No authoring shapes found for component: Actor=%s Component=%s"),
+			*GetNameSafe(Actor),
+			*GetNameSafe(StaticMeshComponent));
+		return false;
+	}
+
+	TArray<FServerCollisionPresetCollider> NewColliders;
+	NewColliders.Reserve(AuthoringShapes.Num());
+
+	for (const UShapeComponent* ShapeComponent : AuthoringShapes)
+	{
+		if (ShapeComponent == nullptr)
+		{
+			continue;
+		}
+
+		if (!ShouldExportShapeComponent(ShapeComponent) || !IsValidShapeComponentForExport(ShapeComponent))
+		{
+			continue;
+		}
+
+		FServerCollisionPresetCollider PresetCollider;
+		if (BuildPresetColliderFromShapeComponent(ShapeComponent, PresetCollider))
+		{
+			NewColliders.Add(MoveTemp(PresetCollider));
+		}
+	}
+
+	if (NewColliders.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build preset colliders for component: Actor=%s Component=%s"),
+			*GetNameSafe(Actor),
+			*GetNameSafe(StaticMeshComponent));
+		return false;
+	}
+
+#if WITH_EDITOR
+	PresetAsset->Modify();
+#endif
+
+	PresetAsset->SourceStaticMesh = StaticMesh;
+	PresetAsset->Colliders = MoveTemp(NewColliders);
+
+#if WITH_EDITOR
+	PresetAsset->MarkPackageDirty();
+#endif
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Saved %d colliders to preset: Actor=%s Component=%s Preset=%s Mesh=%s"),
+		PresetAsset->Colliders.Num(),
+		*GetNameSafe(Actor),
+		*GetNameSafe(StaticMeshComponent),
+		*GetNameSafe(PresetAsset),
+		*GetNameSafe(StaticMesh));
+
+	return true;
+}
+
+bool ServerMapExporter::ValidateActor(AActor* Actor, FServerMapValidationReport& InOutReport)
+{
+	if (Actor == nullptr)
+	{
+		return false;
+	}
+
+	if (HasValidShapeComponent(Actor))
+	{
+		++InOutReport.ActorsWithValidShapes;
+		AccumulateGeneratedSourceStats(Actor, InOutReport);
+		return true;
+	}
+
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	CollectStaticMeshComponents(Actor, StaticMeshComponents);
+
+	if (StaticMeshComponents.IsEmpty())
+	{
+		++InOutReport.ActorsMissingStaticMesh;
+		AppendValidationItem(InOutReport, Actor, TEXT("No StaticMeshComponent"));
+		return false;
+	}
+
+	bool bHasAnyValidStaticMesh = false;
+	bool bHasNullStaticMesh = false;
+	bool bMissingPreset = false;
+
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
+	{
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			bHasNullStaticMesh = true;
+			continue;
+		}
+
+		bHasAnyValidStaticMesh = true;
+
+		UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
+		if (PresetAsset == nullptr)
+		{
+			bMissingPreset = true;
+			AppendValidationItem(InOutReport, Actor, TEXT("Missing preset"), StaticMesh, nullptr);
+		}
+	}
+
+	if (!bHasAnyValidStaticMesh)
+	{
+		++InOutReport.ActorsWithNullStaticMesh;
+		if (bHasNullStaticMesh)
+		{
+			AppendValidationItem(InOutReport, Actor, TEXT("All StaticMeshComponent meshes are null"));
+		}
+		return false;
+	}
+
+	if (bMissingPreset)
+	{
+		++InOutReport.ActorsMissingPreset;
+		return false;
+	}
+
+	++InOutReport.ActorsUsingPreset;
+	return true;
+}
+
 bool ServerMapExporter::ShouldExportShapeComponent(const UShapeComponent* ShapeComponent)
 {
 	if (ShapeComponent == nullptr)
@@ -1306,8 +1587,8 @@ void ServerMapExporter::LogValidationReport(const FName& RequiredTag, const FSer
 }
 
 int32 ServerMapExporter::BuildColliderDataListFromActorResolved(AActor* Actor,
-                                                                TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapDebugColliderRecord>& OutDebugRecords,
-                                                                FServerMapExportSummary& Summary)
+                                                                TArray<se::map::ColliderData>& OutColliders, TArray<FServerMapColliderDebugRecord>& OutDebugRecords,
+                                                                FServerMapExportStats& Summary)
 {
 	if (Actor == nullptr)
 	{
@@ -1322,37 +1603,66 @@ int32 ServerMapExporter::BuildColliderDataListFromActorResolved(AActor* Actor,
 		return BuildColliderDataListFromActor(Actor, OutColliders, OutDebugRecords, Summary);
 	}
 
-	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
-	if (StaticMeshComponent == nullptr)
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	CollectStaticMeshComponents(Actor, StaticMeshComponents);
+
+	if (StaticMeshComponents.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No UStaticMeshComponent and no valid shapes: %s"), *GetNameSafe(Actor));
 		++Summary.MissingPresetActorCount;
 		return 0;
 	}
 
-	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
-	if (StaticMesh == nullptr)
+	const int32 PrevCount = OutColliders.Num();
+	bool bUsedAnyPreset = false;
+
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] StaticMesh is null: %s"), *GetNameSafe(Actor));
-		++Summary.MissingPresetActorCount;
-		return 0;
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			continue;
+		}
+
+		UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
+		if (PresetAsset == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No preset found for StaticMesh: %s"), *GetNameSafe(StaticMesh));
+			continue;
+		}
+
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using Preset: Actor=%s Component=%s Preset=%s"),
+			*GetNameSafe(Actor),
+			*GetNameSafe(StaticMeshComponent),
+			*GetNameSafe(PresetAsset));
+
+		const int32 AddedCount = BuildColliderDataListFromPreset(
+			Actor,
+			StaticMeshComponent,
+			PresetAsset,
+			OutColliders,
+			OutDebugRecords,
+			Summary);
+
+		if (AddedCount > 0)
+		{
+			bUsedAnyPreset = true;
+		}
 	}
 
-	UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
-	if (PresetAsset == nullptr)
+	if (bUsedAnyPreset)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No preset found for StaticMesh: %s"), *GetNameSafe(StaticMesh));
-		++Summary.MissingPresetActorCount;
-		return 0;
+		++Summary.PresetSourceActorCount;
+		return OutColliders.Num() - PrevCount;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Using Preset: Actor=%s Preset=%s"),
-		*GetNameSafe(Actor),
-		*GetNameSafe(PresetAsset));
-
-	++Summary.PresetSourceActorCount;
-
-	return BuildColliderDataListFromPreset(Actor, StaticMeshComponent, PresetAsset, OutColliders, OutDebugRecords, Summary);
+	++Summary.MissingPresetActorCount;
+	return 0;
 }
 
 uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent)
@@ -1514,7 +1824,7 @@ bool ServerMapExporter::BuildColliderDataFromCapsuleComponent(const UCapsuleComp
 }
 
 int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se::map::ColliderData>& OutColliders,
-	TArray<FServerMapDebugColliderRecord>& OutDebugRecords, FServerMapExportSummary& Summary)
+	TArray<FServerMapColliderDebugRecord>& OutDebugRecords, FServerMapExportStats& Summary)
 {
 	if (Actor == nullptr)
 	{
@@ -1566,7 +1876,7 @@ int32 ServerMapExporter::BuildColliderDataListFromActor(AActor* Actor, TArray<se
 	return OutColliders.Num() - PrevCount;
 }
 
-void ServerMapExporter::AccumulateSummary(const se::map::ColliderData& ColliderData, FServerMapExportSummary& Summary)
+void ServerMapExporter::AccumulateSummary(const se::map::ColliderData& ColliderData, FServerMapExportStats& Summary)
 {
 	++Summary.ExportedColliderCount;
 
@@ -1591,7 +1901,7 @@ void ServerMapExporter::AccumulateSummary(const se::map::ColliderData& ColliderD
 }
 
 void ServerMapExporter::LogExportSummary(const FName& RequiredTag, const FString& OutputPath,
-	const FServerMapExportSummary& Summary)
+	const FServerMapExportStats& Summary)
 {
 	UE_LOG(LogTemp, Log, TEXT("========== ServerMap Export Summary =========="));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Tag                : %s"), *RequiredTag.ToString());
@@ -1651,7 +1961,7 @@ bool ServerMapExporter::WriteServerMapFile(const FString& OutputPath, const se::
 }
 
 bool ServerMapExporter::WriteDebugJsonFile(const FString& OutputPath,
-	const TArray<FServerMapDebugColliderRecord>& DebugRecords)
+	const TArray<FServerMapColliderDebugRecord>& DebugRecords)
 {
 	TSharedRef<FJsonObject> RootObject = MakeShared<FJsonObject>();
 
@@ -1662,7 +1972,7 @@ bool ServerMapExporter::WriteDebugJsonFile(const FString& OutputPath,
 
 	for (int32 Index = 0; Index < DebugRecords.Num(); ++Index)
 	{
-		const FServerMapDebugColliderRecord& Record = DebugRecords[Index];
+		const FServerMapColliderDebugRecord& Record = DebugRecords[Index];
 
 		TSharedRef<FJsonObject> ColliderObject = MakeShared<FJsonObject>();
 		ColliderObject->SetNumberField(TEXT("index"), Index);
@@ -1724,99 +2034,14 @@ FString ServerMapExporter::MakeDebugJsonOutputPath(const FString& BinaryOutputPa
 }
 
 void ServerMapExporter::AppendDebugRecord(const AActor* Actor, const UActorComponent* Component,
-	const se::map::ColliderData& ColliderData, TArray<FServerMapDebugColliderRecord>& OutDebugRecords)
+	const se::map::ColliderData& ColliderData, TArray<FServerMapColliderDebugRecord>& OutDebugRecords)
 {
-	FServerMapDebugColliderRecord Record;
+	FServerMapColliderDebugRecord Record;
 	Record.ActorName = GetNameSafe(Actor);
 	Record.ComponentName = GetNameSafe(Component);
 	Record.ColliderData = ColliderData;
 
 	OutDebugRecords.Add(MoveTemp(Record));
-}
-
-bool ServerMapExporter::SaveActorGeneratedShapesToPreset(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset,
-	bool bOnlyGeneratedShapes)
-{
-	if (Actor == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor is null"));
-		return false;
-	}
-
-	if (PresetAsset == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] PresetAsset is null"));
-		return false;
-	}
-
-	UStaticMeshComponent* StaticMeshComponent = FindFirstStaticMeshComponent(Actor);
-	if (StaticMeshComponent == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no UStaticMeshComponent: %s"), *GetNameSafe(Actor));
-		return false;
-	}
-
-	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
-	if (StaticMesh == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] StaticMesh is null: %s"), *GetNameSafe(Actor));
-		return false;
-	}
-
-	TArray<UShapeComponent*> AuthoringShapes;
-	CollectAuthoringShapeComponents(Actor, bOnlyGeneratedShapes, AuthoringShapes);
-
-	if (AuthoringShapes.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No authoring shape components found: %s"), *GetNameSafe(Actor));
-		return false;
-	}
-
-	TArray<FServerCollisionPresetCollider> NewColliders;
-	NewColliders.Reserve(AuthoringShapes.Num());
-
-	for (const UShapeComponent* ShapeComponent : AuthoringShapes)
-	{
-		if (ShapeComponent == nullptr)
-		{
-			continue;
-		}
-
-		if (!ShouldExportShapeComponent(ShapeComponent) || !IsValidShapeComponentForExport(ShapeComponent))
-		{
-			continue;
-		}
-
-		FServerCollisionPresetCollider PresetCollider;
-		if (BuildPresetColliderFromShapeComponent(ShapeComponent, PresetCollider))
-		{
-			NewColliders.Add(MoveTemp(PresetCollider));
-		}
-	}
-
-	if (NewColliders.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to build preset colliders from generated shapes: %s"), *GetNameSafe(Actor));
-		return false;
-	}
-
-#if WITH_EDITOR
-	PresetAsset->Modify();
-#endif
-
-	PresetAsset->SourceStaticMesh = StaticMesh;
-	PresetAsset->Colliders = MoveTemp(NewColliders);
-
-#if WITH_EDITOR
-	PresetAsset->MarkPackageDirty();
-#endif
-
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Saved %d colliders to preset: %s (Mesh=%s)"),
-		PresetAsset->Colliders.Num(),
-		*GetNameSafe(PresetAsset),
-		*GetNameSafe(StaticMesh));
-
-	return true;
 }
 
 void ServerMapExporter::CollectGeneratedShapeComponents(AActor* Actor, TArray<UShapeComponent*>& OutShapeComponents)
@@ -1941,7 +2166,7 @@ bool ServerMapExporter::BuildPresetColliderFromCapsuleComponent(const UCapsuleCo
 
 int32 ServerMapExporter::BuildColliderDataListFromPreset(AActor* Actor, UStaticMeshComponent* StaticMeshComponent,
 	const UServerCollisionPresetDataAsset* PresetAsset, TArray<se::map::ColliderData>& OutColliders,
-	TArray<FServerMapDebugColliderRecord>& OutDebugRecords, FServerMapExportSummary& Summary)
+	TArray<FServerMapColliderDebugRecord>& OutDebugRecords, FServerMapExportStats& Summary)
 {
 	if (Actor == nullptr || StaticMeshComponent == nullptr || PresetAsset == nullptr)
 	{
@@ -1962,7 +2187,7 @@ int32 ServerMapExporter::BuildColliderDataListFromPreset(AActor* Actor, UStaticM
 		OutColliders.Add(ColliderData);
 		AccumulateSummary(ColliderData, Summary);
 
-		FServerMapDebugColliderRecord Record;
+		FServerMapColliderDebugRecord Record;
 		Record.ActorName = GetNameSafe(Actor);
 		Record.ComponentName = PresetCollider.DebugName.IsNone()
 			? TEXT("PresetCollider")

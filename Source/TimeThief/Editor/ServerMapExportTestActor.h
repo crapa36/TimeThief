@@ -13,46 +13,60 @@ class TIMETHIEF_API AServerMapExportTestActor : public AActor
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	AServerMapExportTestActor();
-	
-public:
-	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void ExportSelectedBox();
-	
-	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void ExportTaggedShapes();
-	
-	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void GenerateShapesFromSelectedStaticMesh();
-
-	UPROPERTY(EditAnywhere, Category = "ServerMap")
-	TObjectPtr<UServerCollisionPresetDataAsset> TargetPresetAsset = nullptr;
-
-	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void SaveSelectedGeneratedShapesToPreset();
-	
-	UFUNCTION(CallInEditor, Category = "ServerMap")
-	void ExportSelectedActorUsingPreset();
 
 public:
-	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
-	FName RequiredActorTag = ServerTags::Collision;
+	// =============================
+	// Shared Settings
+	// =============================
 
-	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Settings", meta = (ToolTip = "Folder path where collision preset assets will be created or updated."))
 	FString PresetFolderPath = TEXT("/Game/ServerMap/Presets");
 
-	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
-	bool bSkipActorsWithExistingShapes = true;
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Settings", meta = (ToolTip = "If true, only generated shapes are saved to presets. If false, ManualApproved shapes are also included."))
+	bool bOnlySaveGeneratedShapes = true;
 
-	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
-	bool bSkipActorsWithExistingPreset = false;
-
-	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Settings", meta = (ToolTip = "If true, existing generated shapes are removed before regeneration."))
 	bool bClearExistingGeneratedShapesBeforeRegenerate = true;
 
-	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch")
-	bool bOnlySaveGeneratedShapes = true;
+public:
+	// =============================
+	// Selected Actor Workflow
+	// =============================
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void GenerateShapesForSelectedActor();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void ClearGeneratedShapesForSelectedActor();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void SaveSelectedActorShapesToPresets();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void ValidateSelectedActor();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void ExportSelectedActorResolved();
+
+public:
+	// =============================
+	// Batch Settings
+	// =============================
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch", meta = (ToolTip = "Actor tag used to collect collision authoring targets in the current level."))
+	FName RequiredActorTag = ServerTags::Collision;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch", meta = (ToolTip = "Skip actors that already contain valid shape components."))
+	bool bSkipActorsWithExistingShapes = true;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Batch", meta = (ToolTip = "Skip actors when all valid static meshes already have presets."))
+	bool bSkipActorsWithExistingPreset = false;
+
+public:
+	// =============================
+	// Batch Workflow
+	// =============================
 
 	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
 	void GenerateShapesForTaggedActors();
