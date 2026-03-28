@@ -47,8 +47,13 @@ public:
 	FVector GetWorldAimLocation() const { return CachedWorldAimLocation; }
 
 protected:
+	virtual void OnEquipFinished() override;
+
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TArray<TSubclassOf<ATimeThiefWeaponBase>> DefaultWeaponClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	TMap<FGameplayTag, FGameplayTag> InputToWeaponTagMap;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimFOV = 60.0f;
@@ -67,6 +72,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
 	float CombatRotationRate = 720.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
+	float PostFireRotationDelay = 0.5f;
+
+	bool bIsFireInputHeld = false;
 
 private:
 	void EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag);
@@ -91,13 +101,14 @@ private:
 	bool bDefaultUseControllerDesiredRotation = false;
 	bool bDefaultUseControllerRotationYaw = false;
 	FVector CachedWorldAimLocation = FVector::ZeroVector;
+	float LastFireTime = 0.0f;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UCameraComponent> CachedThirdPersonCamera;
+	TWeakObjectPtr<UCameraComponent> CachedThirdPersonCamera;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UCameraComponent> CachedFirstPersonCamera;
+	TWeakObjectPtr<UCameraComponent> CachedFirstPersonCamera;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
+	mutable TWeakObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
 };

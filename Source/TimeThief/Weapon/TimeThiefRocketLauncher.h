@@ -26,6 +26,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Projectile")
 	TSubclassOf<ATimeThiefRocketProjectile> RocketProjectileClass;
 
+	UPROPERTY()
+	TArray<TObjectPtr<ATimeThiefRocketProjectile>> ProjectilePool;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Projectile")
 	float AimTraceRange = 50000.0f;
 
@@ -38,4 +41,3 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
 	TObjectPtr<UAnimSequenceBase> FireAnimation;
 };
-

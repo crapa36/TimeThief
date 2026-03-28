@@ -1,5 +1,4 @@
 ﻿#include "Weapon/TimeThiefRocketProjectile.h"
-
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -48,6 +47,62 @@ void ATimeThiefRocketProjectile::InitializeProjectile(AActor* InOwnerActor, APaw
 	CachedInstigatorPawn = InInstigatorPawn;
 	SetOwner(InOwnerActor);
 	SetInstigator(InInstigatorPawn);
+
+	if (CollisionComponent)
+	{
+		if (InOwnerActor)
+		{
+			CollisionComponent->IgnoreActorWhenMoving(InOwnerActor, true);
+		}
+		
+		if (InInstigatorPawn && InInstigatorPawn != InOwnerActor)
+		{
+			CollisionComponent->IgnoreActorWhenMoving(InInstigatorPawn, true);
+		}
+	}
+}
+
+void ATimeThiefRocketProjectile::ActivateProjectile(const FTransform& SpawnTransform)
+{
+	SetActorTransform(SpawnTransform, false, nullptr, ETeleportType::ResetPhysics);
+	bExploded = false;
+	SetActorHiddenInGame(false);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+	ProjectileMovementComponent->Velocity = SpawnTransform.GetRotation().GetForwardVector() * InitialSpeed;
+	ProjectileMovementComponent->Activate();
+
+	if (FlightLoopAudioComponent && FlightLoopSound)
+	{
+		FlightLoopAudioComponent->Play();
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		if (MaxLifeTime > 0.0f)
+		{
+			World->GetTimerManager().SetTimer(LifeTimeTimerHandle, this, &ATimeThiefRocketProjectile::HandleLifeTimeExpired, MaxLifeTime, false);
+		}
+	}
+}
+
+void ATimeThiefRocketProjectile::DeactivateProjectile()
+{
+	bExploded = true;
+	SetActorHiddenInGame(true);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ProjectileMovementComponent->StopMovementImmediately();
+	ProjectileMovementComponent->Deactivate();
+
+	if (FlightLoopAudioComponent)
+	{
+		FlightLoopAudioComponent->Stop();
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(LifeTimeTimerHandle);
+	}
 }
 
 void ATimeThiefRocketProjectile::BeginPlay()
@@ -63,24 +118,15 @@ void ATimeThiefRocketProjectile::BeginPlay()
 	{
 		ProjectileMovementComponent->OnProjectileStop.AddDynamic(this, &ATimeThiefRocketProjectile::ExplodeOnce);
 	}
-
-	if (UWorld* World = GetWorld())
-	{
-		if (MaxLifeTime > 0.0f)
-		{
-			World->GetTimerManager().SetTimer(LifeTimeTimerHandle, this, &ATimeThiefRocketProjectile::HandleLifeTimeExpired, MaxLifeTime, false);
-		}
-	}
-
-	if (FlightLoopAudioComponent && FlightLoopSound)
-	{
-		FlightLoopAudioComponent->SetSound(FlightLoopSound);
-		FlightLoopAudioComponent->Play();
-	}
 }
 
 void ATimeThiefRocketProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (OtherActor && (OtherActor == CachedOwnerActor.Get() || OtherActor == CachedInstigatorPawn.Get()))
+	{
+		return;
+	}
+
 	ExplodeOnce(Hit);
 }
 
@@ -99,8 +145,6 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 		return;
 	}
 
-	bExploded = true;
-
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(LifeTimeTimerHandle);
@@ -111,15 +155,14 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 	const FVector ExplosionNormal = Hit.bBlockingHit ? FVector(Hit.ImpactNormal) : FVector::UpVector;
 	PlayExplosionEffects(ExplosionLocation, ExplosionNormal);
 
-		if (UWorld* World = GetWorld())
-		{
-			const int32 Segments = FMath::Max(4, ExplosionDebugSegments);
-			DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, Segments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
-			DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, Segments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
-		
+	if (UWorld* World = GetWorld())
+	{
+		const int32 Segments = FMath::Max(4, ExplosionDebugSegments);
+		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, Segments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
+		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, Segments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
 	}
 
-	Destroy();
+	DeactivateProjectile();
 }
 
 void ATimeThiefRocketProjectile::ApplyExplosionDamage()
@@ -188,5 +231,3 @@ void ATimeThiefRocketProjectile::PlayExplosionEffects(const FVector& ExplosionLo
 		UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, ExplosionLocation);
 	}
 }
-
-

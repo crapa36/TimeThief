@@ -32,6 +32,13 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		WeaponToStateTagMap.Add(Tags.Weapon_Pistol, Tags.State_Combat_Pistol);
 	}
 
+	if (InputToWeaponTagMap.Num() == 0)
+	{
+		InputToWeaponTagMap.Add(Tags.InputTag_Action_EquipRifle, Tags.Weapon_Rifle);
+		InputToWeaponTagMap.Add(Tags.InputTag_Action_EquipShotgun, Tags.Weapon_Shotgun);
+		InputToWeaponTagMap.Add(Tags.InputTag_Action_EquipRocketLauncher, Tags.Weapon_RocketLauncher);
+	}
+
 	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
 		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
@@ -42,7 +49,6 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 			bDefaultUseControllerDesiredRotation = MovementComp->bUseControllerDesiredRotation;
 		}
 		bDefaultUseControllerRotationYaw = OwningCharacter->bUseControllerRotationYaw;
-		CachedWireComponent = OwningCharacter->FindComponentByClass<UTimeThiefWireComponent>();
 
 		if (const ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(OwningCharacter))
 		{
@@ -70,43 +76,24 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 
 ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately, FGameplayTag PreferredWeaponTag)
 {
-	if (!WeaponClass)
-	{
-		return nullptr;
-	}
+	if (!WeaponClass) return nullptr;
 
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return nullptr;
-	}
+	if (!OwningCharacter) return nullptr;
 
 	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return nullptr;
-	}
+	if (!World) return nullptr;
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = OwningCharacter;
 	SpawnParams.Instigator = OwningCharacter;
 
 	ATimeThiefWeaponBase* SpawnedWeapon = World->SpawnActor<ATimeThiefWeaponBase>(WeaponClass, SpawnParams);
-	if (!SpawnedWeapon)
-	{
-		return nullptr;
-	}
+	if (!SpawnedWeapon) return nullptr;
 
 	FGameplayTag WeaponTag = SpawnedWeapon->GetWeaponTag();
-	if (!WeaponTag.IsValid())
-	{
-		WeaponTag = PreferredWeaponTag;
-	}
-
-	if (!WeaponTag.IsValid())
-	{
-		WeaponTag = InferWeaponTagFromClass(WeaponClass);
-	}
+	if (!WeaponTag.IsValid()) WeaponTag = PreferredWeaponTag;
+	if (!WeaponTag.IsValid()) WeaponTag = InferWeaponTagFromClass(WeaponClass);
 
 	if (WeaponTag.IsValid())
 	{
@@ -123,10 +110,7 @@ ATimeThiefWeaponBase* UTimeThiefPlayerCombatComponent::SpawnAndRegisterWeapon(TS
 
 void UTimeThiefPlayerCombatComponent::EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag)
 {
-	if (!WeaponTag.IsValid())
-	{
-		return;
-	}
+	if (!WeaponTag.IsValid()) return;
 
 	if (GetCharacterCarriedWeaponByTag(WeaponTag))
 	{
@@ -135,10 +119,7 @@ void UTimeThiefPlayerCombatComponent::EquipOrSpawnWeaponByTag(FGameplayTag Weapo
 	}
 
 	const TSubclassOf<ATimeThiefWeaponBase> WeaponClass = FindDefaultWeaponClassByTag(WeaponTag);
-	if (!WeaponClass)
-	{
-		return;
-	}
+	if (!WeaponClass) return;
 
 	if (ATimeThiefWeaponBase* SpawnedWeapon = SpawnAndRegisterWeapon(WeaponClass, false, WeaponTag))
 	{
@@ -157,23 +138,14 @@ TSubclassOf<ATimeThiefWeaponBase> UTimeThiefPlayerCombatComponent::FindDefaultWe
 {
 	for (const TSubclassOf<ATimeThiefWeaponBase>& WeaponClass : DefaultWeaponClasses)
 	{
-		if (!WeaponClass)
-		{
-			continue;
-		}
+		if (!WeaponClass) continue;
 
 		if (const ATimeThiefWeaponBase* WeaponCDO = WeaponClass->GetDefaultObject<ATimeThiefWeaponBase>())
 		{
-			if (WeaponCDO->GetWeaponTag() == WeaponTag)
-			{
-				return WeaponClass;
-			}
+			if (WeaponCDO->GetWeaponTag() == WeaponTag) return WeaponClass;
 		}
 
-		if (InferWeaponTagFromClass(WeaponClass) == WeaponTag)
-		{
-			return WeaponClass;
-		}
+		if (InferWeaponTagFromClass(WeaponClass) == WeaponTag) return WeaponClass;
 	}
 
 	return nullptr;
@@ -181,28 +153,14 @@ TSubclassOf<ATimeThiefWeaponBase> UTimeThiefPlayerCombatComponent::FindDefaultWe
 
 FGameplayTag UTimeThiefPlayerCombatComponent::InferWeaponTagFromClass(TSubclassOf<ATimeThiefWeaponBase> WeaponClass) const
 {
-	if (!WeaponClass)
-	{
-		return FGameplayTag();
-	}
+	if (!WeaponClass) return FGameplayTag();
 
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
 	UClass* NativeClass = WeaponClass.Get();
 
-	if (NativeClass->IsChildOf(ATimeThiefRifle::StaticClass()))
-	{
-		return Tags.Weapon_Rifle;
-	}
-
-	if (NativeClass->IsChildOf(ATimeThiefShotgun::StaticClass()))
-	{
-		return Tags.Weapon_Shotgun;
-	}
-
-	if (NativeClass->IsChildOf(ATimeThiefRocketLauncher::StaticClass()))
-	{
-		return Tags.Weapon_RocketLauncher;
-	}
+	if (NativeClass->IsChildOf(ATimeThiefRifle::StaticClass())) return Tags.Weapon_Rifle;
+	if (NativeClass->IsChildOf(ATimeThiefShotgun::StaticClass())) return Tags.Weapon_Shotgun;
+	if (NativeClass->IsChildOf(ATimeThiefRocketLauncher::StaticClass())) return Tags.Weapon_RocketLauncher;
 
 	return FGameplayTag();
 }
@@ -211,51 +169,24 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 {
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
 
-	if (InputTag == Tags.InputTag_Action_EquipRifle)
+	if (const FGameplayTag* WeaponTag = InputToWeaponTagMap.Find(InputTag))
 	{
-		if (CurrentEquippedWeaponTag == Tags.Weapon_Rifle)
+		if (CurrentEquippedWeaponTag == *WeaponTag)
 		{
 			StopAiming();
 			UnequipCurrentWeapon();
 		}
 		else
 		{
-			EquipOrSpawnWeaponByTag(Tags.Weapon_Rifle);
-		}
-		return;
-	}
-
-	if (InputTag == Tags.InputTag_Action_EquipShotgun)
-	{
-		if (CurrentEquippedWeaponTag == Tags.Weapon_Shotgun)
-		{
-			StopAiming();
-			UnequipCurrentWeapon();
-		}
-		else
-		{
-			EquipOrSpawnWeaponByTag(Tags.Weapon_Shotgun);
-		}
-		return;
-	}
-
-	if (InputTag == Tags.InputTag_Action_EquipRocketLauncher)
-	{
-		if (CurrentEquippedWeaponTag == Tags.Weapon_RocketLauncher)
-		{
-			StopAiming();
-			UnequipCurrentWeapon();
-		}
-		else
-		{
-			EquipOrSpawnWeaponByTag(Tags.Weapon_RocketLauncher);
+			EquipOrSpawnWeaponByTag(*WeaponTag);
 		}
 		return;
 	}
 
 	if (InputTag == Tags.InputTag_Action_Fire)
 	{
-		if (CurrentEquippedWeapon)
+		bIsFireInputHeld = true;
+		if (CurrentEquippedWeapon && !bIsEquippingWeapon)
 		{
 			SnapRotationToAim();
 			CurrentEquippedWeapon->StartFire();
@@ -266,7 +197,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Reload)
 	{
-		if (CurrentEquippedWeapon)
+		if (CurrentEquippedWeapon && !bIsEquippingWeapon)
 		{
 			CurrentEquippedWeapon->Reload();
 		}
@@ -288,6 +219,7 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 
 	if (InputTag == Tags.InputTag_Action_Fire)
 	{
+		bIsFireInputHeld = false;
 		if (CurrentEquippedWeapon)
 		{
 			CurrentEquippedWeapon->StopFire();
@@ -305,15 +237,23 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 	Super::HandleInputReleased(InputTag);
 }
 
+void UTimeThiefPlayerCombatComponent::OnEquipFinished()
+{
+	Super::OnEquipFinished();
+
+	if (bIsFireInputHeld && CurrentEquippedWeapon)
+	{
+		SnapRotationToAim();
+		CurrentEquippedWeapon->StartFire();
+		UpdateCombatRotation();
+	}
+}
+
 void UTimeThiefPlayerCombatComponent::StartAiming()
 {
-	if (bIsAiming || !CurrentEquippedWeapon)
-	{
-		return;
-	}
+	if (bIsAiming || !CurrentEquippedWeapon) return;
 
 	bIsAiming = true;
-
 	SnapRotationToAim();
 
 	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
@@ -329,10 +269,7 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 
 void UTimeThiefPlayerCombatComponent::StopAiming()
 {
-	if (!bIsAiming)
-	{
-		return;
-	}
+	if (!bIsAiming) return;
 
 	bIsAiming = false;
 
@@ -350,6 +287,14 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (IsFiringWeapon())
+	{
+		if (UWorld* World = GetWorld())
+		{
+			LastFireTime = World->GetTimeSeconds();
+		}
+	}
 
 	UpdateWorldAimLocation();
 	UpdateCombatRotation();
@@ -387,16 +332,10 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 void UTimeThiefPlayerCombatComponent::UpdateWorldAimLocation()
 {
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return;
-	}
+	if (!OwningCharacter) return;
 
 	const APlayerController* PC = Cast<APlayerController>(OwningCharacter->GetController());
-	if (!PC)
-	{
-		return;
-	}
+	if (!PC) return;
 
 	FVector CameraLocation;
 	FRotator CameraRotation;
@@ -430,29 +369,30 @@ bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
 
 bool UTimeThiefPlayerCombatComponent::ShouldUseWeaponControlRigRotation() const
 {
-	return bIsAiming || IsFiringWeapon();
+	if (bIsAiming || IsFiringWeapon())
+	{
+		return true;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		return (World->GetTimeSeconds() - LastFireTime) < PostFireRotationDelay;
+	}
+
+	return false;
 }
 
 void UTimeThiefPlayerCombatComponent::SnapRotationToAim() 
 {
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return;
-	}
+	if (!OwningCharacter) return;
 
 	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 	{
-		if (BaseChar->IsFirstPerson())
-		{
-			return;
-		}
+		if (BaseChar->IsFirstPerson()) return;
 	}
 
-	if (IsRotationManagedExternally())
-	{
-		return;
-	}
+	if (IsRotationManagedExternally()) return;
 
 	UpdateWorldAimLocation();
 
@@ -475,29 +415,17 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 {
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return;
-	}
+	if (!OwningCharacter) return;
 
 	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 	{
-		if (BaseChar->IsFirstPerson())
-		{
-			return;
-		}
+		if (BaseChar->IsFirstPerson()) return;
 	}
 
-	if (IsRotationManagedExternally())
-	{
-		return;
-	}
+	if (IsRotationManagedExternally()) return;
 
 	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	if (!MovementComp)
-	{
-		return;
-	}
+	if (!MovementComp) return;
 
 	ApplyCombatRotationMode(ShouldUseControllerFacing());
 }
@@ -505,16 +433,10 @@ void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
 void UTimeThiefPlayerCombatComponent::ApplyCombatRotationMode(bool bUseControllerFacing)
 {
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return;
-	}
+	if (!OwningCharacter) return;
 
 	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	if (!MovementComp)
-	{
-		return;
-	}
+	if (!MovementComp) return;
 
 	if (bUseControllerFacing)
 	{
@@ -534,10 +456,7 @@ void UTimeThiefPlayerCombatComponent::ApplyCombatRotationMode(bool bUseControlle
 bool UTimeThiefPlayerCombatComponent::ShouldUseControllerFacing() const
 {
 	const ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return ShouldUseWeaponControlRigRotation();
-	}
+	if (!OwningCharacter) return ShouldUseWeaponControlRigRotation();
 
 	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
 	return ShouldUseWeaponControlRigRotation() || HasMovementIntent(MovementComp);
@@ -545,10 +464,7 @@ bool UTimeThiefPlayerCombatComponent::ShouldUseControllerFacing() const
 
 bool UTimeThiefPlayerCombatComponent::HasMovementIntent(const UCharacterMovementComponent* MovementComp) const
 {
-	if (!MovementComp)
-	{
-		return false;
-	}
+	if (!MovementComp) return false;
 
 	const bool bHasAcceleration = !MovementComp->GetCurrentAcceleration().IsNearlyZero();
 	const FVector HorizontalVelocity(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
@@ -559,14 +475,21 @@ bool UTimeThiefPlayerCombatComponent::HasMovementIntent(const UCharacterMovement
 
 bool UTimeThiefPlayerCombatComponent::IsRotationManagedExternally() const
 {
-	return CachedWireComponent && CachedWireComponent->IsWireActive();
+	if (!CachedWireComponent.IsValid())
+	{
+		if (AActor* Owner = GetOwner())
+		{
+			CachedWireComponent = Owner->FindComponentByClass<UTimeThiefWireComponent>();
+		}
+	}
+	return CachedWireComponent.IsValid() && CachedWireComponent->IsWireActive();
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 {
 	const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
 
-	if (CachedThirdPersonCamera)
+	if (CachedThirdPersonCamera.IsValid())
 	{
 		if (!FMath::IsNearlyEqual(CachedThirdPersonCamera->FieldOfView, TargetFOV, 0.1f))
 		{
@@ -575,7 +498,7 @@ void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 		}
 	}
 
-	if (CachedFirstPersonCamera)
+	if (CachedFirstPersonCamera.IsValid())
 	{
 		if (!FMath::IsNearlyEqual(CachedFirstPersonCamera->FieldOfView, TargetFOV, 0.1f))
 		{

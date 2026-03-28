@@ -42,6 +42,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	void AttachWeaponToSocket(ATimeThiefWeaponBase* Weapon);
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
+	bool IsEquippingWeapon() const { return bIsEquippingWeapon; }
+
 	UPROPERTY(BlueprintReadWrite, Category = "TimeThief|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
 
@@ -58,7 +61,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TMap<FGameplayTag, FGameplayTag> WeaponToStateTagMap;
 
-	void PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Combat")
+	bool bIsEquippingWeapon = false;
+
+	FTimerHandle EquipTimerHandle;
+
+	virtual void OnEquipFinished();
+	float PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
 	void ApplyCombatStateTag(FGameplayTag WeaponTag);
 	void RemoveCombatStateTag(FGameplayTag WeaponTag);
 };

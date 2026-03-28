@@ -33,6 +33,11 @@ bool UTimeThiefPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponen
 
 	if (DesiredState == Tags.InitState_DataInitialized)
 	{
+		if (!Pawn->IsLocallyControlled())
+		{
+			return CurrentState == Tags.InitState_DataAvailable;
+		}
+
 		return CurrentState == Tags.InitState_DataAvailable && bInputsReady;
 	}
 
@@ -113,4 +118,3 @@ void UTimeThiefPawnExtensionComponent::BindOnActorInitStateChanged(FName Feature
 		);
 	}
 }
-

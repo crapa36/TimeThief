@@ -1,5 +1,4 @@
 ﻿#include "Weapon/TimeThiefRocketLauncher.h"
-
 #include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -73,19 +72,38 @@ bool ATimeThiefRocketLauncher::SpawnRocketProjectile()
 	const FVector SpawnLocation = MuzzleLocation + ShootDirection;
 	const FTransform SpawnTransform(ShootDirection.Rotation(), SpawnLocation);
 
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = GetOwner();
-	SpawnParams.Instigator = Cast<APawn>(GetOwner());
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	ATimeThiefRocketProjectile* Projectile = World->SpawnActor<ATimeThiefRocketProjectile>(RocketProjectileClass, SpawnTransform, SpawnParams);
-	if (!Projectile)
+	ATimeThiefRocketProjectile* Projectile = nullptr;
+	for (ATimeThiefRocketProjectile* PooledProj : ProjectilePool)
 	{
-		return false;
+		if (PooledProj && !PooledProj->IsActive())
+		{
+			Projectile = PooledProj;
+			break;
+		}
 	}
 
-	Projectile->InitializeProjectile(GetOwner(), Cast<APawn>(GetOwner()));
-	return true;
+	if (!Projectile)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = GetOwner();
+		SpawnParams.Instigator = Cast<APawn>(GetOwner());
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		Projectile = World->SpawnActor<ATimeThiefRocketProjectile>(RocketProjectileClass, SpawnTransform, SpawnParams);
+		if (Projectile)
+		{
+			ProjectilePool.Add(Projectile);
+		}
+	}
+
+	if (Projectile)
+	{
+		Projectile->ActivateProjectile(SpawnTransform);
+		Projectile->InitializeProjectile(GetOwner(), Cast<APawn>(GetOwner()));
+		return true;
+	}
+
+	return false;
 }
 
 void ATimeThiefRocketLauncher::PlayFireEffects()
@@ -111,5 +129,3 @@ void ATimeThiefRocketLauncher::PlayFireEffects()
 		}
 	}
 }
-
-
