@@ -7,6 +7,6 @@ UGameItemData::UGameItemData()
 {
 	for (EItemID ItemName : TEnumRange<EItemID>())
 	{
-		StoreItems.Add(ItemName, FItemData{});
+		Items.Add(ItemName, FItemData{});
 	}
 }

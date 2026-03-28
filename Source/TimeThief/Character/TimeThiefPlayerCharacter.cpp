@@ -167,14 +167,20 @@ void ATimeThiefPlayerCharacter::CheckInteractableObject()
 	}
 }
 
-void ATimeThiefPlayerCharacter::AddNearInteractionActor(AInteractionActorBase* InteractionActor)
+void ATimeThiefPlayerCharacter::AddVicinityItem(AItemBase* Item)
 {
-	NearInteractionActors.AddUnique(InteractionActor);
+	if (const int Index = VicinityItem.AddUnique(Item); Index != INDEX_NONE)
+	{
+		OnVicinityItemUpdatedEvent.Broadcast();
+	}
 }
 
-void ATimeThiefPlayerCharacter::RemoveNearInteractionActor(AInteractionActorBase* InteractionActor)
+void ATimeThiefPlayerCharacter::RemoveVicinityItem(AItemBase* Item)
 {
-	NearInteractionActors.Remove(InteractionActor);
+	if (const int Removed = VicinityItem.Remove(Item); Removed != 0)
+	{
+		OnVicinityItemUpdatedEvent.Broadcast();
+	}
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

@@ -5,7 +5,6 @@
 
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerState.h"
-#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Game/ItemSettings.h"
@@ -13,11 +12,6 @@
 void UStoreSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	if (Slot_Button)
-	{
-		Slot_Button->OnClicked.AddUniqueDynamic(this, &UStoreSlotWidget::OnSlotClicked);
-	}
 }
 
 void UStoreSlotWidget::OnSlotClicked()
@@ -26,9 +20,9 @@ void UStoreSlotWidget::OnSlotClicked()
 	{
 		if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
 		{
-			const FItemData& ItemInfo = GetDefault<UItemSettings>()->ItemData->StoreItems[ItemID];
+			const FItemData& ItemInfo = GetDefault<UItemSettings>()->ItemData->Items[ItemID];
 			FStoreOrder Order;
-			Order.ItemName = ItemID;
+			Order.ItemID = ItemID;
 			Order.Price = ItemInfo.Price;
 			int Level = 0;
 			switch (ItemID)
@@ -68,20 +62,12 @@ void UStoreSlotWidget::Init(EItemID InItemID)
 
 void UStoreSlotWidget::UpdateUI()
 {
+	Super::UpdateUI();
+	
 	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
 	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
-		const FItemData& ItemStat = LoadedData->StoreItems[ItemID];
-
-		if (ItemIcon_Image)
-		{
-			ItemIcon_Image->SetBrushFromTexture(ItemStat.Icon);
-		}
-
-		if (ItemName_Text)
-		{
-			ItemName_Text->SetText(FText::FromString(ItemStat.Name));
-		}
+		const FItemData& ItemStat = LoadedData->Items[ItemID];
 
 		if (Price_Text)
 		{

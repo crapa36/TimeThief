@@ -25,11 +25,10 @@ protected:
 	TObjectPtr<UTextBlock> Price_Text;
 	
 public:
-	UFUNCTION()
-	void OnSlotClicked();
+	virtual void OnSlotClicked() override;
 	
 	void Init(EItemID InItemID);
 	
-	void UpdateUI();
+	virtual void UpdateUI() override;
 };
 

@@ -3,6 +3,13 @@
 
 #include "ItemSlotWidgetBase.h"
 
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/Button.h"
+#include "Components/Image.h"
+#include "Components/TextBlock.h"
+#include "DataAssets/GameItemData.h"
+#include "Game/ItemSettings.h"
+
 void UItemSlotWidgetBase::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
@@ -14,7 +21,12 @@ void UItemSlotWidgetBase::NativeOnInitialized()
 		ItemTooltipWidget->AddToViewport(100);
 		ItemTooltipWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
-	
+
+	if (Slot_Button)
+	{
+		Slot_Button->OnClicked.AddUniqueDynamic(this, &ThisClass::OnSlotClicked);
+	}
+
 	UpdateItem(ItemID);
 }
 
@@ -44,9 +56,21 @@ void UItemSlotWidgetBase::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 
 	if (ItemTooltipWidget && ItemTooltipWidget->IsVisible())
 	{
-		FVector2D MousePos = FSlateApplication::Get().GetCursorPos();
+		FVector2D MousePos;
+
+		UWidgetLayoutLibrary::GetMousePositionScaledByDPI(GetOwningPlayer(), MousePos.X, MousePos.Y);
+
+		ItemTooltipWidget->SetPositionInViewport(MousePos + ToolTipOffset, false);
+	}
+}
+
+void UItemSlotWidgetBase::NativeDestruct()
+{
+	Super::NativeDestruct();
 	
-		ItemTooltipWidget->SetPositionInViewport(MousePos + ToolTipOffset);
+	if (ItemTooltipWidget)
+	{
+		ItemTooltipWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
 }
 
@@ -54,8 +78,29 @@ void UItemSlotWidgetBase::UpdateItem(EItemID InItemID)
 {
 	ItemID = InItemID;
 
-	if (ItemTooltipWidget)
+	UpdateUI();
+}
+
+void UItemSlotWidgetBase::UpdateUI()
+{
+	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
+	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
-		ItemTooltipWidget->SetupToolTip(ItemID);
+		const FItemData& ItemStat = LoadedData->Items[ItemID];
+
+		if (ItemIcon_Image)
+		{
+			ItemIcon_Image->SetBrushFromTexture(ItemStat.Icon);
+		}
+
+		if (ItemName_Text)
+		{
+			ItemName_Text->SetText(FText::FromString(ItemStat.Name));
+		}
+
+		if (ItemTooltipWidget)
+		{
+			ItemTooltipWidget->SetupToolTip(ItemID);
+		}
 	}
 }

@@ -50,7 +50,7 @@ bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
 	{
 		TimePointSystemComponent->ModifyTimePoints(-Order.Price);
 		ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(GetPlayerState());
-			switch (Order.ItemName)
+			switch (Order.ItemID)
 			{
 			case EItemID::DamageUpgrade:
 				PS->Status.Damage++;

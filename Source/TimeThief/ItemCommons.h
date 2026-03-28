@@ -24,6 +24,7 @@ enum class EItemID : uint8
 	BigPotion UMETA(DisplayName = "Big Potion"),
 	SkillBoost UMETA(DisplayName = "Skill Boost"),
 	Grenade UMETA(DisplayName = "Grenade"),
+	TimePoint UMETA(DisplayName = "Time Point"),
 	SIZE UMETA(Hidden)
 };
 
@@ -31,7 +32,14 @@ ENUM_RANGE_BY_COUNT(EItemID, EItemID::SIZE);
 
 struct FStoreOrder
 {
-	EItemID ItemName;
+	EItemID ItemID;
 	
 	int Price;
+};
+
+struct FVicinityItemData
+{
+	EItemID ItemID;
+	
+	int Quantity;
 };

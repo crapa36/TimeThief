@@ -38,9 +38,15 @@ protected:
 	
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
+	virtual void NativeDestruct() override;
+	
+	UFUNCTION()
+	virtual void OnSlotClicked(){}
+	
 public:
 	void UpdateItem(EItemID InItemID);
 	
+	virtual void UpdateUI();
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tooltip")
 	TSubclassOf<UItemToolTipWidget> TooltipWidgetClass;
@@ -52,5 +58,5 @@ protected:
 	EItemID ItemID;
 	
 	UPROPERTY(EditAnywhere, Category = "Tooltip")
-	FVector2D ToolTipOffset;
+	FVector2D ToolTipOffset{30, 30};
 };
