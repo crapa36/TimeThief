@@ -169,12 +169,18 @@ void ATimeThiefPlayerCharacter::CheckInteractableObject()
 
 void ATimeThiefPlayerCharacter::AddVicinityItem(AItemBase* Item)
 {
-	VicinityItem.AddUnique(Item);
+	if (const int Index = VicinityItem.AddUnique(Item); Index != INDEX_NONE)
+	{
+		OnVicinityItemUpdatedEvent.Broadcast();
+	}
 }
 
 void ATimeThiefPlayerCharacter::RemoveVicinityItem(AItemBase* Item)
 {
-	VicinityItem.Remove(Item);
+	if (const int Removed = VicinityItem.Remove(Item); Removed != 0)
+	{
+		OnVicinityItemUpdatedEvent.Broadcast();
+	}
 }
 
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {

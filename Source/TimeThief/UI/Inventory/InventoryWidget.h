@@ -20,12 +20,17 @@ class TIMETHIEF_API UInventoryWidget : public UUserWidget
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UListView> VicinityItem_ListView;
 	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UListView> Inventory_ListView;
+	
 	UPROPERTY()
 	TWeakObjectPtr<ATimeThiefPlayerCharacter> Player;
 
 protected:
-	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
-
+	void OnVicinityItemUpdated();
+	
+	void OnInventoryItemUpdated();
+	
 public:
 	UFUNCTION(BlueprintCallable)
 	void Init(ATimeThiefPlayerCharacter* InPlayer);

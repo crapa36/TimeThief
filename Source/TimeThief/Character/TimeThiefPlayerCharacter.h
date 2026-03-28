@@ -17,6 +17,8 @@ class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
 
+DECLARE_MULTICAST_DELEGATE(FOnVicinityItemUpdatedEvent);
+
 UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefNetworkCharacterBase {
 	GENERATED_BODY()
@@ -48,6 +50,7 @@ public:
 	void RemoveVicinityItem(AItemBase* Item);
 	const TArray<TObjectPtr<AItemBase>>& GetVicinityItems() const { return VicinityItem; }
 	
+	FOnVicinityItemUpdatedEvent OnVicinityItemUpdatedEvent;
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;

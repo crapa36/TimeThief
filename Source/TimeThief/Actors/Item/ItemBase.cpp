@@ -38,7 +38,7 @@ void AItemBase::Interact(const ATimeThiefPlayerCharacter* Player)
 {
 	if (UInventorySystemComponent* Inven = Player->GetInventoryComponent())
 	{
-		Inven->AddItem(ItemID);
+		Inven->AddItem(ItemID, Quantity);
 		Destroy();
 	}
 }
