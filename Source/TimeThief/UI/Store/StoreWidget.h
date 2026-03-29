@@ -13,4 +13,7 @@ UCLASS()
 class TIMETHIEF_API UStoreWidget : public UUserWidget
 {
 	GENERATED_BODY()
+	
+public:
+	virtual void SetVisibility(ESlateVisibility InVisibility) override;
 };

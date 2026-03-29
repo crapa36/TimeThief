@@ -4,13 +4,14 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "TimeThief.h"
+#include "TimeThiefPlayerCharacter.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Network/TestPlayer/NTCheatManager.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
-#include "UI/Minimap/MinimapWidget.h"
-#include "UI/Store/StoreWidget.h"
+#include "UI/Inventory/InventoryWidget.h"
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
 {
@@ -45,15 +46,23 @@ void ATimeThiefPlayerController::BeginPlay()
 				MainHUDWidget->AddToViewport();
 			}
 		}
+
+		SubWidgets.SetNum(static_cast<int>(EWidgetType::SIZE));
 		
-		if (StoreWidgetClass)
+		for (auto& Pair : SubWidgetClassMap)
 		{
-			StoreWidget = CreateWidget<UStoreWidget>(this, StoreWidgetClass);
-		}
-		
-		if (MinimapWidgetClass)
-		{
-			MinimapWidget = CreateWidget<UMinimapWidget>(this, MinimapWidgetClass);
+			if (Pair.Value)
+			{
+				SubWidgets[static_cast<int>(Pair.Key)] = CreateWidget<UUserWidget>(this, Pair.Value);
+				SubWidgets[static_cast<int>(Pair.Key)]->AddToViewport(1);
+				SubWidgets[static_cast<int>(Pair.Key)]->SetVisibility(ESlateVisibility::Hidden);
+				
+				if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(Pair.Key)]))
+				{
+					UKismetSystemLibrary::PrintString(this, TEXT("Initializing Inventory Widget"));
+					Inventory->Init(Cast<ATimeThiefPlayerCharacter>(GetPawn()));
+				}
+			}
 		}
 	}
 }
@@ -64,7 +73,8 @@ void ATimeThiefPlayerController::SetupInputComponent()
 
 	if (IsLocalPlayerController())
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
+			UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
@@ -87,47 +97,42 @@ bool ATimeThiefPlayerController::ShouldUseTouchControls() const
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
 }
 
-void ATimeThiefPlayerController::ToggleMinimap()
+void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
 {
-	if (!MinimapWidget->IsInViewport())
+	if (auto& TargetWidget = SubWidgets[static_cast<int>(WidgetType)])
 	{
-		MinimapWidget->AddToViewport();
-	}
-	else
-	{
-		MinimapWidget->RemoveFromParent();
+		if (TargetWidget->IsVisible())
+		{
+			TargetWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+		else
+		{
+			for (auto& Widget : SubWidgets)
+			{
+				if (Widget == nullptr)
+				{
+					continue;
+				}
+				if (Widget != TargetWidget)
+				{
+					if (Widget->IsVisible())
+					{
+						Widget->SetVisibility(ESlateVisibility::Hidden);
+					}
+				}
+			}
+			TargetWidget->SetVisibility(ESlateVisibility::Visible);
+		}
 	}
 }
 
-void ATimeThiefPlayerController::SetStoreVisibility(bool bVisible)
+void ATimeThiefPlayerController::SetVisibilityWidget(EWidgetType WidgetType, bool bVisible)
 {
-	if (bVisible)
+	if (auto& TargetWidget = SubWidgets[static_cast<int>(WidgetType)])
 	{
-		if (!StoreWidget->IsInViewport())
+		if (bVisible != TargetWidget->IsVisible())
 		{
-			SetIgnoreLookInput(true);
-			
-			FInputModeGameAndUI InputMode;
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			SetInputMode(InputMode);
-			bShowMouseCursor = true;
-			
-			int32 ViewportSizeX, ViewportSizeY;
-			GetViewportSize(ViewportSizeX, ViewportSizeY);
-			SetMouseLocation(ViewportSizeX / 2, ViewportSizeY / 2);
-			
-			StoreWidget->AddToViewport();
-		}
-	}
-	else
-	{
-		if (StoreWidget->IsInViewport())
-		{
-			StoreWidget->RemoveFromParent();
-			
-			SetIgnoreLookInput(false);
-			SetInputMode(FInputModeGameOnly{});
-			bShowMouseCursor = false;
+			ToggleWidget(WidgetType);
 		}
 	}
 }

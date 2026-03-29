@@ -25,6 +25,7 @@ public:
 	FGameplayTag InputTag_Action_TogglePerspective;
 	FGameplayTag InputTag_Action_ToggleMinimap;
 	FGameplayTag InputTag_Action_Interact;
+	FGameplayTag InputTag_Action_Inventory;
 	
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Shotgun;

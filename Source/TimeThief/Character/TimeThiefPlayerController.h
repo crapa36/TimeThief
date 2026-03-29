@@ -4,11 +4,23 @@
 #include "GameFramework/PlayerController.h"
 #include "TimeThiefPlayerController.generated.h"
 
+class UInventoryWidget;
 class UStoreWidget;
 class UMinimapWidget;
 class UInputMappingContext;
 class UUserWidget;
 class UTimeThiefHUDWidget;
+
+UENUM(BlueprintType)
+enum class EWidgetType : uint8
+{
+	Minimap = 0,
+	Store,
+	Inventory,
+	
+	
+	SIZE
+};
 
 UCLASS(abstract)
 class TIMETHIEF_API ATimeThiefPlayerController : public APlayerController
@@ -30,24 +42,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
 	bool bForceTouchControls = false;
-
+	
 	UPROPERTY(EditAnywhere, Category = "UI|HUD")
 	TSubclassOf<UTimeThiefHUDWidget> MainHUDWidgetClass;
 	
-	UPROPERTY(EditAnywhere, Category = "UI|Minimap")
-	TSubclassOf<UMinimapWidget> MinimapWidgetClass;
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TMap<EWidgetType, TSubclassOf<UUserWidget>> SubWidgetClassMap;
 	
-	UPROPERTY(EditAnywhere, Category = "UI|Store")
-	TSubclassOf<UStoreWidget> StoreWidgetClass;
+	UPROPERTY()
+	TArray<TObjectPtr<UUserWidget>> SubWidgets;
 	
 	UPROPERTY()
 	TObjectPtr<UTimeThiefHUDWidget> MainHUDWidget;
-	
-	UPROPERTY()
-	TObjectPtr<UMinimapWidget> MinimapWidget;
-	
-	UPROPERTY()
-	TObjectPtr<UStoreWidget> StoreWidget;
 	
 	ATimeThiefPlayerController();
 	
@@ -57,7 +63,6 @@ protected:
 	bool ShouldUseTouchControls() const;
 	
 public:
-	void ToggleMinimap();
-	
-	void SetStoreVisibility(bool bVisible);
+	void ToggleWidget(EWidgetType WidgetType);
+	void SetVisibilityWidget(EWidgetType WidgetType, bool bVisible);
 };
