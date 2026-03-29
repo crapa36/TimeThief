@@ -53,16 +53,55 @@ bool Handle_S_Pong(PacketSessionRef& session, const se::auth::S_Pong& pkt)
 	
 bool Handle_S_SetNicknameRes(PacketSessionRef& session, const se::lobby::S_SetNicknameRes& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleSetNicknameRes(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_S_SetNicknameRes: Failed to get NGIS"));
 	return false;	
 }
 	
 bool Handle_S_MatchQueueEnterRes(PacketSessionRef& session, const se::lobby::S_MatchQueueEnterRes& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleMatchQueueEnterRes(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_S_MatchQueueEnterRes: Failed to get NGIS"));
 	return false;	
 }
 	
 bool Handle_S_MatchQueueCancelRes(PacketSessionRef& session, const se::lobby::S_MatchQueueCancelRes& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleMatchQueueCancelRes(pkt);
+			return true;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Handle_S_MatchQueueCancelRes: Failed to get NGIS"));
 	return false;	
 }
 	

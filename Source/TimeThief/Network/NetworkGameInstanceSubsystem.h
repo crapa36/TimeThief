@@ -129,6 +129,15 @@ private:
 	bool LoadClientConfig();
 	
 public:
+	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")
+	void RequestSetNickname(const FString& Nickname);
+	
+	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")
+	void RequestMatchQueueEnter();
+	
+	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")
+	void RequestMatchQueueCancel();
+	
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestEnterRoom();
 	
