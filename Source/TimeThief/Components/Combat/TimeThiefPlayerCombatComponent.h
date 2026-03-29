@@ -25,14 +25,13 @@ public:
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
 
+	void Local_StartAiming();
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat|Aim")
 	void StartAiming();
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat|Aim")
 	void StopAiming();
-
-	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
-	bool IsAiming() const { return bIsAiming; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
 	float GetAimSpreadMultiplier() const { return AimSpreadMultiplier; }
@@ -94,7 +93,6 @@ private:
 	void UpdateWorldAimLocation();
 	void SnapRotationToAim();
 
-	bool bIsAiming = false;
 	float DefaultMaxWalkSpeed = 0.0f;
 	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	bool bDefaultOrientRotationToMovement = true;

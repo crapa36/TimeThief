@@ -51,7 +51,7 @@ void UTimeThiefFirstPersonAnimInstance::UpdateWeaponData()
 		return;
 	}
 
-	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetPawnCombatComponent();
+	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetCombatComponent();
 	if (!CombatComp)
 	{
 		bHasWeapon = false;

@@ -30,7 +30,10 @@ public:
 	
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 	
-	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
+	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
+
+	virtual USkeletalMeshComponent* GetWeaponAttachMesh() const override;
+	virtual USkeletalMeshComponent* GetMontagePlaybackMesh() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Character")
 	UTimeThiefHeroComponent* GetHeroComponent() const { return HeroComponent; }

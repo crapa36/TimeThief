@@ -284,6 +284,11 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 	UpdateCombatRotation();
 }
 
+void UTimeThiefPlayerCombatComponent::Local_StartAiming()
+{
+    bIsAiming = true;
+}
+
 void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);

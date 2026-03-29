@@ -58,9 +58,6 @@ protected:
 	FVector WorldAimLocation = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
-	bool bIsAiming = false;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	float AimSpreadMultiplier = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")

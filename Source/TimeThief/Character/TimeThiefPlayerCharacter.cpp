@@ -43,6 +43,12 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+
+	GetMesh()->SetOwnerNoSee(true);
+	GetMesh()->bCastHiddenShadow = true; 
+
+	FirstPersonMesh->SetOnlyOwnerSee(true);
+	FirstPersonMesh->CastShadow = false;
 }
 
 void ATimeThiefPlayerCharacter::OnInteract()
@@ -88,8 +94,18 @@ void ATimeThiefPlayerCharacter::OnRep_PawnData() {
 	OnPawnDataSet();
 }
 
-UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent() const {
+UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetCombatComponent() const {
 	return PlayerCombatComponent;
+}
+
+USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetWeaponAttachMesh() const
+{
+	return FirstPersonMesh;
+}
+
+USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetMontagePlaybackMesh() const
+{
+	return FirstPersonMesh;
 }
 
 void ATimeThiefPlayerCharacter::BeginPlay() {

@@ -139,7 +139,7 @@ class UNetworkCombatSyncComponent* ATimeThiefNetworkCharacterBase::GetCombatSync
 
 class UTimeThiefPawnCombatComponent* ATimeThiefNetworkCharacterBase::GetCombatComponent() const
 {
-	return GetPawnCombatComponent();
+	return ATimeThiefCharacterBase::GetCombatComponent();
 }
 
 uint32 ATimeThiefNetworkCharacterBase::GetCombatEntityId() const
@@ -156,4 +156,3 @@ uint32 ATimeThiefNetworkCharacterBase::GetEntityId() const
 {
 	return NetworkEntityComponent ? NetworkEntityComponent->GetEntityId() : 0;
 }
-

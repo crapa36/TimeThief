@@ -10,7 +10,8 @@
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 }
 
 void UTimeThiefPawnCombatComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister, ATimeThiefWeaponBase* InWeaponToRegister, bool bRegisterAsEquippedWeapon)
@@ -72,6 +73,13 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 	if (TSubclassOf<UAnimInstance> AnimLayer = WeaponToEquip->GetEquipAnimLayer())
 	{
 		OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+		{
+			if (USkeletalMeshComponent* FPMesh = BaseChar->GetFirstPersonMesh())
+			{
+				FPMesh->LinkAnimClassLayers(AnimLayer);
+			}
+		}
 	}
 
 	const float MontageLength = PlayEquipMontage(WeaponToEquip);
@@ -118,6 +126,13 @@ void UTimeThiefPawnCombatComponent::UnequipCurrentWeapon()
 	if (TSubclassOf<UAnimInstance> AnimLayer = CurrentEquippedWeapon->GetEquipAnimLayer())
 	{
 		OwningCharacter->GetMesh()->UnlinkAnimClassLayers(AnimLayer);
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+		{
+			if (USkeletalMeshComponent* FPMesh = BaseChar->GetFirstPersonMesh())
+			{
+				FPMesh->UnlinkAnimClassLayers(AnimLayer);
+			}
+		}
 	}
 
 	RemoveCombatStateTag(CurrentEquippedWeaponTag);
@@ -145,13 +160,22 @@ void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* W
 
 	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 	{
-		if (BaseChar->IsLocallyControlled() && BaseChar->GetFirstPersonMesh())
+		USkeletalMeshComponent* AttachMesh = BaseChar->GetWeaponAttachMesh();
+		if (AttachMesh)
 		{
-			TargetMesh = BaseChar->GetFirstPersonMesh();
+			TargetMesh = AttachMesh;
 		}
 	}
 
 	Weapon->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketToUse);
+}
+
+void UTimeThiefPawnCombatComponent::PlayFireMontage()
+{
+	if (ATimeThiefCharacterBase* Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+	{
+		Character->PlayMontageOnAllMeshes(FireMontage);
+	}
 }
 
 float UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon)
@@ -227,4 +251,26 @@ void UTimeThiefPawnCombatComponent::RemoveCombatStateTag(FGameplayTag WeaponTag)
 			BaseChar->RemoveOwnedGameplayTag(*StateTag);
 		}
 	}
+}
+
+void UTimeThiefPawnCombatComponent::Remote_SyncAimingState(bool bNewAiming)
+{
+	bIsAiming = bNewAiming;
+}
+
+void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
+{
+	PlayFireMontage();
+}
+
+void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& NewAimLocation)
+{
+	RemoteTargetAimLocation = NewAimLocation;
+}
+
+void UTimeThiefPawnCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	TargetAimLocation = FMath::VInterpTo(TargetAimLocation, RemoteTargetAimLocation, DeltaTime, 15.f);
 }
