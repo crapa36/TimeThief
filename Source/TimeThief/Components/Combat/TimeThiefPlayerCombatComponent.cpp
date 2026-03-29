@@ -9,6 +9,7 @@
 #include "Camera/CameraComponent.h"
 #include "Engine/World.h"
 #include "Weapon/TimeThiefRifle.h"
+#include "Weapon/TimeThiefRocketLauncher.h"
 #include "Weapon/TimeThiefShotgun.h"
 
 UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent()
@@ -27,6 +28,7 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 	{
 		WeaponToStateTagMap.Add(Tags.Weapon_Rifle, Tags.State_Combat_Rifle);
 		WeaponToStateTagMap.Add(Tags.Weapon_Shotgun, Tags.State_Combat_Shotgun);
+		WeaponToStateTagMap.Add(Tags.Weapon_RocketLauncher, Tags.State_Combat_RocketLauncher);
 		WeaponToStateTagMap.Add(Tags.Weapon_Pistol, Tags.State_Combat_Pistol);
 	}
 
@@ -197,6 +199,11 @@ FGameplayTag UTimeThiefPlayerCombatComponent::InferWeaponTagFromClass(TSubclassO
 		return Tags.Weapon_Shotgun;
 	}
 
+	if (NativeClass->IsChildOf(ATimeThiefRocketLauncher::StaticClass()))
+	{
+		return Tags.Weapon_RocketLauncher;
+	}
+
 	return FGameplayTag();
 }
 
@@ -228,6 +235,20 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		else
 		{
 			EquipOrSpawnWeaponByTag(Tags.Weapon_Shotgun);
+		}
+		return;
+	}
+
+	if (InputTag == Tags.InputTag_Action_EquipRocketLauncher)
+	{
+		if (CurrentEquippedWeaponTag == Tags.Weapon_RocketLauncher)
+		{
+			StopAiming();
+			UnequipCurrentWeapon();
+		}
+		else
+		{
+			EquipOrSpawnWeaponByTag(Tags.Weapon_RocketLauncher);
 		}
 		return;
 	}
