@@ -37,6 +37,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Input")
 	void RemoveInputMappingContext(const UInputMappingContext* MappingContext);
 
+	virtual void HandleChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) override;
+
 	UPROPERTY(BlueprintAssignable)
 	FTimeThiefHero_ReadyDelegate OnReadyToBindInputs;
 

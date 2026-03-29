@@ -54,10 +54,15 @@ public:
 	const TArray<TObjectPtr<AItemBase>>& GetVicinityItems() const { return VicinityItem; }
 	
 	FOnVicinityItemUpdatedEvent OnVicinityItemUpdatedEvent;
+	
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
 	virtual void BeginPlay() override;
+	
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void OnRep_Controller() override;
+	virtual void OnRep_PlayerState() override;
 
 	void OnPawnDataSet();
 
@@ -65,6 +70,7 @@ protected:
 	void OnDeath(AActor* OwningActor);
 
 	void CheckInteractableObject();
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -100,6 +106,7 @@ protected:
 	float LookingDistance = 50.f;
 	
 	FTimerHandle InteractCheckTimerHandle;
+	
 private:
 	UFUNCTION()
 	void OnRep_PawnData();

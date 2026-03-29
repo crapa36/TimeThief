@@ -12,6 +12,8 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "ChannelCommons.h"
+#include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Game/TimeThiefGameMode.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -135,6 +137,36 @@ void ATimeThiefPlayerCharacter::PawnClientRestart() {
 	if (HeroComponent)
 	{
 		HeroComponent->CheckDefaultInitialization();
+	}
+}
+
+void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		PawnExtComp->NotifyControllerChanged();
+	}
+}
+
+void ATimeThiefPlayerCharacter::OnRep_Controller()
+{
+	Super::OnRep_Controller();
+	
+	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		PawnExtComp->NotifyControllerChanged();
+	}
+}
+
+void ATimeThiefPlayerCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	
+	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		PawnExtComp->CheckDefaultInitialization();
 	}
 }
 

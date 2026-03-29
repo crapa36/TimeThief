@@ -11,6 +11,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
+#include "Components/TimeThiefPawnExtensionComponent.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -80,7 +81,10 @@ bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+}
 
+void ATimeThiefCharacterBase::OnPlayerInitialized()
+{
 	if (IsLocallyControlled())
 	{
 		if (FirstPersonMesh)
@@ -93,6 +97,21 @@ void ATimeThiefCharacterBase::BeginPlay()
 		}
 
 		ApplyPerspective();
+	}
+}
+
+void ATimeThiefCharacterBase::NotifyControllerChanged()
+{
+	Super::NotifyControllerChanged();
+
+	if (IsLocallyControlled())
+	{
+		OnPlayerInitialized();
+	}
+
+	if (UTimeThiefPawnExtensionComponent* Extension = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		Extension->NotifyControllerChanged();
 	}
 }
 

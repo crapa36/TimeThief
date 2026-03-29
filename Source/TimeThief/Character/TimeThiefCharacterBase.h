@@ -70,8 +70,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
 	void AppendOwnedGameplayTags(const FGameplayTagContainer& InTags);
 
+	virtual void OnPlayerInitialized();
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void NotifyControllerChanged() override;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")

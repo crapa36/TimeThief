@@ -4,7 +4,7 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "TimeThief.h"
-#include "TimeThiefPlayerCharacter.h"
+#include "Character/TimeThiefPlayerCharacter.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -12,6 +12,8 @@
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "UI/Inventory/InventoryWidget.h"
+#include "Components/GameFrameworkComponentManager.h"
+#include "Game/TimeThiefGameMode.h"
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
 {
@@ -31,10 +33,6 @@ void ATimeThiefPlayerController::BeginPlay()
 			if (MobileControlsWidget)
 			{
 				MobileControlsWidget->AddToPlayerScreen(0);
-			}
-			else
-			{
-				UE_LOG(LogTimeThief, Error, TEXT("Could not spawn mobile controls widget."));
 			}
 		}
 
@@ -56,12 +54,61 @@ void ATimeThiefPlayerController::BeginPlay()
 				SubWidgets[static_cast<int>(Pair.Key)] = CreateWidget<UUserWidget>(this, Pair.Value);
 				SubWidgets[static_cast<int>(Pair.Key)]->AddToViewport(1);
 				SubWidgets[static_cast<int>(Pair.Key)]->SetVisibility(ESlateVisibility::Hidden);
-				
-				if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(Pair.Key)]))
+
+				if (Pair.Key == EWidgetType::Inventory)
 				{
-					UKismetSystemLibrary::PrintString(this, TEXT("Initializing Inventory Widget"));
-					Inventory->Init(Cast<ATimeThiefPlayerCharacter>(GetPawn()));
+					if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(Pair.Key)]))
+					{
+						if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+						{
+							Inventory->Init(PlayerCharacter);
+						}
+					}
 				}
+			}
+		}
+	}
+}
+
+void ATimeThiefPlayerController::SetPawn(APawn* InPawn)
+{
+	Super::SetPawn(InPawn);
+
+	if (IsLocalPlayerController())
+	{
+		if (SubWidgets.IsValidIndex(static_cast<int>(EWidgetType::Inventory)))
+		{
+			if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(EWidgetType::Inventory)]))
+			{
+				if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
+				{
+					Inventory->Init(PlayerCharacter);
+				}
+				else
+				{
+					Inventory->Init(nullptr);
+				}
+			}
+		}
+
+		if (MainHUDWidget)
+		{
+			// TODO: MainHUDWidget이 새로운 Character 데이터를 트래킹할 수 있도록 바인딩/재초기화하는 함수 호출
+		}
+	}
+}
+
+void ATimeThiefPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	if (HasAuthority())
+	{
+		if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
+		{
+			if (ATimeThiefGameMode* GM = GetWorld()->GetAuthGameMode<ATimeThiefGameMode>())
+			{
+				PlayerCharacter->SetPawnData(GM->GetDefaultPawnData());
 			}
 		}
 	}
@@ -73,8 +120,7 @@ void ATimeThiefPlayerController::SetupInputComponent()
 
 	if (IsLocalPlayerController())
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
-			UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
@@ -99,6 +145,11 @@ bool ATimeThiefPlayerController::ShouldUseTouchControls() const
 
 void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
 {
+	if (!SubWidgets.IsValidIndex(static_cast<int>(WidgetType)))
+	{
+		return;
+	}
+
 	if (auto& TargetWidget = SubWidgets[static_cast<int>(WidgetType)])
 	{
 		if (TargetWidget->IsVisible())
@@ -128,6 +179,11 @@ void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
 
 void ATimeThiefPlayerController::SetVisibilityWidget(EWidgetType WidgetType, bool bVisible)
 {
+	if (!SubWidgets.IsValidIndex(static_cast<int>(WidgetType)))
+	{
+		return;
+	}
+
 	if (auto& TargetWidget = SubWidgets[static_cast<int>(WidgetType)])
 	{
 		if (bVisible != TargetWidget->IsVisible())

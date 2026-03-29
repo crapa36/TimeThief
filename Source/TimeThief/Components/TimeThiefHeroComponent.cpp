@@ -267,3 +267,8 @@ void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTa
 		CachedCombatComponent->HandleInputReleased(InputTag);
 	}
 }
+
+void UTimeThiefHeroComponent::HandleChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState)
+{
+	Super::HandleChangeInitState(Manager, CurrentState, DesiredState);
+}

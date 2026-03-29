@@ -29,8 +29,12 @@ void UInventoryWidget::OnVicinityItemUpdated()
 
 void UInventoryWidget::OnInventoryItemUpdated()
 {
-	TArray<TObjectPtr<UInventoryObject>> InventoryItems;
+	if (!Player.IsValid() || !Player->GetInventoryComponent())
+	{
+		return;
+	}
 
+	TArray<TObjectPtr<UInventoryObject>> InventoryItems;
 
 	for (UInventoryObject* Object : Player->GetInventoryComponent()->GetInventory())
 	{
@@ -77,6 +81,14 @@ void UInventoryWidget::SetVisibility(ESlateVisibility InVisibility)
 void UInventoryWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 {
 	Player = InPlayer;
-	Player->OnVicinityItemUpdatedEvent.AddUObject(this, &ThisClass::OnVicinityItemUpdated);
-	Player->GetInventoryComponent()->OnInventoryUpdatedEvent.AddUObject(this, &ThisClass::OnInventoryItemUpdated);
+
+	if (Player.IsValid())
+	{
+		Player->OnVicinityItemUpdatedEvent.AddUObject(this, &ThisClass::OnVicinityItemUpdated);
+		
+		if (UInventorySystemComponent* InventoryComp = Player->GetInventoryComponent())
+		{
+			InventoryComp->OnInventoryUpdatedEvent.AddUObject(this, &ThisClass::OnInventoryItemUpdated);
+		}
+	}
 }

@@ -20,6 +20,8 @@ public:
 	virtual void OnActorInitStateChanged(const FActorInitStateChangedParams& Params) override;
 	virtual void CheckDefaultInitialization() override;
 
+	virtual void NotifyControllerChanged();
+
 protected:
 	template <class T>
 	T* GetPawn() const {

@@ -17,8 +17,6 @@ enum class EWidgetType : uint8
 	Minimap = 0,
 	Store,
 	Inventory,
-	
-	
 	SIZE
 };
 
@@ -59,6 +57,8 @@ protected:
 	
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void SetPawn(APawn* InPawn) override;
+	virtual void OnPossess(APawn* InPawn) override;
 
 	bool ShouldUseTouchControls() const;
 	
