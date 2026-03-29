@@ -5,6 +5,8 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent()
 {
@@ -56,6 +58,11 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 		UnequipCurrentWeapon();
 	}
 
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EquipTimerHandle);
+	}
+
 	CurrentEquippedWeaponTag = WeaponTag;
 	CurrentEquippedWeapon = WeaponToEquip;
 
@@ -67,9 +74,21 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 		OwningCharacter->GetMesh()->LinkAnimClassLayers(AnimLayer);
 	}
 
-	PlayEquipMontage(WeaponToEquip);
-	ApplyCombatStateTag(WeaponTag);
+	const float MontageLength = PlayEquipMontage(WeaponToEquip);
+	if (MontageLength > 0.0f)
+	{
+		bIsEquippingWeapon = true;
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(EquipTimerHandle, this, &UTimeThiefPawnCombatComponent::OnEquipFinished, MontageLength, false);
+		}
+	}
+	else
+	{
+		OnEquipFinished();
+	}
 
+	ApplyCombatStateTag(WeaponTag);
 	OnWeaponEquipped_Delegate.Broadcast(WeaponToEquip);
 }
 
@@ -135,23 +154,31 @@ void UTimeThiefPawnCombatComponent::AttachWeaponToSocket(ATimeThiefWeaponBase* W
 	Weapon->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketToUse);
 }
 
-void UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon)
+float UTimeThiefPawnCombatComponent::PlayEquipMontage(ATimeThiefWeaponBase* Weapon)
 {
 	if (!Weapon)
 	{
-		return;
+		return 0.0f;
 	}
 
 	UAnimMontage* EquipMontage = Weapon->GetEquipMontage();
 	if (!EquipMontage)
 	{
-		return;
+		return 0.0f;
 	}
 
 	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
 	{
 		BaseChar->PlayMontageOnAllMeshes(EquipMontage);
+		return EquipMontage->GetPlayLength();
 	}
+
+	return 0.0f;
+}
+
+void UTimeThiefPawnCombatComponent::OnEquipFinished()
+{
+	bIsEquippingWeapon = false;
 }
 
 ATimeThiefWeaponBase* UTimeThiefPawnCombatComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const

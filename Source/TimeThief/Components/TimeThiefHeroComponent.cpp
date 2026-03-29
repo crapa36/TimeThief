@@ -13,8 +13,6 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
-#include "Kismet/KismetSystemLibrary.h"
-#include "Weapon/TimeThiefWeaponBase.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -69,6 +67,9 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 {
 	check(PlayerInputComponent);
 	if (!PawnData || bReadyToBindInputs) return;
+
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn || !Pawn->IsLocallyControlled()) return;
 
 	UTimeThiefInputComponent* TimeThiefIC = Cast<UTimeThiefInputComponent>(PlayerInputComponent);
 	if (!TimeThiefIC) return;
@@ -153,7 +154,6 @@ void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
 
 	Character->AddMovementInput(ForwardDirection, MovementVector.Y);
 	Character->AddMovementInput(RightDirection, MovementVector.X);
-
 
 	if (CachedWireComponent)
 	{

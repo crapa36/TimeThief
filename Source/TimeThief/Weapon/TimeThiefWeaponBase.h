@@ -84,7 +84,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
 	FTransform GetSocketTransformByName(FName InSocketName) const;
 
-
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -137,13 +136,12 @@ protected:
 	float CurrentSpread = 0.0f;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
-	float NextAllowedFireTime = 0.0f;
-
-	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	bool bWantsToFire = false;
 
 	bool bIsFiring = false;
 	bool bIsReloading = false;
+
+	float NextAllowedFireTime = 0.0f;
 
 	FTimerHandle AutoFireTimerHandle;
 	FTimerHandle ReloadTimerHandle;
@@ -176,7 +174,6 @@ protected:
 private:
 	float GetFireInterval() const;
 	void StopFiringLoop();
-	void ScheduleAutoFireShot(float Delay);
 	void HandleAutoFireShot();
 	void FinishReload();
 };

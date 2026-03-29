@@ -10,7 +10,6 @@
 #include "Actors/InteractionActorBase.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "ChannelCommons.h"
 
@@ -74,7 +73,7 @@ void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData
 void ATimeThiefPlayerCharacter::OnPawnDataSet() {
 	if (HeroComponent && PawnData) {
 		HeroComponent->SetPawnData(PawnData);
-
+		
 		if (InputComponent) {
 			HeroComponent->InitializePlayerInput(InputComponent);
 		}
@@ -100,11 +99,6 @@ void ATimeThiefPlayerCharacter::BeginPlay() {
 		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
 	}
 
-	if (IsLocallyControlled() && bIsFirstPerson)
-	{
-		FollowCamera->SetActive(false);
-	}
-	
 	GetWorldTimerManager().SetTimer(
 		InteractCheckTimerHandle, 
 		this, 
@@ -112,6 +106,20 @@ void ATimeThiefPlayerCharacter::BeginPlay() {
 		0.1f, 
 		true
 		);
+}
+
+void ATimeThiefPlayerCharacter::PawnClientRestart() {
+	Super::PawnClientRestart();
+
+	if (IsLocallyControlled() && bIsFirstPerson)
+	{
+		FollowCamera->SetActive(false);
+	}
+
+	if (HeroComponent)
+	{
+		HeroComponent->CheckDefaultInitialization();
+	}
 }
 
 void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
@@ -123,17 +131,19 @@ void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
 
 void ATimeThiefPlayerCharacter::CheckInteractableObject()
 {
-	if (!FollowCamera)
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
 	{
 		return;
 	}
 	
-	FVector StartLocation = FollowCamera->GetComponentLocation();
-	FVector ForwardVector = FollowCamera->GetForwardVector();
-	FVector EndLocation = StartLocation + ForwardVector * (CameraBoom->TargetArmLength + LookingDistance);
+	FVector StartLocation;
+	FRotator ViewRotation;
+	PC->GetPlayerViewPoint(StartLocation, ViewRotation);
+	
+	FVector EndLocation = StartLocation + ViewRotation.Vector() * (CameraBoom->TargetArmLength + LookingDistance);
 	
 	FHitResult Hit;
-	
 	bool bHit = GetWorld()->LineTraceSingleByChannel(
 		Hit,
 		StartLocation,
@@ -155,7 +165,6 @@ void ATimeThiefPlayerCharacter::CheckInteractableObject()
 				CurrentLookingActor = InteractionActor;
 				CurrentLookingActor->SetVisibilityInteractionUI(true);
 			}
-			
 			return;
 		}
 	}

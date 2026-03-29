@@ -1,4 +1,4 @@
-﻿#include "Components/Wire/TimeThiefWirePhysics.h"
+#include "Components/Wire/TimeThiefWirePhysics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Character.h"
 

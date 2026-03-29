@@ -22,6 +22,9 @@ public:
 	ATimeThiefRocketProjectile();
 
 	void InitializeProjectile(AActor* InOwnerActor, APawn* InInstigatorPawn);
+	void ActivateProjectile(const FTransform& SpawnTransform);
+	void DeactivateProjectile();
+	bool IsActive() const { return !bExploded; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -89,8 +92,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Effects")
 	TObjectPtr<USoundBase> FlightLoopSound;
 
-	
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Debug", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ExplosionDebugDuration = 1.5f;
 
@@ -103,5 +104,3 @@ private:
 	TWeakObjectPtr<AActor> CachedOwnerActor;
 	TWeakObjectPtr<APawn> CachedInstigatorPawn;
 };
-
-

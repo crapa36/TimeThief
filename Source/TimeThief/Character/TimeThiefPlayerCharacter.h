@@ -53,6 +53,7 @@ public:
 	FOnVicinityItemUpdatedEvent OnVicinityItemUpdatedEvent;
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void PawnClientRestart() override;
 	virtual void BeginPlay() override;
 
 	void OnPawnDataSet();

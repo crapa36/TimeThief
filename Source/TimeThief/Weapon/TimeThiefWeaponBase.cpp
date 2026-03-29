@@ -59,18 +59,19 @@ void ATimeThiefWeaponBase::StartFire()
 	}
 
 	bIsFiring = true;
+
 	if (UWorld* World = GetWorld())
 	{
 		const float CurrentTime = World->GetTimeSeconds();
-		const float InitialDelay = FMath::Max(0.0f, NextAllowedFireTime - CurrentTime);
+		const float Delay = FMath::Max(0.0f, NextAllowedFireTime - CurrentTime);
 
-		if (InitialDelay <= KINDA_SMALL_NUMBER)
+		if (Delay <= KINDA_SMALL_NUMBER)
 		{
 			HandleAutoFireShot();
 		}
 		else
 		{
-			ScheduleAutoFireShot(InitialDelay);
+			World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &ATimeThiefWeaponBase::HandleAutoFireShot, Delay, false);
 		}
 	}
 }
@@ -152,13 +153,7 @@ FVector ATimeThiefWeaponBase::GetMuzzleLocation() const
 
 void ATimeThiefWeaponBase::HandleAutoFireShot()
 {
-	UWorld* World = GetWorld();
-	if (!World || !bIsFiring)
-	{
-		return;
-	}
-
-	if (!CanFire())
+	if (!bIsFiring || !CanFire())
 	{
 		StopFiringLoop();
 		if (CurrentAmmo <= 0)
@@ -168,36 +163,30 @@ void ATimeThiefWeaponBase::HandleAutoFireShot()
 		return;
 	}
 
-	const float CurrentTime = World->GetTimeSeconds();
-	const float RemainingDelay = NextAllowedFireTime - CurrentTime;
-	if (RemainingDelay > KINDA_SMALL_NUMBER)
-	{
-		ScheduleAutoFireShot(RemainingDelay);
-		return;
-	}
-
 	CurrentAmmo--;
 	NotifyAmmoChanged();
 
 	ExecuteFireShot();
 	ApplyRecoilAndSpread();
 
-
-	const float FireInterval = GetFireInterval();
-	NextAllowedFireTime = CurrentTime + FireInterval;
+	if (UWorld* World = GetWorld())
+	{
+		NextAllowedFireTime = World->GetTimeSeconds() + GetFireInterval();
+	}
 
 	if (CurrentAmmo <= 0)
 	{
 		StopFiringLoop();
 		Reload();
-		return;
 	}
-
-	if (bIsFiring && bWantsToFire && CanFire())
+	else if (bWantsToFire)
 	{
-		ScheduleAutoFireShot(FireInterval);
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &ATimeThiefWeaponBase::HandleAutoFireShot, GetFireInterval(), false);
+		}
 	}
-	else if (!bWantsToFire)
+	else
 	{
 		StopFiringLoop();
 	}
@@ -209,26 +198,6 @@ void ATimeThiefWeaponBase::StopFiringLoop()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
-	}
-}
-
-void ATimeThiefWeaponBase::ScheduleAutoFireShot(float Delay)
-{
-	if (!bIsFiring || !bWantsToFire)
-	{
-		return;
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
-		World->GetTimerManager().SetTimer(
-			AutoFireTimerHandle,
-			this,
-			&ATimeThiefWeaponBase::HandleAutoFireShot,
-			FMath::Max(0.0f, Delay),
-			false
-		);
 	}
 }
 
