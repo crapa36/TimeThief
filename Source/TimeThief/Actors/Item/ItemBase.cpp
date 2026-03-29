@@ -18,7 +18,7 @@ AItemBase::AItemBase()
 	
 	LookingSphere = CreateDefaultSubobject<USphereComponent>("LookingSphere");
 	LookingSphere->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
-	LookingSphere->SetupAttachment(LookingSphere);
+	LookingSphere->SetupAttachment(RootComponent);
 }
 
 // Called when the game starts or when spawned
