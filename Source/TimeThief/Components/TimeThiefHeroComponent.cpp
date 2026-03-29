@@ -87,16 +87,26 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 
 	const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
 
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move);
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Completed, this, &ThisClass::Input_MoveCompleted);
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this, &ThisClass::Input_Look);
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this, &ThisClass::Input_Jump);
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_TogglePerspective, ETriggerEvent::Started, this, &ThisClass::Input_TogglePerspective);
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this, &ThisClass::Input_ToggleMinimap);
-	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Interact, ETriggerEvent::Started, this, &ThisClass::Input_Interact);
-	
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Triggered, this,
+	                              &ThisClass::Input_Move);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Move, ETriggerEvent::Completed, this,
+	                              &ThisClass::Input_MoveCompleted);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Look, ETriggerEvent::Triggered, this,
+	                              &ThisClass::Input_Look);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Jump, ETriggerEvent::Started, this,
+	                              &ThisClass::Input_Jump);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_TogglePerspective, ETriggerEvent::Started,
+	                              this, &ThisClass::Input_TogglePerspective);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this,
+	                              &ThisClass::Input_ToggleMinimap);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Interact, ETriggerEvent::Started, this,
+	                              &ThisClass::Input_Interact);
+	TimeThiefIC->BindNativeAction(InputConfig, GameplayTags.InputTag_Action_Inventory, ETriggerEvent::Started, this,
+	                              &ThisClass::Input_ToggleInventory);
+
 	TArray<uint32> BindHandles;
-	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
+	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed,
+	                                &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
 	bReadyToBindInputs = true;
 	bInputsReady = true;
@@ -113,7 +123,8 @@ void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext*
 
 	if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
+			UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(MappingContext, Priority);
 		}
@@ -129,7 +140,8 @@ void UTimeThiefHeroComponent::RemoveInputMappingContext(const UInputMappingConte
 
 	if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
 	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
+			UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 		{
 			Subsystem->RemoveMappingContext(MappingContext);
 		}
@@ -209,9 +221,9 @@ void UTimeThiefHeroComponent::Input_ToggleMinimap(const FInputActionValue& Value
 {
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 	{
-		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController> (Player->GetController()))
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 		{
-			PC->ToggleMinimap();
+			PC->ToggleWidget(EWidgetType::Minimap);
 		}
 	}
 }
@@ -224,13 +236,24 @@ void UTimeThiefHeroComponent::Input_Interact(const FInputActionValue& Value)
 	}
 }
 
+void UTimeThiefHeroComponent::Input_ToggleInventory(const FInputActionValue& Value)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
+		{
+			PC->ToggleWidget(EWidgetType::Inventory);
+		}
+	}
+}
+
 void UTimeThiefHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
 	if (CachedCombatComponent)
 	{
 		CachedCombatComponent->HandleInputPressed(InputTag);
 	}
-	
+
 	if (CachedWireComponent)
 	{
 		CachedWireComponent->HandleInputPressed(InputTag);

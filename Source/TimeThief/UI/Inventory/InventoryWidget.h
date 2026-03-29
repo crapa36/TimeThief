@@ -7,6 +7,7 @@
 #include "InventoryWidget.generated.h"
 
 
+class UVerticalBox;
 class UListView;
 class ATimeThiefPlayerCharacter;
 /**
@@ -23,6 +24,9 @@ class TIMETHIEF_API UInventoryWidget : public UUserWidget
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UListView> Inventory_ListView;
 	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UVerticalBox> Vicinity_VerticalBox;
+	
 	UPROPERTY()
 	TWeakObjectPtr<ATimeThiefPlayerCharacter> Player;
 
@@ -32,6 +36,8 @@ protected:
 	void OnInventoryItemUpdated();
 	
 public:
+	virtual void SetVisibility(ESlateVisibility InVisibility) override;
+	
 	UFUNCTION(BlueprintCallable)
 	void Init(ATimeThiefPlayerCharacter* InPlayer);
 };

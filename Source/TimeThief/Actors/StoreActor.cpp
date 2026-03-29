@@ -35,7 +35,7 @@ void AStoreActor::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 	{
 		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 		{
-			PC->SetStoreVisibility(false);
+			PC->SetVisibilityWidget(EWidgetType::Store, false);
 		}
 	}
 }
@@ -44,6 +44,6 @@ void AStoreActor::Interact(const ATimeThiefPlayerCharacter* Player)
 {
 	if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 	{
-		PC->SetStoreVisibility(true);
+		PC->ToggleWidget(EWidgetType::Store);
 	}
 }
