@@ -28,6 +28,8 @@ public:
 protected:
 	virtual void OnSlotClicked() override;
 
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	
 private:
 	void OnInventoryObjectUpdated();
 

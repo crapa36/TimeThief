@@ -41,14 +41,27 @@ void UInventoryItemEntryWidget::OnSlotClicked()
 	}
 }
 
+FReply UInventoryItemEntryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
+	const FPointerEvent& InMouseEvent)
+{
+	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
+		{
+			Player->GetInventoryComponent()->SetEquipment(ItemID);
+			return FReply::Handled();
+		}
+	}
+	
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
 void UInventoryItemEntryWidget::OnInventoryObjectUpdated()
 {
 	if (Item.IsValid())
 	{
 		ItemQuantity_Text->SetText(FText::AsNumber(Item->Quantity));
 	}
-	
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Item Updated: %d"), Item->Quantity));
 }
 
 void UInventoryItemEntryWidget::BindItem(UInventoryObject* InItem)

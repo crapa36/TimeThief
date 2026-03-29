@@ -23,6 +23,7 @@ public:
 };
 
 DECLARE_MULTICAST_DELEGATE(FOnInventoryUpdatedEvent);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnEquipmentUpadatedEvent, EItemID);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UInventorySystemComponent : public UActorComponent
@@ -34,7 +35,9 @@ public:
 	UInventorySystemComponent();
 
 	FOnInventoryUpdatedEvent OnInventoryUpdatedEvent;
-
+	FOnEquipmentUpadatedEvent OnConsumableEquipmentUpdatedEvent;
+	FOnEquipmentUpadatedEvent OnThrowableEquipmentUpdatedEvent;
+	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -46,18 +49,20 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
-	void AddItem(EItemID Item, int Amount = 1);
-	bool RemoveItem(EItemID Item, int Amount = 1);
+	void AddItem(EItemID ItemID, int Amount = 1);
+	bool RemoveItem(EItemID ItemID, int Amount = 1);
 
 	const TArray<TObjectPtr<UInventoryObject>>& GetInventory() const { return ItemQuantities; }
 
-	void SetEquipment(EItemID Item) { Equipment = Item; }
-	EItemID GetEquipment() const { return Equipment; }
-
+	void SetEquipment(EItemID ItemID);
+	
 private:
+	void SetConsumableEquipment(EItemID ItemID);
+	void SetThrowableEquipment(EItemID ItemID);
+	
 	UPROPERTY()
 	TArray<TObjectPtr<UInventoryObject>> ItemQuantities;
-
-	UPROPERTY()
-	EItemID Equipment;
+	
+	EItemID ConsumableEquipment = EItemID::SIZE;
+	EItemID ThrowableEquipment = EItemID::SIZE;
 };

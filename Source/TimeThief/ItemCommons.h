@@ -6,7 +6,8 @@ enum class EItemCategory : uint8
 	WeaponUpgrade UMETA(DisplayName = "Weapon Upgrade"),
 	CharacterUpgrade UMETA(DisplayName = "Character Upgrade"),
 	Skill UMETA(DisplayName = "Skill"),
-	Consumable UMETA(DisplayName = "Consumable")
+	Consumable UMETA(DisplayName = "Consumable"),
+	Throwable UMETA(DisplayName = "Throwable"),
 };
 
 UENUM(BlueprintType)
