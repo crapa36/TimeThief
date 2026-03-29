@@ -16,13 +16,11 @@ AInteractionActorBase::AInteractionActorBase()
 	PrimaryActorTick.bCanEverTick = true;
 	
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("MeshComponent");
+	MeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
 	SetRootComponent(MeshComponent);
 	
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>("InteractionSphere");
 	InteractionSphere->SetupAttachment(RootComponent);
-	InteractionSphere->SetHiddenInGame(false);
-	InteractionSphere->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
-	
 	InteractionSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnBeginOverlap);
 	InteractionSphere->OnComponentEndOverlap.AddUniqueDynamic(this, &ThisClass::OnEndOverlap);
 	
@@ -30,6 +28,7 @@ AInteractionActorBase::AInteractionActorBase()
 	InteractionWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	InteractionWidgetComponent->SetupAttachment(RootComponent);
 	InteractionWidgetComponent->SetVisibility(false);
+	InteractionWidgetComponent->SetDrawAtDesiredSize(true);
 }
 
 // Called when the game starts or when spawned

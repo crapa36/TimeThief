@@ -5,8 +5,9 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
-class UInventorySystemComponent;
 class AInteractionActorBase;
+class UInventorySystemComponent;
+class AItemBase;
 class AStoreActor;
 class USpringArmComponent;
 class UCameraComponent;
@@ -15,6 +16,8 @@ class UTimeThiefPlayerCombatComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
+
+DECLARE_MULTICAST_DELEGATE(FOnVicinityItemUpdatedEvent);
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefNetworkCharacterBase {
@@ -43,9 +46,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	
-	void AddNearInteractionActor(AInteractionActorBase* InteractionActor);
-	void RemoveNearInteractionActor(AInteractionActorBase* InteractionActor);
+	void AddVicinityItem(AItemBase* Item);
+	void RemoveVicinityItem(AItemBase* Item);
+	const TArray<TObjectPtr<AItemBase>>& GetVicinityItems() const { return VicinityItem; }
 	
+	FOnVicinityItemUpdatedEvent OnVicinityItemUpdatedEvent;
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
@@ -83,13 +88,13 @@ protected:
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
 	
 	UPROPERTY()
-	TArray<TWeakObjectPtr<AInteractionActorBase>> NearInteractionActors;
+	TArray<TObjectPtr<AItemBase>> VicinityItem;
 	
 	UPROPERTY()
 	TWeakObjectPtr<AInteractionActorBase> CurrentLookingActor;
 	
 	UPROPERTY(EditDefaultsOnly)
-	float LookingDistance = 250.f;
+	float LookingDistance = 50.f;
 	
 	FTimerHandle InteractCheckTimerHandle;
 private:

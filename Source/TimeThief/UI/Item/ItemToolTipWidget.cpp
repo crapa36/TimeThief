@@ -21,13 +21,14 @@ void UItemToolTipWidget::SetupToolTip(EItemID InItemID)
 
 	if (UGameItemData* LoadedData = ItemSettings->ItemData.LoadSynchronous())
 	{
-		ItemName_Text->SetText(FText::FromString(LoadedData->StoreItems[InItemID].Name));
-		ItemDesc_Text->SetText(FText::FromString(LoadedData->StoreItems[InItemID].Description));
+		ItemName_Text->SetText(FText::FromString(LoadedData->Items[InItemID].Name));
+		ItemDesc_Text->SetText(FText::FromString(
+		LoadedData->Items[InItemID].Description.ReplaceEscapedCharWithChar()));
 
-		Item_Image->SetBrushFromTexture(LoadedData->StoreItems[InItemID].Icon);
+		Item_Image->SetBrushFromTexture(LoadedData->Items[InItemID].Icon);
 
-		CategoryName_Text->SetText(FText::FromString(CategoryNameMap[LoadedData->StoreItems[InItemID].Category]));
+		CategoryName_Text->SetText(FText::FromString(CategoryNameMap[LoadedData->Items[InItemID].Category]));
 		
-		Stat_Text->SetText(FText::FromString(LoadedData->StoreItems[InItemID].Stat));
+		Stat_Text->SetText(FText::FromString(LoadedData->Items[InItemID].Stat));
 	}
 }

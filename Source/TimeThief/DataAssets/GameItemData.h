@@ -46,5 +46,5 @@ public:
 	UGameItemData();
 	
 	UPROPERTY(EditAnywhere)
-	TMap<EItemID, FItemData> StoreItems;
+	TMap<EItemID, FItemData> Items;
 };

@@ -3,6 +3,8 @@
 
 #include "InventorySystemComponent.h"
 
+#include "DataAssets/GameItemData.h"
+#include "Game/ItemSettings.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 
@@ -12,11 +14,6 @@ UInventorySystemComponent::UInventorySystemComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	for (EItemID Item : TEnumRange<EItemID>())
-	{
-		ItemQuantities.Add(Item, 0);
-	}
 }
 
 
@@ -27,6 +24,24 @@ void UInventorySystemComponent::BeginPlay()
 
 	// ...
 	
+}
+
+void UInventorySystemComponent::OnRegister()
+{
+	Super::OnRegister();
+	
+	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
+	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	{
+		for (EItemID ItemID : TEnumRange<EItemID>())
+		{
+			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+			{
+				ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
+				ItemQuantities.Last()->ItemID = ItemID;
+			}
+		}
+	}
 }
 
 
@@ -41,14 +56,42 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 
 void UInventorySystemComponent::AddItem(EItemID Item, int Amount)
 {
-	ItemQuantities[Item] += Amount;
+	int Index = static_cast<int>(Item) - static_cast<int>(EItemID::SmallPotion);
+	
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Index %d"), Index));
+
+	
+	if (Index < 0 || Index >= ItemQuantities.Num())
+	{
+		return;
+	}
+	int PrevQuantity = ItemQuantities[Index]->Quantity;
+	
+	ItemQuantities[Index]->Quantity += Amount;
+	ItemQuantities[Index]->OnInventoryObjectUpdatedEvent.Broadcast();
+	
+	if (PrevQuantity == 0)
+	{
+		OnInventoryUpdatedEvent.Broadcast();
+	}
 }
 
 bool UInventorySystemComponent::RemoveItem(EItemID Item, int Amount)
 {
-	if (ItemQuantities[Item] >= Amount)
+	int Index = static_cast<int>(Item) - static_cast<int>(EItemID::SmallPotion);
+	if (Index < 0 || Index >= ItemQuantities.Num())
 	{
-		ItemQuantities[Item] -= Amount;
+		return false;
+	}
+	
+	if (ItemQuantities[Index]->Quantity >= Amount)
+	{
+		ItemQuantities[Index]->Quantity -= Amount;
+		ItemQuantities[Index]->OnInventoryObjectUpdatedEvent.Broadcast();
+		if (ItemQuantities[Index]->Quantity == 0)
+		{
+			OnInventoryUpdatedEvent.Broadcast();
+		}
 		return true;
 	}
 	
