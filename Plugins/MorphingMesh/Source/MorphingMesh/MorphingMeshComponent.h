@@ -14,8 +14,9 @@ UENUM(BlueprintType)
 enum class EMorphTargetType : uint8
 {
 	A = 0 UMETA(DisplayName = "Morph Target A"),
-	B = 1 UMETA(DisplayName = "Morph Target B"),
-	C = 2 UMETA(DisplayName = "Morph Target C")
+	B UMETA(DisplayName = "Morph Target B"),
+	C UMETA(DisplayName = "Morph Target C"),
+	None
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
