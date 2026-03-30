@@ -7,7 +7,9 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "ItemCommons.h"
+#include "NiagaraComponent.h"
 #include "TimeThiefPlayerState.h"
+#include "ViewportInteractionTypes.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
@@ -43,6 +45,9 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	bIsFirstPerson = false;
 	
 	TimePointSystemComponent = CreateDefaultSubobject<UTimePointSystemComponent>(TEXT("TimePointSystemComponent"));
+	
+	DisappearFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DisappearFX"));
+	DisappearFX->SetupAttachment(GetMesh());
 }
 
 bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
@@ -78,9 +83,32 @@ bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
 	return false;
 }
 
+void ATimeThiefCharacterBase::SetMask(float NewMask)
+{
+	Mask = std::clamp(NewMask, 0.2f, 1.f);
+	
+	UpdateMask();
+}
+
+void ATimeThiefCharacterBase::AddMask(float Amount)
+{
+	Mask = std::clamp(Mask + Amount, 0.2f, 1.f);
+	
+	UpdateMask();
+}
+
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	const auto& Materials = GetMesh()->GetMaterials();
+	for (int i = 0;i < Materials.Num(); ++i)
+	{
+		if (UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Materials[i], this))
+		{
+			GetMesh()->SetMaterial(i, MID);
+		}
+	}
 }
 
 void ATimeThiefCharacterBase::OnPlayerInitialized()
@@ -137,6 +165,19 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 
 	bUseControllerRotationYaw = bIsFirstPerson;
 	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
+}
+
+void ATimeThiefCharacterBase::UpdateMask()
+{
+	for (auto Material : GetMesh()->GetMaterials())
+	{
+		if (UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(Material))
+		{
+			MID->SetScalarParameterValue(FName("Mask"), Mask);
+		}
+	}
+	
+	DisappearFX->SetVariableFloat(FName("User.Mask"), Mask);
 }
 
 void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate)

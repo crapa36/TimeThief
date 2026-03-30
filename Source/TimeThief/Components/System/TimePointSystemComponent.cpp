@@ -4,6 +4,7 @@
 #include "TimePointSystemComponent.h"
 
 #include "TimeStormComponent.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "Game/TimeThiefGameState.h"
 
 
@@ -46,7 +47,22 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		
 			if (FVector::DistSquaredXY(FVector{Center,0}, GetOwner()->GetActorLocation()) >= Radius * Radius)
 			{
-				TimePoints -= DeltaTime * TimePointsGainPerSecond * 2;
+				TimePoints -= DeltaTime * TimePointsGainPerSecond * 2 * (static_cast<int>(DamagedElapsedTime) / 10 + 1);
+				DamagedElapsedTime += DeltaTime;
+				RecoveredElapsedTime = 0;
+				if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+				{
+					float Mask = 1 - DamagedElapsedTime / 50.0f * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold;
+					Character->SetMask(std::clamp(Mask, 0.2f, 1.f));
+				}
+			}
+			else
+			{
+				DamagedElapsedTime = 0;
+				if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+				{
+					Character->AddMask(DeltaTime * std::max(TimePoints, 0.f) / DangerThreshold);
+				}
 			}
 		}
 	}

@@ -15,6 +15,7 @@ struct FStoreOrder;
 
 class UAnimMontage;
 class UAnimSequenceBase;
+class UNiagaraComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
@@ -25,6 +26,11 @@ public:
 	ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	bool PurchaseItem(const FStoreOrder& Order);
+	
+	UFUNCTION(BlueprintCallable)
+	void SetMask(float NewMask);
+	
+	void AddMask(float Amount);
 	
 	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const { return nullptr; }
 
@@ -91,13 +97,20 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
-
+	
+	UPROPERTY(EditDefaultsOnly, Category = "VFX")
+	TObjectPtr<UNiagaraComponent> DisappearFX;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tags")
 	FGameplayTagContainer OwnedGameplayTags;
-
+	
+	float Mask = 1;
+	
 private:
 	void ApplyPerspective();
+	
+	void UpdateMask();
 };

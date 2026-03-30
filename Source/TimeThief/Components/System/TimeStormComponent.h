@@ -29,6 +29,9 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 	UFUNCTION(BlueprintCallable)
+	void ReStart();
+	
+	UFUNCTION(BlueprintCallable)
 	void StartShrinkingStormZone(const FVector2D& InDestCenter, float InDestRadius);
 	
 	UFUNCTION(BlueprintCallable)

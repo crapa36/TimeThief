@@ -99,20 +99,25 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 		return;
 	}
 	
-
-	MeshType = NewType;
-	
-	int Index = static_cast<int>(MeshType);
-	
-	DestAlpha = FVector3f::ZeroVector;
-	DestAlpha[Index] = 1.0f;
-	
-	PrevAlpha = CurrAlpha;
-	
-	MorphingTime = MaxMorphingTime * (1 - CurrAlpha[Index]);
 	ElapsedTime = 0;
+	int Index = static_cast<int>(NewType);
+	DestAlpha = FVector3f::ZeroVector;
 	
-	BaseMeshComponent->SetStaticMesh(MorphingMeshData->GetBaseMeshes()[Index]);
+	if (NewType == EMorphTargetType::None)
+	{
+		MorphingTime = MaxMorphingTime;
+		BaseMeshComponent->SetStaticMesh(nullptr);
+	}
+	else
+	{
+		DestAlpha[Index] = 1.0f;
+		
+		MorphingTime = MaxMorphingTime * (1 - CurrAlpha[Index]);
+		BaseMeshComponent->SetStaticMesh(MorphingMeshData->GetBaseMeshes()[Index]);
+	}
+	
+	MeshType = NewType;
+	PrevAlpha = CurrAlpha;
 	
 	BaseMeshComponent->SetVisibility(false);
 	LiquidMeshComponent->bRenderingEnable = true;
