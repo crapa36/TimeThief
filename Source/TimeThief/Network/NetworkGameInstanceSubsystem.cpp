@@ -937,7 +937,7 @@ void UNetworkGameInstanceSubsystem::InitializeSpawnedPawnData(AActor* Actor)
 	
 	PlayerCharacter->SetPawnData(PawnData);
 	
-	UE_LOG(LogTemp, Warning, TEXT("[Network] InitializeSpawnedPawnData: Set PawnData=%s on %s"),
+	UE_LOG(LogTemp, Log, TEXT("[Network] InitializeSpawnedPawnData: Set PawnData=%s on %s"),
 		*GetNameSafe(PawnData),
 		*GetNameSafe(PlayerCharacter));
 }

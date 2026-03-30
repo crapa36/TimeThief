@@ -14,7 +14,7 @@ void UNTCheatManager::EnterMatchQueue()
 {
 	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
 	{
-		NGIS->RequestEnterRoom();
+		NGIS->RequestMatchQueueEnter();
 	}
 }
 
@@ -22,7 +22,7 @@ void UNTCheatManager::CancelMatchQueue()
 {
 	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
 	{
-		NGIS->RequestLeaveRoom();
+		NGIS->RequestMatchQueueCancel();
 	}
 }
 
