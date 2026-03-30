@@ -5,8 +5,9 @@
 #include "MorphingMeshData.h"
 #include "Core/LiquidMeshComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Materials/MaterialInstanceDynamic.h"
-UStaticMeshComponent;
+
 // Sets default values for this component's properties
 UMorphingMeshComponent::UMorphingMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super{ObjectInitializer}
@@ -26,9 +27,12 @@ UMorphingMeshComponent::UMorphingMeshComponent(const FObjectInitializer& ObjectI
 	
 	LiquidMeshComponent = CreateDefaultSubobject<ULiquidMeshComponent>("LiquidMeshComponent");
 	LiquidMeshComponent->SetupAttachment(this);
+	LiquidMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	BaseMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("BaseMeshComponent");
 	BaseMeshComponent->SetupAttachment(this);
+	BaseMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BaseMeshComponent->SetStaticMesh(nullptr);
 	BaseMeshComponent->SetVisibility(false);
 }
 
@@ -37,11 +41,6 @@ UMorphingMeshComponent::UMorphingMeshComponent(const FObjectInitializer& ObjectI
 void UMorphingMeshComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (MorphingMeshData->IsValid())
-	{
-		BaseMeshComponent->SetStaticMesh(MorphingMeshData->GetBaseMeshes()[0]);
-	}
 	
 	if (UMaterialInstanceDynamic* DynMaterial = UMaterialInstanceDynamic::Create(LiquidMaterial, this))
 	{
@@ -50,6 +49,8 @@ void UMorphingMeshComponent::BeginPlay()
 			DynMaterial->SetVectorParameterValue(FName{FString::Printf(TEXT("Min %d"), i + 1)}, MorphingMeshData->GetBounds()[i].Min);
 			DynMaterial->SetVectorParameterValue(FName{FString::Printf(TEXT("Size %d"), i + 1)}, MorphingMeshData->GetBounds()[i].GetSize());
 			DynMaterial->SetTextureParameterValue(FName{FString::Printf(TEXT("UV Volume Texture %d"), i + 1)}, MorphingMeshData->GetUVVolumeTextures()[i]);
+			
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UV Volume Texture %d"), i + 1));
 		}
 		
 		DynMaterial->SetVectorParameterValue(FName{"Alpha"}, FVector{1,0,0});
