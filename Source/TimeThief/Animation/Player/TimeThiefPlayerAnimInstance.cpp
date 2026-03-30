@@ -181,12 +181,13 @@ void UTimeThiefPlayerAnimInstance::UpdateSpreadAndRecoil(float DeltaSeconds) {
 
 void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
 	if (!PlayerCharacter) {
-		AimPitch = 0.0f;
-		AimDirection = FVector::ForwardVector;
-		WorldAimLocation = FVector::ZeroVector;
 		return;
 	}
-
+	if (!PlayerCharacter->IsLocallyControlled()) {
+		AimPitch = PlayerCharacter->GetNetworkPitch();
+		AimDirection = FRotator(AimPitch, PlayerCharacter->GetNetworkYaw(), 0.0f).Vector();
+		return;
+	}
 	FVector CameraLocation = FVector::ZeroVector;
 	FRotator CameraRotation = PlayerCharacter->GetControlRotation();
 
