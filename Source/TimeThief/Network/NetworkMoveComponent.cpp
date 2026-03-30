@@ -10,6 +10,21 @@
 #include "Network/State/NetworkEntityState.h"
 #include "Network/State/MoveSyncData.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
+
+class FTimeThiefMovementAccessor : public UCharacterMovementComponent
+{
+public:
+	static void SetAcceleration(UCharacterMovementComponent* TargetCMC, const FVector& NewAccel)
+	{
+		if (TargetCMC)
+		{
+			static_cast<FTimeThiefMovementAccessor*>(TargetCMC)->Acceleration = NewAccel;
+		}
+	}
+};
 
 // Sets default values for this component's properties
 UNetworkMoveComponent::UNetworkMoveComponent()
@@ -237,7 +252,14 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 {
 	AActor* Owner = GetOwner();
 	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
-	if (Owner == nullptr || Movable == nullptr)
+	ACharacter* Character = Cast<ACharacter>(Owner);
+	if (Owner == nullptr || Movable == nullptr || Character == nullptr)
+	{
+		return;
+	}
+
+	UCharacterMovementComponent* CMC = Character->GetCharacterMovement();
+	if (CMC == nullptr)
 	{
 		return;
 	}
@@ -263,6 +285,18 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	if (DeltaTime > 0.0f)
 	{
 		MoveStep = (NewPosition - CurrentPosition) / DeltaTime;
+		
+		CMC->Velocity = MoveStep;
+		
+		if (!MoveStep.IsNearlyZero())
+		{
+			FTimeThiefMovementAccessor::SetAcceleration(CMC, MoveStep.GetSafeNormal() * CMC->GetMaxAcceleration());
+		}
+		else
+		{
+			FTimeThiefMovementAccessor::SetAcceleration(CMC, FVector::ZeroVector);
+		}
+
 		Movable->SetNetworkLocation(NewPosition);
 	}
 	
@@ -283,6 +317,7 @@ void UNetworkMoveComponent::SnapToTarget()
 {
 	AActor* Owner = GetOwner();
 	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
+	ACharacter* Character = Cast<ACharacter>(Owner);
 	if (Owner == nullptr || Movable == nullptr)
 	{
 		return;
@@ -292,6 +327,12 @@ void UNetworkMoveComponent::SnapToTarget()
 	Movable->SetNetworkYaw(TargetYaw);
 	Movable->SetNetworkPitch(TargetPitch);
 	Movable->SetNetworkSpeed(TargetSpeed);
+	
+	if (Character && Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		FTimeThiefMovementAccessor::SetAcceleration(Character->GetCharacterMovement(), FVector::ZeroVector);
+	}
 }
 
 bool UNetworkMoveComponent::CanSendMovePacket() const
