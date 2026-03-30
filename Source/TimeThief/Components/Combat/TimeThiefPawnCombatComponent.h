@@ -5,34 +5,29 @@
 #include "GameplayTagContainer.h"
 #include "TimeThiefPawnCombatComponent.generated.h"
 
-class ATimeThiefWeaponBase;
+class ATimeThiefMasterWeapon;
+class UTimeThiefWeaponComponentBase;
 class UAnimMontage;
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnWeaponEquippedSignature, ATimeThiefWeaponBase*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnWeaponEquippedSignature, UTimeThiefWeaponComponentBase*);
 DECLARE_MULTICAST_DELEGATE(FOnWeaponUnequippedSignature);
 
-UCLASS()
+UCLASS(Blueprintable, ClassGroup = (TimeThief), meta = (BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensionComponent {
 	GENERATED_BODY()
 
 public:
-	UTimeThiefPawnCombatComponent();
+	UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	void RegisterSpawnedWeapon(FGameplayTag InWeaponTagToRegister, ATimeThiefWeaponBase* InWeaponToRegister, bool bRegisterAsEquippedWeapon = false);
+	virtual void EquipWeapon(FGameplayTag WeaponTag);
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	ATimeThiefWeaponBase* GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
+	virtual void UnequipCurrentWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	ATimeThiefWeaponBase* GetCharacterCurrentEquippedWeapon() const;
+	UTimeThiefWeaponComponentBase* GetCharacterCurrentEquippedWeapon() const;
 
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	void EquipWeapon(FGameplayTag WeaponTag);
-
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	void UnequipCurrentWeapon();
-	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual void HandleInputPressed(FGameplayTag InputTag);
 
@@ -40,10 +35,13 @@ public:
 	virtual void HandleInputReleased(FGameplayTag InputTag);
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	void AttachWeaponToSocket(ATimeThiefWeaponBase* Weapon);
+	void AttachMasterWeaponToCharacter(FName SocketName);
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	bool IsEquippingWeapon() const { return bIsEquippingWeapon; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
+	bool IsAiming() const { return bIsAiming; }
 
 	UPROPERTY(BlueprintReadWrite, Category = "TimeThief|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
@@ -51,12 +49,29 @@ public:
 	FOnWeaponEquippedSignature OnWeaponEquipped_Delegate;
 	FOnWeaponUnequippedSignature OnWeaponUnequipped_Delegate;
 
-protected:
-	UPROPERTY()
-	TMap<FGameplayTag, TObjectPtr<ATimeThiefWeaponBase>> CharacterCarriedWeaponMap;
+	virtual void Remote_SyncAimingState(bool bNewAiming);
+	virtual void Remote_SyncFireAction();
+	virtual void Remote_SyncAimLocation(const FVector& NewAimLocation);
 
-	UPROPERTY()
-	TObjectPtr<ATimeThiefWeaponBase> CurrentEquippedWeapon;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	virtual void OnEquipAnimFinished();
+	virtual void OnUnequipAnimFinished();
+
+protected:
+	virtual void BeginPlay() override;
+	virtual void OnEquipFinished();
+
+	void PlayFireMontage();
+	float PlayEquipMontage(UTimeThiefWeaponComponentBase* Weapon);
+	void ApplyCombatStateTag(FGameplayTag WeaponTag);
+	void RemoveCombatStateTag(FGameplayTag WeaponTag);
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	TSubclassOf<ATimeThiefMasterWeapon> MasterWeaponClass;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "TimeThief|Combat")
+	TObjectPtr<ATimeThiefMasterWeapon> MasterWeaponPtr;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TMap<FGameplayTag, FGameplayTag> WeaponToStateTagMap;
@@ -64,10 +79,17 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Combat")
 	bool bIsEquippingWeapon = false;
 
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Combat")
+	bool bIsAiming = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
+	UAnimMontage* FireMontage;
+
+	FVector TargetAimLocation;
+	FVector RemoteTargetAimLocation;
+
 	FTimerHandle EquipTimerHandle;
 
-	virtual void OnEquipFinished();
-	float PlayEquipMontage(ATimeThiefWeaponBase* Weapon);
-	void ApplyCombatStateTag(FGameplayTag WeaponTag);
-	void RemoveCombatStateTag(FGameplayTag WeaponTag);
+private:
+	void SpawnMasterWeapon();
 };

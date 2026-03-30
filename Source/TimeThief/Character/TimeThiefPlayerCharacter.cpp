@@ -6,16 +6,22 @@
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Character/TimeThiefPawnData.h"
-#include "CharacterTrajectoryComponent.h"
-#include "Actors/InteractionActorBase.h"
-#include "Components/System/InventorySystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
-#include "Net/UnrealNetwork.h"
+#include "Components/System/InventorySystemComponent.h"
+#include "CharacterTrajectoryComponent.h"
+#include "Input/TimeThiefInputComponent.h"
+#include "TimeThiefGameplayTags.h"
+#include "Actors/InteractionActorBase.h"
+#include "Character/TimeThiefPlayerController.h"
 #include "ChannelCommons.h"
+#include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Game/TimeThiefGameMode.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
+#include "Actors/Item/ItemBase.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer) {
-	
+	: Super(ObjectInitializer)
+{
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f;
@@ -24,7 +30,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
-	FollowCamera->bUsePawnControlRotation = false; 
+	FollowCamera->bUsePawnControlRotation = false;
 
 	HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
 	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
@@ -43,6 +49,101 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+
+	GetMesh()->SetOwnerNoSee(true);
+	GetMesh()->bCastHiddenShadow = true;
+
+	FirstPersonMesh->SetOnlyOwnerSee(true);
+	FirstPersonMesh->SetCastShadow(false);
+}
+
+void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData)
+{
+	check(InPawnData);
+
+	if (PawnData)
+	{
+		return;
+	}
+
+	PawnData = InPawnData;
+	OnPawnDataSet();
+}
+
+void ATimeThiefPlayerCharacter::OnPawnDataSet()
+{
+	if (HeroComponent && PawnData)
+	{
+		HeroComponent->CheckDefaultInitialization();
+		HeroComponent->SetPawnData(PawnData);
+		
+		if (InputComponent)
+		{
+			HeroComponent->InitializePlayerInput(InputComponent);
+		}
+	}
+
+	if (PawnData && PawnData->PawnTags.Num() > 0)
+	{
+		AppendOwnedGameplayTags(PawnData->PawnTags);
+	}
+}
+
+UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetCombatComponent() const
+{
+	return PlayerCombatComponent;
+}
+
+USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetWeaponAttachMesh() const
+{
+	return FirstPersonMesh;
+}
+
+USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetMontagePlaybackMesh() const
+{
+	return FirstPersonMesh;
+}
+
+void ATimeThiefPlayerCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
+	{
+		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
+	}
+
+	GetWorldTimerManager().SetTimer(
+		InteractCheckTimerHandle,
+		this,
+		&ATimeThiefPlayerCharacter::CheckInteractableObject,
+		0.1f,
+		true
+	);
+}
+
+void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+}
+
+void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		PawnExtComp->NotifyControllerChanged();
+	}
+}
+
+void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor)
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+	GetCharacterMovement()->DisableMovement();
 }
 
 void ATimeThiefPlayerCharacter::OnInteract()
@@ -51,82 +152,6 @@ void ATimeThiefPlayerCharacter::OnInteract()
 	{
 		CurrentLookingActor->Interact(this);
 	}
-}
-
-void ATimeThiefPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ATimeThiefPlayerCharacter, PawnData);
-}
-
-void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData) {
-	check(InPawnData);
-
-	if (PawnData) {
-		return;
-	}
-
-	PawnData = InPawnData;
-	OnPawnDataSet();
-}
-
-void ATimeThiefPlayerCharacter::OnPawnDataSet() {
-	if (HeroComponent && PawnData) {
-		HeroComponent->SetPawnData(PawnData);
-		
-		if (InputComponent) {
-			HeroComponent->InitializePlayerInput(InputComponent);
-		}
-	}
-
-	if (PawnData && PawnData->PawnTags.Num() > 0) {
-		AppendOwnedGameplayTags(PawnData->PawnTags);
-	}
-}
-
-void ATimeThiefPlayerCharacter::OnRep_PawnData() {
-	OnPawnDataSet();
-}
-
-UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetPawnCombatComponent() const {
-	return PlayerCombatComponent;
-}
-
-void ATimeThiefPlayerCharacter::BeginPlay() {
-	Super::BeginPlay();
-
-	if (UTimeThiefHealthComponent* Health = GetHealthComponent()) {
-		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
-	}
-
-	GetWorldTimerManager().SetTimer(
-		InteractCheckTimerHandle, 
-		this, 
-		&ATimeThiefPlayerCharacter::CheckInteractableObject, 
-		0.1f, 
-		true
-		);
-}
-
-void ATimeThiefPlayerCharacter::PawnClientRestart() {
-	Super::PawnClientRestart();
-
-	if (IsLocallyControlled() && bIsFirstPerson)
-	{
-		FollowCamera->SetActive(false);
-	}
-
-	if (HeroComponent)
-	{
-		HeroComponent->CheckDefaultInitialization();
-	}
-}
-
-void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor) {
-	if (APlayerController* PC = Cast<APlayerController>(GetController())) {
-		DisableInput(PC);
-	}
-	GetCharacterMovement()->DisableMovement();
 }
 
 void ATimeThiefPlayerCharacter::CheckInteractableObject()
@@ -192,10 +217,12 @@ void ATimeThiefPlayerCharacter::RemoveVicinityItem(AItemBase* Item)
 	}
 }
 
-void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
+void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (HeroComponent) {
+	if (HeroComponent)
+	{
 		HeroComponent->InitializePlayerInput(PlayerInputComponent);
 	}
 }

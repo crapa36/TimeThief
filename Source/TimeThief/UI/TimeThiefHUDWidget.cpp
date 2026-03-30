@@ -7,7 +7,7 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
-#include "Weapon/TimeThiefWeaponBase.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 void UTimeThiefHUDWidget::NativeConstruct()
 {
@@ -86,7 +86,7 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 		CachedCombatComponent->OnWeaponEquipped_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnWeaponEquipped);
 		CachedCombatComponent->OnWeaponUnequipped_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnWeaponUnequipped);
 
-		if (ATimeThiefWeaponBase* Weapon = CachedCombatComponent->GetCharacterCurrentEquippedWeapon())
+		if (UTimeThiefWeaponComponentBase* Weapon = CachedCombatComponent->GetCharacterCurrentEquippedWeapon())
 		{
 			OnWeaponEquipped(Weapon);
 		}
@@ -124,7 +124,7 @@ void UTimeThiefHUDWidget::HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo)
 	OnAmmoUpdated(CurrentAmmo, MaxAmmo, true);
 }
 
-void UTimeThiefHUDWidget::OnWeaponEquipped(ATimeThiefWeaponBase* Weapon)
+void UTimeThiefHUDWidget::OnWeaponEquipped(UTimeThiefWeaponComponentBase* Weapon)
 {
 	if (CachedWeapon.IsValid() && CachedWeapon.Get() != Weapon)
 	{

@@ -4,13 +4,16 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "TimeThief.h"
+#include "Character/TimeThiefPlayerCharacter.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Network/TestPlayer/NTCheatManager.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
-#include "UI/Minimap/MinimapWidget.h"
-#include "UI/Store/StoreWidget.h"
+#include "UI/Inventory/InventoryWidget.h"
+#include "Components/GameFrameworkComponentManager.h"
+#include "Game/TimeThiefGameMode.h"
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
 {
@@ -23,20 +26,6 @@ void ATimeThiefPlayerController::BeginPlay()
 
 	if (IsLocalPlayerController())
 	{
-		if (ShouldUseTouchControls())
-		{
-			MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
-
-			if (MobileControlsWidget)
-			{
-				MobileControlsWidget->AddToPlayerScreen(0);
-			}
-			else
-			{
-				UE_LOG(LogTimeThief, Error, TEXT("Could not spawn mobile controls widget."));
-			}
-		}
-
 		if (MainHUDWidgetClass)
 		{
 			MainHUDWidget = CreateWidget<UTimeThiefHUDWidget>(this, MainHUDWidgetClass);
@@ -45,15 +34,64 @@ void ATimeThiefPlayerController::BeginPlay()
 				MainHUDWidget->AddToViewport();
 			}
 		}
+
+		SubWidgets.SetNum(static_cast<int>(EWidgetType::SIZE));
 		
-		if (StoreWidgetClass)
+		for (auto& Pair : SubWidgetClassMap)
 		{
-			StoreWidget = CreateWidget<UStoreWidget>(this, StoreWidgetClass);
+			if (Pair.Value)
+			{
+				SubWidgets[static_cast<int>(Pair.Key)] = CreateWidget<UUserWidget>(this, Pair.Value);
+				SubWidgets[static_cast<int>(Pair.Key)]->AddToViewport(1);
+				SubWidgets[static_cast<int>(Pair.Key)]->SetVisibility(ESlateVisibility::Hidden);
+
+				if (Pair.Key == EWidgetType::Inventory)
+				{
+					if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(Pair.Key)]))
+					{
+						if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+						{
+							Inventory->Init(PlayerCharacter);
+						}
+					}
+				}
+			}
 		}
-		
-		if (MinimapWidgetClass)
+	}
+}
+
+void ATimeThiefPlayerController::SetPawn(APawn* InPawn)
+{
+	Super::SetPawn(InPawn);
+
+	if (IsLocalPlayerController())
+	{
+		if (SubWidgets.IsValidIndex(static_cast<int>(EWidgetType::Inventory)))
 		{
-			MinimapWidget = CreateWidget<UMinimapWidget>(this, MinimapWidgetClass);
+			if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(EWidgetType::Inventory)]))
+			{
+				if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
+				{
+					Inventory->Init(PlayerCharacter);
+				}
+				else
+				{
+					Inventory->Init(nullptr);
+				}
+			}
+		}
+	}
+}
+
+void ATimeThiefPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
+	{
+		if (ATimeThiefGameMode* GM = GetWorld()->GetAuthGameMode<ATimeThiefGameMode>())
+		{
+			PlayerCharacter->SetPawnData(GM->GetDefaultPawnData());
 		}
 	}
 }
@@ -70,64 +108,57 @@ void ATimeThiefPlayerController::SetupInputComponent()
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
+		}
+	}
+}
 
-			if (!ShouldUseTouchControls())
+
+void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
+{
+	if (!SubWidgets.IsValidIndex(static_cast<int>(WidgetType)))
+	{
+		return;
+	}
+
+	if (auto& TargetWidget = SubWidgets[static_cast<int>(WidgetType)])
+	{
+		if (TargetWidget->IsVisible())
+		{
+			TargetWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+		else
+		{
+			for (auto& Widget : SubWidgets)
 			{
-				for (UInputMappingContext* CurrentContext : MobileExcludedMappingContexts)
+				if (Widget == nullptr)
 				{
-					Subsystem->AddMappingContext(CurrentContext, 0);
+					continue;
+				}
+				if (Widget != TargetWidget)
+				{
+					if (Widget->IsVisible())
+					{
+						Widget->SetVisibility(ESlateVisibility::Hidden);
+					}
 				}
 			}
+			TargetWidget->SetVisibility(ESlateVisibility::Visible);
 		}
 	}
 }
 
-bool ATimeThiefPlayerController::ShouldUseTouchControls() const
+void ATimeThiefPlayerController::SetVisibilityWidget(EWidgetType WidgetType, bool bVisible)
 {
-	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
-}
+	if (!SubWidgets.IsValidIndex(static_cast<int>(WidgetType)))
+	{
+		return;
+	}
 
-void ATimeThiefPlayerController::ToggleMinimap()
-{
-	if (!MinimapWidget->IsInViewport())
+	if (auto& TargetWidget = SubWidgets[static_cast<int>(WidgetType)])
 	{
-		MinimapWidget->AddToViewport();
-	}
-	else
-	{
-		MinimapWidget->RemoveFromParent();
-	}
-}
-
-void ATimeThiefPlayerController::SetStoreVisibility(bool bVisible)
-{
-	if (bVisible)
-	{
-		if (!StoreWidget->IsInViewport())
+		if (bVisible != TargetWidget->IsVisible())
 		{
-			SetIgnoreLookInput(true);
-			
-			FInputModeGameAndUI InputMode;
-			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-			SetInputMode(InputMode);
-			bShowMouseCursor = true;
-			
-			int32 ViewportSizeX, ViewportSizeY;
-			GetViewportSize(ViewportSizeX, ViewportSizeY);
-			SetMouseLocation(ViewportSizeX / 2, ViewportSizeY / 2);
-			
-			StoreWidget->AddToViewport();
-		}
-	}
-	else
-	{
-		if (StoreWidget->IsInViewport())
-		{
-			StoreWidget->RemoveFromParent();
-			
-			SetIgnoreLookInput(false);
-			SetInputMode(FInputModeGameOnly{});
-			bShowMouseCursor = false;
+			ToggleWidget(WidgetType);
 		}
 	}
 }

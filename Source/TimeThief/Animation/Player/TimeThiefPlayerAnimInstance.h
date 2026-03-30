@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Animation/TimeThiefAnimInstance.h" 
+#include "Animation/TimeThiefAnimInstance.h"
 #include "GameplayTagContainer.h"
 #include "TimeThiefPlayerAnimInstance.generated.h"
 
 class ATimeThiefPlayerCharacter;
 class UCharacterTrajectoryComponent;
-class ATimeThiefWeaponBase;
+class UTimeThiefWeaponComponentBase;
 class UTimeThiefWireComponent;
 
 UCLASS()
@@ -34,7 +34,7 @@ protected:
 	TObjectPtr<UTimeThiefWireComponent> WireComponent;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
-	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
+	TObjectPtr<UTimeThiefWeaponComponentBase> CurrentWeapon;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FGameplayTag EquippedWeaponTag;
@@ -44,7 +44,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	FName LeftHandIKSocketName = FName("LeftHandIK");
-	
+
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	bool bHasWeapon = false;
 
@@ -56,9 +56,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
 	FVector WorldAimLocation = FVector::ZeroVector;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
-	bool bIsAiming = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	float AimSpreadMultiplier = 1.0f;

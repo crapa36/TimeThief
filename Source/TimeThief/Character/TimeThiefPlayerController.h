@@ -4,60 +4,55 @@
 #include "GameFramework/PlayerController.h"
 #include "TimeThiefPlayerController.generated.h"
 
-class UStoreWidget;
-class UMinimapWidget;
 class UInputMappingContext;
-class UUserWidget;
+class UTimeThiefInputConfig;
 class UTimeThiefHUDWidget;
+class UUserWidget;
 
-UCLASS(abstract)
+UENUM(BlueprintType)
+enum class EWidgetType : uint8 {
+	Inventory,
+	Store,
+	Minimap,
+	SIZE,
+	None
+};
+
+UCLASS()
 class TIMETHIEF_API ATimeThiefPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
-protected:
-	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")
-	TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;
-
-	UPROPERTY(EditAnywhere, Category="Input|Input Mappings")
-	TArray<TObjectPtr<UInputMappingContext>> MobileExcludedMappingContexts;
-
-	UPROPERTY(EditAnywhere, Category="Input|Touch Controls")
-	TSubclassOf<UUserWidget> MobileControlsWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UUserWidget> MobileControlsWidget;
-
-	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
-	bool bForceTouchControls = false;
-
-	UPROPERTY(EditAnywhere, Category = "UI|HUD")
-	TSubclassOf<UTimeThiefHUDWidget> MainHUDWidgetClass;
-	
-	UPROPERTY(EditAnywhere, Category = "UI|Minimap")
-	TSubclassOf<UMinimapWidget> MinimapWidgetClass;
-	
-	UPROPERTY(EditAnywhere, Category = "UI|Store")
-	TSubclassOf<UStoreWidget> StoreWidgetClass;
-	
-	UPROPERTY()
-	TObjectPtr<UTimeThiefHUDWidget> MainHUDWidget;
-	
-	UPROPERTY()
-	TObjectPtr<UMinimapWidget> MinimapWidget;
-	
-	UPROPERTY()
-	TObjectPtr<UStoreWidget> StoreWidget;
-	
+public:
 	ATimeThiefPlayerController();
-	
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|UI")
+	void ToggleWidget(EWidgetType WidgetType);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|UI")
+	void SetVisibilityWidget(EWidgetType WidgetType, bool bVisible);
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|UI")
+	UTimeThiefHUDWidget* GetHUDWidget() const { return MainHUDWidget; }
+
+protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void SetPawn(APawn* InPawn) override;
+	virtual void OnPossess(APawn* InPawn) override;
+	
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
+	TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;
+	
+	UPROPERTY(EditAnywhere, Category = "UI|HUD")
+	TSubclassOf<UTimeThiefHUDWidget> MainHUDWidgetClass;
 
-	bool ShouldUseTouchControls() const;
-	
-public:
-	void ToggleMinimap();
-	
-	void SetStoreVisibility(bool bVisible);
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TMap<EWidgetType, TSubclassOf<UUserWidget>> SubWidgetClassMap;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UUserWidget>> SubWidgets;
+
+	UPROPERTY()
+	TObjectPtr<UTimeThiefHUDWidget> MainHUDWidget;
 };

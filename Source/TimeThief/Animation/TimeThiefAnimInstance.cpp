@@ -1,6 +1,8 @@
 #include "TimeThiefAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Character/TimeThiefCharacterBase.h"
+#include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Network/MovableNetworkEntityInterface.h"
 
 UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer)
@@ -29,17 +31,30 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	// if (!CharacterOwner || !CharacterMovement)
-	if (!CharacterOwner || !MovableNetworkInterface || !CharacterMovement)
+	ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(TryGetPawnOwner());
+	if (!CharacterBase || !CharacterMovement)
 	{
 		return;
 	}
+	
+	if (MovableNetworkInterface.GetInterface())
+	{
+		Velocity = MovableNetworkInterface->GetNetworkVelocity();
+	}
+	else
+	{
+		Velocity = CharacterOwner->GetVelocity();
+	}
 
-	// Velocity = CharacterOwner->GetVelocity();
-	Velocity = MovableNetworkInterface->GetNetworkVelocity();
 	VerticalVelocity = Velocity.Z;
 	GroundSpeed = Velocity.Size2D();
 	bHasVelocity = !FMath::IsNearlyZero(GroundSpeed);
 	bIsFalling = CharacterMovement->IsFalling();
 	bIsMoving = bHasVelocity && !bIsFalling;
+
+	UTimeThiefPawnCombatComponent* CombatComp = CharacterBase->GetCombatComponent();
+	if (CombatComp)
+	{
+		bIsAiming = CombatComp->IsAiming();
+	}
 }

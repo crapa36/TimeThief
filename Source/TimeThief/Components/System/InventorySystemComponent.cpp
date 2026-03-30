@@ -23,19 +23,23 @@ void UInventorySystemComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
 }
 
 void UInventorySystemComponent::OnRegister()
 {
 	Super::OnRegister();
-	
+
 	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
 	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
 		for (EItemID ItemID : TEnumRange<EItemID>())
 		{
 			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+			{
+				ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
+				ItemQuantities.Last()->ItemID = ItemID;
+			}
+			else if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
 			{
 				ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
 				ItemQuantities.Last()->ItemID = ItemID;
@@ -54,36 +58,56 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	// ...
 }
 
-void UInventorySystemComponent::AddItem(EItemID Item, int Amount)
+void UInventorySystemComponent::AddItem(EItemID ItemID, int Amount)
 {
-	int Index = static_cast<int>(Item) - static_cast<int>(EItemID::SmallPotion);
-	
+	int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
+
 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Index %d"), Index));
 
-	
+
 	if (Index < 0 || Index >= ItemQuantities.Num())
 	{
 		return;
 	}
+
+	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
+	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	{
+		if (ConsumableEquipment == EItemID::SIZE)
+		{
+			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+			{
+				SetConsumableEquipment(ItemID);
+			}
+		}
+		if (ThrowableEquipment == EItemID::SIZE)
+		{
+			if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
+			{
+				SetThrowableEquipment(ItemID);
+			}
+		}
+	}
+
 	int PrevQuantity = ItemQuantities[Index]->Quantity;
-	
+
 	ItemQuantities[Index]->Quantity += Amount;
 	ItemQuantities[Index]->OnInventoryObjectUpdatedEvent.Broadcast();
-	
+
 	if (PrevQuantity == 0)
 	{
 		OnInventoryUpdatedEvent.Broadcast();
 	}
 }
 
-bool UInventorySystemComponent::RemoveItem(EItemID Item, int Amount)
+bool UInventorySystemComponent::RemoveItem(EItemID ItemID, int Amount)
 {
-	int Index = static_cast<int>(Item) - static_cast<int>(EItemID::SmallPotion);
+	int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
 	if (Index < 0 || Index >= ItemQuantities.Num())
 	{
 		return false;
 	}
-	
+
 	if (ItemQuantities[Index]->Quantity >= Amount)
 	{
 		ItemQuantities[Index]->Quantity -= Amount;
@@ -91,10 +115,56 @@ bool UInventorySystemComponent::RemoveItem(EItemID Item, int Amount)
 		if (ItemQuantities[Index]->Quantity == 0)
 		{
 			OnInventoryUpdatedEvent.Broadcast();
+
+			const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
+			if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+			{
+				if (ConsumableEquipment == ItemID)
+				{
+					if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+					{
+						SetConsumableEquipment(EItemID::SIZE);
+					}
+				}
+				if (ThrowableEquipment == ItemID)
+				{
+					if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
+					{
+						SetThrowableEquipment(EItemID::SIZE);
+					}
+				}
+			}
 		}
 		return true;
 	}
-	
+
 	return false;
 }
 
+void UInventorySystemComponent::SetEquipment(EItemID ItemID)
+{
+	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
+	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	{
+		if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+		{
+			SetConsumableEquipment(ItemID);
+		}
+		else if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
+		{
+			SetThrowableEquipment(ItemID);
+		}
+	}
+}
+
+void UInventorySystemComponent::SetConsumableEquipment(EItemID ItemID)
+{
+	ConsumableEquipment = ItemID;
+	OnConsumableEquipmentUpdatedEvent.Broadcast(ConsumableEquipment);
+}
+
+void UInventorySystemComponent::SetThrowableEquipment(EItemID ItemID)
+{
+	ThrowableEquipment = ItemID;
+	OnThrowableEquipmentUpdatedEvent.Broadcast(ThrowableEquipment);
+}

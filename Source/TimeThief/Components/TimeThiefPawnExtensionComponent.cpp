@@ -38,7 +38,7 @@ bool UTimeThiefPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponen
 			return CurrentState == Tags.InitState_DataAvailable;
 		}
 
-		return CurrentState == Tags.InitState_DataAvailable && bInputsReady;
+		return CurrentState == Tags.InitState_DataAvailable && bInputsReady && Pawn->GetController() != nullptr;
 	}
 
 	if (DesiredState == Tags.InitState_GameplayReady)
@@ -57,10 +57,6 @@ void UTimeThiefPawnExtensionComponent::HandleChangeInitState(UGameFrameworkCompo
 	if (DesiredState == Tags.InitState_DataAvailable)
 	{
 		OnPawnReadyToInitialize();
-	}
-	else if (DesiredState == Tags.InitState_GameplayReady)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[%s] PawnExtension reached GameplayReady state."), *GetNameSafe(GetOwner()));
 	}
 }
 
@@ -117,4 +113,9 @@ void UTimeThiefPawnExtensionComponent::BindOnActorInitStateChanged(FName Feature
 			bCallImmediately
 		);
 	}
+}
+
+void UTimeThiefPawnExtensionComponent::NotifyControllerChanged()
+{
+	CheckDefaultInitialization();
 }

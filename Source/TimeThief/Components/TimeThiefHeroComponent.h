@@ -28,6 +28,12 @@ public:
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 	void InitializePlayerInput(UInputComponent* PlayerInputComponent);
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Hero")
+	void InitializeAbilitySystem();
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
+	const UTimeThiefInputConfig* GetInputConfig() const;
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	bool IsReadyToBindInputs() const { return bReadyToBindInputs; }
 
@@ -36,6 +42,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Input")
 	void RemoveInputMappingContext(const UInputMappingContext* MappingContext);
+
+	virtual void HandleChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) override;
 
 	UPROPERTY(BlueprintAssignable)
 	FTimeThiefHero_ReadyDelegate OnReadyToBindInputs;
@@ -55,6 +63,7 @@ private:
 	void Input_TogglePerspective(const FInputActionValue& Value);
 	void Input_ToggleMinimap(const FInputActionValue& Value);
 	void Input_Interact(const FInputActionValue& Value);
+	void Input_ToggleInventory(const FInputActionValue& Value);
 	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")

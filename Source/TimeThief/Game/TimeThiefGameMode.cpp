@@ -23,3 +23,15 @@ void ATimeThiefGameMode::HandleStartingNewPlayer_Implementation(APlayerControlle
 	}
 }
 
+void ATimeThiefGameMode::RestartPlayer(AController* NewPlayer)
+{
+	Super::RestartPlayer(NewPlayer);
+
+	if (NewPlayer && DefaultPawnData)
+	{
+		if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(NewPlayer->GetPawn()))
+		{
+			PlayerCharacter->SetPawnData(DefaultPawnData);
+		}
+	}
+}

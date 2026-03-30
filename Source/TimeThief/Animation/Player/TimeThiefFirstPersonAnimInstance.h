@@ -6,7 +6,7 @@
 #include "TimeThiefFirstPersonAnimInstance.generated.h"
 
 class ATimeThiefPlayerCharacter;
-class ATimeThiefWeaponBase;
+class UTimeThiefWeaponComponentBase;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefFirstPersonAnimInstance : public UTimeThiefAnimInstance
@@ -24,7 +24,7 @@ protected:
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
-	TObjectPtr<ATimeThiefWeaponBase> CurrentWeapon;
+	TObjectPtr<UTimeThiefWeaponComponentBase> CurrentWeapon;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FGameplayTag EquippedWeaponTag;
@@ -40,7 +40,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FirstPerson|Sway")
 	float MaxSwayDegree = 5.0f;
-
 
 	UPROPERTY(BlueprintReadOnly, Category = "Procedural")
 	float ProceduralSpeed;

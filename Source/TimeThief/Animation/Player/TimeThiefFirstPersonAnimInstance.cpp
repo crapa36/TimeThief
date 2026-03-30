@@ -1,7 +1,7 @@
 ﻿#include "Animation/Player/TimeThiefFirstPersonAnimInstance.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
-#include "Weapon/TimeThiefWeaponBase.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "GameFramework/Controller.h"
 
 UTimeThiefFirstPersonAnimInstance::UTimeThiefFirstPersonAnimInstance(const FObjectInitializer& ObjectInitializer)
@@ -51,7 +51,7 @@ void UTimeThiefFirstPersonAnimInstance::UpdateWeaponData()
 		return;
 	}
 
-	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetPawnCombatComponent();
+	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetCombatComponent();
 	if (!CombatComp)
 	{
 		bHasWeapon = false;
@@ -120,4 +120,3 @@ void UTimeThiefFirstPersonAnimInstance::UpdateProceduralData(float DeltaSeconds)
 
 	CurrentBobAmplitude = FMath::FInterpTo(CurrentBobAmplitude, TargetBobAmplitude, DeltaSeconds, BobAmplitudeInterpSpeed);
 }
-

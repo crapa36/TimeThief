@@ -26,8 +26,13 @@ public:
 	
 	bool PurchaseItem(const FStoreOrder& Order);
 	
+	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const { return nullptr; }
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const { return nullptr; }
+	virtual USkeletalMeshComponent* GetWeaponAttachMesh() const { return GetMesh(); }
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
+	virtual USkeletalMeshComponent* GetMontagePlaybackMesh() const { return GetMesh(); }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	UTimeThiefHealthComponent* GetHealthComponent() const { return HealthComponent; }
@@ -65,8 +70,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
 	void AppendOwnedGameplayTags(const FGameplayTagContainer& InTags);
 
+	virtual void OnPlayerInitialized();
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void NotifyControllerChanged() override;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")

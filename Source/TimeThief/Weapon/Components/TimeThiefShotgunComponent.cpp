@@ -1,5 +1,5 @@
-﻿#include "Weapon/TimeThiefShotgun.h"
-
+﻿#include "Weapon/Components/TimeThiefShotgunComponent.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
 #include "Animation/Player/TimeThiefPlayerAnimInstance.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/Character.h"
@@ -8,7 +8,7 @@
 #include "Sound/SoundBase.h"
 #include "DrawDebugHelpers.h"
 
-ATimeThiefShotgun::ATimeThiefShotgun()
+UTimeThiefShotgunComponent::UTimeThiefShotgunComponent()
 {
 	FireRate = 110.0f;
 	RoundsPerSecond = 110.0f / 60.0f;
@@ -20,13 +20,13 @@ ATimeThiefShotgun::ATimeThiefShotgun()
 	BaseSpread = 3.5f;
 }
 
-void ATimeThiefShotgun::BeginPlay()
+void UTimeThiefShotgunComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentSpread = BaseSpread;
 }
 
-void ATimeThiefShotgun::ExecuteFireShot()
+void UTimeThiefShotgunComponent::ExecuteFireShot()
 {
 	const TArray<FShotgunHitResult> HitResults = PerformPelletHitScan();
 	ApplyDamage(HitResults);
@@ -34,37 +34,42 @@ void ATimeThiefShotgun::ExecuteFireShot()
 	PlayImpactEffects(HitResults);
 }
 
-TArray<FShotgunHitResult> ATimeThiefShotgun::PerformPelletHitScan() const
+TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan() const
 {
 	TArray<FShotgunHitResult> Results;
 	Results.Reserve(PelletCount);
 
 	const FVector MuzzleLocation = GetMuzzleLocation();
-	FVector CameraLocation = GetActorLocation();
-	FVector CameraAimDir = GetActorForwardVector();
+	FVector CameraLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+	FVector CameraAimDir = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
 
-	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+	if (AActor* MasterWeapon = GetOwner())
 	{
-		if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		if (APawn* OwnerPawn = Cast<APawn>(MasterWeapon->GetOwner()))
 		{
-			FRotator CameraRotation;
-			PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-			CameraAimDir = CameraRotation.Vector();
-		}
-		else
-		{
-			CameraLocation = OwnerPawn->GetPawnViewLocation();
-			CameraAimDir = OwnerPawn->GetBaseAimRotation().Vector();
+			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+			{
+				FRotator CameraRotation;
+				PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+				CameraAimDir = CameraRotation.Vector();
+			}
+			else
+			{
+				CameraLocation = OwnerPawn->GetPawnViewLocation();
+				CameraAimDir = OwnerPawn->GetBaseAimRotation().Vector();
+			}
 		}
 	}
 
 	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
 	QueryParams.AddIgnoredActor(GetOwner());
+	if (GetOwner())
+	{
+		QueryParams.AddIgnoredActor(GetOwner()->GetOwner());
+	}
 	QueryParams.bTraceComplex = true;
 	QueryParams.bReturnPhysicalMaterial = true;
 
-	
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
 
@@ -105,12 +110,15 @@ TArray<FShotgunHitResult> ATimeThiefShotgun::PerformPelletHitScan() const
 	return Results;
 }
 
-void ATimeThiefShotgun::ApplyDamage(const TArray<FShotgunHitResult>& HitResults)
+void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& HitResults)
 {
 	AController* InstigatorController = nullptr;
-	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+	if (AActor* MasterWeapon = GetOwner())
 	{
-		InstigatorController = OwnerPawn->GetController();
+		if (APawn* OwnerPawn = Cast<APawn>(MasterWeapon->GetOwner()))
+		{
+			InstigatorController = OwnerPawn->GetController();
+		}
 	}
 
 	for (const FShotgunHitResult& HitResult : HitResults)
@@ -126,19 +134,19 @@ void ATimeThiefShotgun::ApplyDamage(const TArray<FShotgunHitResult>& HitResults)
 			HitResult.FireDirection,
 			HitResult.OriginalHitResult,
 			InstigatorController,
-			this,
+			GetOwner(),
 			nullptr
 		);
 	}
 }
 
-void ATimeThiefShotgun::PlayFireEffects()
+void UTimeThiefShotgunComponent::PlayFireEffects()
 {
 	const FVector MuzzleLocation = GetMuzzleLocation();
 
 	if (MuzzleFlashEffect)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, MuzzleFlashEffect, MuzzleLocation, GetActorRotation());
+		UGameplayStatics::SpawnEmitterAtLocation(this, MuzzleFlashEffect, MuzzleLocation, GetOwner() ? GetOwner()->GetActorRotation() : FRotator::ZeroRotator);
 	}
 
 	if (FireSound)
@@ -148,14 +156,17 @@ void ATimeThiefShotgun::PlayFireEffects()
 
 	if (FireAnimation)
 	{
-		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()))
+		if (AActor* MasterWeapon = GetOwner())
 		{
-			BaseChar->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
+			if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(MasterWeapon->GetOwner()))
+			{
+				BaseChar->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
+			}
 		}
 	}
 }
 
-void ATimeThiefShotgun::PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults)
+void UTimeThiefShotgunComponent::PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults)
 {
 	if (!ImpactEffect)
 	{
@@ -177,9 +188,14 @@ void ATimeThiefShotgun::PlayImpactEffects(const TArray<FShotgunHitResult>& HitRe
 	}
 }
 
-void ATimeThiefShotgun::ApplyRecoilAndSpread()
+void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 {
-	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (!GetOwner())
+	{
+		return;
+	}
+
+	APawn* OwnerPawn = Cast<APawn>(GetOwner()->GetOwner());
 	if (!OwnerPawn)
 	{
 		return;
@@ -200,5 +216,3 @@ void ATimeThiefShotgun::ApplyRecoilAndSpread()
 		}
 	}
 }
-
-

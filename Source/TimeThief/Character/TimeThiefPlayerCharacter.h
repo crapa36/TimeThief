@@ -2,17 +2,16 @@
 
 #include "CoreMinimal.h"
 #include "TimeThiefNetworkCharacterBase.h"
-#include "Character/TimeThiefCharacterBase.h"
+#include "GameplayTagContainer.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
 class AInteractionActorBase;
 class UInventorySystemComponent;
 class AItemBase;
-class AStoreActor;
 class USpringArmComponent;
 class UCameraComponent;
-class UTimeThiefHeroComponent;
 class UTimeThiefPlayerCombatComponent;
+class UTimeThiefHeroComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
@@ -30,7 +29,10 @@ public:
 	
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 	
-	virtual UTimeThiefPawnCombatComponent* GetPawnCombatComponent() const override;
+	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
+
+	virtual USkeletalMeshComponent* GetWeaponAttachMesh() const override;
+	virtual USkeletalMeshComponent* GetMontagePlaybackMesh() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Character")
 	UTimeThiefHeroComponent* GetHeroComponent() const { return HeroComponent; }
@@ -51,10 +53,13 @@ public:
 	const TArray<TObjectPtr<AItemBase>>& GetVicinityItems() const { return VicinityItem; }
 	
 	FOnVicinityItemUpdatedEvent OnVicinityItemUpdatedEvent;
+	
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	virtual void PawnClientRestart() override;
 	virtual void BeginPlay() override;
+	
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 	void OnPawnDataSet();
 
@@ -62,6 +67,7 @@ protected:
 	void OnDeath(AActor* OwningActor);
 
 	void CheckInteractableObject();
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<USpringArmComponent> CameraBoom;
@@ -84,7 +90,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UInventorySystemComponent> InventoryComponent;
 	
-	UPROPERTY(ReplicatedUsing = OnRep_PawnData)
+	UPROPERTY()
 	TObjectPtr<const UTimeThiefPawnData> PawnData;
 	
 	UPROPERTY()
@@ -97,9 +103,6 @@ protected:
 	float LookingDistance = 50.f;
 	
 	FTimerHandle InteractCheckTimerHandle;
-private:
-	UFUNCTION()
-	void OnRep_PawnData();
 	
 public:
 	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }
