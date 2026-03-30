@@ -5,6 +5,8 @@
 #include "Components/GameFrameworkInitStateInterface.h"
 #include "TimeThiefPawnExtensionComponent.generated.h"
 
+class UTimeThiefPawnData;
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeThiefPawnExtensionComponent : public UActorComponent, public IGameFrameworkInitStateInterface {
 	GENERATED_BODY()
@@ -21,6 +23,9 @@ public:
 	virtual void CheckDefaultInitialization() override;
 
 	virtual void NotifyControllerChanged();
+
+	void SetPawnData(const UTimeThiefPawnData* InPawnData);
+	void SetReadyToBindInputs();
 
 protected:
 	template <class T>

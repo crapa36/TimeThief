@@ -8,7 +8,6 @@
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Engine/Engine.h"
-#include "GameFramework/PlayerController.h"
 
 UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -119,6 +118,11 @@ void UTimeThiefPlayerAnimInstance::TriggerRecoil(float Intensity) {
 	TargetRecoilAlpha = FMath::Clamp(Intensity, 0.0f, 1.0f);
 }
 
+void UTimeThiefPlayerAnimInstance::SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery) {
+	RecoilRecoverySpeed = InRecoilRecovery;
+	SpreadRecoverySpeed = InSpreadRecovery;
+}
+
 void UTimeThiefPlayerAnimInstance::UpdateWireHandIK(float DeltaSeconds) {
 	const float TargetAlpha = bIsWireActive ? 1.0f : 0.0f;
 	WireLeftHandIKAlpha = FMath::FInterpTo(WireLeftHandIKAlpha, TargetAlpha, DeltaSeconds, WireHandIKInterpSpeed);
@@ -183,33 +187,19 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
 	if (!PlayerCharacter) {
 		return;
 	}
-	if (!PlayerCharacter->IsLocallyControlled()) {
-		AimPitch = PlayerCharacter->GetNetworkPitch();
-		AimDirection = FRotator(AimPitch, PlayerCharacter->GetNetworkYaw(), 0.0f).Vector();
-		return;
-	}
-	FVector CameraLocation = FVector::ZeroVector;
-	FRotator CameraRotation = PlayerCharacter->GetControlRotation();
 
-	if (APlayerController* PC = Cast<APlayerController>(PlayerCharacter->GetController())) {
-		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-	}
+	AimPitch = PlayerCharacter->GetNetworkPitch();
+	AimDirection = FRotator(AimPitch, PlayerCharacter->GetNetworkYaw(), 0.0f).Vector();
 
 	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
 		WorldAimLocation = PlayerCombat->GetWorldAimLocation();
 	} else {
-		WorldAimLocation = CameraLocation + (CameraRotation.Vector() * 50000.0f);
+		FVector StartLoc = PlayerCharacter->GetActorLocation();
+		if (CurrentWeapon && CurrentWeapon->GetOwner()) {
+			StartLoc = CurrentWeapon->GetOwner()->GetActorLocation();
+		}
+		WorldAimLocation = StartLoc + (AimDirection * 50000.0f);
 	}
-
-	FVector StartLoc = PlayerCharacter->GetActorLocation();
-	if (CurrentWeapon && CurrentWeapon->GetOwner()) {
-		StartLoc = CurrentWeapon->GetOwner()->GetActorLocation();
-	}
-
-	AimDirection = (WorldAimLocation - StartLoc).GetSafeNormal();
-
-	const float HorizontalSize = FVector2D(AimDirection.X, AimDirection.Y).Size();
-	AimPitch = -FMath::RadiansToDegrees(FMath::Atan2(AimDirection.Z, HorizontalSize));
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateAimingState() {

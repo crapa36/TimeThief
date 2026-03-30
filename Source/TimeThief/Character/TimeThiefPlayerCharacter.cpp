@@ -65,22 +65,22 @@ void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData
 	}
 
 	PawnData = InPawnData;
-	OnPawnDataSet();
-}
 
-void ATimeThiefPlayerCharacter::OnPawnDataSet()
-{
-	if (HeroComponent && PawnData)
+	if (HeroComponent)
 	{
-		HeroComponent->CheckDefaultInitialization();
-		HeroComponent->SetPawnData(PawnData);
+		HeroComponent->SetPawnData(InPawnData);
 		
-		if (InputComponent)
+		if (InputComponent && !HeroComponent->IsReadyToBindInputs())
 		{
 			HeroComponent->InitializePlayerInput(InputComponent);
 		}
 	}
 
+	OnPawnDataSet();
+}
+
+void ATimeThiefPlayerCharacter::OnPawnDataSet()
+{
 	if (PawnData && PawnData->PawnTags.Num() > 0)
 	{
 		AppendOwnedGameplayTags(PawnData->PawnTags);
@@ -261,6 +261,11 @@ void ATimeThiefPlayerCharacter::RemoveVicinityItem(AItemBase* Item)
 void ATimeThiefPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (!PawnData && DefaultPawnData)
+	{
+		SetPawnData(DefaultPawnData);
+	}
 
 	if (HeroComponent)
 	{

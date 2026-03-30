@@ -30,8 +30,7 @@ void UTimeThiefHeroComponent::SetPawnData(const UTimeThiefPawnData* InPawnData)
 	check(InPawnData);
 	if (PawnData) return;
 	PawnData = InPawnData;
-	bPawnDataSet = true;
-	CheckDefaultInitialization();
+	Super::SetPawnData(InPawnData);
 }
 
 void UTimeThiefHeroComponent::OnRegister()
@@ -100,9 +99,7 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
 	bReadyToBindInputs = true;
-	bInputsReady = true;
 	OnReadyToBindInputs.Broadcast(this);
-	CheckDefaultInitialization();
 }
 
 void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext* MappingContext, int32 Priority)
@@ -214,4 +211,17 @@ void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTa
 void UTimeThiefHeroComponent::HandleChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState)
 {
 	Super::HandleChangeInitState(Manager, CurrentState, DesiredState);
+
+	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
+
+	if (DesiredState == Tags.InitState_DataInitialized)
+	{
+		if (APawn* Pawn = GetPawn<APawn>())
+		{
+			if (UInputComponent* IC = Pawn->InputComponent)
+			{
+				InitializePlayerInput(IC);
+			}
+		}
+	}
 }

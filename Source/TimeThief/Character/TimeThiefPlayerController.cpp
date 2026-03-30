@@ -14,6 +14,8 @@
 #include "UI/Inventory/InventoryWidget.h"
 #include "Components/GameFrameworkComponentManager.h"
 #include "Game/TimeThiefGameMode.h"
+#include "TimeThiefGameplayTags.h"
+#include "Components/TimeThiefPawnExtensionComponent.h"
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
 {
@@ -23,48 +25,67 @@ ATimeThiefPlayerController::ATimeThiefPlayerController()
 void ATimeThiefPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+}
 
-	if (IsLocalPlayerController())
+void ATimeThiefPlayerController::InitializeUI()
+{
+	if (bUIInitialized || !IsLocalPlayerController())
 	{
-		if (MainHUDWidgetClass)
+		return;
+	}
+
+	if (MainHUDWidgetClass)
+	{
+		MainHUDWidget = CreateWidget<UTimeThiefHUDWidget>(this, MainHUDWidgetClass);
+		if (MainHUDWidget)
 		{
-			MainHUDWidget = CreateWidget<UTimeThiefHUDWidget>(this, MainHUDWidgetClass);
-			if (MainHUDWidget)
+			MainHUDWidget->AddToViewport();
+			if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 			{
-				MainHUDWidget->AddToViewport();
+				MainHUDWidget->InitializeHUD(PlayerCharacter);
 			}
 		}
+	}
 
-		SubWidgets.SetNum(static_cast<int>(EWidgetType::SIZE));
-		
-		for (auto& Pair : SubWidgetClassMap)
+	SubWidgets.SetNum(static_cast<int>(EWidgetType::SIZE));
+	
+	for (auto& Pair : SubWidgetClassMap)
+	{
+		if (Pair.Value)
 		{
-			if (Pair.Value)
-			{
-				SubWidgets[static_cast<int>(Pair.Key)] = CreateWidget<UUserWidget>(this, Pair.Value);
-				SubWidgets[static_cast<int>(Pair.Key)]->AddToViewport(1);
-				SubWidgets[static_cast<int>(Pair.Key)]->SetVisibility(ESlateVisibility::Hidden);
+			SubWidgets[static_cast<int>(Pair.Key)] = CreateWidget<UUserWidget>(this, Pair.Value);
+			SubWidgets[static_cast<int>(Pair.Key)]->AddToViewport(1);
+			SubWidgets[static_cast<int>(Pair.Key)]->SetVisibility(ESlateVisibility::Hidden);
 
-				if (Pair.Key == EWidgetType::Inventory)
+			if (Pair.Key == EWidgetType::Inventory)
+			{
+				if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(Pair.Key)]))
 				{
-					if (auto Inventory = Cast<UInventoryWidget>(SubWidgets[static_cast<int>(Pair.Key)]))
+					if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 					{
-						if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
-						{
-							Inventory->Init(PlayerCharacter);
-						}
+						Inventory->Init(PlayerCharacter);
 					}
 				}
 			}
 		}
 	}
+
+	bUIInitialized = true;
 }
 
 void ATimeThiefPlayerController::SetPawn(APawn* InPawn)
 {
 	Super::SetPawn(InPawn);
 
-	if (IsLocalPlayerController())
+	if (IsLocalPlayerController() && InPawn)
+	{
+		if (UGameFrameworkComponentManager* Manager = UGameFrameworkComponentManager::GetForActor(InPawn))
+		{
+			Manager->RegisterAndCallForActorInitState(InPawn, UTimeThiefPawnExtensionComponent::NAME_ActorFeatureName, FTimeThiefGameplayTags::Get().InitState_GameplayReady, FActorInitStateChangedDelegate::CreateUObject(this, &ThisClass::OnPawnInitStateChanged), true);
+		}
+	}
+
+	if (IsLocalPlayerController() && bUIInitialized)
 	{
 		if (SubWidgets.IsValidIndex(static_cast<int>(EWidgetType::Inventory)))
 		{
@@ -80,18 +101,40 @@ void ATimeThiefPlayerController::SetPawn(APawn* InPawn)
 				}
 			}
 		}
+
+		if (MainHUDWidget)
+		{
+			if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
+			{
+				MainHUDWidget->InitializeHUD(PlayerCharacter);
+			}
+		}
 	}
 }
 
 void ATimeThiefPlayerController::OnPossess(APawn* InPawn)
 {
-	Super::OnPossess(InPawn);
-
 	if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
 	{
 		if (ATimeThiefGameMode* GM = GetWorld()->GetAuthGameMode<ATimeThiefGameMode>())
 		{
-			PlayerCharacter->SetPawnData(GM->GetDefaultPawnData());
+			if (const UTimeThiefPawnData* ModePawnData = GM->GetDefaultPawnData())
+			{
+				PlayerCharacter->SetPawnData(ModePawnData);
+			}
+		}
+	}
+
+	Super::OnPossess(InPawn);
+}
+
+void ATimeThiefPlayerController::OnPawnInitStateChanged(const FActorInitStateChangedParams& Params)
+{
+	if (Params.FeatureName == UTimeThiefPawnExtensionComponent::NAME_ActorFeatureName)
+	{
+		if (Params.FeatureState == FTimeThiefGameplayTags::Get().InitState_GameplayReady)
+		{
+			InitializeUI();
 		}
 	}
 }
@@ -111,7 +154,6 @@ void ATimeThiefPlayerController::SetupInputComponent()
 		}
 	}
 }
-
 
 void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
 {

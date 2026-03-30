@@ -2,6 +2,7 @@
 #include "Components/GameFrameworkComponentManager.h"
 #include "GameFramework/Pawn.h"
 #include "TimeThiefGameplayTags.h"
+#include "Character/TimeThiefPawnData.h"
 
 const FName UTimeThiefPawnExtensionComponent::NAME_ActorFeatureName("PawnExtension");
 
@@ -21,28 +22,22 @@ bool UTimeThiefPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponen
 
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
 
-	if (DesiredState == Tags.InitState_Spawned)
-	{
+	if (DesiredState == Tags.InitState_Spawned) {
 		return true;
 	}
 
-	if (DesiredState == Tags.InitState_DataAvailable)
-	{
+	if (DesiredState == Tags.InitState_DataAvailable) {
 		return CurrentState == Tags.InitState_Spawned && bPawnDataSet;
 	}
 
-	if (DesiredState == Tags.InitState_DataInitialized)
-	{
-		if (!Pawn->IsLocallyControlled())
-		{
+	if (DesiredState == Tags.InitState_DataInitialized) {
+		if (!Pawn->IsLocallyControlled()) {
 			return CurrentState == Tags.InitState_DataAvailable;
 		}
-
 		return CurrentState == Tags.InitState_DataAvailable && bInputsReady && Pawn->GetController() != nullptr;
 	}
 
-	if (DesiredState == Tags.InitState_GameplayReady)
-	{
+	if (DesiredState == Tags.InitState_GameplayReady) {
 		return CurrentState == Tags.InitState_DataInitialized;
 	}
 
@@ -51,11 +46,9 @@ bool UTimeThiefPawnExtensionComponent::CanChangeInitState(UGameFrameworkComponen
 
 void UTimeThiefPawnExtensionComponent::HandleChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) {
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
-
 	CurrentInitState = DesiredState;
 
-	if (DesiredState == Tags.InitState_DataAvailable)
-	{
+	if (DesiredState == Tags.InitState_DataAvailable) {
 		OnPawnReadyToInitialize();
 	}
 }
@@ -78,24 +71,19 @@ void UTimeThiefPawnExtensionComponent::CheckDefaultInitialization() {
 		Tags.InitState_GameplayReady
 	};
 
-	for (const FGameplayTag& State : StateChain)
-	{
-		if (!TryTransitionToState(Manager, State))
-		{
+	for (const FGameplayTag& State : StateChain) {
+		if (!TryTransitionToState(Manager, State)) {
 			break;
 		}
 	}
 }
 
-bool UTimeThiefPawnExtensionComponent::TryTransitionToState(UGameFrameworkComponentManager* Manager, const FGameplayTag& DesiredState)
-{
-	if (CurrentInitState == DesiredState)
-	{
+bool UTimeThiefPawnExtensionComponent::TryTransitionToState(UGameFrameworkComponentManager* Manager, const FGameplayTag& DesiredState) {
+	if (CurrentInitState == DesiredState) {
 		return true;
 	}
 
-	if (CanChangeInitState(Manager, CurrentInitState, DesiredState))
-	{
+	if (CanChangeInitState(Manager, CurrentInitState, DesiredState)) {
 		Manager->ChangeFeatureInitState(GetOwner(), NAME_ActorFeatureName, this, DesiredState);
 		return true;
 	}
@@ -115,7 +103,16 @@ void UTimeThiefPawnExtensionComponent::BindOnActorInitStateChanged(FName Feature
 	}
 }
 
-void UTimeThiefPawnExtensionComponent::NotifyControllerChanged()
-{
+void UTimeThiefPawnExtensionComponent::NotifyControllerChanged() {
+	CheckDefaultInitialization();
+}
+
+void UTimeThiefPawnExtensionComponent::SetPawnData(const UTimeThiefPawnData* InPawnData) {
+	bPawnDataSet = (InPawnData != nullptr);
+	CheckDefaultInitialization();
+}
+
+void UTimeThiefPawnExtensionComponent::SetReadyToBindInputs() {
+	bInputsReady = true;
 	CheckDefaultInitialization();
 }

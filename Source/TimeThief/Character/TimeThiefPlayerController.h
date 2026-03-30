@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/GameFrameworkInitStateInterface.h"
 #include "TimeThiefPlayerController.generated.h"
 
 class UInputMappingContext;
@@ -41,6 +42,9 @@ protected:
 	virtual void SetPawn(APawn* InPawn) override;
 	virtual void OnPossess(APawn* InPawn) override;
 	
+	void OnPawnInitStateChanged(const FActorInitStateChangedParams& Params);
+	void InitializeUI();
+
 	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;
 	
@@ -55,4 +59,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UTimeThiefHUDWidget> MainHUDWidget;
+
+	bool bUIInitialized = false;
 };

@@ -28,6 +28,9 @@ public:
 	void OnInteract();
 	
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Character")
+	const UTimeThiefPawnData* GetPawnData() const { return PawnData; }
 	
 	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
 

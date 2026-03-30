@@ -23,6 +23,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
 	void TriggerRecoil(float Intensity = 1.0f);
 
+	UFUNCTION(BlueprintCallable, Category = "Combat|Spread")
+	FVector2D ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot);
+
+	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
+	void SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery);
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
+	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle * AimSpreadMultiplier; }
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
+	FVector2D GetAimOffset() const { return AimOffset; }
+
+	UFUNCTION(BlueprintPure, Category = "Combat|Recoil")
+	float GetRecoilBuildup() const { return RecoilBuildup; }
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
@@ -107,26 +122,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
 	FVector2D AimOffset = FVector2D::ZeroVector;
-
-public:
-	UFUNCTION(BlueprintCallable, Category = "Combat|Spread")
-	FVector2D ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot);
-
-	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
-	void SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery)
-	{
-		RecoilRecoverySpeed = InRecoilRecovery;
-		SpreadRecoverySpeed = InSpreadRecovery;
-	}
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle * AimSpreadMultiplier; }
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	FVector2D GetAimOffset() const { return AimOffset; }
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Recoil")
-	float GetRecoilBuildup() const { return RecoilBuildup; }
 
 private:
 	void UpdateWeaponData();
