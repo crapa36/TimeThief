@@ -36,7 +36,7 @@ public class TimeThief : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Sockets",
-			"Networking",
+			"Networking", "Niagara",
 		});
 
 		PublicIncludePaths.AddRange(new string[] {

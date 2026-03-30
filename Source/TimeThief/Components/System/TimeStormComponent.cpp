@@ -80,6 +80,13 @@ void UTimeStormComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 }
 
+void UTimeStormComponent::ReStart()
+{
+	ElapsedTime = 0.0f;
+	NumShrinks = 0;
+	bIsShrinking = false;
+}
+
 void UTimeStormComponent::StartShrinkingStormZone(const FVector2D& InDestCenter, float InDestRadius)
 {
 	DestRadius = InDestRadius;

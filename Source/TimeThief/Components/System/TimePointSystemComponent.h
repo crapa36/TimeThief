@@ -33,8 +33,14 @@ public:
 	
 	FOnTimePointsChanged OnTimePointsChanged_Delegate;
 private:
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"))
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"), Category="Level Design")
 	float TimePointsGainPerSecond = 10.0f;
+	
+	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"), Category="Level Design")
+	float DangerThreshold = 1000;
+	
+	float DamagedElapsedTime = 0.0f;
+	float RecoveredElapsedTime = 0.0f;
 	
 	float TimePoints = 100000.0f;
 	

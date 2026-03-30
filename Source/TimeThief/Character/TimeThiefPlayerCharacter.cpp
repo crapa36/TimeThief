@@ -1,3 +1,4 @@
+#include "TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -18,6 +19,8 @@
 #include "Game/TimeThiefGameMode.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Actors/Item/ItemBase.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -110,7 +113,7 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
-		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
+		Health->OnDeath.AddUniqueDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
 	}
 
 	GetWorldTimerManager().SetTimer(
