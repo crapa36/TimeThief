@@ -108,7 +108,7 @@ void UTimeThiefPlayerAnimInstance::UpdateWireData() {
 		}
 
 		if (PlayerCharacter) {
-			SwingVelocity = PlayerCharacter->GetVelocity();
+			SwingVelocity = Velocity;
 		}
 	} else {
 		WireAnchorDirectionWorld = FVector::ForwardVector;
