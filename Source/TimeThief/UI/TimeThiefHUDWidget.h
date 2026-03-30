@@ -12,7 +12,7 @@ class UTimePointSystemComponent;
 class ATimeThiefPlayerCharacter;
 class UTimeThiefHealthComponent;
 class UTimeThiefPlayerCombatComponent;
-class ATimeThiefWeaponBase;
+class UTimeThiefWeaponComponentBase;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
@@ -68,7 +68,7 @@ protected:
 	void OnAmmoUpdated(int32 CurrentAmmo, int32 MaxAmmo, bool bHasWeapon);
 	
 	void HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
-	void OnWeaponEquipped(ATimeThiefWeaponBase* Weapon);
+	void OnWeaponEquipped(UTimeThiefWeaponComponentBase* Weapon);
 	void OnWeaponUnequipped();
 
 	UFUNCTION()
@@ -77,5 +77,5 @@ protected:
 private:
 	void UpdateCrosshairDisplay();
 	
-	TWeakObjectPtr<ATimeThiefWeaponBase> CachedWeapon;
+	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
 };

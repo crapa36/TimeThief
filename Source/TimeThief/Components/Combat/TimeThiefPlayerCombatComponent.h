@@ -4,7 +4,7 @@
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "TimeThiefPlayerCombatComponent.generated.h"
 
-class ATimeThiefWeaponBase;
+class ATimeThiefMasterWeapon;
 class UCameraComponent;
 class UCharacterMovementComponent;
 class UTimeThiefWireComponent;
@@ -14,13 +14,10 @@ class TIMETHIEF_API UTimeThiefPlayerCombatComponent : public UTimeThiefPawnComba
 	GENERATED_BODY()
 
 public:
-	UTimeThiefPlayerCombatComponent();
+	UTimeThiefPlayerCombatComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	ATimeThiefWeaponBase* SpawnAndRegisterWeapon(TSubclassOf<ATimeThiefWeaponBase> WeaponClass, bool bEquipImmediately = false, FGameplayTag PreferredWeaponTag = FGameplayTag());
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
@@ -45,11 +42,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
 	FVector GetWorldAimLocation() const { return CachedWorldAimLocation; }
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
+	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
+
 protected:
 	virtual void OnEquipFinished() override;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
-	TArray<TSubclassOf<ATimeThiefWeaponBase>> DefaultWeaponClasses;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TMap<FGameplayTag, FGameplayTag> InputToWeaponTagMap;
@@ -78,10 +75,6 @@ protected:
 	bool bIsFireInputHeld = false;
 
 private:
-	void EquipOrSpawnWeaponByTag(FGameplayTag WeaponTag);
-	TSubclassOf<ATimeThiefWeaponBase> FindDefaultWeaponClassByTag(FGameplayTag WeaponTag) const;
-	FGameplayTag InferWeaponTagFromClass(TSubclassOf<ATimeThiefWeaponBase> WeaponClass) const;
-
 	void ApplyCombatRotationMode(bool bUseControllerFacing);
 	bool ShouldUseControllerFacing() const;
 	bool HasMovementIntent(const UCharacterMovementComponent* MovementComp) const;

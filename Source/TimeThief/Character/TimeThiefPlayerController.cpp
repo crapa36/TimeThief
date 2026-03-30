@@ -26,16 +26,6 @@ void ATimeThiefPlayerController::BeginPlay()
 
 	if (IsLocalPlayerController())
 	{
-		if (ShouldUseTouchControls())
-		{
-			MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
-
-			if (MobileControlsWidget)
-			{
-				MobileControlsWidget->AddToPlayerScreen(0);
-			}
-		}
-
 		if (MainHUDWidgetClass)
 		{
 			MainHUDWidget = CreateWidget<UTimeThiefHUDWidget>(this, MainHUDWidgetClass);
@@ -90,11 +80,6 @@ void ATimeThiefPlayerController::SetPawn(APawn* InPawn)
 				}
 			}
 		}
-
-		if (MainHUDWidget)
-		{
-			// TODO: MainHUDWidget이 새로운 Character 데이터를 트래킹할 수 있도록 바인딩/재초기화하는 함수 호출
-		}
 	}
 }
 
@@ -102,14 +87,11 @@ void ATimeThiefPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	if (HasAuthority())
+	if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
 	{
-		if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(InPawn))
+		if (ATimeThiefGameMode* GM = GetWorld()->GetAuthGameMode<ATimeThiefGameMode>())
 		{
-			if (ATimeThiefGameMode* GM = GetWorld()->GetAuthGameMode<ATimeThiefGameMode>())
-			{
-				PlayerCharacter->SetPawnData(GM->GetDefaultPawnData());
-			}
+			PlayerCharacter->SetPawnData(GM->GetDefaultPawnData());
 		}
 	}
 }
@@ -126,22 +108,10 @@ void ATimeThiefPlayerController::SetupInputComponent()
 			{
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
-
-			if (!ShouldUseTouchControls())
-			{
-				for (UInputMappingContext* CurrentContext : MobileExcludedMappingContexts)
-				{
-					Subsystem->AddMappingContext(CurrentContext, 0);
-				}
-			}
 		}
 	}
 }
 
-bool ATimeThiefPlayerController::ShouldUseTouchControls() const
-{
-	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
-}
 
 void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
 {

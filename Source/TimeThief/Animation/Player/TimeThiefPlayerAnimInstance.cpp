@@ -5,7 +5,8 @@
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Weapon/TimeThiefWeaponBase.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerController.h"
 
@@ -27,7 +28,7 @@ void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
 
 	PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
 	if (PlayerCharacter) {
-		TrajectoryComponent = PlayerCharacter->GetCharacterTrajectoryComponent();
+		TrajectoryComponent = PlayerCharacter->GetComponentByClass<UCharacterTrajectoryComponent>();
 		WireComponent = PlayerCharacter->GetWireComponent();
 	}
 }
@@ -71,12 +72,13 @@ void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
 		EquippedWeaponTag = CurrentWeapon->GetWeaponTag();
 
 		const FName LHIKSocket = CurrentWeapon->GetLeftHandIKSocketName();
-		UStaticMeshComponent* WeaponMesh = CurrentWeapon->GetWeaponMesh();
-		USkeletalMeshComponent* OwningMesh = GetOwningComponent();
-		if (WeaponMesh && OwningMesh && WeaponMesh->DoesSocketExist(LHIKSocket))
-		{
-			FTransform SocketTransform = WeaponMesh->GetSocketTransform(LHIKSocket, RTS_World);
-			LeftHandIKTransform = SocketTransform.GetRelativeTransform(OwningMesh->GetComponentTransform());
+		if (ATimeThiefMasterWeapon* MasterWeapon = Cast<ATimeThiefMasterWeapon>(CurrentWeapon->GetOwner())) {
+			UStaticMeshComponent* WeaponMesh = MasterWeapon->GetWeaponMesh();
+			USkeletalMeshComponent* OwningMesh = GetOwningComponent();
+			if (WeaponMesh && OwningMesh && WeaponMesh->DoesSocketExist(LHIKSocket)) {
+				FTransform SocketTransform = WeaponMesh->GetSocketTransform(LHIKSocket, RTS_World);
+				LeftHandIKTransform = SocketTransform.GetRelativeTransform(OwningMesh->GetComponentTransform());
+			}
 		}
 	} else {
 		EquippedWeaponTag = FGameplayTag();
@@ -100,12 +102,11 @@ void UTimeThiefPlayerAnimInstance::UpdateWireData() {
 		FVector StartLocation = WireComponent->GetWireStartLocation();
 		WireAnchorDirectionWorld = (AnchorPoint - StartLocation).GetSafeNormal();
 		AnchorDirection = WireAnchorDirectionWorld;
-		
-		if (USkeletalMeshComponent* Mesh = GetOwningComponent())
-		{
+
+		if (USkeletalMeshComponent* Mesh = GetOwningComponent()) {
 			AnchorDirection = Mesh->GetComponentTransform().InverseTransformVectorNoScale(AnchorDirection);
 		}
-		
+
 		if (PlayerCharacter) {
 			SwingVelocity = PlayerCharacter->GetVelocity();
 		}
@@ -114,30 +115,25 @@ void UTimeThiefPlayerAnimInstance::UpdateWireData() {
 	}
 }
 
-void UTimeThiefPlayerAnimInstance::TriggerRecoil(float Intensity)
-{
+void UTimeThiefPlayerAnimInstance::TriggerRecoil(float Intensity) {
 	TargetRecoilAlpha = FMath::Clamp(Intensity, 0.0f, 1.0f);
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateWireHandIK(float DeltaSeconds)
-{
+void UTimeThiefPlayerAnimInstance::UpdateWireHandIK(float DeltaSeconds) {
 	const float TargetAlpha = bIsWireActive ? 1.0f : 0.0f;
 	WireLeftHandIKAlpha = FMath::FInterpTo(WireLeftHandIKAlpha, TargetAlpha, DeltaSeconds, WireHandIKInterpSpeed);
 
-	if (WireLeftHandIKAlpha < KINDA_SMALL_NUMBER)
-	{
+	if (WireLeftHandIKAlpha < KINDA_SMALL_NUMBER) {
 		WireLeftHandIKTransform = FTransform::Identity;
 		return;
 	}
 
 	USkeletalMeshComponent* OwningMesh = GetOwningComponent();
-	if (!OwningMesh || !WireComponent)
-	{
+	if (!OwningMesh || !WireComponent) {
 		return;
 	}
 
-	if (OwningMesh->GetBoneIndex(WireHandBoneName) == INDEX_NONE)
-	{
+	if (OwningMesh->GetBoneIndex(WireHandBoneName) == INDEX_NONE) {
 		return;
 	}
 
@@ -152,21 +148,16 @@ void UTimeThiefPlayerAnimInstance::UpdateWireHandIK(float DeltaSeconds)
 	WireLeftHandIKTransform = FTransform(LookAtRotation, TargetCS, FVector::OneVector);
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateRecoil(float DeltaSeconds)
-{
-	if (TargetRecoilAlpha > 0.0f)
-	{
+void UTimeThiefPlayerAnimInstance::UpdateRecoil(float DeltaSeconds) {
+	if (TargetRecoilAlpha > 0.0f) {
 		RecoilAlpha = FMath::FInterpTo(RecoilAlpha, TargetRecoilAlpha, DeltaSeconds, RecoilInterpSpeed * 2.0f);
 		TargetRecoilAlpha = 0.0f;
-	}
-	else
-	{
+	} else {
 		RecoilAlpha = FMath::FInterpTo(RecoilAlpha, 0.0f, DeltaSeconds, RecoilInterpSpeed);
 	}
 }
 
-FVector2D UTimeThiefPlayerAnimInstance::ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot)
-{
+FVector2D UTimeThiefPlayerAnimInstance::ApplyFireSpread(float InMaxVerticalRecoil, float InMaxHorizontalRecoil, float InRecoilBuildupPerShot, float InSpreadBuildupPerShot) {
 	const float VerticalRecoil = FMath::Lerp(InMaxVerticalRecoil * 0.2f, InMaxVerticalRecoil, RecoilBuildup) * FMath::FRandRange(0.85f, 1.15f);
 	const float HorizontalRecoil = FMath::FRandRange(-InMaxHorizontalRecoil, InMaxHorizontalRecoil) * FMath::Lerp(0.3f, 1.0f, RecoilBuildup);
 
@@ -181,18 +172,15 @@ FVector2D UTimeThiefPlayerAnimInstance::ApplyFireSpread(float InMaxVerticalRecoi
 	return FVector2D(HorizontalRecoil, VerticalRecoil);
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateSpreadAndRecoil(float DeltaSeconds)
-{
+void UTimeThiefPlayerAnimInstance::UpdateSpreadAndRecoil(float DeltaSeconds) {
 	CurrentSpreadRatio = FMath::FInterpTo(CurrentSpreadRatio, 0.0f, DeltaSeconds, SpreadRecoverySpeed);
 	RecoilBuildup = FMath::FInterpTo(RecoilBuildup, 0.0f, DeltaSeconds, RecoilRecoverySpeed);
 	AimOffset = FMath::Vector2DInterpTo(AimOffset, TargetAimOffset, DeltaSeconds, AimOffsetInterpSpeed);
 	TargetAimOffset = FMath::Vector2DInterpTo(TargetAimOffset, FVector2D::ZeroVector, DeltaSeconds, RecoilRecoverySpeed);
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
-{
-	if (!PlayerCharacter)
-	{
+void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
+	if (!PlayerCharacter) {
 		AimPitch = 0.0f;
 		AimDirection = FVector::ForwardVector;
 		WorldAimLocation = FVector::ZeroVector;
@@ -201,25 +189,20 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 
 	FVector CameraLocation = FVector::ZeroVector;
 	FRotator CameraRotation = PlayerCharacter->GetControlRotation();
-	
-	if (APlayerController* PC = Cast<APlayerController>(PlayerCharacter->GetController()))
-	{
+
+	if (APlayerController* PC = Cast<APlayerController>(PlayerCharacter->GetController())) {
 		PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 	}
 
-	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent())
-	{
+	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
 		WorldAimLocation = PlayerCombat->GetWorldAimLocation();
-	}
-	else
-	{
+	} else {
 		WorldAimLocation = CameraLocation + (CameraRotation.Vector() * 50000.0f);
 	}
 
 	FVector StartLoc = PlayerCharacter->GetActorLocation();
-	if (CurrentWeapon)
-	{
-		StartLoc = CurrentWeapon->GetActorLocation();
+	if (CurrentWeapon && CurrentWeapon->GetOwner()) {
+		StartLoc = CurrentWeapon->GetOwner()->GetActorLocation();
 	}
 
 	AimDirection = (WorldAimLocation - StartLoc).GetSafeNormal();
@@ -228,24 +211,19 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection()
 	AimPitch = -FMath::RadiansToDegrees(FMath::Atan2(AimDirection.Z, HorizontalSize));
 }
 
-void UTimeThiefPlayerAnimInstance::UpdateAimingState()
-{
-	if (!PlayerCharacter)
-	{
+void UTimeThiefPlayerAnimInstance::UpdateAimingState() {
+	if (!PlayerCharacter) {
 		bIsAiming = false;
 		AimSpreadMultiplier = 1.0f;
 		bUseWeaponControlRigRotation = false;
 		return;
 	}
 
-	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent())
-	{
+	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
 		bIsAiming = PlayerCombat->IsAiming();
 		AimSpreadMultiplier = bIsAiming ? PlayerCombat->GetAimSpreadMultiplier() : 1.0f;
 		bUseWeaponControlRigRotation = PlayerCombat->ShouldUseWeaponControlRigRotation();
-	}
-	else
-	{
+	} else {
 		bIsAiming = false;
 		AimSpreadMultiplier = 1.0f;
 		bUseWeaponControlRigRotation = false;

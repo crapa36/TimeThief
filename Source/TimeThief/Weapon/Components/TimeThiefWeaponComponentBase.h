@@ -1,26 +1,30 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
-#include "TimeThiefWeaponBase.generated.h"
+#include "TimeThiefWeaponComponentBase.generated.h"
 
 class UAnimInstance;
 class UAnimMontage;
 class UAnimSequenceBase;
 class USoundBase;
+class UStaticMesh;
 class UStaticMeshComponent;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChangedSignature, int32, int32);
 
-UCLASS()
-class TIMETHIEF_API ATimeThiefWeaponBase : public AActor {
+UCLASS(Blueprintable, ClassGroup = (TimeThief), meta = (BlueprintSpawnableComponent))
+class TIMETHIEF_API UTimeThiefWeaponComponentBase : public UActorComponent {
 	GENERATED_BODY()
 
 public:
-	ATimeThiefWeaponBase();
+	UTimeThiefWeaponComponentBase();
 
-	virtual void Tick(float DeltaTime) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	void SetWeaponTag(FGameplayTag InTag) { WeaponTag = InTag; }
+	void SetWeaponMeshAsset(UStaticMesh* InMesh) { WeaponMeshAsset = InMesh; }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Weapon")
 	virtual void StartFire();
@@ -64,7 +68,10 @@ public:
 	FName GetSocketName() const { return SocketName; }
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
-	UStaticMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	UStaticMesh* GetWeaponMeshAsset() const { return WeaponMeshAsset; }
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	UStaticMeshComponent* GetWeaponMeshComponent() const;
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	TSubclassOf<UAnimInstance> GetEquipAnimLayer() const { return EquipAnimLayer; }
@@ -84,6 +91,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Weapon|Socket")
 	FTransform GetSocketTransformByName(FName InSocketName) const;
 
+	virtual void OnEquipped();
+	virtual void OnUnequipped();
 
 protected:
 	virtual void BeginPlay() override;
@@ -100,7 +109,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float FireRate = 600.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float RoundsPerSecond = 0.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
@@ -151,14 +160,13 @@ protected:
 	FGameplayTag WeaponTag;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	FName SocketName;
+	FName SocketName = TEXT("WeaponSocket");
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UStaticMesh> WeaponMeshAsset;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
 	FName MuzzleSocketName = TEXT("Muzzle");
-
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon|Socket")
 	FName LeftHandIKSocketName = TEXT("LeftHandIK");

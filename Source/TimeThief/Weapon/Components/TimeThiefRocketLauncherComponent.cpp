@@ -1,11 +1,12 @@
-﻿#include "Weapon/TimeThiefRocketLauncher.h"
+﻿#include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
 
-ATimeThiefRocketLauncher::ATimeThiefRocketLauncher()
+UTimeThiefRocketLauncherComponent::UTimeThiefRocketLauncherComponent()
 {
 	FireRate = 48.0f;
 	RoundsPerSecond = 48.0f / 60.0f;
@@ -17,7 +18,7 @@ ATimeThiefRocketLauncher::ATimeThiefRocketLauncher()
 	SpreadDecreasePerSecond = 0.0f;
 }
 
-void ATimeThiefRocketLauncher::ExecuteFireShot()
+void UTimeThiefRocketLauncherComponent::ExecuteFireShot()
 {
 	if (SpawnRocketProjectile())
 	{
@@ -25,7 +26,7 @@ void ATimeThiefRocketLauncher::ExecuteFireShot()
 	}
 }
 
-bool ATimeThiefRocketLauncher::SpawnRocketProjectile()
+bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 {
 	if (!RocketProjectileClass)
 	{
@@ -38,21 +39,24 @@ bool ATimeThiefRocketLauncher::SpawnRocketProjectile()
 		return false;
 	}
 
-	FVector CameraLocation = GetActorLocation();
-	FVector CameraAimDirection = GetActorForwardVector();
+	FVector CameraLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+	FVector CameraAimDirection = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
 
-	if (APawn* OwnerPawn = Cast<APawn>(GetOwner()))
+	if (AActor* MasterWeapon = GetOwner())
 	{
-		if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		if (APawn* OwnerPawn = Cast<APawn>(MasterWeapon->GetOwner()))
 		{
-			FRotator CameraRotation;
-			PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-			CameraAimDirection = CameraRotation.Vector();
-		}
-		else
-		{
-			CameraLocation = OwnerPawn->GetPawnViewLocation();
-			CameraAimDirection = OwnerPawn->GetBaseAimRotation().Vector();
+			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+			{
+				FRotator CameraRotation;
+				PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+				CameraAimDirection = CameraRotation.Vector();
+			}
+			else
+			{
+				CameraLocation = OwnerPawn->GetPawnViewLocation();
+				CameraAimDirection = OwnerPawn->GetBaseAimRotation().Vector();
+			}
 		}
 	}
 
@@ -60,8 +64,11 @@ bool ATimeThiefRocketLauncher::SpawnRocketProjectile()
 	const FVector CameraTraceEnd = CameraLocation + (CameraAimDirection * AimTraceRange);
 
 	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
 	QueryParams.AddIgnoredActor(GetOwner());
+	if (GetOwner())
+	{
+		QueryParams.AddIgnoredActor(GetOwner()->GetOwner());
+	}
 	QueryParams.bTraceComplex = true;
 
 	FHitResult CameraHitResult;
@@ -85,8 +92,8 @@ bool ATimeThiefRocketLauncher::SpawnRocketProjectile()
 	if (!Projectile)
 	{
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = GetOwner();
-		SpawnParams.Instigator = Cast<APawn>(GetOwner());
+		SpawnParams.Owner = GetOwner() ? GetOwner()->GetOwner() : nullptr;
+		SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		Projectile = World->SpawnActor<ATimeThiefRocketProjectile>(RocketProjectileClass, SpawnTransform, SpawnParams);
@@ -99,14 +106,14 @@ bool ATimeThiefRocketLauncher::SpawnRocketProjectile()
 	if (Projectile)
 	{
 		Projectile->ActivateProjectile(SpawnTransform);
-		Projectile->InitializeProjectile(GetOwner(), Cast<APawn>(GetOwner()));
+		Projectile->InitializeProjectile(GetOwner() ? GetOwner()->GetOwner() : nullptr, Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr));
 		return true;
 	}
 
 	return false;
 }
 
-void ATimeThiefRocketLauncher::PlayFireEffects()
+void UTimeThiefRocketLauncherComponent::PlayFireEffects()
 {
 	const FVector MuzzleLocation = GetMuzzleLocation();
 	const FRotator MuzzleRotation = GetSocketTransformByName(GetMuzzleSocketName()).GetRotation().Rotator();
@@ -123,9 +130,12 @@ void ATimeThiefRocketLauncher::PlayFireEffects()
 
 	if (FireAnimation)
 	{
-		if (ATimeThiefCharacterBase* BaseCharacter = Cast<ATimeThiefCharacterBase>(GetOwner()))
+		if (AActor* MasterWeapon = GetOwner())
 		{
-			BaseCharacter->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
+			if (ATimeThiefCharacterBase* BaseCharacter = Cast<ATimeThiefCharacterBase>(MasterWeapon->GetOwner()))
+			{
+				BaseCharacter->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
+			}
 		}
 	}
 }

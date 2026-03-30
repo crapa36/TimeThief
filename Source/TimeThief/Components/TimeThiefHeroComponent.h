@@ -28,6 +28,12 @@ public:
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 	void InitializePlayerInput(UInputComponent* PlayerInputComponent);
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Hero")
+	void InitializeAbilitySystem();
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
+	const UTimeThiefInputConfig* GetInputConfig() const;
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	bool IsReadyToBindInputs() const { return bReadyToBindInputs; }
 

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Weapon/TimeThiefWeaponBase.h"
-#include "TimeThiefShotgun.generated.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+#include "TimeThiefShotgunComponent.generated.h"
 
 class USoundBase;
 class UParticleSystem;
@@ -31,13 +31,13 @@ struct FShotgunHitResult
 	FHitResult OriginalHitResult;
 };
 
-UCLASS()
-class TIMETHIEF_API ATimeThiefShotgun : public ATimeThiefWeaponBase
+UCLASS(Blueprintable, ClassGroup=(TimeThief), meta=(BlueprintSpawnableComponent))
+class TIMETHIEF_API UTimeThiefShotgunComponent : public UTimeThiefWeaponComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	ATimeThiefShotgun();
+	UTimeThiefShotgunComponent();
 
 protected:
 	virtual void BeginPlay() override;
@@ -48,7 +48,6 @@ protected:
 	void PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults);
 	virtual void ApplyRecoilAndSpread() override;
 
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float DamagePerPellet = 12.0f;
 
@@ -57,7 +56,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	int32 PelletCount = 12;
-
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
@@ -77,5 +75,3 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float HorizontalRecoil = 3.0f;
 };
-
-

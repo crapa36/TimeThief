@@ -1,21 +1,21 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Weapon/TimeThiefWeaponBase.h"
-#include "TimeThiefRocketLauncher.generated.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+#include "TimeThiefRocketLauncherComponent.generated.h"
 
 class ATimeThiefRocketProjectile;
 class UAnimSequenceBase;
 class UParticleSystem;
 class USoundBase;
 
-UCLASS()
-class TIMETHIEF_API ATimeThiefRocketLauncher : public ATimeThiefWeaponBase
+UCLASS(Blueprintable, ClassGroup=(TimeThief), meta=(BlueprintSpawnableComponent))
+class TIMETHIEF_API UTimeThiefRocketLauncherComponent : public UTimeThiefWeaponComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	ATimeThiefRocketLauncher();
+	UTimeThiefRocketLauncherComponent();
 
 protected:
 	virtual void ExecuteFireShot() override;

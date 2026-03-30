@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Weapon/TimeThiefWeaponBase.h"
-#include "TimeThiefRifle.generated.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+#include "TimeThiefRifleComponent.generated.h"
 
 class USoundBase;
 class UParticleSystem;
@@ -34,14 +34,14 @@ struct FRifleHitResult
 	FHitResult OriginalHitResult;
 };
 
-UCLASS()
-class TIMETHIEF_API ATimeThiefRifle : public ATimeThiefWeaponBase
+UCLASS(Blueprintable, ClassGroup=(TimeThief), meta=(BlueprintSpawnableComponent))
+class TIMETHIEF_API UTimeThiefRifleComponent : public UTimeThiefWeaponComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	ATimeThiefRifle();
-	virtual void Tick(float DeltaTime) override;
+	UTimeThiefRifleComponent();
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
 	virtual void ExecuteFireShot() override;
@@ -70,20 +70,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
 	TObjectPtr<UAnimSequenceBase> FireAnimation;
 
-	// 최대 수직 반동 (각도)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float MaxVerticalRecoil = 1.5f;
 
-	// 최대 수평 반동 (각도)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float MaxHorizontalRecoil = 0.6f;
 
-	// 반동 회복 속도 (각도/초)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float RecoilRecoverySpeed = 5.0f;
 
-	// 1발당 반동 증가량 (각도)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float RecoilBuildupPerShot = 0.12f;
-
 };
