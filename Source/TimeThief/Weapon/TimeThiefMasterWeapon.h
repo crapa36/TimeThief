@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
+#include "MorphingMesh/MorphingMeshComponent.h"
 #include "TimeThiefMasterWeapon.generated.h"
 
 class UStaticMeshComponent;
@@ -32,7 +33,7 @@ public:
 	void Reload();
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
-	UStaticMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	UStaticMeshComponent* GetWeaponMesh() const;
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	UStaticMesh* GetActiveStaticMesh() const;
@@ -53,7 +54,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UStaticMeshComponent> WeaponMesh;
+	TObjectPtr<UMorphingMeshComponent> WeaponMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
 	TObjectPtr<UTimeThiefRifleComponent> RifleComponent;
@@ -69,4 +70,7 @@ protected:
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<UTimeThiefWeaponComponentBase>> WeaponComponents;
+	
+	private:
+	EMorphTargetType GetMorphTargetTypeByTag(FGameplayTag WeaponTag) const;
 };
