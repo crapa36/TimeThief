@@ -13,6 +13,7 @@ std::map<EItemCategory, FString> CategoryNameMap = {
 	{EItemCategory::WeaponUpgrade, TEXT("강화 파츠")},
 	{EItemCategory::Skill, TEXT("스킬")},
 	{EItemCategory::Consumable, TEXT("소모품")},
+	{EItemCategory::Throwable, TEXT("투척 무기")},
 };
 
 void UItemToolTipWidget::SetupToolTip(EItemID InItemID)
