@@ -124,13 +124,39 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
 	}
 
-	GetWorldTimerManager().SetTimer(
-		InteractCheckTimerHandle,
-		this,
-		&ATimeThiefPlayerCharacter::CheckInteractableObject,
-		0.1f,
-		true
-	);
+	if (IsLocalPlayer() || IsLocallyControlled())
+	{
+		GetWorldTimerManager().SetTimer(
+			InteractCheckTimerHandle,
+			this,
+			&ATimeThiefPlayerCharacter::CheckInteractableObject,
+			0.1f,
+			true
+		);
+	}
+	else
+	{
+		if (CameraBoom)
+		{
+			CameraBoom->Deactivate();
+			CameraBoom->SetComponentTickEnabled(false);
+		}
+		if (FollowCamera)
+		{
+			FollowCamera->Deactivate();
+			FollowCamera->SetComponentTickEnabled(false);
+		}
+		if (CharacterTrajectoryComponent)
+		{
+			CharacterTrajectoryComponent->Deactivate();
+			CharacterTrajectoryComponent->SetComponentTickEnabled(false);
+		}
+		if (HeroComponent)
+		{
+			HeroComponent->Deactivate();
+			HeroComponent->SetComponentTickEnabled(false);
+		}
+	}
 }
 
 void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)

@@ -100,6 +100,8 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 
 	bReadyToBindInputs = true;
 	OnReadyToBindInputs.Broadcast(this);
+	
+	SetReadyToBindInputs();
 }
 
 void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext* MappingContext, int32 Priority)

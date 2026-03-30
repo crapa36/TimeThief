@@ -8,31 +8,34 @@
 UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bShouldMove = false;
+	bIsFalling = false;
 }
 
 void UTimeThiefAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
-
-	CharacterOwner = Cast<ACharacter>(TryGetPawnOwner());
-	if (CharacterOwner)
-	{
-		if (CharacterOwner->GetClass()->ImplementsInterface(UMovableNetworkEntityInterface::StaticClass()))
-		{
-			MovableNetworkInterface.SetObject(CharacterOwner);
-			MovableNetworkInterface.SetInterface(Cast<IMovableNetworkEntityInterface>(CharacterOwner));
-		}
-		
-		CharacterMovement = CharacterOwner->GetCharacterMovement();
-	}
 }
 
 void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(TryGetPawnOwner());
-	if (!CharacterBase || !CharacterMovement)
+	if (!CharacterOwner)
+	{
+		CharacterOwner = Cast<ACharacter>(TryGetPawnOwner());
+		if (CharacterOwner)
+		{
+			if (CharacterOwner->GetClass()->ImplementsInterface(UMovableNetworkEntityInterface::StaticClass()))
+			{
+				MovableNetworkInterface.SetObject(CharacterOwner);
+				MovableNetworkInterface.SetInterface(Cast<IMovableNetworkEntityInterface>(CharacterOwner));
+			}
+			CharacterMovement = CharacterOwner->GetCharacterMovement();
+		}
+	}
+
+	if (!CharacterOwner || !CharacterMovement)
 	{
 		return;
 	}
@@ -49,12 +52,19 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	VerticalVelocity = Velocity.Z;
 	GroundSpeed = Velocity.Size2D();
 	bHasVelocity = !FMath::IsNearlyZero(GroundSpeed);
+	
 	bIsFalling = CharacterMovement->IsFalling();
+	
+	const bool bHasAcceleration = !CharacterMovement->GetCurrentAcceleration().IsNearlyZero();
+	bShouldMove = (GroundSpeed > 0.01f) && bHasAcceleration;
+	
 	bIsMoving = bHasVelocity && !bIsFalling;
 
-	UTimeThiefPawnCombatComponent* CombatComp = CharacterBase->GetCombatComponent();
-	if (CombatComp)
+	if (ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CharacterOwner))
 	{
-		bIsAiming = CombatComp->IsAiming();
+		if (UTimeThiefPawnCombatComponent* CombatComp = CharacterBase->GetCombatComponent())
+		{
+			bIsAiming = CombatComp->IsAiming();
+		}
 	}
 }

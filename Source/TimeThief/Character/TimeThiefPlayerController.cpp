@@ -3,13 +3,8 @@
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
-#include "TimeThief.h"
 #include "Character/TimeThiefPlayerCharacter.h"
-#include "GameFramework/Character.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Network/TestPlayer/NTCheatManager.h"
-#include "Widgets/Input/SVirtualJoystick.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "UI/Inventory/InventoryWidget.h"
 #include "Components/GameFrameworkComponentManager.h"
@@ -152,6 +147,7 @@ void ATimeThiefPlayerController::SetupInputComponent()
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
 		}
+		InitializeUI();
 	}
 }
 

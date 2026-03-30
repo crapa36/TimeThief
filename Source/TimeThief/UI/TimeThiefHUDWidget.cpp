@@ -65,6 +65,32 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 {
 	if (!InCharacter) return;
 
+	if (CachedCharacter.IsValid() && CachedCharacter.Get() == InCharacter)
+	{
+		return;
+	}
+
+	if (CachedCharacter.IsValid())
+	{
+		if (CachedHealthComponent.IsValid())
+		{
+			CachedHealthComponent->OnHealthChanged_Delegate.RemoveAll(this);
+		}
+		if (CachedCombatComponent.IsValid())
+		{
+			CachedCombatComponent->OnWeaponEquipped_Delegate.RemoveAll(this);
+			CachedCombatComponent->OnWeaponUnequipped_Delegate.RemoveAll(this);
+		}
+		if (CachedTimePointSystemComponent.IsValid())
+		{
+			CachedTimePointSystemComponent->OnTimePointsChanged_Delegate.RemoveAll(this);
+		}
+		if (CachedWeapon.IsValid())
+		{
+			CachedWeapon->OnAmmoChanged_Delegate.RemoveAll(this);
+		}
+	}
+
 	CachedCharacter = InCharacter;
 	CachedHealthComponent = InCharacter->GetComponentByClass<UTimeThiefHealthComponent>();
 	CachedCombatComponent = InCharacter->GetPlayerCombatComponent();

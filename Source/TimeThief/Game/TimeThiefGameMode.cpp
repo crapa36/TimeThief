@@ -6,10 +6,11 @@
 ATimeThiefGameMode::ATimeThiefGameMode() {
 }
 
-UClass* ATimeThiefGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
-{
-    UE_LOG(LogTemp, Warning, TEXT("[SpawnTrace] GetDefaultPawnClassForController FINAL Result=None"));
-    return nullptr;
+UClass* ATimeThiefGameMode::GetDefaultPawnClassForController_Implementation(AController* InController) {
+	if (DefaultPawnClass) {
+		return DefaultPawnClass;
+	}
+	return nullptr;
 }
 
 void ATimeThiefGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) {
