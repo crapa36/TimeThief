@@ -661,7 +661,7 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 {
-	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("../External/ProtocolShared/Config/client.dev.json"));
+	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("RuntimeConfig/client.dev.json"));
 	
 	UE_LOG(LogTemp, Log, TEXT("[Config] Loading client config from %s"), *FilePath);
 	
