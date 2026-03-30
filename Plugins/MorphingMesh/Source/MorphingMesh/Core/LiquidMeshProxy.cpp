@@ -8,6 +8,7 @@
 #include "RenderGraphBuilder.h"
 #include "../Settings.h"
 #include "../MorphingMeshComponent.h"
+#include "Materials/MaterialRenderProxy.h"
 
 FLiquidMeshProxy::FLiquidMeshProxy(const ULiquidMeshComponent* InComponent)
 	: FPrimitiveSceneProxy{InComponent}
@@ -15,9 +16,19 @@ FLiquidMeshProxy::FLiquidMeshProxy(const ULiquidMeshComponent* InComponent)
 	RenderComponent = InComponent;
 	UE_LOG(LogTemp, Warning, TEXT("FLiquidMeshProxy::FLiquidMeshProxy - RenderComponent: %s"),
 	       *RenderComponent->GetName());
-	MaterialRelevance = UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance_Concurrent(
+	if (InComponent->ParentComponent)
+	{
+		MaterialRelevance = InComponent->ParentComponent->LiquidMaterial->GetRelevance_Concurrent(
+	GetScene().GetShaderPlatform());
+		MaterialRenderProxy = InComponent->ParentComponent->LiquidMaterial->GetRenderProxy();
+		bVerifyUsedMaterials = false;
+	}
+	else
+	{
+		MaterialRelevance = UMaterial::GetDefaultMaterial(MD_Surface)->GetRelevance_Concurrent(
 		GetScene().GetShaderPlatform());
-	MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy();
+		MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy();	
+	}
 
 	bCastDynamicShadow = true;
 	bCastStaticShadow = false;

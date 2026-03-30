@@ -58,9 +58,9 @@ public:
 	float MorphingTime{MaxMorphingTime};
 	float ElapsedTime{0.0f};
 	
-	FVector3f PrevAlpha{1.0f, 0.0f, 0.0f};
-	FVector3f CurrAlpha{1.0f, 0.0f, 0.0f};
-	FVector3f DestAlpha{1.0f, 0.0f, 0.0f};
+	FVector3f PrevAlpha{0.0f, 0.0f, 0.0f};
+	FVector3f CurrAlpha{0.0f, 0.0f, 0.0f};
+	FVector3f DestAlpha{0.0f, 0.0f, 0.0f};
 	
-	EMorphTargetType MeshType{EMorphTargetType::A};
+	EMorphTargetType MeshType{EMorphTargetType::None};
 };

@@ -36,11 +36,11 @@ public class TimeThief : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Sockets",
-			"Networking", "Niagara",
+			"Networking", "Niagara", "MorphingMesh",
 		});
 
 		PublicIncludePaths.AddRange(new string[] {
-			"TimeThief",
+			"TimeThief"
 		});
 		
 		if (Target.bBuildEditor)
