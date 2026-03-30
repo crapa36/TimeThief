@@ -56,7 +56,9 @@ public:
 	
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void PawnClientRestart() override;
 	virtual void BeginPlay() override;
+	virtual void NotifyControllerChanged() override;
 	
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -69,6 +71,9 @@ protected:
 	void CheckInteractableObject();
 	
 protected:
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Character")
+	TObjectPtr<const UTimeThiefPawnData> DefaultPawnData;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	TObjectPtr<USpringArmComponent> CameraBoom;
 

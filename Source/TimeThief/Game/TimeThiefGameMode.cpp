@@ -10,7 +10,7 @@ UClass* ATimeThiefGameMode::GetDefaultPawnClassForController_Implementation(ACon
 	if (DefaultPawnData && DefaultPawnData->PawnClass) {
 		return DefaultPawnData->PawnClass;
 	}
-	return ATimeThiefPlayerCharacter::StaticClass();
+	return nullptr;
 }
 
 void ATimeThiefGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) {

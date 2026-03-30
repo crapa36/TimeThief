@@ -11,6 +11,8 @@ enum class ENetworkPlayState : uint8
 	Connected,
 	Handshaking,
 	InLobby,
+	MatchMaking,
+	MatchingSucc,
 	EnteringRoom,
 	InRoom,
 	LeavingRoom,

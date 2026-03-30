@@ -1,4 +1,3 @@
-#include "TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -10,17 +9,13 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "CharacterTrajectoryComponent.h"
-#include "Input/TimeThiefInputComponent.h"
-#include "TimeThiefGameplayTags.h"
 #include "Actors/InteractionActorBase.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "ChannelCommons.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
-#include "Game/TimeThiefGameMode.h"
-#include "Weapon/TimeThiefMasterWeapon.h"
-#include "Actors/Item/ItemBase.h"
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
+#include "UI/TimeThiefHUDWidget.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -90,6 +85,14 @@ void ATimeThiefPlayerCharacter::OnPawnDataSet()
 	{
 		AppendOwnedGameplayTags(PawnData->PawnTags);
 	}
+
+	if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(GetController()))
+	{
+		if (UTimeThiefHUDWidget* HUD = PC->GetHUDWidget())
+		{
+			HUD->InitializeHUD(this);
+		}
+	}
 }
 
 UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetCombatComponent() const
@@ -111,9 +114,14 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (!PawnData && DefaultPawnData)
+	{
+		SetPawnData(DefaultPawnData);
+	}
+
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
-		Health->OnDeath.AddUniqueDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
+		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
 	}
 
 	GetWorldTimerManager().SetTimer(
@@ -128,6 +136,36 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+}
+
+void ATimeThiefPlayerCharacter::PawnClientRestart()
+{
+	Super::PawnClientRestart();
+
+	if (IsLocallyControlled() && bIsFirstPerson)
+	{
+		FollowCamera->SetActive(false);
+	}
+
+	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		PawnExtComp->CheckDefaultInitialization();
+	}
+}
+
+void ATimeThiefPlayerCharacter::NotifyControllerChanged()
+{
+	Super::NotifyControllerChanged();
+
+	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+	{
+		PawnExtComp->NotifyControllerChanged();
+	}
+
+	if (PawnData)
+	{
+		OnPawnDataSet();
+	}
 }
 
 void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController)

@@ -16,6 +16,15 @@ class TIMETHIEF_API UNTCheatManager : public UCheatManager
 	
 public:
 	UFUNCTION(Exec)
+	void SetNickname(const FString& Nickname);
+	
+	UFUNCTION(Exec)
+	void EnterMatchQueue();
+	
+	UFUNCTION(Exec)
+	void CancelMatchQueue();
+	
+	UFUNCTION(Exec)
 	void JoinRoom();
 	
 	UFUNCTION(Exec)

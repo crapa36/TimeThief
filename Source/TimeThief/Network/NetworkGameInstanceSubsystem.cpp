@@ -308,14 +308,60 @@ void UNetworkGameInstanceSubsystem::HandlePong(const se::auth::S_Pong& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleSetNicknameRes(const se::lobby::S_SetNicknameRes& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!Pkt.success())
+	{
+		const auto& Result = Pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Failed to set nickname: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		return;
+	}
+	
+	if (Pkt.nickname().empty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to set nickname: Empty nickname in response"));
+		return;
+	}
+	
+	LocalPlayerInfo.Nickname = UTF8_TO_TCHAR(Pkt.nickname().c_str());
+	
+	UE_LOG(LogTemp, Log, TEXT("Nickname set successfully: %s"), *LocalPlayerInfo.Nickname);
 }
 
 void UNetworkGameInstanceSubsystem::HandleMatchQueueEnterRes(const se::lobby::S_MatchQueueEnterRes& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!Pkt.success())
+	{
+		PlayState = ENetworkPlayState::InLobby;
+		
+		const auto& Result = Pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Failed to enter matchmaking queue: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Entered matchmaking queue successfully"));
 }
 
 void UNetworkGameInstanceSubsystem::HandleMatchQueueCancelRes(const se::lobby::S_MatchQueueCancelRes& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!Pkt.success())
+	{
+		// 일단 Lobby로 돌아간다..
+		PlayState = ENetworkPlayState::InLobby;
+		
+		const auto& Result = Pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Failed to cancel matchmaking queue: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Cancelled matchmaking queue successfully"));
 }
 
 void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFound& Pkt)
@@ -615,11 +661,80 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 
 bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 {
-	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("../External/ProtocolShared/Config/client.dev.json"));
+	const FString FilePath = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir() / TEXT("RuntimeConfig/client.dev.json"));
 	
 	UE_LOG(LogTemp, Log, TEXT("[Config] Loading client config from %s"), *FilePath);
 	
 	return FClientConfigLoader::LoadClientConfigFromFile(FilePath, ClientConfig);
+}
+
+void UNetworkGameInstanceSubsystem::RequestSetNickname(const FString& Nickname)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to set nickname: Not connected to server"));
+		return;
+	}
+	
+	if (PlayState != ENetworkPlayState::InLobby)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to set nickname: Invalid state"));
+		return;
+	}
+	
+	se::lobby::C_SetNicknameReq Request;
+	Request.set_nickname(TCHAR_TO_UTF8(*Nickname));
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_SetNicknameReq to server. Nickname=%s"), *Nickname);
+}
+
+void UNetworkGameInstanceSubsystem::RequestMatchQueueEnter()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter match queue: Not connected to server"));
+		return;
+	}
+	
+	if (PlayState != ENetworkPlayState::InLobby)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter match queue: Invalid state"));
+		return;
+	}
+	
+	se::lobby::C_MatchQueueEnterReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	PlayState = ENetworkPlayState::MatchMaking;
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MatchQueueEnterReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestMatchQueueCancel()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to cancel match queue: Not connected to server"));
+		return;
+	}
+	
+	if (PlayState != ENetworkPlayState::MatchMaking)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to cancel match queue: Invalid state"));
+		return;
+	}
+	
+	se::lobby::C_MatchQueueCancelReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MatchQueueCancelReq to server"));	
 }
 
 void UNetworkGameInstanceSubsystem::RequestEnterRoom()
@@ -822,7 +937,7 @@ void UNetworkGameInstanceSubsystem::InitializeSpawnedPawnData(AActor* Actor)
 	
 	PlayerCharacter->SetPawnData(PawnData);
 	
-	UE_LOG(LogTemp, Warning, TEXT("[Network] InitializeSpawnedPawnData: Set PawnData=%s on %s"),
+	UE_LOG(LogTemp, Log, TEXT("[Network] InitializeSpawnedPawnData: Set PawnData=%s on %s"),
 		*GetNameSafe(PawnData),
 		*GetNameSafe(PlayerCharacter));
 }

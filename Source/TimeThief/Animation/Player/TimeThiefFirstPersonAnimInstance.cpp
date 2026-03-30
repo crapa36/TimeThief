@@ -99,7 +99,7 @@ void UTimeThiefFirstPersonAnimInstance::UpdateProceduralData(float DeltaSeconds)
 
 	AccumulatedTime += DeltaSeconds;
 
-	ProceduralVelocity = PlayerCharacter->GetVelocity();
+	ProceduralVelocity = Velocity;
 	ProceduralSpeed = ProceduralVelocity.Size2D();
 
 	float TargetBobAmplitude = IdleBobAmplitude;
