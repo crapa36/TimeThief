@@ -6,7 +6,6 @@
 #include "TimeThiefPlayerAnimInstance.generated.h"
 
 class ATimeThiefPlayerCharacter;
-class UCharacterTrajectoryComponent;
 class UTimeThiefWeaponComponentBase;
 class UTimeThiefWireComponent;
 
@@ -41,9 +40,6 @@ public:
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
-	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<UTimeThiefWireComponent> WireComponent;

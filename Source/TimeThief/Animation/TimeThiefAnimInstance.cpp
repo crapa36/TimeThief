@@ -4,6 +4,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Network/MovableNetworkEntityInterface.h"
+#include "CharacterTrajectoryComponent.h"
 
 UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -32,6 +33,7 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				MovableNetworkInterface.SetInterface(Cast<IMovableNetworkEntityInterface>(CharacterOwner));
 			}
 			CharacterMovement = CharacterOwner->GetCharacterMovement();
+			TrajectoryComponent = CharacterOwner->FindComponentByClass<UCharacterTrajectoryComponent>();
 		}
 	}
 

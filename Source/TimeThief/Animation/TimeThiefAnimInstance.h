@@ -4,6 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "TimeThiefAnimInstance.generated.h"
 
+class UCharacterTrajectoryComponent;
 class IMovableNetworkEntityInterface;
 class ACharacter;
 class UCharacterMovementComponent;
@@ -27,6 +28,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<UCharacterMovementComponent> CharacterMovement;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
+	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	FVector Velocity;

@@ -27,7 +27,6 @@ void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
 
 	PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
 	if (PlayerCharacter) {
-		TrajectoryComponent = PlayerCharacter->GetComponentByClass<UCharacterTrajectoryComponent>();
 		WireComponent = PlayerCharacter->GetWireComponent();
 	}
 }
