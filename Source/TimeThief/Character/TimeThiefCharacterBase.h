@@ -25,8 +25,6 @@ class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
 public:
 	ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
-	bool PurchaseItem(const FStoreOrder& Order);
-	
 	UFUNCTION(BlueprintCallable)
 	void SetMask(float NewMask);
 	

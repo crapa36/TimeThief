@@ -14,6 +14,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Components/System/InventorySystemComponent.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -48,39 +49,6 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	
 	DisappearFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DisappearFX"));
 	DisappearFX->SetupAttachment(GetMesh());
-}
-
-bool ATimeThiefCharacterBase::PurchaseItem(const FStoreOrder& Order)
-{
-	if (TimePointSystemComponent->GetTimePoints() >= Order.Price)
-	{
-		TimePointSystemComponent->ModifyTimePoints(-Order.Price);
-		ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(GetPlayerState());
-			switch (Order.ItemID)
-			{
-			case EItemID::DamageUpgrade:
-				PS->Status.Damage++;
-				break;
-			case EItemID::StabilityUpgrade:
-				PS->Status.Stability++;
-				break;
-			case EItemID::CapacityUpgrade:
-				PS->Status.Capacity++;
-				break;
-			case EItemID::HealthUpgrade:
-				PS->Status.Health++;
-				HealthComponent->Upgrade();
-				break;
-			case EItemID::SpeedUpgrade:
-				PS->Status.Speed++;
-				break;
-			default:
-				break;
-			}
-		return true;
-	}
-	
-	return false;
 }
 
 void ATimeThiefCharacterBase::SetMask(float NewMask)
