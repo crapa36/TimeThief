@@ -183,6 +183,10 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 			
 			Sample.Position = InvCurrentTransform.TransformPosition(Pos);
 			
+			const float TempX = Sample.Position.X;
+			Sample.Position.X = Sample.Position.Y;
+			Sample.Position.Y = TempX;
+			
 			const FQuat WorldFacing = FRotator(0.f, Yaw, 0.f).Quaternion();
 			Sample.Facing = InvCurrentTransform.TransformRotation(WorldFacing);
 			
@@ -232,6 +236,10 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 		FTransformTrajectorySample Sample;
 		
 		Sample.Position = LocalPlanarVel * T;
+		
+		const float TempX = Sample.Position.X;
+		Sample.Position.X = Sample.Position.Y;
+		Sample.Position.Y = TempX;
 		
 		const float TargetLocalYaw = FRotator::NormalizeAxis(YawRate * T);
 		Sample.Facing = FRotator(0.f, TargetLocalYaw, 0.f).Quaternion();
