@@ -84,6 +84,9 @@ void UTimeStormComponent::ReStart()
 {
 	ElapsedTime = 0.0f;
 	NumShrinks = 0;
+	CurrCenter = {0.0f, 0.0f};
+	PrevCenter = {0.0f, 0.0f};
+	DestCenter = {0.0f, 0.0f};
 	bIsShrinking = false;
 }
 
