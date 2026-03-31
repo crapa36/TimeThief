@@ -81,6 +81,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void NotifyControllerChanged() override;
+	
+	virtual void ApplyPerspective();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")
@@ -110,7 +112,5 @@ protected:
 	float Mask = 1;
 	
 private:
-	void ApplyPerspective();
-	
 	void UpdateMask();
 };
