@@ -61,7 +61,7 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 				DamagedElapsedTime = 0;
 				if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 				{
-					Character->AddMask(DeltaTime * std::max(TimePoints, 0.f) / DangerThreshold);
+					Character->AddMask(DeltaTime * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold / 5);
 				}
 			}
 		}
