@@ -1,6 +1,5 @@
 #include "Animation/Player/TimeThiefPlayerAnimInstance.h"
 #include "Character/TimeThiefPlayerCharacter.h"
-#include "CharacterTrajectoryComponent.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"

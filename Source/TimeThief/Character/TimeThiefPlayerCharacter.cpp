@@ -8,7 +8,7 @@
 #include "Character/TimeThiefPawnData.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/System/InventorySystemComponent.h"
-#include "CharacterTrajectoryComponent.h"
+#include "Components/TimeThiefTrajectoryComponent.h"
 #include "Actors/InteractionActorBase.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "ChannelCommons.h"
@@ -35,7 +35,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
 
-	CharacterTrajectoryComponent = CreateDefaultSubobject<UCharacterTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));
+	CharacterTrajectoryComponent = CreateDefaultSubobject<UTimeThiefTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));
 	CharacterTrajectoryComponent->SetAutoActivate(true);
 	CharacterTrajectoryComponent->PrimaryComponentTick.bCanEverTick = true;
 	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
@@ -118,7 +118,7 @@ void ATimeThiefPlayerCharacter::ApplyPerspective()
 	{
 		FollowCamera->SetActive(false);
 	}
-
+	
 }
 
 void ATimeThiefPlayerCharacter::BeginPlay()
