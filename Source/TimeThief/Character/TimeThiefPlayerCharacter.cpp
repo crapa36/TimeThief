@@ -110,6 +110,16 @@ USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetMontagePlaybackMesh() cons
 	return FirstPersonMesh;
 }
 
+void ATimeThiefPlayerCharacter::ApplyPerspective()
+{
+	Super::ApplyPerspective();
+
+	if (FollowCamera)
+	{
+		FollowCamera->SetActive(!bIsFirstPerson);
+	}
+}
+
 void ATimeThiefPlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -167,11 +177,6 @@ void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)
 void ATimeThiefPlayerCharacter::PawnClientRestart()
 {
 	Super::PawnClientRestart();
-
-	if (IsLocallyControlled() && bIsFirstPerson)
-	{
-		FollowCamera->SetActive(false);
-	}
 
 	if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
 	{

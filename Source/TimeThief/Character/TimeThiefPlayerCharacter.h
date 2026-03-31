@@ -65,6 +65,8 @@ protected:
 	
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaSeconds) override;
+	
+	virtual void ApplyPerspective() override;
 
 	void OnPawnDataSet();
 
