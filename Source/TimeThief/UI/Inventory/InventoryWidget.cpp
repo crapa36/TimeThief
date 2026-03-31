@@ -3,6 +3,7 @@
 
 #include "InventoryWidget.h"
 
+#include "EquipmentWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/ListView.h"
 #include "Actors/Item/ItemBase.h"
@@ -89,6 +90,9 @@ void UInventoryWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 		if (UInventorySystemComponent* InventoryComp = Player->GetInventoryComponent())
 		{
 			InventoryComp->OnInventoryUpdatedEvent.AddUObject(this, &ThisClass::OnInventoryItemUpdated);
+			
+			ConsumableEquipmentWidget->Init(InPlayer);
+			ThrowableEquipmentWidget->Init(InPlayer);
 		}
 	}
 }

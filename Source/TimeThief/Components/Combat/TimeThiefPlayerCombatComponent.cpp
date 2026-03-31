@@ -225,7 +225,13 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 					FRotator CurrentRotation = OwningCharacter->GetActorRotation();
 					FRotator NewRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.0f, TargetRotation.Yaw, 0.0f), DeltaTime, 20.0f);
 
-					OwningCharacter->SetActorRotation(NewRotation);
+					if (auto NetworkCharacter = Cast<ATimeThiefNetworkCharacterBase>(OwningCharacter))
+					{
+						if (NetworkCharacter->IsLocalPlayer())
+						{
+							OwningCharacter->SetActorRotation(NewRotation);
+						}
+					}
 				}
 			}
 		}
@@ -320,7 +326,15 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 	if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
 	{
 		FRotator TargetRotation = AimDirection.Rotation();
-		OwningCharacter->SetActorRotation(FRotator(0.0f, TargetRotation.Yaw, 0.0f));
+		
+		if (auto NetworkCharacter = Cast<ATimeThiefNetworkCharacterBase>(OwningCharacter))
+		{
+			if (NetworkCharacter->IsLocalPlayer())
+			{
+				OwningCharacter->SetActorRotation(FRotator(0.0f, TargetRotation.Yaw, 0.0f));
+			}
+		}
+		
 	}
 }
 

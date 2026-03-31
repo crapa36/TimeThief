@@ -107,6 +107,19 @@ bool Handle_S_MatchQueueCancelRes(PacketSessionRef& session, const se::lobby::S_
 	
 bool Handle_N_MatchFound(PacketSessionRef& session, const se::lobby::N_MatchFound& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleMatchFound(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_MatchFound: Failed to get NGIS"));
 	return false;	
 }
 	

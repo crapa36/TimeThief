@@ -366,6 +366,25 @@ void UNetworkGameInstanceSubsystem::HandleMatchQueueCancelRes(const se::lobby::S
 
 void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFound& Pkt)
 {
+	check(IsInGameThread());
+	
+	uint32 RoomId = Pkt.room_id();
+	if (RoomId == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Received invalid RoomId in MatchFound packet"));
+		return;
+	}
+	
+	PlayState = ENetworkPlayState::MatchingSucc;
+	TryRoomId = RoomId;
+	
+	UE_LOG(LogTemp, Log, TEXT("Match found! RoomId=%u"), RoomId);
+	
+	se::room::C_RoomEnterReq RoomEnterReq;
+	RoomEnterReq.set_room_id(RoomId);
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(RoomEnterReq);
+	SendPacket(Buffer);
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnterRes& Pkt)

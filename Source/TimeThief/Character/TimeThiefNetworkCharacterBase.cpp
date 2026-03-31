@@ -87,7 +87,7 @@ float ATimeThiefNetworkCharacterBase::GetNetworkSpeed() const
 
 void ATimeThiefNetworkCharacterBase::SetNetworkSpeed(float NewSpeed)
 {
-	CurrentNetworkPitch = NewSpeed;
+	CurrentNetworkSpeed = NewSpeed;
 }
 
 float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
