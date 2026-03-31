@@ -185,6 +185,7 @@ private:
 	FLocalPlayerInfo LocalPlayerInfo;
 	
 	uint32 LocalPlayerEntityId = 0;
+	uint32 TryRoomId = 0;
 	
 	UPROPERTY()
 	FRuntimeConfig RuntimeConfig;
