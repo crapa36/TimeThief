@@ -9,7 +9,6 @@
 #include "ItemCommons.h"
 #include "NiagaraComponent.h"
 #include "TimeThiefPlayerState.h"
-#include "ViewportInteractionTypes.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
