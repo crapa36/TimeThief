@@ -114,10 +114,11 @@ void ATimeThiefPlayerCharacter::ApplyPerspective()
 {
 	Super::ApplyPerspective();
 
-	if (FollowCamera)
+	if (IsLocallyControlled() && bIsFirstPerson)
 	{
-		FollowCamera->SetActive(!bIsFirstPerson);
+		FollowCamera->SetActive(false);
 	}
+
 }
 
 void ATimeThiefPlayerCharacter::BeginPlay()
