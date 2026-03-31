@@ -7,6 +7,7 @@
 #include "InventoryWidget.generated.h"
 
 
+class UEquipmentWidget;
 class UVerticalBox;
 class UListView;
 class ATimeThiefPlayerCharacter;
@@ -26,6 +27,12 @@ class TIMETHIEF_API UInventoryWidget : public UUserWidget
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UVerticalBox> Vicinity_VerticalBox;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UEquipmentWidget> ConsumableEquipmentWidget;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UEquipmentWidget> ThrowableEquipmentWidget;
 	
 	UPROPERTY()
 	TWeakObjectPtr<ATimeThiefPlayerCharacter> Player;

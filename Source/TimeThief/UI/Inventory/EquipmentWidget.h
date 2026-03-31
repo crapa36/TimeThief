@@ -13,6 +13,7 @@
 
 class UImage;
 class UPromptWidget;
+class ATimeThiefPlayerCharacter;
 
 UCLASS()
 class TIMETHIEF_API UEquipmentWidget : public UUserWidget
@@ -26,9 +27,7 @@ class TIMETHIEF_API UEquipmentWidget : public UUserWidget
 	TObjectPtr<UImage> ItemIcon_Image;
 	
 public:
-	virtual void NativeConstruct() override;
-	
-	virtual void NativeDestruct() override;
+	void Init(ATimeThiefPlayerCharacter* InPlayer);
 	
 	UPROPERTY(EditAnywhere, Category="Equipment Type")
 	EItemCategory EquipmentCategory;

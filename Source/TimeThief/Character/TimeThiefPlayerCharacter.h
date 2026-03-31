@@ -25,6 +25,8 @@ class TIMETHIEF_API ATimeThiefPlayerCharacter : public ATimeThiefNetworkCharacte
 public:
 	ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
+	bool PurchaseItem(const FStoreOrder& Order);
+	
 	void OnInteract();
 	
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);

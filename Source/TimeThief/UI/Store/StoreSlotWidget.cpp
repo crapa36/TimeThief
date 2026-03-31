@@ -4,6 +4,7 @@
 #include "StoreSlotWidget.h"
 
 #include "Character/TimeThiefCharacterBase.h"
+#include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerState.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
@@ -16,7 +17,7 @@ void UStoreSlotWidget::NativeConstruct()
 
 void UStoreSlotWidget::OnSlotClicked()
 {
-	if (ATimeThiefCharacterBase* Player = Cast<ATimeThiefCharacterBase>(GetOwningPlayerPawn()))
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 	{
 		if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
 		{

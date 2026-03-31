@@ -10,40 +10,21 @@
 #include "Game/ItemSettings.h"
 #include "UI/PromptWidget.h"
 
-void UEquipmentWidget::NativeConstruct()
+void UEquipmentWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 {
-	Super::NativeConstruct();
-	
-	if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
+	if (auto Inventory = InPlayer->GetInventoryComponent())
 	{
-		if (auto Inventory = Player->GetInventoryComponent())
+		if (EquipmentCategory == EItemCategory::Throwable)
 		{
-			if (EquipmentCategory == EItemCategory::Throwable)
-			{
-				Inventory->OnThrowableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
-				OnChangedEquipment(EItemID::SIZE);
-				PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("5")));
-			}
-			else if (EquipmentCategory == EItemCategory::Consumable)
-			{
-				Inventory->OnConsumableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
-				OnChangedEquipment(EItemID::SIZE);
-				PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("4")));
-			}
+			Inventory->OnThrowableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
+			OnChangedEquipment(EItemID::SIZE);
+			PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("5")));
 		}
-	}
-}
-
-void UEquipmentWidget::NativeDestruct()
-{
-	Super::NativeDestruct();
-	
-	if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
-	{
-		if (auto Inventory = Player->GetInventoryComponent())
+		else if (EquipmentCategory == EItemCategory::Consumable)
 		{
-			Inventory->OnThrowableEquipmentUpdatedEvent.RemoveAll(this);
-			Inventory->OnConsumableEquipmentUpdatedEvent.RemoveAll(this);
+			Inventory->OnConsumableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
+			OnChangedEquipment(EItemID::SIZE);
+			PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("4")));
 		}
 	}
 }
@@ -52,22 +33,15 @@ void UEquipmentWidget::OnChangedEquipment(EItemID InItemID)
 {
 	if (InItemID == EItemID::SIZE)
 	{
-		auto Brush = ItemIcon_Image->GetBrush();
-		Brush.DrawAs = ESlateBrushDrawType::NoDrawType;
-		ItemIcon_Image->SetBrush(Brush);
-		
-		PromptWidget->SetVisibility(ESlateVisibility::Hidden);
+		SetVisibility(ESlateVisibility::Hidden);
 		return;
 	}
 	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
 	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
+		SetVisibility(ESlateVisibility::Visible);
 		ItemIcon_Image->SetBrushFromTexture(LoadedData->Items[InItemID].Icon);
-		auto Brush = ItemIcon_Image->GetBrush();
-		Brush.DrawAs = ESlateBrushDrawType::Image;
-		ItemIcon_Image->SetBrush(Brush);
 		PromptWidget->Prompt_Text->SetText(FText::FromString(LoadedData->Items[InItemID].Name));
-		PromptWidget->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 

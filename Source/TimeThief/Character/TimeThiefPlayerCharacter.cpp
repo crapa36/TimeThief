@@ -15,6 +15,8 @@
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
+#include "TimeThiefPlayerState.h"
+#include "Components/System/TimePointSystemComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
@@ -53,6 +55,40 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
 	FirstPersonMesh->SetOnlyOwnerSee(true);
 	FirstPersonMesh->SetCastShadow(false);
+}
+
+bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
+{
+	if (TimePointSystemComponent->GetTimePoints() >= Order.Price)
+	{
+		TimePointSystemComponent->ModifyTimePoints(-Order.Price);
+		ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(GetPlayerState());
+		switch (Order.ItemID)
+		{
+		case EItemID::DamageUpgrade:
+			PS->Status.Damage++;
+			break;
+		case EItemID::StabilityUpgrade:
+			PS->Status.Stability++;
+			break;
+		case EItemID::CapacityUpgrade:
+			PS->Status.Capacity++;
+			break;
+		case EItemID::HealthUpgrade:
+			PS->Status.Health++;
+			HealthComponent->Upgrade();
+			break;
+		case EItemID::SpeedUpgrade:
+			PS->Status.Speed++;
+			break;
+		default:
+			InventoryComponent->AddItem(Order.ItemID);
+			break;
+		}
+		return true;
+	}
+	
+	return false;
 }
 
 void ATimeThiefPlayerCharacter::SetPawnData(const UTimeThiefPawnData* InPawnData)
