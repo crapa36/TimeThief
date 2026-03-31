@@ -75,8 +75,8 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		CurrAlpha = DestAlpha;
 	
-		BaseMeshComponent->SetVisibility(true);
-		LiquidMeshComponent->bRenderingEnable = false;
+		// BaseMeshComponent->SetVisibility(true);
+		// LiquidMeshComponent->bRenderingEnable = false;
 		
 		SetComponentTickEnabled(false);
 	}

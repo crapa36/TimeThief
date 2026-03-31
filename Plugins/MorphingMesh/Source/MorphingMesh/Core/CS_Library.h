@@ -79,5 +79,8 @@ public:
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, PositionBuffer)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, TangentsBuffer)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, IndirectArgsBuffer)
+		SHADER_PARAMETER_TEXTURE(Texture3D, UVMap)
+		SHADER_PARAMETER_SAMPLER(SamplerState, UVMapSampler)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float2>, UVBuffer)
 	END_SHADER_PARAMETER_STRUCT()
 };

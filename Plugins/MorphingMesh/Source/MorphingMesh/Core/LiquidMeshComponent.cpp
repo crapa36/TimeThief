@@ -76,7 +76,7 @@ void ULiquidMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* I
 
 FBoxSphereBounds ULiquidMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return FBoxSphereBounds(GetBound().ExpandBy(2)).TransformBy(LocalToWorld);
+	return FBoxSphereBounds(GetBound().ExpandBy(100)).TransformBy(LocalToWorld);
 }
 
 FPrimitiveSceneProxy* ULiquidMeshComponent::CreateSceneProxy()
@@ -181,4 +181,14 @@ TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() co
 	}
 
 	return TArray<TObjectPtr<UVolumeTexture>>{};
+}
+
+TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetUVMaps() const
+{
+	if (ParentComponent == nullptr || ParentComponent->MorphingMeshData == nullptr || !ParentComponent->MorphingMeshData
+	->IsValid())
+	{
+		return TArray<TObjectPtr<UVolumeTexture>>{};
+	}
+	return ParentComponent->MorphingMeshData->GetUVVolumeTextures();
 }

@@ -60,6 +60,7 @@ void FLiquidMeshProxy::CachingData()
 	CachedBound = RenderComponent->GetBound();
 	CachedAlpha = RenderComponent->GetAlpha();
 	CachedDensityTextures = RenderComponent->GetDensityTextures();
+	CachedUVMaps = RenderComponent->GetUVMaps();
 	bRenderingEnable = RenderComponent->bRenderingEnable;
 }
 
@@ -74,13 +75,15 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 		FBox ParamBound;
 		FVector3f ParamAlpha;
 		TArray<TObjectPtr<UVolumeTexture>> ParamDensityTextures;
+		TArray<TObjectPtr<UVolumeTexture>> ParamUVMaps;
 		{
 			std::lock_guard Lock(CachingMutex);
 			ParamBound = CachedBound;
 			ParamAlpha = CachedAlpha;
 			ParamDensityTextures = CachedDensityTextures;
+			ParamUVMaps = CachedUVMaps;
 		}
-		RenderResource->RunComputeShader(GraphicBuilder, ParamBound, ParamAlpha, ParamDensityTextures);
+		RenderResource->RunComputeShader(GraphicBuilder, ParamBound, ParamAlpha, ParamDensityTextures, ParamUVMaps);
 	}
 }
 
@@ -116,8 +119,8 @@ void FLiquidMeshProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& V
 		Mesh.bCanApplyViewModeOverrides = true;
 		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
 		Mesh.bUseForMaterial = true;
-		Mesh.bUseForDepthPass = true;
-		Mesh.CastShadow = true;
+		Mesh.bUseForDepthPass = false;
+		Mesh.CastShadow = false;
 		Mesh.LODIndex = 0;
 		Mesh.bUseAsOccluder = true;
 		Mesh.CastRayTracedShadow = false;
