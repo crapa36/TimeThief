@@ -1,6 +1,9 @@
 ﻿#include "Components/TimeThiefTrajectoryComponent.h"
 #include "Character/TimeThiefNetworkCharacterBase.h"
+#include "Network/NetworkEntityComponent.h"
+#include "Network/State/NetworkControlType.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Animation/TrajectoryTypes.h"
 
 FRemoteTrajectoryHistory::FRemoteTrajectoryHistory(double InMaxHistorySeconds)
@@ -100,6 +103,19 @@ bool FRemoteTrajectoryHistory::GetLastTwo(FRemoteNetSample& OutPrev, FRemoteNetS
 	return true;
 }
 
+bool FRemoteTrajectoryHistory::GetLastThree(FRemoteNetSample& OutPrev2, FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const
+{
+	if (Samples.Num() < 3)
+	{
+		return false;
+	}
+
+	OutPrev2 = Samples[Samples.Num() - 3];
+	OutPrev = Samples[Samples.Num() - 2];
+	OutCurr = Samples[Samples.Num() - 1];
+	return true;
+}
+
 UTimeThiefTrajectoryComponent::UTimeThiefTrajectoryComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, RemoteHistory(10.0)
@@ -111,15 +127,26 @@ void UTimeThiefTrajectoryComponent::TickComponent(float DeltaTime, ELevelTick Ti
 {
 	ATimeThiefNetworkCharacterBase* NetChar = Cast<ATimeThiefNetworkCharacterBase>(GetOwner());
 
-	if (NetChar && !NetChar->IsLocalPlayer())
+	if (NetChar)
 	{
-		UActorComponent::TickComponent(DeltaTime, TickType, ThisTickFunction);
-		UpdateRemoteTrajectory(DeltaTime);
+		if (NetChar->IsLocallyControlled())
+		{
+			Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+			return;
+		}
+
+		const UNetworkEntityComponent* NetEntityComp = NetChar->GetNetworkEntityComponent();
+		const ENetworkControlType ControlType = NetEntityComp ? NetEntityComp->GetControlType() : ENetworkControlType::None;
+		const bool bUseRemoteTrajectory = (ControlType == ENetworkControlType::Remote) || (ControlType == ENetworkControlType::ServerAuth);
+		if (bUseRemoteTrajectory)
+		{
+			UActorComponent::TickComponent(DeltaTime, TickType, ThisTickFunction);
+			UpdateRemoteTrajectory(DeltaTime);
+			return;
+		}
 	}
-	else
-	{
-		Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	}
+
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 FVector UTimeThiefTrajectoryComponent::EstimatePlanarVelocityFromHistory(const FRemoteTrajectoryHistory& History) const
@@ -161,8 +188,8 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 	RemoteHistory.AddSample(SimulatedTime, CurrentPos, CurrentYaw);
 
-	const int32 HistoryCount = FMath::FloorToInt(HistoryLengthSeconds * HistorySamplesPerSecond);
-	const int32 PredictionCount = FMath::FloorToInt(PredictionLengthSeconds * PredictionSamplesPerSecond);
+	const int32 HistoryCount = FMath::CeilToInt32(HistoryLengthSeconds * HistorySamplesPerSecond);
+	const int32 PredictionCount = FMath::CeilToInt32(PredictionLengthSeconds * PredictionSamplesPerSecond);
 	const int32 TotalSamples = HistoryCount + 1 + PredictionCount;
 
 	Trajectory.Samples.Reset();
@@ -203,9 +230,12 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 	const float DtPred = 1.0f / FMath::Max(1, PredictionSamplesPerSecond);
 
-	const FVector WorldPlanarVel = EstimatePlanarVelocityFromHistory(RemoteHistory);
-	
-	const FVector LocalPlanarVel = InvCurrentTransform.TransformVectorNoScale(WorldPlanarVel);
+	FVector WorldPlanarVel = NetChar->GetNetworkVelocity();
+	WorldPlanarVel.Z = 0.f;
+	if (WorldPlanarVel.IsNearlyZero())
+	{
+		WorldPlanarVel = EstimatePlanarVelocityFromHistory(RemoteHistory);
+	}
 
 	float MaxYawRateDeg = 360.0f;
 	if (UCharacterMovementComponent* CMC = NetChar->GetCharacterMovement())
@@ -214,13 +244,13 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 	}
 
 	float YawRate = 0.0f;
-	FRemoteNetSample PrevSample, CurrSample;
-	if (RemoteHistory.GetLastTwo(PrevSample, CurrSample))
+	FRemoteNetSample PrevYawSample, CurrYawSample;
+	if (RemoteHistory.GetLastTwo(PrevYawSample, CurrYawSample))
 	{
-		const double Dt = CurrSample.TimeSeconds - PrevSample.TimeSeconds;
+		const double Dt = CurrYawSample.TimeSeconds - PrevYawSample.TimeSeconds;
 		if (Dt > KINDA_SMALL_NUMBER)
 		{
-			YawRate = FMath::FindDeltaAngleDegrees(PrevSample.YawDeg, CurrSample.YawDeg) / static_cast<float>(Dt);
+			YawRate = FMath::FindDeltaAngleDegrees(PrevYawSample.YawDeg, CurrYawSample.YawDeg) / static_cast<float>(Dt);
 		}
 	}
 
@@ -229,22 +259,31 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 		YawRate = FMath::Clamp(YawRate, -MaxYawRateDeg, MaxYawRateDeg);
 	}
 
+	FVector PredictedWorldPos = CurrentPos;
+	FVector PredictedWorldVel = WorldPlanarVel;
+	float PredictedYaw = CurrentYaw;
+
 	for (int32 j = 1; j <= PredictionCount; ++j)
 	{
 		const float T = j * DtPred;
+
+		PredictedWorldPos += PredictedWorldVel * DtPred;
+		PredictedYaw = FRotator::NormalizeAxis(PredictedYaw + YawRate * DtPred);
 		
 		FTransformTrajectorySample Sample;
 		
-		Sample.Position = LocalPlanarVel * T;
+		Sample.Position = InvCurrentTransform.TransformPosition(PredictedWorldPos);
 		
 		const float TempX = Sample.Position.X;
 		Sample.Position.X = Sample.Position.Y;
 		Sample.Position.Y = TempX;
 		
-		const float TargetLocalYaw = FRotator::NormalizeAxis(YawRate * T);
-		Sample.Facing = FRotator(0.f, TargetLocalYaw, 0.f).Quaternion();
+		const FQuat PredictedWorldFacing = FRotator(0.f, PredictedYaw, 0.f).Quaternion();
+		Sample.Facing = InvCurrentTransform.TransformRotation(PredictedWorldFacing);
 		
 		Sample.TimeInSeconds = T;
 		Trajectory.Samples.Add(Sample);
 	}
 }
+
+
