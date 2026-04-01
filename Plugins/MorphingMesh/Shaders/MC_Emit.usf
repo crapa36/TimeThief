@@ -3,16 +3,18 @@
 #include "MC_Tables.ush"
 #include "MC_Common.ush"
 
-StructuredBuffer<uint> CubeCase;              // cubeIndex per voxel
-StructuredBuffer<uint> TriCount;              // tri count per voxel
-StructuredBuffer<uint> OffsetBuffer;          // per-dispatch-group offset
-StructuredBuffer<uint> PrefixBuffer;       // global exclusive prefix (tri units)
+StructuredBuffer<uint> CubeCase; // cubeIndex per voxel
+StructuredBuffer<uint> TriCount; // tri count per voxel
+StructuredBuffer<uint> OffsetBuffer; // per-dispatch-group offset
+StructuredBuffer<uint> PrefixBuffer; // global exclusive prefix (tri units)
 
-RWStructuredBuffer<float3> PositionBuffer;      // size = TotalTris*3
-RWStructuredBuffer<float3> TangentsBuffer;        // optional, same size
+RWStructuredBuffer<float3> PositionBuffer; // size = TotalTris*3
+RWStructuredBuffer<float3> TangentsBuffer; // optional, same size
 RWStructuredBuffer<uint> IndirectArgsBuffer;
 
-Texture3D UVMap;
+Texture3D UVMap0;
+Texture3D UVMap1;
+Texture3D UVMap2;
 SamplerState UVMapSampler;
 RWStructuredBuffer<float2> UVBuffer;
 
@@ -20,133 +22,151 @@ RWStructuredBuffer<float2> UVBuffer;
 // edge endpoints corner indices (0..7)
 static const uint2 EdgeCorner[12] =
 {
-    uint2(0,1), uint2(1,2), uint2(2,3), uint2(3,0),
-    uint2(4,5), uint2(5,6), uint2(6,7), uint2(7,4),
-    uint2(0,4), uint2(1,5), uint2(2,6), uint2(3,7)
+	uint2(0, 1), uint2(1, 2), uint2(2, 3), uint2(3, 0),
+	uint2(4, 5), uint2(5, 6), uint2(6, 7), uint2(7, 4),
+	uint2(0, 4), uint2(1, 5), uint2(2, 6), uint2(3, 7)
 };
 
 float3 VertexInterp(float iso, float3 p1, float3 p2, float v1, float v2)
 {
-    if (abs(iso - v1) < 0.0000001)
-    {
-        return p1;
-    }
-    if (abs(iso - v2) < 0.0000001)
-    {
-        return p2;
-    }
-    if (abs(v1 - v2) < 0.0000001)
-    {
-        return p1;
-    }
-    
-    const float t = (iso - v1) / (v2 - v1);
-    return p1 + t * (p2 - p1);
+	if (abs(iso - v1) < 0.0000001)
+	{
+		return p1;
+	}
+	if (abs(iso - v2) < 0.0000001)
+	{
+		return p2;
+	}
+	if (abs(v1 - v2) < 0.0000001)
+	{
+		return p1;
+	}
+
+	const float t = (iso - v1) / (v2 - v1);
+	return p1 + t * (p2 - p1);
 }
 
 float3 ComputeNormalFromVerts(float3 v0, float3 v1, float3 v2)
 {
-    float3 e1 = v1 - v0;
-    float3 e2 = v2 - v0;
-    return normalize(cross(e2, e1));
+	float3 e1 = v1 - v0;
+	float3 e2 = v2 - v0;
+	return normalize(cross(e2, e1));
 }
 
 [numthreads(256,1,1)]
 void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
 {
-    uint vid = DTid.x;
-    if (vid >= NumVoxels) return;
-    
-    uint TriBase = PrefixBuffer[vid] + OffsetBuffer[Gid.x]; // triangle index base
-    
-    if (vid == NumVoxels - 1)
-    {
-        IndirectArgsBuffer[0] = (TriBase + TriCount[vid]) * 3; // vertex count
-        IndirectArgsBuffer[1] = 1;
-        IndirectArgsBuffer[2] = 0;
-        IndirectArgsBuffer[3] = 0;
-        IndirectArgsBuffer[4] = 0;
-    }
-    uint triCount = TriCount[vid];
-    if (triCount == 0) return;
+	uint vid = DTid.x;
+	if (vid >= NumVoxels) return;
 
-    uint cubeIndex = CubeCase[vid];
-    uint edgeMask = MC_EdgeTable[cubeIndex];
-    if (edgeMask == 0) return;
+	uint TriBase = PrefixBuffer[vid]; // use 1-pass scan (PrefixBuffer already has global exclusive prefix)
+	// uint TriBase = PrefixBuffer[vid] + OffsetBuffer[Gid.x]; // use 2-pass scan
+	if (vid == NumVoxels - 1)
+	{
+		IndirectArgsBuffer[0] = (TriBase + TriCount[vid]) * 3; // vertex count
+		IndirectArgsBuffer[1] = 1;
+		IndirectArgsBuffer[2] = 0;
+		IndirectArgsBuffer[3] = 0;
+		IndirectArgsBuffer[4] = 0;
+	}
+	uint triCount = TriCount[vid];
+	if (triCount == 0) return;
 
-    uint3 cellSize = uint3(GridSize.x - 1, GridSize.y - 1, GridSize.z - 1);
+	uint cubeIndex = CubeCase[vid];
+	uint edgeMask = MC_EdgeTable[cubeIndex];
+	if (edgeMask == 0) return;
 
-    uint x,y,z;
-    VoxelCoord(vid, cellSize, x,y,z);
+	uint3 cellSize = uint3(GridSize.x - 1, GridSize.y - 1, GridSize.z - 1);
 
-    // corner positions + densities
-    float3 p[8];
-    float  d[8];
-    
-    p[0] = float3(x,   y,   z  ); d[0] = SampleDensity(int4(x  , y,   z  , 0));
-    p[1] = float3(x+1, y,   z  ); d[1] = SampleDensity(int4(x+1, y,   z  , 0));
-    p[2] = float3(x+1, y+1, z  ); d[2] = SampleDensity(int4(x+1, y+1, z  , 0));
-    p[3] = float3(x,   y+1, z  ); d[3] = SampleDensity(int4(x,   y+1, z  , 0));
-    p[4] = float3(x,   y,   z+1); d[4] = SampleDensity(int4(x,   y,   z+1, 0));
-    p[5] = float3(x+1, y,   z+1); d[5] = SampleDensity(int4(x+1, y,   z+1, 0));
-    p[6] = float3(x+1, y+1, z+1); d[6] = SampleDensity(int4(x+1, y+1, z+1, 0));
-    p[7] = float3(x,   y+1, z+1); d[7] = SampleDensity(int4(x,   y+1, z+1, 0));
+	uint x, y, z;
+	VoxelCoord(vid, cellSize, x, y, z);
 
-    // interpolated vertices on edges (0..11)
-    float3 vertList[12];
+	// corner positions + densities
+	float3 p[8];
+	float d[8];
 
-    [unroll]
-    for (uint e = 0; e < 12; ++e)
-    {
-        if ((edgeMask & (1u << e)) != 0)
-        {
-            uint2 c = EdgeCorner[e];
-            vertList[e] = VertexInterp(IsoLevel, p[c.x], p[c.y], d[c.x], d[c.y]);
-        }
-    }
-    
-    // For each triangle: output 3 verts
-    // TriTable stores edge indices for each vertex
-    [unroll]
-    for (uint t = 0; t < 5; ++t)
-    {
-        // each tri uses 3 entries; stop at -1
-        int e0 = MC_TriTable[cubeIndex][t*3 + 0];
-        if (e0 < 0) break;
+	p[0] = float3(x, y, z);
+	d[0] = SampleDensity(int4(x, y, z, 0));
+	p[1] = float3(x + 1, y, z);
+	d[1] = SampleDensity(int4(x + 1, y, z, 0));
+	p[2] = float3(x + 1, y + 1, z);
+	d[2] = SampleDensity(int4(x + 1, y + 1, z, 0));
+	p[3] = float3(x, y + 1, z);
+	d[3] = SampleDensity(int4(x, y + 1, z, 0));
+	p[4] = float3(x, y, z + 1);
+	d[4] = SampleDensity(int4(x, y, z + 1, 0));
+	p[5] = float3(x + 1, y, z + 1);
+	d[5] = SampleDensity(int4(x + 1, y, z + 1, 0));
+	p[6] = float3(x + 1, y + 1, z + 1);
+	d[6] = SampleDensity(int4(x + 1, y + 1, z + 1, 0));
+	p[7] = float3(x, y + 1, z + 1);
+	d[7] = SampleDensity(int4(x, y + 1, z + 1, 0));
 
-        int e1 = MC_TriTable[cubeIndex][t*3 + 1];
-        int e2 = MC_TriTable[cubeIndex][t*3 + 2];
+	// interpolated vertices on edges (0..11)
+	float3 vertList[12];
 
-        uint outTri = TriBase + t;
-        uint vbase = outTri * 3;
+	[unroll]
+	for (uint e = 0; e < 12; ++e)
+	{
+		if ((edgeMask & (1u << e)) != 0)
+		{
+			uint2 c = EdgeCorner[e];
+			vertList[e] = VertexInterp(IsoLevel, p[c.x], p[c.y], d[c.x], d[c.y]);
+		}
+	}
 
-        float3 v0 = vertList[e0];
-        float3 v1 = vertList[e1];
-        float3 v2 = vertList[e2];
-        
-        PositionBuffer[vbase + 0] = BoxMin + v0 * VoxelSize;
-        PositionBuffer[vbase + 1] = BoxMin + v1 * VoxelSize;
-        PositionBuffer[vbase + 2] = BoxMin + v2 * VoxelSize;
-        
-        
-        float3 GridDenom = float3(GridSize - 1);
+	// For each triangle: output 3 verts
+	// TriTable stores edge indices for each vertex
+	[unroll]
+	for (uint t = 0; t < 5; ++t)
+	{
+		// each tri uses 3 entries; stop at -1
+		int e0 = MC_TriTable[cubeIndex][t * 3 + 0];
+		if (e0 < 0) break;
 
-        float3 uvw0 = saturate(v0 / GridDenom);
-        float3 uvw1 = saturate(v1 / GridDenom);
-        float3 uvw2 = saturate(v2 / GridDenom);
-        
-        UVBuffer[vbase + 0] = UVMap.Sample(UVMapSampler, uvw0).rg;
-        UVBuffer[vbase + 1] = UVMap.Sample(UVMapSampler, uvw1).rg;
-        UVBuffer[vbase + 2] = UVMap.Sample(UVMapSampler, uvw2).rg;
-        
-        float3 n = ComputeNormalFromVerts(v0, v1, v2);
-        
-        [unroll]
-        for (int i = 0; i < 3; ++i)
+		int e1 = MC_TriTable[cubeIndex][t * 3 + 1];
+		int e2 = MC_TriTable[cubeIndex][t * 3 + 2];
+
+		uint outTri = TriBase + t;
+		uint vbase = outTri * 3;
+
+		float3 v0 = vertList[e0];
+		float3 v1 = vertList[e1];
+		float3 v2 = vertList[e2];
+
+		PositionBuffer[vbase + 0] = BoxMin + v0 * VoxelSize;
+		PositionBuffer[vbase + 1] = BoxMin + v1 * VoxelSize;
+		PositionBuffer[vbase + 2] = BoxMin + v2 * VoxelSize;
+
+		float3 GridDenom = float3(GridSize - 1);
+
+		float3 uvw0 = saturate(v0 / GridDenom);
+		float3 uvw1 = saturate(v1 / GridDenom);
+		float3 uvw2 = saturate(v2 / GridDenom);
+
+		// i = 0
+		UVBuffer[(vbase + 0) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw0).rg;
+		UVBuffer[(vbase + 0) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw0).rg;
+		UVBuffer[(vbase + 0) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw0).rg;
+		
+		// i = 1
+		UVBuffer[(vbase + 1) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw1).rg;
+		UVBuffer[(vbase + 1) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw1).rg;
+		UVBuffer[(vbase + 1) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw1).rg;
+
+		// i = 2
+		UVBuffer[(vbase + 2) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw2).rg;
+		UVBuffer[(vbase + 2) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw2).rg;
+		UVBuffer[(vbase + 2) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw2).rg;
+
+		float3 n = ComputeNormalFromVerts(v0, v1, v2);
+
+		[unroll]
+		for (int i = 0; i < 3; ++i)
 		{
 			uint NBase = (vbase + i) * 2;
-            TangentsBuffer[NBase] = normalize(v1 - v0);
-            TangentsBuffer[NBase + 1] = n;
+			TangentsBuffer[NBase] = normalize(v1 - v0);
+			TangentsBuffer[NBase + 1] = n;
 		}
-    }
+	}
 }

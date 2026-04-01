@@ -36,28 +36,19 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FBlockScan : public FGlobalShader
+class FDecoupledScan : public FGlobalShader
 {
 public:
-	DECLARE_GLOBAL_SHADER(FBlockScan);
-	SHADER_USE_PARAMETER_STRUCT(FBlockScan, FGlobalShader);
+	DECLARE_GLOBAL_SHADER(FDecoupledScan);
+	SHADER_USE_PARAMETER_STRUCT(FDecoupledScan, FGlobalShader);
 	
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(uint, NumVoxels)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, InputBuffer)
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, BlockScanBuffer)
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, OffsetBuffer)
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FAddOffset : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FAddOffset);
-	SHADER_USE_PARAMETER_STRUCT(FAddOffset, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters,)
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, OffsetBuffer)
-		SHADER_PARAMETER(UE::HLSL::uint, OffsetBufferSize)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, GlobalPrefixBuffer)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, IndexBuffer)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, StateBuffer)
+	
 	END_SHADER_PARAMETER_STRUCT()
 };
 
@@ -74,12 +65,13 @@ public:
 		SHADER_PARAMETER_TEXTURE(Texture3D<float>, Density2)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, CubeCase)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, TriCount)
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, OffsetBuffer)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, PrefixBuffer)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, PositionBuffer)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, TangentsBuffer)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, IndirectArgsBuffer)
-		SHADER_PARAMETER_TEXTURE(Texture3D, UVMap)
+		SHADER_PARAMETER_TEXTURE(Texture3D, UVMap0)
+		SHADER_PARAMETER_TEXTURE(Texture3D, UVMap1)
+		SHADER_PARAMETER_TEXTURE(Texture3D, UVMap2)
 		SHADER_PARAMETER_SAMPLER(SamplerState, UVMapSampler)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float2>, UVBuffer)
 	END_SHADER_PARAMETER_STRUCT()

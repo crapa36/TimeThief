@@ -44,16 +44,6 @@ void UMorphingMeshComponent::BeginPlay()
 	
 	if (UMaterialInstanceDynamic* DynMaterial = UMaterialInstanceDynamic::Create(LiquidMaterial, this))
 	{
-		for (int i = 0; i < 3; ++i)
-		{
-			DynMaterial->SetVectorParameterValue(FName{FString::Printf(TEXT("Min %d"), i + 1)}, MorphingMeshData->GetBounds()[i].Min);
-			DynMaterial->SetVectorParameterValue(FName{FString::Printf(TEXT("Size %d"), i + 1)}, MorphingMeshData->GetBounds()[i].GetSize());
-			DynMaterial->SetTextureParameterValue(FName{FString::Printf(TEXT("UV Volume Texture %d"), i + 1)}, MorphingMeshData->GetUVVolumeTextures()[i]);
-			
-			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UV Volume Texture %d"), i + 1));
-		}
-		
-		DynMaterial->SetVectorParameterValue(FName{"Alpha"}, FVector{1,0,0});
 		LiquidMaterial = DynMaterial;
 		
 		LiquidMeshComponent->SetMaterial(0, LiquidMaterial);
@@ -75,8 +65,8 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		CurrAlpha = DestAlpha;
 	
-		// BaseMeshComponent->SetVisibility(true);
-		// LiquidMeshComponent->bRenderingEnable = false;
+		BaseMeshComponent->SetVisibility(true);
+		LiquidMeshComponent->bRenderingEnable = false;
 		
 		SetComponentTickEnabled(false);
 	}
