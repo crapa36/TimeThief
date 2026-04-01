@@ -65,6 +65,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
 	FVector GetWireStartLocation() const;
 
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
+	FVector GetPullAnchorPoint() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -117,10 +120,10 @@ protected:
 	float WireFireSpeed = 4000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float WireCooldown = 0.3f;
+	float WireCooldown = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float ArrivalDistance = 250.0f;
+	float ArrivalDistance = 300.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	FName WireStartSocketName = FName("WireSocket");
@@ -139,6 +142,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
 	float WireReleaseLookDotThreshold = -0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay, ClampMin = "0.0", UIMin = "0.0"))
+	float PullAnchorHeightOffset = 300.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UStaticMesh> WireMeshTemplate;
