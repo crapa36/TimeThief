@@ -16,6 +16,9 @@ struct FRemoteAttackNotify
 	uint32 AttackerEntityId = 0;
 	
 	UPROPERTY()
+	uint32 WeaponId = 0;
+	
+	UPROPERTY()
 	uint32 AttackId = 0;
 	
 	UPROPERTY()

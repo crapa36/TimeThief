@@ -332,6 +332,42 @@ bool Handle_N_Aim(PacketSessionRef& session, const se::game::N_Aim& pkt)
 	
 bool Handle_N_Fire(PacketSessionRef& session, const se::game::N_Fire& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_Fire: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_Fire: entity_id is 0"));
+		return false;
+	}
+	
+	if (!pkt.has_start_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_Fire: pkt has no start_position"));
+		return false;
+	}
+	
+	if (!pkt.has_direction())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_Fire: pkt has no direction"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleFire(pkt);
+			return true;
+		}
+	}
+	
 	return false;	
 }
 	

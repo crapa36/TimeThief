@@ -600,6 +600,24 @@ void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& pkt)
 
 void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Fire;
+	Notify.WeaponId = Pkt.weapon_id();
+	const auto& Origin = Pkt.start_position();
+	Notify.Origin = FVector(Origin.x(), Origin.y(), Origin.z());
+	const auto& Dir = Pkt.direction();
+	Notify.Direction = FVector(Dir.x(), Dir.y(), Dir.z());
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
