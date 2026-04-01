@@ -1,0 +1,137 @@
+﻿#include "/Engine/Public/Platform.ush"
+
+#ifndef BlockSize
+#define BlockSize 256
+#endif
+
+// Constants / Params
+uint NumVoxels;
+
+StructuredBuffer<uint> InputBuffer;          // MC_Classify에서 출력된 TriCount 버퍼
+RWStructuredBuffer<uint> GlobalPrefixBuffer; // 최종 Global Exclusive Prefix Sum 버퍼
+
+// Decoupled Look-back을 위한 상태 버퍼들
+globallycoherent RWStructuredBuffer<uint> IndexBuffer;        // 원소 1개 (Dispatch 전 0으로 초기화 필요)
+globallycoherent RWStructuredBuffer<uint> StateBuffer;        // 원소: (DispatchCount * 3) 개 (Dispatch 전 0으로 초기화 필요)
+                                             // [0]: Status (0: NotReady, 1: Aggregate, 2: Prefix)
+                                             // [1]: Aggregate (블록 내부 합)
+                                             // [2]: InclusivePrefix (글로벌 누적 합)
+
+groupshared uint PrefixSum_Wave[64];
+groupshared uint PrefixSum_Block[BlockSize];
+groupshared uint DynamicBlockId;
+groupshared uint ExclusivePrefix;
+
+[numthreads(BlockSize, 1, 1)]
+void MainCS(uint3 GTid : SV_GroupThreadID)
+{
+    uint LocalIndex = GTid.x;
+
+    // 1. 동적 블록 할당 (Dynamic Block Assignment)
+    if (LocalIndex == 0)
+    {
+        InterlockedAdd(IndexBuffer[0], 1, DynamicBlockId);
+    }
+    GroupMemoryBarrierWithGroupSync();
+
+    uint blockId = DynamicBlockId;
+    
+    // 주의: DispatchThreadID.x 대신 동적으로 할당받은 blockId를 기준으로 GlobalIndex를 계산해야 합니다.
+    uint GlobalIndex = blockId * BlockSize + LocalIndex;
+    uint Value = (GlobalIndex < NumVoxels) ? InputBuffer[GlobalIndex] : 0;
+
+    // 2. Local Block Scan (기존 로직 재사용)
+    uint LaneSize = WaveGetLaneCount();
+    uint WaveSum = WaveActiveSum(Value);
+    uint LaneIndex = WaveGetLaneIndex();
+    uint WaveIndex = LocalIndex / LaneSize;
+    
+    if (WaveIsFirstLane())
+    {
+        PrefixSum_Wave[WaveIndex] = WaveSum;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    if (WaveIndex == 0)
+    {
+        uint WaveCnt = (BlockSize + LaneSize - 1) / LaneSize;
+        uint WaveSumToScan = (LaneIndex < WaveCnt) ? PrefixSum_Wave[LaneIndex] : 0;
+        PrefixSum_Wave[LaneIndex] = WavePrefixSum(WaveSumToScan);
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    uint LocalPrefix = PrefixSum_Wave[WaveIndex] + WavePrefixSum(Value);
+    
+    uint BlockAggregate = 0;
+    if (LocalIndex == BlockSize - 1)
+    {
+        BlockAggregate = LocalPrefix + Value;
+    }
+
+    // 3. Decoupled Look-back (마지막 스레드가 담당)
+    if (LocalIndex == BlockSize - 1)
+    {
+        uint dummy;
+        if (blockId == 0)
+        {
+            // 첫 번째 블록은 Look-back이 필요 없음
+            StateBuffer[blockId * 3 + 1] = BlockAggregate;
+            StateBuffer[blockId * 3 + 2] = BlockAggregate;
+            DeviceMemoryBarrier();
+            InterlockedExchange(StateBuffer[blockId * 3 + 0], 2, dummy); // Status = 2 (Prefix Available)
+            ExclusivePrefix = 0;
+        }
+        else
+        {
+            // 자신의 Aggregate 값을 등록
+            StateBuffer[blockId * 3 + 1] = BlockAggregate;
+            DeviceMemoryBarrier();
+            InterlockedExchange(StateBuffer[blockId * 3 + 0], 1, dummy); // Status = 1 (Aggregate Available)
+
+            // Look-back 수행
+            int lookBackId = blockId - 1;
+            uint currentExclusive = 0;
+
+            while (lookBackId >= 0)
+            {
+                uint status = 0;
+                
+                // 이전 블록이 데이터를 쓸 때까지 Spin-wait
+                [allow_uav_condition]
+                while (true)
+                {
+                    InterlockedOr(StateBuffer[lookBackId * 3 + 0], 0, status);
+                    if (status > 0) break;
+                }
+
+                if (status == 1) // Aggregate Available
+                {
+                    currentExclusive += StateBuffer[lookBackId * 3 + 1];
+                    lookBackId--;
+                }
+                else if (status == 2) // Prefix Available
+                {
+                    currentExclusive += StateBuffer[lookBackId * 3 + 2];
+                    break;
+                }
+            }
+
+            ExclusivePrefix = currentExclusive;
+
+            // 최종 Inclusive Prefix 등록
+            StateBuffer[blockId * 3 + 2] = currentExclusive + BlockAggregate;
+            DeviceMemoryBarrier();
+            InterlockedExchange(StateBuffer[blockId * 3 + 0], 2, dummy); // Status = 2
+        }
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    // 4. Global Prefix 값 도출 및 저장
+    if (GlobalIndex < NumVoxels)
+    {
+        GlobalPrefixBuffer[GlobalIndex] = LocalPrefix + ExclusivePrefix;
+    }
+}

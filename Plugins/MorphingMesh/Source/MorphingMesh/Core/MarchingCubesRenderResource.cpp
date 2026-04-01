@@ -39,7 +39,8 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	FRDGBuilder& GraphBuilder,
 	const FBox& InBound,
 	const FVector3f& Alpha,
-	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures)
+	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
+	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps)
 {
 	using namespace UE::HLSL;
 	
@@ -51,6 +52,12 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	FRDGBufferRef PositionRDG = GraphBuilder.RegisterExternalBuffer(PositionBuffer->Buffer);
 	FRDGBufferRef TangentsRDG = GraphBuilder.RegisterExternalBuffer(TangentsBuffer->Buffer);
 	FRDGBufferRef IndirectArgsRDG = GraphBuilder.RegisterExternalBuffer(IndirectArgsBuffer);
+	FRDGBufferRef UVRDG = GraphBuilder.RegisterExternalBuffer(UVBuffer->Buffer);
+	
+	AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(IndirectArgsRDG), 0);
+	AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(PositionRDG), 0);
+	AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(TangentsRDG), 0);
+	AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(UVRDG), 0);
 	
 	FConstBuffer* ConstBufferData = GraphBuilder.AllocParameters<FConstBuffer>();
 	int NumVoxels = VolumeTextures[0]->GetSizeX() *
@@ -91,49 +98,43 @@ void FMarchingCubesRenderResource::RunComputeShader(
 		ClassifyParams,
 		FIntVector(GroupCount, 1, 1));
 	
-	TShaderMapRef<FBlockScan> BlockScanShader(GetGlobalShaderMap(GetFeatureLevel()));
-	FBlockScan::FParameters* BlockScanParams = GraphBuilder.AllocParameters<FBlockScan::FParameters>();
+
 	
 	FRDGBufferRef ScanBufferRDG = GraphBuilder.CreateBuffer(
 		FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32), NumVoxels),
 		TEXT("BlockScanBuffer"));
 	
-	FRDGBufferRef OffsetRDG = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32), GroupCount + 1),
-		TEXT("OffsetBuffer"));
-
+	FRDGBufferRef IndexRDG = GraphBuilder.CreateBuffer(
+	FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32), 1),
+	TEXT("IndexBuffer"));
+	AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(IndexRDG), 0);
 	
-	BlockScanParams->InputBuffer = GraphBuilder.CreateSRV(TriCountRDG);
-	BlockScanParams->BlockScanBuffer = GraphBuilder.CreateUAV(ScanBufferRDG);
-	BlockScanParams->OffsetBuffer = GraphBuilder.CreateUAV(OffsetRDG);
+	FRDGBufferRef StateBufferRDG = GraphBuilder.CreateBuffer(
+	FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32), GroupCount * 3),
+	TEXT("StateBuffer"));
+	AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(StateBufferRDG), 0);
 	
+	TShaderMapRef<FDecoupledScan> DecoupledScanShader(GetGlobalShaderMap(GetFeatureLevel()));
+	FDecoupledScan::FParameters* DecoupledScanParams = GraphBuilder.AllocParameters<FDecoupledScan::FParameters>();
+	DecoupledScanParams->GlobalPrefixBuffer = GraphBuilder.CreateUAV(ScanBufferRDG);
+	DecoupledScanParams->InputBuffer = GraphBuilder.CreateSRV(TriCountRDG);
+	DecoupledScanParams->IndexBuffer = GraphBuilder.CreateUAV(IndexRDG);
+	DecoupledScanParams->StateBuffer = GraphBuilder.CreateUAV(StateBufferRDG);
+	DecoupledScanParams->NumVoxels = NumVoxels;
 	FComputeShaderUtils::AddPass(
-		GraphBuilder,
-		RDG_EVENT_NAME("MC_PrefixSum"),
-		ERDGPassFlags::Compute,
-		BlockScanShader,
-		BlockScanParams,
-		FIntVector(GroupCount, 1, 1));
-	
-	TShaderMapRef<FAddOffset> AddOffsetShader(GetGlobalShaderMap(GetFeatureLevel()));
-	FAddOffset::FParameters* AddOffsetParameters = GraphBuilder.AllocParameters<FAddOffset::FParameters>();
-	AddOffsetParameters->OffsetBuffer = GraphBuilder.CreateUAV(OffsetRDG);
-	AddOffsetParameters->OffsetBufferSize = GroupCount;
-	
-	FComputeShaderUtils::AddPass(
-		GraphBuilder,
-		RDG_EVENT_NAME("AddOffsetCS"),
-		ERDGPassFlags::Compute,
-		AddOffsetShader,
-		AddOffsetParameters,
-		FIntVector(1, 1, 1));
+	GraphBuilder,
+		RDG_EVENT_NAME("DecoupledScan"),
+	ERDGPassFlags::Compute,
+	DecoupledScanShader,
+	DecoupledScanParams,
+	FIntVector(GroupCount, 1, 1)
+	);
 	
 	TShaderMapRef<FEmit> EmitShader(GetGlobalShaderMap(GetFeatureLevel()));
 	FEmit::FParameters* EmitParams = GraphBuilder.AllocParameters<FEmit::FParameters>();
 	EmitParams->Constants = ConstBufferRDG;
 	EmitParams->CubeCase = GraphBuilder.CreateSRV(CubeCaseRDG);
 	EmitParams->TriCount = GraphBuilder.CreateSRV(TriCountRDG);
-	EmitParams->OffsetBuffer = GraphBuilder.CreateSRV(OffsetRDG);
 	EmitParams->PrefixBuffer = GraphBuilder.CreateSRV(ScanBufferRDG);
 	EmitParams->PositionBuffer = GraphBuilder.CreateUAV(PositionRDG);
 	EmitParams->TangentsBuffer = GraphBuilder.CreateUAV(TangentsRDG);
@@ -141,6 +142,11 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	EmitParams->Density0 = VolumeTextures[0]->GetResource()->GetTexture3DRHI();
 	EmitParams->Density1 = VolumeTextures[1]->GetResource()->GetTexture3DRHI();
 	EmitParams->Density2 = VolumeTextures[2]->GetResource()->GetTexture3DRHI();
+	EmitParams->UVMap0 = UVMaps[0]->GetResource()->GetTexture3DRHI();
+	EmitParams->UVMap1 = UVMaps[1]->GetResource()->GetTexture3DRHI();
+	EmitParams->UVMap2 = UVMaps[2]->GetResource()->GetTexture3DRHI();
+	EmitParams->UVMapSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	EmitParams->UVBuffer = GraphBuilder.CreateUAV(UVRDG);
 	
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
@@ -153,6 +159,7 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	GraphBuilder.UseExternalAccessMode(PositionRDG, ERHIAccess::VertexOrIndexBuffer);
 	GraphBuilder.UseExternalAccessMode(TangentsRDG, ERHIAccess::VertexOrIndexBuffer);
 	GraphBuilder.UseExternalAccessMode(IndirectArgsRDG, ERHIAccess::IndirectArgs);
+	GraphBuilder.UseExternalAccessMode(UVRDG, ERHIAccess::VertexOrIndexBuffer);
 }
 
 void FMarchingCubesRenderResource::InitRHI(FRHICommandListBase& RHICmdList)
@@ -183,7 +190,7 @@ void FMarchingCubesRenderResource::InitRHI(FRHICommandListBase& RHICmdList)
 	{
 		TangentsBuffer = MakeUnique<FVertexBufferWithRDG>();
 		
-		FRDGBufferDesc Desc = FRDGBufferDesc::CreateStructuredDesc(sizeof(float3) * 2, NumVertex);
+		FRDGBufferDesc Desc = FRDGBufferDesc::CreateStructuredDesc(sizeof(float3), NumVertex * 2);
 		
 		FRDGBufferRef RDGBuffer = GraphBuilder.CreateBuffer(Desc,TEXT("TangentsBuffer"));
 		
@@ -204,10 +211,24 @@ void FMarchingCubesRenderResource::InitRHI(FRHICommandListBase& RHICmdList)
 		GraphBuilder.QueueBufferExtraction(RDGBuffer, &IndirectArgsBuffer);
 	}
 	
+	// Create UV Buffer - RDG PooledBuffer 사용
+	{
+		UVBuffer = MakeUnique<FVertexBufferWithRDG>();
+		
+		FRDGBufferDesc Desc = FRDGBufferDesc::CreateStructuredDesc(sizeof(float2), NumVertex * 3);
+		
+		FRDGBufferRef RDGBuffer = GraphBuilder.CreateBuffer(Desc,TEXT("UVBuffer"));
+		
+		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(RDGBuffer), 0);
+		
+		GraphBuilder.QueueBufferExtraction(RDGBuffer, &UVBuffer->Buffer);
+	}
+	
 	GraphBuilder.Execute();
 	PositionBuffer->InitResource(RHICmdList);
 	TangentsBuffer->InitResource(RHICmdList);
-
+	UVBuffer->InitResource(RHICmdList);
+	
 	// Initialize Vertex Factory
 	{
 		FLocalVertexFactory::FDataType Data;
@@ -235,7 +256,18 @@ void FMarchingCubesRenderResource::InitRHI(FRHICommandListBase& RHICmdList)
 		);
 		Data.TangentsSRV = TangentsBuffer->ShaderResourceViewRHI;
 
-		Data.TextureCoordinatesSRV = GNullColorVertexBuffer.VertexBufferSRV;
+		Data.NumTexCoords = 3;
+		
+		uint32 Stride = sizeof(float2) * Data.NumTexCoords;
+		for (int i = 0; i < Data.NumTexCoords; ++i)
+		Data.TextureCoordinates.Emplace(FVertexStreamComponent(
+			UVBuffer.Get(),
+			sizeof(float2) * i,
+			Stride,
+			VET_Float2)
+		);
+		Data.TextureCoordinatesSRV = UVBuffer->ShaderResourceViewRHI;
+		// Data.TextureCoordinatesSRV = GNullColorVertexBuffer.VertexBufferSRV;
 		Data.ColorComponentsSRV = GNullColorVertexBuffer.VertexBufferSRV;
 
 		VertexFactory.SetData(RHICmdList, Data);
@@ -256,7 +288,12 @@ void FMarchingCubesRenderResource::ReleaseRHI()
 		TangentsBuffer->ReleaseResource();
 		TangentsBuffer.Reset();
 	}
-
+	
+	if (UVBuffer)
+	{
+		UVBuffer->ReleaseResource();
+		UVBuffer.Reset();
+	}
 	IndirectArgsBuffer.SafeRelease();
 
 	VertexFactory.ReleaseResource();
