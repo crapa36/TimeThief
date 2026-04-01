@@ -46,9 +46,12 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 
 	if (Candidates.IsEmpty()) return false;
 
-	float BestScore = -FLT_MAX;
-	FVector BestLocation = FVector::ZeroVector;
-	bool bFoundCandidate = false;
+	float BestLedgeDistanceSq = FLT_MAX;
+	float BestSurfaceDistanceSq = FLT_MAX;
+	FVector BestLedgeLocation = FVector::ZeroVector;
+	FVector BestSurfaceLocation = FVector::ZeroVector;
+	bool bFoundLedgeCandidate = false;
+	bool bFoundSurfaceCandidate = false;
 
 	for (const FHitResult& Hit : Candidates)
 	{
@@ -78,24 +81,36 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 			bIsLedge = true;
 		}
 
-		float Score = -FMath::PointDistToLine(Hit.ImpactPoint, AimDirection, StartLocation) * AimAccuracyWeight;
-		
+		const FVector CandidateLocation = bIsLedge ? Hit.ImpactPoint + FVector(0, 0, 5.0f) : FVector(Hit.ImpactPoint);
+		const float DistanceToAimLine = FMath::PointDistToLine(CandidateLocation, AimDirection, StartLocation);
+		const float DistanceToAimSq = FMath::Square(DistanceToAimLine);
+
 		if (bIsLedge)
 		{
-			Score += 1000.0f;
+			if (!bFoundLedgeCandidate || DistanceToAimSq < BestLedgeDistanceSq)
+			{
+				BestLedgeDistanceSq = DistanceToAimSq;
+				BestLedgeLocation = CandidateLocation;
+				bFoundLedgeCandidate = true;
+			}
 		}
-
-		if (Score > BestScore)
+		else if (!bFoundSurfaceCandidate || DistanceToAimSq < BestSurfaceDistanceSq)
 		{
-			BestScore = Score;
-			BestLocation = bIsLedge ? Hit.ImpactPoint + FVector(0, 0, 5.0f) : FVector(Hit.ImpactPoint);
-			bFoundCandidate = true;
+			BestSurfaceDistanceSq = DistanceToAimSq;
+			BestSurfaceLocation = CandidateLocation;
+			bFoundSurfaceCandidate = true;
 		}
 	}
 
-	if (bFoundCandidate)
+	if (bFoundLedgeCandidate)
 	{
-		OutTargetLocation = BestLocation;
+		OutTargetLocation = BestLedgeLocation;
+		return true;
+	}
+
+	if (bFoundSurfaceCandidate)
+	{
+		OutTargetLocation = BestSurfaceLocation;
 		return true;
 	}
 
@@ -121,15 +136,27 @@ bool UTimeThiefWireTargeting::CheckAnchorCollision(const FVector& Start, const F
 
 	if (bHit)
 	{
+		bool bFoundBestHit = false;
+		float BestHitTime = FLT_MAX;
+		float BestHitDistanceSq = FLT_MAX;
 		for (const FHitResult& Hit : HitResults)
 		{
 			if (Hit.Component.IsValid() && Hit.Component->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Overlap)
 			{
 				continue;
 			}
-			OutHit = Hit;
-			return true;
+
+			const float HitDistanceSq = FVector::DistSquared(Start, Hit.ImpactPoint);
+			if (!bFoundBestHit || Hit.Time < BestHitTime || (FMath::IsNearlyEqual(Hit.Time, BestHitTime) && HitDistanceSq < BestHitDistanceSq))
+			{
+				OutHit = Hit;
+				BestHitTime = Hit.Time;
+				BestHitDistanceSq = HitDistanceSq;
+				bFoundBestHit = true;
+			}
 		}
+
+		return bFoundBestHit;
 	}
 
 	return false;

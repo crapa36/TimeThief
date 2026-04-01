@@ -269,7 +269,7 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 	{
 		AnchorPoint = HitResult.ImpactPoint;
 		AnchorNormal = HitResult.ImpactNormal;
-		AttachedWireLength = FVector::Dist(StartLocation, AnchorPoint);
+		AttachedWireLength = FVector::Dist(StartLocation, GetPullAnchorPoint());
 		
 		AttachedAnchorRotation = (-AnchorNormal).Rotation() + AnchorMeshRotationOffset;
 		
@@ -294,7 +294,7 @@ void UTimeThiefWireComponent::OnAnchorAttached()
 
 	ApplyWireRotationMode();
 
-	const FVector WireDirection = (AnchorPoint - GetWireStartLocation()).GetSafeNormal();
+	const FVector WireDirection = (GetPullAnchorPoint() - GetWireStartLocation()).GetSafeNormal();
 	const float VelocityTowardAnchor = FVector::DotProduct(CachedMovementComponent->Velocity, WireDirection);
 	if (VelocityTowardAnchor < 0)
 	{
@@ -327,7 +327,9 @@ void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
 	}
 
 	const FVector WireStart = GetWireStartLocation();
-	const float CurrentWireDistance = FVector::Dist(AnchorPoint, WireStart);
+	const FVector PullAnchorPoint = GetPullAnchorPoint();
+
+	const float CurrentWireDistance = FVector::Dist(PullAnchorPoint, WireStart);
 
 	if (CurrentWireDistance <= ArrivalDistance || ShouldRelease(DeltaTime))
 	{
@@ -342,13 +344,17 @@ void UTimeThiefWireComponent::UpdateAttachedWire(float DeltaTime)
 
 	if (WirePhysics)
 	{
-		WirePhysics->ApplyWirePhysics(DeltaTime, AnchorPoint, WireStart, AttachedWireLength, MoveInput);
+		WirePhysics->ApplyWirePhysics(DeltaTime, PullAnchorPoint, WireStart, AttachedWireLength, MoveInput);
 	}
 }
 
 float UTimeThiefWireComponent::GetCurrentWireLength() const
 {
 	if (CurrentState == EWireState::Idle) return 0.0f;
+	if (CurrentState == EWireState::Attached)
+	{
+		return FVector::Dist(GetWireStartLocation(), GetPullAnchorPoint());
+	}
 	return FVector::Dist(GetWireStartLocation(), AnchorPoint);
 }
 
@@ -435,7 +441,7 @@ bool UTimeThiefWireComponent::IsWireSnapping() const
 		return false;
 	}
 
-	const FVector WireDirection = (AnchorPoint - GetWireStartLocation()).GetSafeNormal();
+	const FVector WireDirection = (GetPullAnchorPoint() - GetWireStartLocation()).GetSafeNormal();
 	const FVector VelocityDir = Velocity.GetSafeNormal();
 	const float DotProduct = FVector::DotProduct(VelocityDir, WireDirection);
 
@@ -447,10 +453,15 @@ bool UTimeThiefWireComponent::IsFacingAwayFromWire() const
 	if (!IsValid(CachedCharacter)) return false;
 
 	const FVector LookDirection = GetAimDirection();
-	const FVector WireDirection = (AnchorPoint - GetWireStartLocation()).GetSafeNormal();
+	const FVector WireDirection = (GetPullAnchorPoint() - GetWireStartLocation()).GetSafeNormal();
 	const float DotProduct = FVector::DotProduct(LookDirection, WireDirection);
 
 	return DotProduct < WireReleaseLookDotThreshold;
+}
+
+FVector UTimeThiefWireComponent::GetPullAnchorPoint() const
+{
+	return AnchorPoint + FVector(0.0f, 0.0f, PullAnchorHeightOffset);
 }
 
 FVector UTimeThiefWireComponent::GetAimDirection() const
