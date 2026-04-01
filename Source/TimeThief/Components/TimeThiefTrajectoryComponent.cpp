@@ -230,7 +230,7 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 	const float DtPred = 1.0f / FMath::Max(1, PredictionSamplesPerSecond);
 
-	FVector WorldPlanarVel = NetChar->GetNetworkVelocity();
+	FVector WorldPlanarVel = NetChar->GetMoveStep();
 	WorldPlanarVel.Z = 0.f;
 	if (WorldPlanarVel.IsNearlyZero())
 	{
