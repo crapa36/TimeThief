@@ -1152,17 +1152,28 @@ void UNetworkGameInstanceSubsystem::ApplyAllEntityStates()
 
 void UNetworkGameInstanceSubsystem::ApplyRemoteAttackNotifyToActor(uint32 EntityId, const FRemoteAttackNotify& Notify)
 {
-	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
-	if (EntityEntry == nullptr) return;
-	
-	AActor* Actor = EntityEntry->Actor.Get();
-	if (Actor == nullptr) return;
-
-	if (ICombatSyncInterface* CombatSync = Cast<ICombatSyncInterface>(Actor))
+	AActor* Actor = FindEntityActor(EntityId);
+	if (Actor == nullptr)
 	{
-		if (UNetworkCombatSyncComponent* CombatSyncComponent = CombatSync->GetCombatSyncComponent())
-		{
-			CombatSyncComponent->BroadcastRemoteAttackNotify(Notify);
-		}
+		UE_LOG(LogTemp, Verbose, TEXT("[Network] ApplyRemoteAttackNotifyToActor failed: Actor not found. EntityId=%u"), EntityId);
+		return;
 	}
+	
+	ICombatSyncInterface* CombatSync = Cast<ICombatSyncInterface>(Actor);
+	if (CombatSync == nullptr)
+	{
+		UE_LOG(LogTemp, Verbose, TEXT("[Network] ApplyRemoteAttackNotifyToActor skipped: Actor does not implement CombatSyncInterface. Actor=%s"),
+			*GetNameSafe(Actor));
+		return;
+	}
+
+	UNetworkCombatSyncComponent* CombatSyncComponent = CombatSync->GetCombatSyncComponent();
+	if (CombatSyncComponent == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] ApplyRemoteAttackNotifyToActor failed: CombatSyncComponent is null. Actor=%s"),
+			*GetNameSafe(Actor));
+		return;
+	}
+
+	CombatSyncComponent->BroadcastRemoteAttackNotify(Notify);
 }
