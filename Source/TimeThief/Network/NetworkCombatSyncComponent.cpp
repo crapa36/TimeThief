@@ -97,6 +97,30 @@ void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRe
 			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 		}
 		break;
+	case ECombatNotifyType::WeaponChange:
+		{
+			se::game::C_WeaponChangeReq Request;
+			Request.set_weapon_id(AttackRequest.WeaponId);
+			
+			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+		}
+		break;
+	case ECombatNotifyType::Aiming:
+		{
+			se::game::C_AimReq Request;
+			Request.set_is_aiming(true);
+			
+			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+		}
+		break;
+	case ECombatNotifyType::Readying:
+		{
+			se::game::C_AimReq Request;
+			Request.set_is_aiming(false);
+			
+			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+		}
+		break;
 	case ECombatNotifyType::Reload:
 		{
 			se::game::C_ReloadReq Request;
