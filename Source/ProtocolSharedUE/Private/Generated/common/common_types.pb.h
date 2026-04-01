@@ -62,6 +62,9 @@ PROTOCOLSHAREDUE_API extern ResultDefaultTypeInternal _Result_default_instance_;
 class Transform;
 struct TransformDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern TransformDefaultTypeInternal _Transform_default_instance_;
+class Vector2;
+struct Vector2DefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern Vector2DefaultTypeInternal _Vector2_default_instance_;
 class Vector3;
 struct Vector3DefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern Vector3DefaultTypeInternal _Vector3_default_instance_;
@@ -73,6 +76,7 @@ template<> PROTOCOLSHAREDUE_API ::se::common::ObjectId* Arena::CreateMaybeMessag
 template<> PROTOCOLSHAREDUE_API ::se::common::PlayerId* Arena::CreateMaybeMessage<::se::common::PlayerId>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Result* Arena::CreateMaybeMessage<::se::common::Result>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Transform* Arena::CreateMaybeMessage<::se::common::Transform>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::common::Vector2* Arena::CreateMaybeMessage<::se::common::Vector2>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Vector3* Arena::CreateMaybeMessage<::se::common::Vector3>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
@@ -414,6 +418,165 @@ class PROTOCOLSHAREDUE_API Vector3 final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API Vector2 final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.common.Vector2) */ {
+ public:
+  inline Vector2() : Vector2(nullptr) {}
+  ~Vector2() override;
+  explicit PROTOBUF_CONSTEXPR Vector2(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  Vector2(const Vector2& from);
+  Vector2(Vector2&& from) noexcept
+    : Vector2() {
+    *this = ::std::move(from);
+  }
+
+  inline Vector2& operator=(const Vector2& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Vector2& operator=(Vector2&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const Vector2& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Vector2* internal_default_instance() {
+    return reinterpret_cast<const Vector2*>(
+               &_Vector2_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    2;
+
+  friend void swap(Vector2& a, Vector2& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Vector2* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Vector2* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  Vector2* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<Vector2>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const Vector2& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const Vector2& from) {
+    Vector2::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(Vector2* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.common.Vector2";
+  }
+  protected:
+  explicit Vector2(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kXFieldNumber = 1,
+    kYFieldNumber = 2,
+  };
+  // float x = 1;
+  void clear_x();
+  float x() const;
+  void set_x(float value);
+  private:
+  float _internal_x() const;
+  void _internal_set_x(float value);
+  public:
+
+  // float y = 2;
+  void clear_y();
+  float y() const;
+  void set_y(float value);
+  private:
+  float _internal_y() const;
+  void _internal_set_y(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.common.Vector2)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    float x_;
+    float y_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_common_2fcommon_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API Transform final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.common.Transform) */ {
  public:
@@ -462,7 +625,7 @@ class PROTOCOLSHAREDUE_API Transform final :
                &_Transform_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    2;
+    3;
 
   friend void swap(Transform& a, Transform& b) {
     a.Swap(&b);
@@ -630,7 +793,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
                &_MovementState_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   friend void swap(MovementState& a, MovementState& b) {
     a.Swap(&b);
@@ -704,9 +867,10 @@ class PROTOCOLSHAREDUE_API MovementState final :
 
   enum : int {
     kPositionFieldNumber = 1,
+    kVelocityFieldNumber = 4,
     kYawFieldNumber = 2,
     kPitchFieldNumber = 3,
-    kSpeedFieldNumber = 4,
+    kMovementModeFieldNumber = 5,
   };
   // .se.common.Vector3 position = 1;
   bool has_position() const;
@@ -726,6 +890,24 @@ class PROTOCOLSHAREDUE_API MovementState final :
       ::se::common::Vector3* position);
   ::se::common::Vector3* unsafe_arena_release_position();
 
+  // .se.common.Vector2 velocity = 4;
+  bool has_velocity() const;
+  private:
+  bool _internal_has_velocity() const;
+  public:
+  void clear_velocity();
+  const ::se::common::Vector2& velocity() const;
+  PROTOBUF_NODISCARD ::se::common::Vector2* release_velocity();
+  ::se::common::Vector2* mutable_velocity();
+  void set_allocated_velocity(::se::common::Vector2* velocity);
+  private:
+  const ::se::common::Vector2& _internal_velocity() const;
+  ::se::common::Vector2* _internal_mutable_velocity();
+  public:
+  void unsafe_arena_set_allocated_velocity(
+      ::se::common::Vector2* velocity);
+  ::se::common::Vector2* unsafe_arena_release_velocity();
+
   // float yaw = 2;
   void clear_yaw();
   float yaw() const;
@@ -744,13 +926,13 @@ class PROTOCOLSHAREDUE_API MovementState final :
   void _internal_set_pitch(float value);
   public:
 
-  // float speed = 4;
-  void clear_speed();
-  float speed() const;
-  void set_speed(float value);
+  // int32 movement_mode = 5;
+  void clear_movement_mode();
+  int32_t movement_mode() const;
+  void set_movement_mode(int32_t value);
   private:
-  float _internal_speed() const;
-  void _internal_set_speed(float value);
+  int32_t _internal_movement_mode() const;
+  void _internal_set_movement_mode(int32_t value);
   public:
 
   // @@protoc_insertion_point(class_scope:se.common.MovementState)
@@ -762,9 +944,10 @@ class PROTOCOLSHAREDUE_API MovementState final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::Vector3* position_;
+    ::se::common::Vector2* velocity_;
     float yaw_;
     float pitch_;
-    float speed_;
+    int32_t movement_mode_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -820,7 +1003,7 @@ class PROTOCOLSHAREDUE_API PlayerId final :
                &_PlayerId_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    5;
 
   friend void swap(PlayerId& a, PlayerId& b) {
     a.Swap(&b);
@@ -968,7 +1151,7 @@ class PROTOCOLSHAREDUE_API ObjectId final :
                &_ObjectId_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    6;
 
   friend void swap(ObjectId& a, ObjectId& b) {
     a.Swap(&b);
@@ -1209,6 +1392,50 @@ inline void Vector3::_internal_set_z(float value) {
 inline void Vector3::set_z(float value) {
   _internal_set_z(value);
   // @@protoc_insertion_point(field_set:se.common.Vector3.z)
+}
+
+// -------------------------------------------------------------------
+
+// Vector2
+
+// float x = 1;
+inline void Vector2::clear_x() {
+  _impl_.x_ = 0;
+}
+inline float Vector2::_internal_x() const {
+  return _impl_.x_;
+}
+inline float Vector2::x() const {
+  // @@protoc_insertion_point(field_get:se.common.Vector2.x)
+  return _internal_x();
+}
+inline void Vector2::_internal_set_x(float value) {
+  
+  _impl_.x_ = value;
+}
+inline void Vector2::set_x(float value) {
+  _internal_set_x(value);
+  // @@protoc_insertion_point(field_set:se.common.Vector2.x)
+}
+
+// float y = 2;
+inline void Vector2::clear_y() {
+  _impl_.y_ = 0;
+}
+inline float Vector2::_internal_y() const {
+  return _impl_.y_;
+}
+inline float Vector2::y() const {
+  // @@protoc_insertion_point(field_get:se.common.Vector2.y)
+  return _internal_y();
+}
+inline void Vector2::_internal_set_y(float value) {
+  
+  _impl_.y_ = value;
+}
+inline void Vector2::set_y(float value) {
+  _internal_set_y(value);
+  // @@protoc_insertion_point(field_set:se.common.Vector2.y)
 }
 
 // -------------------------------------------------------------------
@@ -1459,24 +1686,114 @@ inline void MovementState::set_pitch(float value) {
   // @@protoc_insertion_point(field_set:se.common.MovementState.pitch)
 }
 
-// float speed = 4;
-inline void MovementState::clear_speed() {
-  _impl_.speed_ = 0;
+// .se.common.Vector2 velocity = 4;
+inline bool MovementState::_internal_has_velocity() const {
+  return this != internal_default_instance() && _impl_.velocity_ != nullptr;
 }
-inline float MovementState::_internal_speed() const {
-  return _impl_.speed_;
+inline bool MovementState::has_velocity() const {
+  return _internal_has_velocity();
 }
-inline float MovementState::speed() const {
-  // @@protoc_insertion_point(field_get:se.common.MovementState.speed)
-  return _internal_speed();
+inline void MovementState::clear_velocity() {
+  if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
+    delete _impl_.velocity_;
+  }
+  _impl_.velocity_ = nullptr;
 }
-inline void MovementState::_internal_set_speed(float value) {
+inline const ::se::common::Vector2& MovementState::_internal_velocity() const {
+  const ::se::common::Vector2* p = _impl_.velocity_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::Vector2&>(
+      ::se::common::_Vector2_default_instance_);
+}
+inline const ::se::common::Vector2& MovementState::velocity() const {
+  // @@protoc_insertion_point(field_get:se.common.MovementState.velocity)
+  return _internal_velocity();
+}
+inline void MovementState::unsafe_arena_set_allocated_velocity(
+    ::se::common::Vector2* velocity) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.velocity_);
+  }
+  _impl_.velocity_ = velocity;
+  if (velocity) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.common.MovementState.velocity)
+}
+inline ::se::common::Vector2* MovementState::release_velocity() {
   
-  _impl_.speed_ = value;
+  ::se::common::Vector2* temp = _impl_.velocity_;
+  _impl_.velocity_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
 }
-inline void MovementState::set_speed(float value) {
-  _internal_set_speed(value);
-  // @@protoc_insertion_point(field_set:se.common.MovementState.speed)
+inline ::se::common::Vector2* MovementState::unsafe_arena_release_velocity() {
+  // @@protoc_insertion_point(field_release:se.common.MovementState.velocity)
+  
+  ::se::common::Vector2* temp = _impl_.velocity_;
+  _impl_.velocity_ = nullptr;
+  return temp;
+}
+inline ::se::common::Vector2* MovementState::_internal_mutable_velocity() {
+  
+  if (_impl_.velocity_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::Vector2>(GetArenaForAllocation());
+    _impl_.velocity_ = p;
+  }
+  return _impl_.velocity_;
+}
+inline ::se::common::Vector2* MovementState::mutable_velocity() {
+  ::se::common::Vector2* _msg = _internal_mutable_velocity();
+  // @@protoc_insertion_point(field_mutable:se.common.MovementState.velocity)
+  return _msg;
+}
+inline void MovementState::set_allocated_velocity(::se::common::Vector2* velocity) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.velocity_;
+  }
+  if (velocity) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(velocity);
+    if (message_arena != submessage_arena) {
+      velocity = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, velocity, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.velocity_ = velocity;
+  // @@protoc_insertion_point(field_set_allocated:se.common.MovementState.velocity)
+}
+
+// int32 movement_mode = 5;
+inline void MovementState::clear_movement_mode() {
+  _impl_.movement_mode_ = 0;
+}
+inline int32_t MovementState::_internal_movement_mode() const {
+  return _impl_.movement_mode_;
+}
+inline int32_t MovementState::movement_mode() const {
+  // @@protoc_insertion_point(field_get:se.common.MovementState.movement_mode)
+  return _internal_movement_mode();
+}
+inline void MovementState::_internal_set_movement_mode(int32_t value) {
+  
+  _impl_.movement_mode_ = value;
+}
+inline void MovementState::set_movement_mode(int32_t value) {
+  _internal_set_movement_mode(value);
+  // @@protoc_insertion_point(field_set:se.common.MovementState.movement_mode)
 }
 
 // -------------------------------------------------------------------
@@ -1530,6 +1847,8 @@ inline void ObjectId::set_value(uint32_t value) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
