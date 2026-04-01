@@ -23,6 +23,7 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+struct FRemoteAttackNotify;
 struct FEntityRuntimeEntry;
 struct FMoveSyncData;
 class SendBuffer;
@@ -127,6 +128,8 @@ private:
 	void ApplyEntityStateToActor(uint32 EntityId);
 	void ApplyEntityStateToActor(AActor* Actor, const FNetworkEntityState& EntityState);
 	void ApplyAllEntityStates();
+	
+	void ApplyRemoteAttackNotifyToActor(uint32 EntityId, const FRemoteAttackNotify& Notify);
 	
 	bool IsLocalPlayerEntity(uint32 EntityId) const;
 	TSubclassOf<AActor> ResolveActorClass(const FNetworkEntityState& EntityState) const;

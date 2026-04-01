@@ -302,6 +302,31 @@ bool Handle_N_WireActionEnd(PacketSessionRef& session, const se::game::N_WireAct
 	
 bool Handle_N_Aim(PacketSessionRef& session, const se::game::N_Aim& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_Aim: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_Aim: entity_id is 0"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleAim(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_Aim: Failed to get NGIS"));
 	return false;	
 }
 	

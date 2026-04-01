@@ -20,6 +20,8 @@
 #include "Network/State/EntityRuntimeEntry.h"
 #include "Network/TestPlayer/NTLocalPlayer.h"
 #include "Protocol/ProtocolVersion.h"
+#include "State/RemoteAttackNotify.h"
+#include "Network/NetworkCombatSyncComponent.h"
 
 namespace
 {
@@ -579,6 +581,21 @@ void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireAc
 
 void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = pkt.is_aiming()
+		? ECombatNotifyType::Aiming
+		: ECombatNotifyType::Readying;
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)
@@ -1130,5 +1147,22 @@ void UNetworkGameInstanceSubsystem::ApplyAllEntityStates()
 	{
 		const uint32 EntityId = Pair.Key;
 		ApplyEntityStateToActor(EntityId);
+	}
+}
+
+void UNetworkGameInstanceSubsystem::ApplyRemoteAttackNotifyToActor(uint32 EntityId, const FRemoteAttackNotify& Notify)
+{
+	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr) return;
+	
+	AActor* Actor = EntityEntry->Actor.Get();
+	if (Actor == nullptr) return;
+
+	if (ICombatSyncInterface* CombatSync = Cast<ICombatSyncInterface>(Actor))
+	{
+		if (UNetworkCombatSyncComponent* CombatSyncComponent = CombatSync->GetCombatSyncComponent())
+		{
+			CombatSyncComponent->BroadcastRemoteAttackNotify(Notify);
+		}
 	}
 }
