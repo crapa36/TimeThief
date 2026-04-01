@@ -626,6 +626,24 @@ void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Throw;
+	Notify.WeaponId = Pkt.grenade_type();
+	const auto& Origin = Pkt.start_position();
+	Notify.Origin = FVector(Origin.x(), Origin.y(), Origin.z());
+	const auto& Dir = Pkt.direction();
+	Notify.Direction = FVector(Dir.x(), Dir.y(), Dir.z());
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleReload(const se::game::N_Reload& Pkt)

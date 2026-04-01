@@ -368,6 +368,7 @@ bool Handle_N_Fire(PacketSessionRef& session, const se::game::N_Fire& pkt)
 		}
 	}
 	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_Fire: Failed to get NGIS"));
 	return false;	
 }
 	
@@ -378,7 +379,44 @@ bool Handle_N_Attack(PacketSessionRef& session, const se::game::N_Attack& pkt)
 	
 bool Handle_N_ThrowGrenade(PacketSessionRef& session, const se::game::N_ThrowGrenade& pkt)
 {
-	return false;	
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: entity_id is 0"));
+		return false;
+	}
+	
+	if (!pkt.has_start_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: pkt has no start_position"));
+		return false;
+	}
+	
+	if (!pkt.has_direction())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: pkt has no direction"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleThrowGrenade(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: Failed to get NGIS"));
+	return false;
 }
 	
 bool Handle_N_Reload(PacketSessionRef& session, const se::game::N_Reload& pkt)
