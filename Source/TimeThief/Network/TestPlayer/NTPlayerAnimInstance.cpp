@@ -31,10 +31,10 @@ void UNTPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 	
-	Velocity = OwnerPlayer->GetNetworkVelocity();
+	Velocity = OwnerPlayer->GetMoveStep();
 	Velocity.Z = 0.f;
 	
-	Speed = OwnerPlayer->GetNetworkSpeed();
+	Speed = OwnerPlayer->GetMoveStep().Size2D();
 	if (const UCharacterMovementComponent* MoveComp = OwnerPlayer->GetCharacterMovement())
 	{
 		IsAir = MoveComp->IsFalling();

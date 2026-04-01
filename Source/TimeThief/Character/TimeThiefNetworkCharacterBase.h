@@ -52,13 +52,17 @@ public:
 	virtual float GetNetworkPitch() const override;
 	virtual void SetNetworkPitch(float NewPitch) override;
 	
-	virtual float GetNetworkSpeed() const override;
-	virtual void SetNetworkSpeed(float NewSpeed) override;
+	virtual FVector2D GetNetworkVelocity2D() const override;
+	virtual void SetNetworkVelocity2D(FVector2D NewVelocity) override;
+	
+	virtual EMovementMode GetNetworkMovementMode() const override;
+	virtual void SetNetworkMovementMode(EMovementMode NewMovementMode) override;
 	
 	virtual float GetLocalControlPitch() const override;
-	virtual float GetLocalControlSpeed() const override;
+	virtual FVector2D GetLocalControlVelocity2D() const override;
+	virtual EMovementMode GetLocalControlMovementMode() const override;
 	
-	virtual FVector GetNetworkVelocity() const override;
+	virtual FVector GetMoveStep() const override;
 	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) override;
 
 // CombatSyncInterface
@@ -93,5 +97,10 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
 	float CurrentNetworkSpeed = 0.0f;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
+	FVector2D CurrentNetworkVelocity = FVector2D::ZeroVector;
+	
+	EMovementMode CurrentNetworkMovementMode = EMovementMode::MOVE_None;
 	
 };

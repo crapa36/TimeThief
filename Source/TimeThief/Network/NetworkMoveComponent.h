@@ -75,8 +75,10 @@ private:
 	float StartPitch = 0.0f;
 	float TargetPitch = 0.0f;
 	
-	float StartSpeed = 0.0f;
-	float TargetSpeed = 0.0f;
+	FVector2D StartVelocity = FVector2D::ZeroVector;
+	FVector2D TargetVelocity = FVector2D::ZeroVector;
+	
+	EMovementMode RecentMovementMode = EMovementMode::MOVE_None;
 	
 	FVector InterpStartPosition = FVector::ZeroVector;
 	FVector InterpTargetPosition = FVector::ZeroVector;

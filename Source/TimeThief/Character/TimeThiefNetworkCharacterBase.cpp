@@ -80,14 +80,24 @@ void ATimeThiefNetworkCharacterBase::SetNetworkPitch(float NewPitch)
 	CurrentNetworkPitch = FMath::Clamp(NormalizedPitch, -89.0f, 89.0f);
 }
 
-float ATimeThiefNetworkCharacterBase::GetNetworkSpeed() const
+FVector2D ATimeThiefNetworkCharacterBase::GetNetworkVelocity2D() const
 {
-	return CurrentNetworkSpeed;
+	return CurrentNetworkVelocity;;
 }
 
-void ATimeThiefNetworkCharacterBase::SetNetworkSpeed(float NewSpeed)
+void ATimeThiefNetworkCharacterBase::SetNetworkVelocity2D(FVector2D NewVelocity)
 {
-	CurrentNetworkSpeed = NewSpeed;
+	CurrentNetworkVelocity = NewVelocity;
+}
+
+EMovementMode ATimeThiefNetworkCharacterBase::GetNetworkMovementMode() const
+{
+	return CurrentNetworkMovementMode;
+}
+
+void ATimeThiefNetworkCharacterBase::SetNetworkMovementMode(EMovementMode NewMovementMode)
+{
+	CurrentNetworkMovementMode = NewMovementMode;
 }
 
 float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
@@ -102,17 +112,29 @@ float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
 	return FMath::Clamp(ControlPitch, -89.0f, 89.0f);
 }
 
-float ATimeThiefNetworkCharacterBase::GetLocalControlSpeed() const
+FVector2D ATimeThiefNetworkCharacterBase::GetLocalControlVelocity2D() const
 {
-	if (GetCharacterMovement() == nullptr)
+	auto CMC = GetCharacterMovement();
+	if (CMC == nullptr)
 	{
-		return 0.0f;
+		return FVector2D::ZeroVector;
 	}
 	
-	return GetCharacterMovement()->Velocity.Size();
+	return FVector2D(CMC->Velocity.X, CMC->Velocity.Y);
 }
 
-FVector ATimeThiefNetworkCharacterBase::GetNetworkVelocity() const
+EMovementMode ATimeThiefNetworkCharacterBase::GetLocalControlMovementMode() const
+{
+	auto CMC = GetCharacterMovement();
+	if (CMC == nullptr)
+	{
+		return EMovementMode::MOVE_None;
+	}
+	
+	return CMC->MovementMode;
+}
+
+FVector ATimeThiefNetworkCharacterBase::GetMoveStep() const
 {
 	if (NetworkMoveComponent == nullptr)
 	{

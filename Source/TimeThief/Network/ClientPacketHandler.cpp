@@ -274,6 +274,36 @@ bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 	// No Log here because movement packets are very frequent
 	return false;	
 }
+
+bool Handle_N_Jump(PacketSessionRef& session, const se::game::N_Jump& pkt)
+{
+	return false;	
+}
+	
+bool Handle_N_JumpLand(PacketSessionRef& session, const se::game::N_JumpLand& pkt)
+{
+	return false;	
+}
+	
+bool Handle_N_Crouch(PacketSessionRef& session, const se::game::N_Crouch& pkt)
+{
+	return false;	
+}
+	
+bool Handle_N_WireAction(PacketSessionRef& session, const se::game::N_WireAction& pkt)
+{
+	return false;	
+}
+	
+bool Handle_N_WireActionEnd(PacketSessionRef& session, const se::game::N_WireActionEnd& pkt)
+{
+	return false;	
+}
+	
+bool Handle_N_Aim(PacketSessionRef& session, const se::game::N_Aim& pkt)
+{
+	return false;	
+}
 	
 bool Handle_N_Fire(PacketSessionRef& session, const se::game::N_Fire& pkt)
 {

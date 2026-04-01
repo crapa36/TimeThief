@@ -44,7 +44,7 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	
 	if (MovableNetworkInterface.GetInterface())
 	{
-		Velocity = MovableNetworkInterface->GetNetworkVelocity();
+		Velocity = MovableNetworkInterface->GetMoveStep();
 	}
 	else
 	{

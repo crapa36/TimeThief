@@ -31,13 +31,17 @@ public:
 	virtual float GetNetworkPitch() const = 0;
 	virtual void SetNetworkPitch(float NewPitch) = 0;
 	
-	virtual float GetNetworkSpeed() const = 0;
-	virtual void SetNetworkSpeed(float NewSpeed) = 0;
+	virtual FVector2D GetNetworkVelocity2D() const = 0;
+	virtual void SetNetworkVelocity2D(FVector2D NewVelocity) = 0;
+	
+	virtual EMovementMode GetNetworkMovementMode() const = 0;
+	virtual void SetNetworkMovementMode(EMovementMode NewMovementMode) = 0;
 	
 	virtual float GetLocalControlPitch() const = 0;
-	virtual float GetLocalControlSpeed() const = 0;
+	virtual FVector2D GetLocalControlVelocity2D() const = 0;
+	virtual EMovementMode GetLocalControlMovementMode() const = 0;
 	
-	virtual FVector GetNetworkVelocity() const = 0;
+	virtual FVector GetMoveStep() const = 0;
 	
 	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) = 0;
 	

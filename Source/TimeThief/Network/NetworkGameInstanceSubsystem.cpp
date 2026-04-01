@@ -113,7 +113,10 @@ void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
 	
 	Movement->set_yaw(MoveData.Yaw);
 	Movement->set_pitch(MoveData.Pitch);
-	Movement->set_speed(MoveData.Speed);
+	auto* Velocity = Movement->mutable_velocity();
+	Velocity->set_x(MoveData.Velocity.X);
+	Velocity->set_y(MoveData.Velocity.Y);
+	Movement->set_movement_mode(MoveData.MovementMode);
 	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Pkt);
 	SendPacket(Buffer);
@@ -547,9 +550,35 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 	EntityState.Yaw = Movement.yaw();
 	EntityState.Pitch = Movement.pitch();
-	EntityState.Speed = Movement.speed();
+	const auto& Velocity = Movement.velocity();
+	EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+	EntityState.MovementMode = static_cast<EMovementMode>(Movement.movement_mode());
 	
 	ApplyEntityStateToActor(EntityId);
+}
+
+void UNetworkGameInstanceSubsystem::HandleJump(const se::game::N_Jump& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleWireAction(const se::game::N_WireAction& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireActionEnd& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& pkt)
+{
 }
 
 void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)

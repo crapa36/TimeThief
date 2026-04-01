@@ -85,6 +85,12 @@ public:
 	void HandleGameStart(const se::game::N_GameStart& Pkt);
 	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
 	void HandleMove(const se::game::N_Move& Pkt);
+	void HandleJump(const se::game::N_Jump& pkt);
+	void HandleJumpLand(const se::game::N_JumpLand& pkt);
+	void HandleCrouch(const se::game::N_Crouch& pkt);
+	void HandleWireAction(const se::game::N_WireAction& pkt);
+	void HandleWireActionEnd(const se::game::N_WireActionEnd& pkt);
+	void HandleAim(const se::game::N_Aim& pkt);
 	void HandleFire(const se::game::N_Fire& Pkt);
 	void HandleAttack(const se::game::N_Attack& Pkt);
 	void HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt);
