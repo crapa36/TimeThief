@@ -37,11 +37,8 @@ void UNetworkCombatSyncComponent::BeginPlay()
 	
 	if (TTCombatComponent)
 	{
-		// TODO: TTPCC에 공격에 관한 델리게이트가 생기면 그쪽에 바인딩
-		//		 Fire, Reload, Throw ... 등의 공격이 발생할 때 해당 델리게이트가 발동 되어야 함
-		// TTCombatComponent->OnLocalAttackRequest.AddUObject ...
+		TTCombatComponent->OnCombatAttackRequest_Delegate.AddUObject(this, &UNetworkCombatSyncComponent::HandleLocalAttackRequest);
 	}
-	
 }
 
 void UNetworkCombatSyncComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

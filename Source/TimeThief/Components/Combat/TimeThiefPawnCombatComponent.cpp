@@ -8,6 +8,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Network/NetworkCombatSyncComponent.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,6 +21,17 @@ void UTimeThiefPawnCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	SpawnMasterWeapon();
+	
+	if (AActor* Owner = GetOwner())
+	{
+		if (auto NCSC = Owner->FindComponentByClass<UNetworkCombatSyncComponent>())
+		{
+			NCSC->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
+			
+			// TODO: EndPlay나 다른 곳에서 바인딩 해제 할 것
+		}
+	}
+	
 }
 
 void UTimeThiefPawnCombatComponent::SpawnMasterWeapon()
@@ -216,6 +228,12 @@ void UTimeThiefPawnCombatComponent::RemoveCombatStateTag(FGameplayTag WeaponTag)
 			BaseChar->RemoveOwnedGameplayTag(*StateTag);
 		}
 	}
+}
+
+void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNotify& AttackRequest)
+{
+	// TODO: AttackRequest에 맞는 상황에 맞게 멤버 설정 및 애니메이션 재생 될 수 있도록 작성
+	
 }
 
 void UTimeThiefPawnCombatComponent::Remote_SyncAimingState(bool bNewAiming)

@@ -9,8 +9,12 @@ class ATimeThiefMasterWeapon;
 class UTimeThiefWeaponComponentBase;
 class UAnimMontage;
 
+struct FRemoteAttackNotify;
+struct FCombatAttackRequest;
+
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnWeaponEquippedSignature, UTimeThiefWeaponComponentBase*);
 DECLARE_MULTICAST_DELEGATE(FOnWeaponUnequippedSignature);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnCombatAttackRequestSignature, const FCombatAttackRequest&);
 
 UCLASS(Blueprintable, ClassGroup = (TimeThief), meta = (BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensionComponent {
@@ -48,6 +52,10 @@ public:
 
 	FOnWeaponEquippedSignature OnWeaponEquipped_Delegate;
 	FOnWeaponUnequippedSignature OnWeaponUnequipped_Delegate;
+	FOnCombatAttackRequestSignature OnCombatAttackRequest_Delegate;
+	// TODO: 공격 및 재장전 등의 액션을 취해야 할 때 델리게이트를 Broadcast 할 것
+	
+	virtual void Remote_AttackRequest(const FRemoteAttackNotify& AttackRequest);
 
 	virtual void Remote_SyncAimingState(bool bNewAiming);
 	virtual void Remote_SyncFireAction();
