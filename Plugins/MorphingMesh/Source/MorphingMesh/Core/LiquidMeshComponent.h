@@ -45,4 +45,5 @@ public:
 	FBox GetBound() const;
 	FVector3f GetAlpha() const;
 	TArray<TObjectPtr<UVolumeTexture>> GetDensityTextures() const;
+	TArray<TObjectPtr<UVolumeTexture>> GetUVMaps() const;
 };

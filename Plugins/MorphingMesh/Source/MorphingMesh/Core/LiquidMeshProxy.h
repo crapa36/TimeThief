@@ -16,6 +16,7 @@ class MORPHINGMESH_API FLiquidMeshProxy : public FPrimitiveSceneProxy
 	FBox CachedBound;
 	FVector3f CachedAlpha;
 	TArray<TObjectPtr<UVolumeTexture>> CachedDensityTextures;
+	TArray<TObjectPtr<UVolumeTexture>> CachedUVMaps;
 	bool bRenderingEnable = true;
 public:
 	FMaterialRelevance MaterialRelevance;

@@ -22,6 +22,7 @@ class FMarchingCubesRenderResource : public FRenderResource
 public:
 	TUniquePtr<FVertexBufferWithRDG> PositionBuffer;
 	TUniquePtr<FVertexBufferWithRDG> TangentsBuffer;
+	TUniquePtr<FVertexBufferWithRDG> UVBuffer;
 	TRefCountPtr<FRDGPooledBuffer> IndirectArgsBuffer;
 	
 	FLocalVertexFactory VertexFactory;
@@ -33,7 +34,8 @@ public:
 	void RunComputeShader(FRDGBuilder& GraphBuilder, 
 	const FBox& InBound,
 	const FVector3f& Alpha,
-	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures);
+	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
+	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps);
 	
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
 	virtual void ReleaseRHI() override;
