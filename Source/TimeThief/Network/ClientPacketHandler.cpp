@@ -451,6 +451,31 @@ bool Handle_N_Reload(PacketSessionRef& session, const se::game::N_Reload& pkt)
 	
 bool Handle_N_WeaponChanged(PacketSessionRef& session, const se::game::N_WeaponChanged& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_WeaponChanged: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_WeaponChanged: entity_id is 0"));
+		return false;
+	}
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleWeaponChanged(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_WeaponChanged: Failed to get NGIS"));
 	return false;	
 }
 	

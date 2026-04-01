@@ -666,6 +666,20 @@ void UNetworkGameInstanceSubsystem::HandleReload(const se::game::N_Reload& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::WeaponChange;
+	Notify.WeaponId = Pkt.weapon_id();
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseAbility(const se::game::N_UseAbility& Pkt)
