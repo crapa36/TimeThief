@@ -7,3 +7,4 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FConstBuffer, "Constants");
 IMPLEMENT_GLOBAL_SHADER(FClassify, "/MorphingMeshShaders/MC_Classify.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FEmit, "/MorphingMeshShaders/MC_Emit.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FDecoupledScan, "/MorphingMeshShaders/DecoupledScan.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FSkin, "/MorphingMeshShaders/Skin.usf", "MainCS", SF_Compute);

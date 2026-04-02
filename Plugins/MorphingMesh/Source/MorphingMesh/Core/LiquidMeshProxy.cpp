@@ -16,7 +16,7 @@ FLiquidMeshProxy::FLiquidMeshProxy(const ULiquidMeshComponent* InComponent)
 	RenderComponent = InComponent;
 	UE_LOG(LogTemp, Warning, TEXT("FLiquidMeshProxy::FLiquidMeshProxy - RenderComponent: %s"),
 	       *RenderComponent->GetName());
-	if (InComponent->ParentComponent)
+	if (InComponent->ParentComponent && InComponent->ParentComponent->LiquidMaterial)
 	{
 		MaterialRelevance = InComponent->ParentComponent->LiquidMaterial->GetRelevance_Concurrent(
 	GetScene().GetShaderPlatform());
@@ -62,6 +62,8 @@ void FLiquidMeshProxy::CachingData()
 	CachedDensityTextures = RenderComponent->GetDensityTextures();
 	CachedUVMaps = RenderComponent->GetUVMaps();
 	bRenderingEnable = RenderComponent->bRenderingEnable;
+	CachedBoneIndicesTexture = RenderComponent->GetBoneIndicesTexture();
+	CachedBoneMatrices = RenderComponent->GetBoneMatrices();
 }
 
 void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
@@ -76,14 +78,25 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 		FVector3f ParamAlpha;
 		TArray<TObjectPtr<UVolumeTexture>> ParamDensityTextures;
 		TArray<TObjectPtr<UVolumeTexture>> ParamUVMaps;
+		TObjectPtr<UVolumeTexture> ParamBoneIndicesTexture;
+		TArray<FMatrix44f> ParamBoneMatrices;
 		{
 			std::lock_guard Lock(CachingMutex);
 			ParamBound = CachedBound;
 			ParamAlpha = CachedAlpha;
 			ParamDensityTextures = CachedDensityTextures;
 			ParamUVMaps = CachedUVMaps;
+			ParamBoneIndicesTexture = CachedBoneIndicesTexture;
+			ParamBoneMatrices = CachedBoneMatrices;
 		}
-		RenderResource->RunComputeShader(GraphicBuilder, ParamBound, ParamAlpha, ParamDensityTextures, ParamUVMaps);
+		RenderResource->RunComputeShader(
+			GraphicBuilder, 
+			ParamBound, 
+			ParamAlpha, 
+			ParamDensityTextures, 
+			ParamUVMaps, 
+			ParamBoneIndicesTexture, 
+			ParamBoneMatrices);
 	}
 }
 

@@ -1,0 +1,26 @@
+﻿#include "/Engine/Public/Platform.ush"
+
+RWStructuredBuffer<float3> PositionBuffer;
+RWStructuredBuffer<float3> TangentsBuffer;
+
+StructuredBuffer<float4x4> BoneMatrices;
+StructuredBuffer<uint> BoneIndicesBuffer;
+StructuredBuffer<uint> IndirectArgsBuffer;
+
+int NumMatrix;
+
+[numthreads(256,1,1)]
+void MainCS(uint3 DTid : SV_DispatchThreadID)
+{
+	int vid = DTid.x;
+    if (vid >= IndirectArgsBuffer[0])
+    {
+	    return;
+    }
+	uint bone = BoneIndicesBuffer[vid];
+
+	float4x4 M = BoneMatrices[bone];
+    PositionBuffer[vid] = mul(float4(PositionBuffer[vid], 1), M).xyz;
+	TangentsBuffer[vid + 0] = mul(float4(TangentsBuffer[vid + 0], 0), M);
+	TangentsBuffer[vid + 1] = mul(float4(TangentsBuffer[vid + 1], 0), M);
+}

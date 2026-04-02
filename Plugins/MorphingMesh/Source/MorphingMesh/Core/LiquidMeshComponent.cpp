@@ -76,7 +76,7 @@ void ULiquidMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* I
 
 FBoxSphereBounds ULiquidMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	return FBoxSphereBounds(GetBound().ExpandBy(100)).TransformBy(LocalToWorld);
+	return FBoxSphereBounds(GetBound().ExpandBy(200)).TransformBy(LocalToWorld);
 }
 
 FPrimitiveSceneProxy* ULiquidMeshComponent::CreateSceneProxy()
@@ -151,8 +151,8 @@ FVector3f ULiquidMeshComponent::GetAlpha() const
 
 TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() const
 {
-	if (ParentComponent == nullptr || ParentComponent->MorphingMeshData == nullptr || !ParentComponent->MorphingMeshData
-		->IsValid())
+	if (ParentComponent == nullptr 
+		|| !ParentComponent->bIsValid)
 	{
 		return TArray<TObjectPtr<UVolumeTexture>>{};
 	}
@@ -185,10 +185,65 @@ TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetDensityTextures() co
 
 TArray<TObjectPtr<UVolumeTexture>> ULiquidMeshComponent::GetUVMaps() const
 {
-	if (ParentComponent == nullptr || ParentComponent->MorphingMeshData == nullptr || !ParentComponent->MorphingMeshData
-	->IsValid())
+	if (ParentComponent == nullptr 
+		|| !ParentComponent->bIsValid)
 	{
 		return TArray<TObjectPtr<UVolumeTexture>>{};
 	}
 	return ParentComponent->MorphingMeshData->GetUVVolumeTextures();
+}
+
+TObjectPtr<UVolumeTexture> ULiquidMeshComponent::GetBoneIndicesTexture() const
+{
+	if (ParentComponent == nullptr 
+		|| !ParentComponent->bIsValid)
+	{
+		return nullptr;
+	}
+
+	int Index = ParentComponent->GetActiveSkeletalIndex();
+	
+	if (Index == -1)
+	{
+		return nullptr;
+	}
+
+	return ParentComponent->MorphingMeshData->BoneIndexTextures[Index];
+}
+
+TArray<FMatrix44f> ULiquidMeshComponent::GetBoneMatrices() const
+{
+	TArray<FMatrix44f> Out;
+
+	if (ParentComponent == nullptr 
+		|| !ParentComponent->bIsValid)
+	{
+		return Out;
+	}
+
+	int Index = ParentComponent->GetActiveSkeletalIndex();
+	if (Index == -1)
+	{
+		return Out;
+	}
+	
+	auto SkinnedAsset = ParentComponent->BaseSkeletalMeshComponent->GetSkinnedAsset();
+	if (!SkinnedAsset)
+	{
+		return Out;
+	}
+	const TArray<FTransform>& ComponentSpace = ParentComponent->BaseSkeletalMeshComponent->GetComponentSpaceTransforms();
+	const TArray<FMatrix44f>& RefBasesInv = SkinnedAsset->GetRefBasesInvMatrix();
+	
+	const int NumBones = FMath::Min(ComponentSpace.Num(), RefBasesInv.Num());
+	Out.SetNum(NumBones);
+	
+	for (int BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
+	{
+		const FMatrix44f CurrentCS = FMatrix44f(ComponentSpace[BoneIndex].ToMatrixWithScale());
+		
+		Out[BoneIndex] = RefBasesInv[BoneIndex] * CurrentCS;
+	}
+	
+	return Out;
 }

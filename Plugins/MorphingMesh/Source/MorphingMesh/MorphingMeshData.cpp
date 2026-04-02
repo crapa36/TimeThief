@@ -21,6 +21,9 @@ UMorphingMeshData::UMorphingMeshData()
 	DensityTextures.SetNum(3);
 	Bounds.SetNum(3);
 	UVVolumeTextures.SetNum(3);
+	SkeletalMeshes.SetNum(3);
+	BoneIndexTextures.SetNum(3);
+	AnimInstances.SetNum(3);
 }
 
 void UMorphingMeshData::UpdateBox()
@@ -48,6 +51,20 @@ bool UMorphingMeshData::IsValid() const
 	for (auto p : DensityTextures)
 	{
 		if (!p.IsValid()) return false;
+	}
+	
+	return true;
+}
+
+bool UMorphingMeshData::IsSkeletalValid() const
+{
+	for (auto p : SkeletalMeshes)
+	{
+		if (!p) return false;
+	}
+	for (auto p : BoneIndexTextures)
+	{
+		if (!p) return false;
 	}
 	
 	return true;

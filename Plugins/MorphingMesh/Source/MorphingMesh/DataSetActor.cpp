@@ -11,6 +11,15 @@
 #include "Math/Float16Color.h"
 #include "Engine/VolumeTexture.h"
 #include "Settings.h"
+#include "Rendering/SkeletalMeshRenderData.h"
+#include "Async/ParallelFor.h"
+
+struct FBoneSegment
+{
+	FVector Start;
+	FVector End;
+	int32 BoneIndex;
+};
 
 // Sets default values
 ADataSetActor::ADataSetActor()
@@ -23,6 +32,143 @@ ADataSetActor::ADataSetActor()
 void ADataSetActor::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void ADataSetActor::CreateBoneIndexTexture() const
+{
+    const TArray<TObjectPtr<UStaticMesh>>& BaseMeshes = MorphingMeshData->GetBaseMeshes();
+
+    for (int32 i = 0; i < MorphingMeshData->BoneIndexTextures.Num(); ++i)
+    {
+       UVolumeTexture* VolumeTex = MorphingMeshData->BoneIndexTextures[i];
+       USkeletalMesh* SkelMesh = MorphingMeshData->SkeletalMeshes.IsValidIndex(i)
+          ? MorphingMeshData->SkeletalMeshes[i]
+          : nullptr;
+       UStaticMesh* BaseMesh = BaseMeshes.IsValidIndex(i) ? BaseMeshes[i] : nullptr;
+
+       if (!VolumeTex || !SkelMesh || !BaseMesh)
+       {
+          continue;
+       }
+
+       // --- 1. 스켈레탈 메쉬의 렌더 데이터(표면 및 웨이트) 가져오기 ---
+       FSkeletalMeshRenderData* RenderData = SkelMesh->GetResourceForRendering();
+       if (!RenderData || RenderData->LODRenderData.IsEmpty())
+       {
+           UE_LOG(LogTemp, Warning, TEXT("SkeletalMesh %s has no render data!"), *SkelMesh->GetName());
+           continue;
+       }
+
+       const FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+       const FPositionVertexBuffer& PositionBuffer = LODData.StaticVertexBuffers.PositionVertexBuffer;
+       const FSkinWeightVertexBuffer& SkinWeightBuffer = LODData.SkinWeightVertexBuffer;
+
+       struct FSurfacePoint
+       {
+           FVector Position;
+           uint8 DominantBoneIndex;
+       };
+       TArray<FSurfacePoint> SurfacePoints;
+       SurfacePoints.Reserve(PositionBuffer.GetNumVertices());
+
+       // --- 2. 모든 버텍스를 순회하며 가장 높은 웨이트를 가진 본 인덱스 추출 ---
+       for (int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); ++SecIdx)
+       {
+           const FSkelMeshRenderSection& Section = LODData.RenderSections[SecIdx];
+           for (int32 VertIdx = 0; VertIdx < Section.GetNumVertices(); ++VertIdx)
+           {
+               uint32 GlobalVertIdx = Section.BaseVertexIndex + VertIdx;
+               
+               // 버텍스의 로컬 위치 (UE5 기준 FVector3f를 FVector로 캐스팅)
+               FVector Pos = (FVector)PositionBuffer.VertexPosition(GlobalVertIdx);
+
+               int32 MaxWeight = -1;
+               uint8 BestBone = 0;
+
+               // 해당 버텍스에 영향을 주는 본들 중 가중치(Weight)가 가장 큰 본 찾기
+               for (uint32 InfIdx = 0; InfIdx < SkinWeightBuffer.GetMaxBoneInfluences(); ++InfIdx)
+               {
+                   int32 BoneWeight = SkinWeightBuffer.GetBoneWeight(GlobalVertIdx, InfIdx);
+                   if (BoneWeight > MaxWeight)
+                   {
+                       MaxWeight = BoneWeight;
+                       // Section.BoneMap을 통해 실제 글로벌 본 인덱스를 얻어옴
+                       uint32 SectionBoneIdx = SkinWeightBuffer.GetBoneIndex(GlobalVertIdx, InfIdx);
+                       BestBone = static_cast<uint8>(Section.BoneMap[SectionBoneIdx]);
+                   }
+               }
+
+               SurfacePoints.Add({ Pos, BestBone });
+           }
+       }
+
+       if (SurfacePoints.IsEmpty())
+       {
+           continue;
+       }
+
+       // --- 3. 바운딩 박스 설정 ---
+       const FBox Bounds = BaseMesh->GetBoundingBox(); 
+       const FVector Min = Bounds.Min;
+       const FVector Size = Bounds.GetSize();
+       
+       int BoneResolution = Resolution;
+       TArray<uint8> VoxelBoneIndices;
+       int32 TotalVoxels = BoneResolution * BoneResolution * BoneResolution;
+       VoxelBoneIndices.SetNumZeroed(TotalVoxels);
+
+       const float InvResMinus1 = 1.0f / float(BoneResolution - 1);
+
+       // --- 4. 복셀 그리드 채우기 (속도를 위해 ParallelFor 사용) ---
+       // 각 복셀 위치에서 가장 가까운 버텍스(표면)를 찾아 해당 버텍스의 본 인덱스를 저장
+       ParallelFor(TotalVoxels, [&](int32 FlatIndex)
+       {
+           int32 X = FlatIndex % BoneResolution;
+           int32 Y = (FlatIndex / BoneResolution) % BoneResolution;
+           int32 Z = FlatIndex / (BoneResolution * BoneResolution);
+
+           const float AlphaX = X * InvResMinus1;
+           const float AlphaY = Y * InvResMinus1;
+           const float AlphaZ = Z * InvResMinus1;
+
+           const FVector VoxelPos = Min + FVector(AlphaX, AlphaY, AlphaZ) * Size;
+
+           float MinDistanceSq = MAX_FLT;
+           uint8 ClosestBoneIndex = 0;
+
+           // 가장 가까운 스켈레탈 메쉬 표면(버텍스) 찾기
+           for (const FSurfacePoint& Pt : SurfacePoints)
+           {
+               const float DistSq = FVector::DistSquared(VoxelPos, Pt.Position);
+               if (DistSq < MinDistanceSq)
+               {
+                   MinDistanceSq = DistSq;
+                   ClosestBoneIndex = Pt.DominantBoneIndex;
+               }
+           }
+
+           VoxelBoneIndices[FlatIndex] = ClosestBoneIndex;
+       });
+
+#if WITH_EDITORONLY_DATA
+       VolumeTex->Source.Init(
+          BoneResolution,
+          BoneResolution,
+          BoneResolution,
+          1,
+          TSF_G8,
+          VoxelBoneIndices.GetData());
+
+       VolumeTex->SRGB = false;
+       VolumeTex->MipGenSettings = TMGS_NoMipmaps;
+       VolumeTex->CompressionNone = true;
+       VolumeTex->Filter = TF_Nearest;
+       VolumeTex->NeverStream = true;
+       VolumeTex->CompressionSettings = TC_Grayscale;
+       VolumeTex->PostEditChange();
+#endif
+       VolumeTex->UpdateResource();
+    }
 }
 
 // Called every frame
@@ -55,7 +201,8 @@ void ADataSetActor::BakeDataSet() const
 		DistanceFieldToTextureSettings.Scale = 1.0f;
 
 		const TArray<TObjectPtr<UStaticMesh>>& BaseMeshes = MorphingMeshData->GetBaseMeshes();
-		const TArray<TObjectPtr<UVolumeTexture>>&  UVVolumeTextures = MorphingMeshData->GetUVVolumeTextures();
+		const TArray<TObjectPtr<UVolumeTexture>>& UVVolumeTextures = MorphingMeshData->GetUVVolumeTextures();
+		MorphingMeshData->UpdateBox();
 
 		for (int i = 0; i < 3; ++i)
 		{
@@ -107,26 +254,27 @@ void ADataSetActor::BakeDataSet() const
 						float AlphaX = (float)X / (float)(Resolution - 1);
 						float AlphaY = (float)Y / (float)(Resolution - 1);
 						float AlphaZ = (float)Z / (float)(Resolution - 1);
-			
+
 						// 실제 3D 공간상의 Query Point 계산 (Lerp)
 						FVector QueryPoint = Min + FVector(AlphaX, AlphaY, AlphaZ) * Max;
-			
+
 						// 가장 가까운 지점 찾기
 						FGeometryScriptSpatialQueryOptions NearestOptions;
 						FGeometryScriptTrianglePoint NearestResult;
 						EGeometryScriptSearchOutcomePins NearestOutcome;
-			
+
 						UGeometryScriptLibrary_MeshSpatial::FindNearestPointOnMesh(
 							DynamicMesh, BVH, QueryPoint, NearestOptions, NearestResult, NearestOutcome);
-			
+
 						if (NearestOutcome == EGeometryScriptSearchOutcomePins::Found)
 						{
 							// Triangle ID를 통해 UV 가져오기 (UV Channel 0 기준)
 							bool bIsValidTriangle = false;
 							FVector2D UV;
 							UGeometryScriptLibrary_MeshQueryFunctions::GetInterpolatedTriangleUV(
-								DynamicMesh, 0, NearestResult.TriangleID, NearestResult.BaryCoords, bIsValidTriangle, UV);
-			
+								DynamicMesh, 0, NearestResult.TriangleID, NearestResult.BaryCoords, bIsValidTriangle,
+								UV);
+
 							// 배열에 U, V 값 기록 (1차원 인덱스로 변환)
 							int32 Index = X + (Y * Resolution) + (Z * Resolution * Resolution);
 							VoxelData[Index] = FFloat16Color(FLinearColor(UV.X, UV.Y, 0.0f, 1.0f));
@@ -142,16 +290,17 @@ void ADataSetActor::BakeDataSet() const
 				1,
 				TSF_RGBA16F,
 				(const uint8*)VoxelData.GetData());
-			
+
 			UVVolumeTextures[i]->SRGB = false;
 			UVVolumeTextures[i]->MipGenSettings = TMGS_NoMipmaps;
 			UVVolumeTextures[i]->CompressionNone = true;
 			UVVolumeTextures[i]->Filter = TF_Trilinear;
 			UVVolumeTextures[i]->CompressionSettings = TC_Default;
-#endif	
+			UVVolumeTextures[i]->NeverStream = true;
+#endif
 			UVVolumeTextures[i]->UpdateResource();
 		}
-
-		MorphingMeshData->UpdateBox();
+		
+		CreateBoneIndexTexture();
 	}
 }

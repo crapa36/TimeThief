@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "LiquidMeshComponent.h"
 #include "RenderResource.h"
 #include "RHI.h"
 /**
@@ -35,7 +36,9 @@ public:
 	const FBox& InBound,
 	const FVector3f& Alpha,
 	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
-	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps);
+	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps,
+	TObjectPtr<UVolumeTexture> BoneIndicesTexture,
+	const TArray<FMatrix44f>& SkinMatrices);
 	
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;
 	virtual void ReleaseRHI() override;

@@ -31,6 +31,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	virtual void OnRegister() override;
+	
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
@@ -46,4 +47,6 @@ public:
 	FVector3f GetAlpha() const;
 	TArray<TObjectPtr<UVolumeTexture>> GetDensityTextures() const;
 	TArray<TObjectPtr<UVolumeTexture>> GetUVMaps() const;
+	TObjectPtr<UVolumeTexture> GetBoneIndicesTexture() const;
+	TArray<FMatrix44f> GetBoneMatrices() const;
 };

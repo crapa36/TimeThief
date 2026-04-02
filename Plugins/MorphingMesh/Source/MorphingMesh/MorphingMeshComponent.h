@@ -24,17 +24,21 @@ class MORPHINGMESH_API UMorphingMeshComponent : public USceneComponent
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
+	TObjectPtr<USkeletalMeshComponent> BaseSkeletalMeshComponent;
+	
+	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<UMorphingMeshData> MorphingMeshData;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<UStaticMeshComponent> BaseMeshComponent;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<ULiquidMeshComponent> LiquidMeshComponent;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<UMaterialInterface> LiquidMaterial;
+	
 public:
 	// Sets default values for this component's properties
 	UMorphingMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -49,18 +53,27 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
+	int GetActiveSkeletalIndex() const;
+	
 	UFUNCTION(BlueprintCallable)
 	void SetType(EMorphTargetType NewType);
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings", meta=(ClampMin="0.1", ClampMax="1.0", UIMin="0.1", UIMax="1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings")
 	float MaxMorphingTime{0.5f};
 	
 	float MorphingTime{MaxMorphingTime};
 	float ElapsedTime{0.0f};
 	
-	FVector3f PrevAlpha{0.0f, 0.0f, 0.0f};
-	FVector3f CurrAlpha{0.0f, 0.0f, 0.0f};
-	FVector3f DestAlpha{0.0f, 0.0f, 0.0f};
+	FVector3f PrevAlpha{0.0f, 1.0f, 0.0f};
+	FVector3f CurrAlpha{0.0f, 1.0f, 0.0f};
+	FVector3f DestAlpha{0.0f, 1.0f, 0.0f};
 	
-	EMorphTargetType MeshType{EMorphTargetType::None};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings")
+	EMorphTargetType MeshType{EMorphTargetType::A};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings")
+	bool bDebug = false;
+	
+	bool bIsSkeletalMesh{false};
+	bool bIsValid{false};
 };

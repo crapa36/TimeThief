@@ -5,9 +5,9 @@ cbuffer Constants
 	float3 BoxMin;
 	uint NumVoxels;
 	float3 VoxelSize;
-	float MC_Padding0;
+	uint bApplySkin;
 	float3 Alpha;
-	float MC_Padding1;
+	float MC_Padding;
 }
 
 // 개별 텍스처로 선언 (D3D12 SM6 호환)

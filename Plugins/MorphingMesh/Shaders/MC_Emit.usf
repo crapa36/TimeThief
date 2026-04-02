@@ -18,6 +18,9 @@ Texture3D UVMap2;
 SamplerState UVMapSampler;
 RWStructuredBuffer<float2> UVBuffer;
 
+Texture3D<float> BoneIndicesTexture;
+SamplerState BoneIndicesSampler;
+RWStructuredBuffer<uint> BoneIndicesBuffer;
 
 // edge endpoints corner indices (0..7)
 static const uint2 EdgeCorner[12] =
@@ -54,7 +57,7 @@ float3 ComputeNormalFromVerts(float3 v0, float3 v1, float3 v2)
 }
 
 [numthreads(256,1,1)]
-void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
+void MainCS(uint3 DTid : SV_DispatchThreadID)
 {
 	uint vid = DTid.x;
 	if (vid >= NumVoxels) return;
@@ -76,7 +79,7 @@ void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
 	uint edgeMask = MC_EdgeTable[cubeIndex];
 	if (edgeMask == 0) return;
 
-	uint3 cellSize = uint3(GridSize.x - 1, GridSize.y - 1, GridSize.z - 1);
+	uint3 cellSize = uint3(GridSize.x, GridSize.y, GridSize.z);
 
 	uint x, y, z;
 	VoxelCoord(vid, cellSize, x, y, z);
@@ -85,22 +88,14 @@ void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
 	float3 p[8];
 	float d[8];
 
-	p[0] = float3(x, y, z);
-	d[0] = SampleDensity(int4(x, y, z, 0));
-	p[1] = float3(x + 1, y, z);
-	d[1] = SampleDensity(int4(x + 1, y, z, 0));
-	p[2] = float3(x + 1, y + 1, z);
-	d[2] = SampleDensity(int4(x + 1, y + 1, z, 0));
-	p[3] = float3(x, y + 1, z);
-	d[3] = SampleDensity(int4(x, y + 1, z, 0));
-	p[4] = float3(x, y, z + 1);
-	d[4] = SampleDensity(int4(x, y, z + 1, 0));
-	p[5] = float3(x + 1, y, z + 1);
-	d[5] = SampleDensity(int4(x + 1, y, z + 1, 0));
-	p[6] = float3(x + 1, y + 1, z + 1);
-	d[6] = SampleDensity(int4(x + 1, y + 1, z + 1, 0));
-	p[7] = float3(x, y + 1, z + 1);
-	d[7] = SampleDensity(int4(x, y + 1, z + 1, 0));
+	p[0] = float3(x, y, z); d[0] = SampleDensity(int4(x, y, z, 0)); 
+	p[1] = float3(x + 1, y, z); d[1] = SampleDensity(int4(x + 1, y, z, 0));
+	p[2] = float3(x + 1, y + 1, z); d[2] = SampleDensity(int4(x + 1, y + 1, z, 0));
+	p[3] = float3(x, y + 1, z); d[3] = SampleDensity(int4(x, y + 1, z, 0));
+	p[4] = float3(x, y, z + 1); d[4] = SampleDensity(int4(x, y, z + 1, 0));
+	p[5] = float3(x + 1, y, z + 1); d[5] = SampleDensity(int4(x + 1, y, z + 1, 0));
+	p[6] = float3(x + 1, y + 1, z + 1); d[6] = SampleDensity(int4(x + 1, y + 1, z + 1, 0));
+	p[7] = float3(x, y + 1, z + 1); d[7] = SampleDensity(int4(x, y + 1, z + 1, 0));
 
 	// interpolated vertices on edges (0..11)
 	float3 vertList[12];
@@ -138,23 +133,21 @@ void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
 		PositionBuffer[vbase + 1] = BoxMin + v1 * VoxelSize;
 		PositionBuffer[vbase + 2] = BoxMin + v2 * VoxelSize;
 
-		float3 GridDenom = float3(GridSize - 1);
+		float3 uvw0 = saturate(v0 / (GridSize));
+		float3 uvw1 = saturate(v1 / (GridSize));
+		float3 uvw2 = saturate(v2 / (GridSize));
 
-		float3 uvw0 = saturate(v0 / GridDenom);
-		float3 uvw1 = saturate(v1 / GridDenom);
-		float3 uvw2 = saturate(v2 / GridDenom);
-
-		// i = 0
+		// vertex 0
 		UVBuffer[(vbase + 0) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw0).rg;
 		UVBuffer[(vbase + 0) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw0).rg;
 		UVBuffer[(vbase + 0) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw0).rg;
 		
-		// i = 1
+		// vertex 1
 		UVBuffer[(vbase + 1) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw1).rg;
 		UVBuffer[(vbase + 1) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw1).rg;
 		UVBuffer[(vbase + 1) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw1).rg;
 
-		// i = 2
+		// vertex 2
 		UVBuffer[(vbase + 2) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw2).rg;
 		UVBuffer[(vbase + 2) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw2).rg;
 		UVBuffer[(vbase + 2) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw2).rg;
@@ -167,6 +160,13 @@ void MainCS(uint3 DTid : SV_DispatchThreadID, uint3 Gid : SV_GroupID)
 			uint NBase = (vbase + i) * 2;
 			TangentsBuffer[NBase] = normalize(v1 - v0);
 			TangentsBuffer[NBase + 1] = n;
+		}
+		
+		if (bApplySkin == 1)
+		{
+			BoneIndicesBuffer[vbase + 0] = uint(round(BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw0, 0).r * 255.0f));
+			BoneIndicesBuffer[vbase + 1] = uint(round(BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw1, 0).r * 255.0f));
+			BoneIndicesBuffer[vbase + 2] = uint(round(BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw2, 0).r * 255.0f));
 		}
 	}
 }

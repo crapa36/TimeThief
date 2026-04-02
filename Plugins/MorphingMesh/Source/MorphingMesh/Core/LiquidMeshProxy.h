@@ -3,6 +3,7 @@
 #pragma once
 
 #include "PrimitiveSceneProxy.h"
+#include "LiquidMeshComponent.h"
 #include "MarchingCubesRenderResource.h"
 #include <mutex>
 
@@ -17,7 +18,10 @@ class MORPHINGMESH_API FLiquidMeshProxy : public FPrimitiveSceneProxy
 	FVector3f CachedAlpha;
 	TArray<TObjectPtr<UVolumeTexture>> CachedDensityTextures;
 	TArray<TObjectPtr<UVolumeTexture>> CachedUVMaps;
+	TObjectPtr<UVolumeTexture> CachedBoneIndicesTexture;
+	TArray<FMatrix44f> CachedBoneMatrices;
 	bool bRenderingEnable = true;
+	
 public:
 	FMaterialRelevance MaterialRelevance;
 	FMaterialRenderProxy* MaterialRenderProxy = nullptr;

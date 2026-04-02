@@ -28,7 +28,7 @@ void MainCS(uint3 DTid : SV_DispatchThreadID)
     uint vid = DTid.x;
     if (vid >= NumVoxels) return;
 
-    uint3 cellSize = uint3(GridSize.x - 1, GridSize.y - 1, GridSize.z - 1);
+    uint3 cellSize = uint3(GridSize.x, GridSize.y, GridSize.z);
 
     uint x,y,z;
     VoxelCoord(vid, cellSize, x,y,z);

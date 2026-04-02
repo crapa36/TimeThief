@@ -40,6 +40,7 @@ class MORPHINGMESH_API UMorphingMeshData : public UDataAsset
 	
 	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
 	TArray<TObjectPtr<UVolumeTexture>> UVVolumeTextures;
+	
 public:
 	UMorphingMeshData();
 	
@@ -51,4 +52,14 @@ public:
 	
 	void UpdateBox();
 	bool IsValid() const;
+	bool IsSkeletalValid() const;
+	
+	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
+	TArray<TObjectPtr<USkeletalMesh> >SkeletalMeshes;
+	
+	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
+	TArray<TObjectPtr<UVolumeTexture>> BoneIndexTextures;
+	
+	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
+	TArray<TSubclassOf<UAnimInstance>> AnimInstances;
 };

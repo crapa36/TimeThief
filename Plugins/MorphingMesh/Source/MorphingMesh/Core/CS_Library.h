@@ -14,9 +14,9 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FConstBuffer,)
 	SHADER_PARAMETER(float3, BoxMin)
 	SHADER_PARAMETER(uint, NumVoxels)
 	SHADER_PARAMETER(float3, VoxelSize)
-	SHADER_PARAMETER(float, MC_Padding0)
+	SHADER_PARAMETER(uint, bApplySkin)
 	SHADER_PARAMETER(float3, Alpha)
-	SHADER_PARAMETER(float, MC_Padding1)
+	SHADER_PARAMETER(float, MC_Padding)
 END_UNIFORM_BUFFER_STRUCT()
 
 
@@ -74,5 +74,24 @@ public:
 		SHADER_PARAMETER_TEXTURE(Texture3D, UVMap2)
 		SHADER_PARAMETER_SAMPLER(SamplerState, UVMapSampler)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float2>, UVBuffer)
+		SHADER_PARAMETER_TEXTURE(Texture3D<float>, BoneIndicesTexture)
+		SHADER_PARAMETER_SAMPLER(SamplerState, BoneIndicesSampler)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<uint>, BoneIndicesBuffer)
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FSkin: public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FSkin);
+	SHADER_USE_PARAMETER_STRUCT(FSkin, FGlobalShader);
+	
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, PositionBuffer)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float3>, TangentsBuffer)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4x4>, BoneMatrices)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, BoneIndicesBuffer)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, IndirectArgsBuffer)
+		SHADER_PARAMETER(uint, NumMatrix)
 	END_SHADER_PARAMETER_STRUCT()
 };

@@ -40,7 +40,9 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	const FBox& InBound,
 	const FVector3f& Alpha,
 	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
-	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps)
+	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps,
+	TObjectPtr<UVolumeTexture> BoneIndicesTexture,
+	const TArray<FMatrix44f>& SkinMatrices)
 {
 	using namespace UE::HLSL;
 	
@@ -70,6 +72,7 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	ConstBufferData->NumVoxels = NumVoxels;
 	ConstBufferData->VoxelSize = float3(InBound.GetSize()) / float3(VolumeTextures[0]->GetSizeX() - 1) ;
 	ConstBufferData->Alpha = float3(Alpha);
+	ConstBufferData->bApplySkin = BoneIndicesTexture ? 1 : 0;
 	TUniformBufferRef<FConstBuffer> ConstBufferRDG = TUniformBufferRef<FConstBuffer>::CreateUniformBufferImmediate(*ConstBufferData, UniformBuffer_SingleFrame);
 	int GroupCount = NumVoxels / 256;
 
@@ -145,8 +148,14 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	EmitParams->UVMap0 = UVMaps[0]->GetResource()->GetTexture3DRHI();
 	EmitParams->UVMap1 = UVMaps[1]->GetResource()->GetTexture3DRHI();
 	EmitParams->UVMap2 = UVMaps[2]->GetResource()->GetTexture3DRHI();
-	EmitParams->UVMapSampler = TStaticSamplerState<SF_Bilinear>::GetRHI();
+	EmitParams->UVMapSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
 	EmitParams->UVBuffer = GraphBuilder.CreateUAV(UVRDG);
+	EmitParams->BoneIndicesSampler = TStaticSamplerState<>::GetRHI();
+	EmitParams->BoneIndicesTexture = BoneIndicesTexture ? BoneIndicesTexture->GetResource()->GetTexture3DRHI() : nullptr;
+	FRDGBufferRef BoneIndicesBuffer = GraphBuilder.CreateBuffer(
+	FRDGBufferDesc::CreateStructuredDesc(sizeof(uint), NumVertex),
+	TEXT("BoneIndicesBuffer"));
+	EmitParams->BoneIndicesBuffer = GraphBuilder.CreateUAV(BoneIndicesBuffer);
 	
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
@@ -155,6 +164,37 @@ void FMarchingCubesRenderResource::RunComputeShader(
 		EmitShader,
 		EmitParams,
 		FIntVector(GroupCount, 1, 1));
+	
+	if (!SkinMatrices.IsEmpty())
+	{
+		FRDGBufferRef BoneMatrixRDG = GraphBuilder.CreateBuffer(
+			FRDGBufferDesc::CreateStructuredDesc(sizeof(FMatrix44f), SkinMatrices.Num()),
+			TEXT("BoneMatrixBuffer"));
+		
+		GraphBuilder.QueueBufferUpload(
+		BoneMatrixRDG,
+		SkinMatrices.GetData(),
+		sizeof(FMatrix44f) * SkinMatrices.Num()
+		);
+		
+		TShaderMapRef<FSkin> SkinShader(GetGlobalShaderMap(GetFeatureLevel()));
+		FSkin::FParameters* SkinParams = GraphBuilder.AllocParameters<FSkin::FParameters>();
+		SkinParams->PositionBuffer = GraphBuilder.CreateUAV(PositionRDG);
+		SkinParams->TangentsBuffer = GraphBuilder.CreateUAV(TangentsRDG);
+		SkinParams->BoneMatrices = GraphBuilder.CreateSRV(BoneMatrixRDG);
+		SkinParams->BoneIndicesBuffer = GraphBuilder.CreateSRV(BoneIndicesBuffer);
+		SkinParams->IndirectArgsBuffer = GraphBuilder.CreateSRV(IndirectArgsRDG);
+		SkinParams->NumMatrix = SkinMatrices.Num();
+		const int32 SkinGroupCount = FMath::DivideAndRoundUp(NumVertex, 256);
+		
+		FComputeShaderUtils::AddPass(
+			GraphBuilder,
+			RDG_EVENT_NAME("Skin"),
+			ERDGPassFlags::Compute,
+			SkinShader,
+			SkinParams,
+			FIntVector(SkinGroupCount, 1, 1));
+	}
 	
 	GraphBuilder.UseExternalAccessMode(PositionRDG, ERHIAccess::VertexOrIndexBuffer);
 	GraphBuilder.UseExternalAccessMode(TangentsRDG, ERHIAccess::VertexOrIndexBuffer);
