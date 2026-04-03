@@ -35,4 +35,7 @@ public:
 	
 	UFUNCTION(CallInEditor)
 	void BakeDataSet() const;
+	
+	UPROPERTY(EditAnywhere, Category="DataSet | Settings")
+	TArray<FString> ExcludedBoneKeywords;
 };
