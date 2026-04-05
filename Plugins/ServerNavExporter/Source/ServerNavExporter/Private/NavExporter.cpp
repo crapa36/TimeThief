@@ -7,6 +7,10 @@
 #include "NavigationSystem.h"
 #include "Navigation/NavLinkProxy.h"
 #include "NavLinkCustomComponent.h"
+#include "NavMesh/RecastNavMesh.h"
+#include "AI/Navigation/NavAgentInterface.h"
+#include "NavigationPath.h"
+#include "NavAreas/NavArea.h"
 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -50,12 +54,36 @@ bool FNavExporter::ExportWorld(UWorld* World)
     ExportData.Meta.MapName = World->GetMapName();
 
     UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
+    ANavigationData* NavData = nullptr;
+    ARecastNavMesh* RecastNavMesh = nullptr;
+
     if (NavSys)
     {
-        if (ANavigationData* NavData = NavSys->GetDefaultNavDataInstance())
+        NavData = NavSys->GetDefaultNavDataInstance();
+        if (NavData)
         {
             ExportData.Meta.NavDataClassName = NavData->GetClass()->GetName();
+            RecastNavMesh = Cast<ARecastNavMesh>(NavData);
         }
+    }
+
+    if (RecastNavMesh)
+    {
+        const FNavDataConfig& Config = RecastNavMesh->GetConfig();
+
+        ExportData.Meta.AgentRadius = Config.AgentRadius;
+        ExportData.Meta.AgentHeight = Config.AgentHeight;
+        ExportData.Meta.AgentStepHeight = Config.AgentStepHeight;
+        // ExportData.Meta.AgentMaxSlope = Config.AgentSlope;
+        ExportData.Meta.AgentMaxSlope = 0.0f;
+
+        ExportData.Meta.CellSize = RecastNavMesh->GetCellSize(ENavigationDataResolution::Default);
+        ExportData.Meta.CellHeight = RecastNavMesh->GetCellHeight(ENavigationDataResolution::Default);
+        ExportData.Meta.TileSizeUU = RecastNavMesh->GetTileSizeUU();
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[ServerNavExporter] Default NavData is not ARecastNavMesh."));
     }
 
     for (TActorIterator<ANavLinkProxy> It(World); It; ++It)
@@ -66,12 +94,6 @@ bool FNavExporter::ExportWorld(UWorld* World)
             continue;
         }
 
-        // PointLinks의 첫 번째 Simple Link만 우선 export
-        if (LinkProxy->PointLinks.Num() <= 0)
-        {
-            continue;
-        }
-        
         for (const FNavigationLink& Link : LinkProxy->PointLinks)
         {
             FExportedNavLink OutLink;
@@ -82,6 +104,28 @@ bool FNavExporter::ExportWorld(UWorld* World)
             OutLink.bBidirectional = (Link.Direction == ENavLinkDirection::BothWays);
             OutLink.bSmartLinkIsRelevant = LinkProxy->bSmartLinkIsRelevant;
             OutLink.bSmartLinkEnabled = LinkProxy->IsSmartLinkEnabled();
+
+            if (NavSys)
+            {
+                FNavLocation ProjectedStart;
+                FNavLocation ProjectedEnd;
+
+                OutLink.bStartProjected = NavSys->ProjectPointToNavigation(
+                    OutLink.Start, ProjectedStart, FVector(50.f, 50.f, 200.f), NavData);
+
+                OutLink.bEndProjected = NavSys->ProjectPointToNavigation(
+                    OutLink.End, ProjectedEnd, FVector(50.f, 50.f, 200.f), NavData);
+
+                if (OutLink.bStartProjected)
+                {
+                    OutLink.ProjectedStart = ProjectedStart.Location;
+                }
+
+                if (OutLink.bEndProjected)
+                {
+                    OutLink.ProjectedEnd = ProjectedEnd.Location;
+                }
+            }
 
             ExportData.Links.Add(MoveTemp(OutLink));
         }
@@ -105,6 +149,28 @@ bool FNavExporter::ExportWorld(UWorld* World)
                     OutLink.bSmartLinkIsRelevant = true;
                     OutLink.bSmartLinkEnabled = true;
 
+                    if (NavSys)
+                    {
+                        FNavLocation ProjectedStart;
+                        FNavLocation ProjectedEnd;
+
+                        OutLink.bStartProjected = NavSys->ProjectPointToNavigation(
+                            OutLink.Start, ProjectedStart, FVector(50.f, 50.f, 200.f), NavData);
+
+                        OutLink.bEndProjected = NavSys->ProjectPointToNavigation(
+                            OutLink.End, ProjectedEnd, FVector(50.f, 50.f, 200.f), NavData);
+
+                        if (OutLink.bStartProjected)
+                        {
+                            OutLink.ProjectedStart = ProjectedStart.Location;
+                        }
+
+                        if (OutLink.bEndProjected)
+                        {
+                            OutLink.ProjectedEnd = ProjectedEnd.Location;
+                        }
+                    }
+
                     ExportData.Links.Add(MoveTemp(OutLink));
                 }
             }
@@ -114,10 +180,21 @@ bool FNavExporter::ExportWorld(UWorld* World)
     TSharedRef<FJsonObject> RootObject = MakeShared<FJsonObject>();
 
     {
-        TSharedRef<FJsonObject> MetaObject = MakeShared<FJsonObject>();
-        MetaObject->SetStringField(TEXT("map_name"), ExportData.Meta.MapName);
-        MetaObject->SetStringField(TEXT("nav_data_class"), ExportData.Meta.NavDataClassName);
-        RootObject->SetObjectField(TEXT("meta"), MetaObject);
+	    TSharedRef<FJsonObject> MetaObject = MakeShared<FJsonObject>();
+	    MetaObject->SetStringField(TEXT("map_name"), ExportData.Meta.MapName);
+	    MetaObject->SetStringField(TEXT("nav_data_class"), ExportData.Meta.NavDataClassName);
+	    MetaObject->SetStringField(TEXT("coordinate_system"), ExportData.Meta.CoordinateSystem);
+
+	    MetaObject->SetNumberField(TEXT("agent_radius"), ExportData.Meta.AgentRadius);
+	    MetaObject->SetNumberField(TEXT("agent_height"), ExportData.Meta.AgentHeight);
+	    MetaObject->SetNumberField(TEXT("agent_step_height"), ExportData.Meta.AgentStepHeight);
+	    MetaObject->SetNumberField(TEXT("agent_max_slope"), ExportData.Meta.AgentMaxSlope);
+
+	    MetaObject->SetNumberField(TEXT("cell_size"), ExportData.Meta.CellSize);
+	    MetaObject->SetNumberField(TEXT("cell_height"), ExportData.Meta.CellHeight);
+	    MetaObject->SetNumberField(TEXT("tile_size_uu"), ExportData.Meta.TileSizeUU);
+
+	    RootObject->SetObjectField(TEXT("meta"), MetaObject);
     }
 
     {
@@ -148,6 +225,25 @@ bool FNavExporter::ExportWorld(UWorld* World)
             LinkObject->SetBoolField(TEXT("bidirectional"), Link.bBidirectional);
             LinkObject->SetBoolField(TEXT("smart_link_relevant"), Link.bSmartLinkIsRelevant);
             LinkObject->SetBoolField(TEXT("smart_link_enabled"), Link.bSmartLinkEnabled);
+            
+            LinkObject->SetBoolField(TEXT("start_projected"), Link.bStartProjected);
+            LinkObject->SetBoolField(TEXT("end_projected"), Link.bEndProjected);
+
+            {
+                TArray<TSharedPtr<FJsonValue>> ProjectedStartArray;
+                ProjectedStartArray.Add(MakeShared<FJsonValueNumber>(Link.ProjectedStart.X));
+                ProjectedStartArray.Add(MakeShared<FJsonValueNumber>(Link.ProjectedStart.Y));
+                ProjectedStartArray.Add(MakeShared<FJsonValueNumber>(Link.ProjectedStart.Z));
+                LinkObject->SetArrayField(TEXT("projected_start"), ProjectedStartArray);
+            }
+
+            {
+                TArray<TSharedPtr<FJsonValue>> ProjectedEndArray;
+                ProjectedEndArray.Add(MakeShared<FJsonValueNumber>(Link.ProjectedEnd.X));
+                ProjectedEndArray.Add(MakeShared<FJsonValueNumber>(Link.ProjectedEnd.Y));
+                ProjectedEndArray.Add(MakeShared<FJsonValueNumber>(Link.ProjectedEnd.Z));
+                LinkObject->SetArrayField(TEXT("projected_end"), ProjectedEndArray);
+            }
 
             LinkArray.Add(MakeShared<FJsonValueObject>(LinkObject));
         }
