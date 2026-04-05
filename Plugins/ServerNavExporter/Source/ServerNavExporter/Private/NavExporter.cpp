@@ -8,9 +8,11 @@
 #include "Navigation/NavLinkProxy.h"
 #include "NavLinkCustomComponent.h"
 #include "NavMesh/RecastNavMesh.h"
+#include "NavMesh/RecastHelpers.h"
 #include "AI/Navigation/NavAgentInterface.h"
 #include "NavigationPath.h"
 #include "NavAreas/NavArea.h"
+#include "Detour/DetourNavMesh.h"
 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -69,6 +71,61 @@ bool FNavExporter::ExportWorld(UWorld* World)
 
     if (RecastNavMesh)
     {
+        const int32 TileCount = RecastNavMesh->GetNavMeshTilesCount();
+        ExportData.Meta.TileCount = TileCount;
+        
+        const dtNavMesh* DetourNavMesh = RecastNavMesh->GetRecastMesh();
+        if (!DetourNavMesh)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[ServerNavExporter] DetourNavMesh is null."));
+            return false;
+        }
+        
+        for (int32 TileIndex = 0; TileIndex < TileCount; ++TileIndex)
+        {
+            const dtMeshTile* Tile = DetourNavMesh->getTile(TileIndex);
+            if (!Tile || !Tile->header)
+            {
+                continue;
+            }
+            
+            FBox TileBounds = Recast2UnrealBox(Tile->header->bmin, Tile->header->bmax);
+            if (!TileBounds.IsValid)
+            {
+                continue;
+            }
+            
+            FExportedNavTile OutTile;
+            OutTile.TileIndex = TileIndex;
+            OutTile.MinBound = TileBounds.Min;
+            OutTile.MaxBound = TileBounds.Max;
+            
+            for (int32 PolyIndex = 0; PolyIndex < Tile->header->polyCount; ++PolyIndex)
+            {
+                const dtPoly* Poly = &Tile->polys[PolyIndex];
+
+                if (!Poly)
+                    continue;
+
+                FExportedNavPoly OutPoly;
+                OutPoly.PolyId = PolyIndex;
+
+                for (int32 v = 0; v < Poly->vertCount; ++v)
+                {
+                    int32 VertIndex = Poly->verts[v];
+                    const dtReal* V = &Tile->verts[VertIndex * 3];
+
+                    FVector UnrealPos = Recast2UnrealPoint(V);
+
+                    OutPoly.Vertices.Add(UnrealPos);
+                }
+
+                OutTile.Polys.Add(MoveTemp(OutPoly));
+            }
+            
+            ExportData.Tiles.Add(MoveTemp(OutTile));
+        }
+        
         const FNavDataConfig& Config = RecastNavMesh->GetConfig();
 
         ExportData.Meta.AgentRadius = Config.AgentRadius;
@@ -193,6 +250,8 @@ bool FNavExporter::ExportWorld(UWorld* World)
 	    MetaObject->SetNumberField(TEXT("cell_size"), ExportData.Meta.CellSize);
 	    MetaObject->SetNumberField(TEXT("cell_height"), ExportData.Meta.CellHeight);
 	    MetaObject->SetNumberField(TEXT("tile_size_uu"), ExportData.Meta.TileSizeUU);
+	    
+	    MetaObject->SetNumberField(TEXT("tile_count"), ExportData.Meta.TileCount);
 
 	    RootObject->SetObjectField(TEXT("meta"), MetaObject);
     }

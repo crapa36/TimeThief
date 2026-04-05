@@ -17,6 +17,25 @@ struct FExportedNavLink
 	FVector ProjectedEnd = FVector::ZeroVector;
 };
 
+struct FExportedNavPoly
+{
+	int32 PolyId = 0;
+	
+	TArray<FVector> Vertices;
+	
+	TArray<int32> Neighbors;
+};
+
+struct FExportedNavTile
+{
+	int32 TileIndex = 0;
+	
+	FVector MinBound = FVector::ZeroVector;
+	FVector MaxBound = FVector::ZeroVector;
+	
+	TArray<FExportedNavPoly> Polys;
+};
+
 struct FExportedNavMeta
 {
 	FString MapName;
@@ -32,10 +51,14 @@ struct FExportedNavMeta
 	float CellSize = 0.f;
 	float CellHeight = 0.f;
 	float TileSizeUU = 0.f;
+	
+	int32 TileCount = 0;
 };
 
 struct FExportedNavData
 {
 	FExportedNavMeta Meta;
+	
 	TArray<FExportedNavLink> Links;
+	TArray<FExportedNavTile> Tiles;
 };
