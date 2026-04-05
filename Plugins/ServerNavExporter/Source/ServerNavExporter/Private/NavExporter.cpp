@@ -309,6 +309,68 @@ bool FNavExporter::ExportWorld(UWorld* World)
 
         RootObject->SetArrayField(TEXT("links"), LinkArray);
     }
+    
+	{
+        TArray<TSharedPtr<FJsonValue>> TileArray;
+
+        for (const FExportedNavTile& Tile : ExportData.Tiles)
+        {
+            TSharedRef<FJsonObject> TileObject = MakeShared<FJsonObject>();
+
+            TileObject->SetNumberField(TEXT("tile_index"), Tile.TileIndex);
+
+            // Min Bound
+            {
+                TArray<TSharedPtr<FJsonValue>> MinArray;
+                MinArray.Add(MakeShared<FJsonValueNumber>(Tile.MinBound.X));
+                MinArray.Add(MakeShared<FJsonValueNumber>(Tile.MinBound.Y));
+                MinArray.Add(MakeShared<FJsonValueNumber>(Tile.MinBound.Z));
+                TileObject->SetArrayField(TEXT("min"), MinArray);
+            }
+
+            // Max Bound
+            {
+                TArray<TSharedPtr<FJsonValue>> MaxArray;
+                MaxArray.Add(MakeShared<FJsonValueNumber>(Tile.MaxBound.X));
+                MaxArray.Add(MakeShared<FJsonValueNumber>(Tile.MaxBound.Y));
+                MaxArray.Add(MakeShared<FJsonValueNumber>(Tile.MaxBound.Z));
+                TileObject->SetArrayField(TEXT("max"), MaxArray);
+            }
+
+            // Polys
+            TArray<TSharedPtr<FJsonValue>> PolyArray;
+
+            for (const FExportedNavPoly& Poly : Tile.Polys)
+            {
+                TSharedRef<FJsonObject> PolyObject = MakeShared<FJsonObject>();
+
+                PolyObject->SetNumberField(TEXT("poly_id"), Poly.PolyId);
+
+                // Vertices
+                TArray<TSharedPtr<FJsonValue>> VertArray;
+
+                for (const FVector& V : Poly.Vertices)
+                {
+                    TArray<TSharedPtr<FJsonValue>> Vec;
+                    Vec.Add(MakeShared<FJsonValueNumber>(V.X));
+                    Vec.Add(MakeShared<FJsonValueNumber>(V.Y));
+                    Vec.Add(MakeShared<FJsonValueNumber>(V.Z));
+
+                    VertArray.Add(MakeShared<FJsonValueArray>(Vec));
+                }
+
+                PolyObject->SetArrayField(TEXT("vertices"), VertArray);
+
+                PolyArray.Add(MakeShared<FJsonValueObject>(PolyObject));
+            }
+
+            TileObject->SetArrayField(TEXT("polys"), PolyArray);
+
+            TileArray.Add(MakeShared<FJsonValueObject>(TileObject));
+        }
+
+        RootObject->SetArrayField(TEXT("tiles"), TileArray);
+    }
 
     FString OutputString;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
