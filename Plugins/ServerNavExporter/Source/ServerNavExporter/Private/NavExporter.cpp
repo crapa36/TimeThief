@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "NavigationSystem.h"
 #include "Navigation/NavLinkProxy.h"
+#include "NavLinkCustomComponent.h"
 
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
@@ -70,18 +71,44 @@ bool FNavExporter::ExportWorld(UWorld* World)
         {
             continue;
         }
+        
+        for (const FNavigationLink& Link : LinkProxy->PointLinks)
+        {
+            FExportedNavLink OutLink;
 
-        const FNavigationLink& Link = LinkProxy->PointLinks[0];
+            OutLink.Name = LinkProxy->GetActorNameOrLabel();
+            OutLink.Start = LinkProxy->GetActorTransform().TransformPosition(Link.Left);
+            OutLink.End = LinkProxy->GetActorTransform().TransformPosition(Link.Right);
+            OutLink.bBidirectional = (Link.Direction == ENavLinkDirection::BothWays);
+            OutLink.bSmartLinkIsRelevant = LinkProxy->bSmartLinkIsRelevant;
+            OutLink.bSmartLinkEnabled = LinkProxy->IsSmartLinkEnabled();
 
-        FExportedNavLink OutLink;
-        OutLink.Name = LinkProxy->GetActorNameOrLabel();
-        OutLink.Start = LinkProxy->GetActorTransform().TransformPosition(Link.Left);
-        OutLink.End = LinkProxy->GetActorTransform().TransformPosition(Link.Right);
-        OutLink.bBidirectional = (Link.Direction == ENavLinkDirection::BothWays);
-        OutLink.bSmartLinkIsRelevant = LinkProxy->bSmartLinkIsRelevant;
-        OutLink.bSmartLinkEnabled = LinkProxy->IsSmartLinkEnabled();
+            ExportData.Links.Add(MoveTemp(OutLink));
+        }
+        
+        if (LinkProxy->bSmartLinkIsRelevant)
+        {
+            if (UNavLinkCustomComponent* SmartComp = LinkProxy->GetSmartLinkComp())
+            {
+                if (SmartComp->IsEnabled())
+                {
+                    FVector Start, End;
+                    ENavLinkDirection::Type Direction;
+                    
+                    SmartComp->GetLinkData(Start, End, Direction);
 
-        ExportData.Links.Add(MoveTemp(OutLink));
+                    FExportedNavLink OutLink;
+                    OutLink.Name = LinkProxy->GetActorNameOrLabel() + TEXT("_Smart");
+                    OutLink.Start = Start;
+                    OutLink.End = End;
+                    OutLink.bBidirectional = (Direction == ENavLinkDirection::BothWays);
+                    OutLink.bSmartLinkIsRelevant = true;
+                    OutLink.bSmartLinkEnabled = true;
+
+                    ExportData.Links.Add(MoveTemp(OutLink));
+                }
+            }
+        }
     }
 
     TSharedRef<FJsonObject> RootObject = MakeShared<FJsonObject>();
