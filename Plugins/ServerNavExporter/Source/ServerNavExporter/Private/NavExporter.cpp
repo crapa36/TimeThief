@@ -58,6 +58,7 @@ bool FNavExporter::ExportWorld(UWorld* World)
     UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
     ANavigationData* NavData = nullptr;
     ARecastNavMesh* RecastNavMesh = nullptr;
+    const dtNavMesh* DetourNavMesh = nullptr;
 
     if (NavSys)
     {
@@ -74,7 +75,7 @@ bool FNavExporter::ExportWorld(UWorld* World)
         const int32 TileCount = RecastNavMesh->GetNavMeshTilesCount();
         ExportData.Meta.TileCount = TileCount;
         
-        const dtNavMesh* DetourNavMesh = RecastNavMesh->GetRecastMesh();
+        DetourNavMesh = RecastNavMesh->GetRecastMesh();
         if (!DetourNavMesh)
         {
             UE_LOG(LogTemp, Error, TEXT("[ServerNavExporter] DetourNavMesh is null."));
@@ -84,6 +85,7 @@ bool FNavExporter::ExportWorld(UWorld* World)
         for (int32 TileIndex = 0; TileIndex < TileCount; ++TileIndex)
         {
             const dtMeshTile* Tile = DetourNavMesh->getTile(TileIndex);
+            
             if (!Tile || !Tile->header)
             {
                 continue;
@@ -396,8 +398,92 @@ bool FNavExporter::ExportWorld(UWorld* World)
 
     UE_LOG(LogTemp, Log, TEXT("[ServerNavExporter] Exported NavLinks: %d -> %s"),
         ExportData.Links.Num(), *FilePath);
+    
+    const FString BinaryPath = OutputDir / FString::Printf(TEXT("%s_NavMesh.bin"), *World->GetName());
+
+    if (!SaveBinary(BinaryPath, DetourNavMesh, ExportData))
+    {
+        UE_LOG(LogTemp, Error, TEXT("[ServerNavExporter] Failed to save binary NavMesh."));
+        return false;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("[ServerNavExporter] Exported NavMesh Binary -> %s"), *BinaryPath);
 
     return true;
+}
+
+bool FNavExporter::SaveBinary(const FString& FilePath, const dtNavMesh* DetourNavMesh,
+    const FExportedNavData& ExportData)
+{
+    if (!DetourNavMesh)
+    {
+        return false;
+    }
+    
+    const dtNavMeshParams* Params = DetourNavMesh->getParams();
+    if (!Params)
+    {
+        return false;
+    }
+    
+    TArray<uint8> Bytes;
+    
+    auto AppendBytes = [&Bytes](const void* Data, int64 Size)
+    {
+        const int32 OldSize = Bytes.Num();
+        Bytes.SetNumUninitialized(OldSize + static_cast<int32>(Size));
+        FMemory::Memcpy(Bytes.GetData() + OldSize, Data, Size);
+    };
+    
+    int32 ValidTileCount = 0;
+
+    for (int32 i = 0; i < DetourNavMesh->getMaxTiles(); ++i)
+    {
+        const dtMeshTile* Tile = DetourNavMesh->getTile(i);
+        if (Tile && Tile->header && Tile->data && Tile->dataSize > 0)
+        {
+            ++ValidTileCount;
+        }
+    }
+
+    FServerNavBinaryHeader Header;
+    Header.TileCount = ValidTileCount;
+    Header.OrigX = Params->orig[0];
+    Header.OrigY = Params->orig[1];
+    Header.OrigZ = Params->orig[2];
+    Header.TileWidth = Params->tileWidth;
+    Header.TileHeight = Params->tileHeight;
+    Header.MaxTiles = Params->maxTiles;
+    Header.MaxPolys = Params->maxPolys;
+    Header.AgentRadius = ExportData.Meta.AgentRadius;
+    Header.AgentHeight = ExportData.Meta.AgentHeight;
+    Header.AgentStepHeight = ExportData.Meta.AgentStepHeight;
+    Header.CellSize = ExportData.Meta.CellSize;
+    Header.CellHeight = ExportData.Meta.CellHeight;
+    Header.TileSizeUU = ExportData.Meta.TileSizeUU;
+    
+    AppendBytes(&Header, sizeof(Header));
+    
+    for (int32 TileIndex = 0; TileIndex < DetourNavMesh->getMaxTiles(); ++TileIndex)
+    {
+        const dtMeshTile* Tile = DetourNavMesh->getTile(TileIndex);
+        if (!Tile || !Tile->header || !Tile->data || Tile->dataSize <= 0)
+        {
+            continue;
+        }
+        
+        FServerNavTileHeader TileHeader;
+        
+        dtTileRef TileRef = DetourNavMesh->getTileRef(Tile);
+        
+        TileHeader.TileRef = static_cast<uint32>(TileRef);
+        TileHeader.TileDataSize = static_cast<uint32>(Tile->dataSize);
+        
+        AppendBytes(&TileHeader, sizeof(TileHeader));
+        AppendBytes(Tile->data, Tile->dataSize);
+    }
+    
+    return FFileHelper::SaveArrayToFile(Bytes, *FilePath);
 }
 
 #undef LOCTEXT_NAMESPACE
