@@ -336,6 +336,11 @@ void UNetworkMoveComponent::SnapToTarget()
 	
 	if (Character && Character->GetCharacterMovement())
 	{
+		if (RecentMovementMode != MOVE_None && Character->GetCharacterMovement()->MovementMode != RecentMovementMode)
+		{
+			Character->GetCharacterMovement()->SetMovementMode(RecentMovementMode);
+		}
+
 		Character->GetCharacterMovement()->Velocity = FVector::ZeroVector;
 		FTimeThiefMovementAccessor::SetAcceleration(Character->GetCharacterMovement(), FVector::ZeroVector);
 	}

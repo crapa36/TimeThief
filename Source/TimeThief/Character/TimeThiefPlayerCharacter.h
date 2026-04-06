@@ -35,6 +35,8 @@ public:
 	const UTimeThiefPawnData* GetPawnData() const { return PawnData; }
 	
 	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
+	virtual void OnJumped_Implementation() override;
+	virtual void Landed(const FHitResult& Hit) override;
 
 	virtual USkeletalMeshComponent* GetWeaponAttachMesh() const override;
 	virtual USkeletalMeshComponent* GetMontagePlaybackMesh() const override;
@@ -69,6 +71,8 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 	
 	virtual void ApplyPerspective() override;
+	virtual void SendJumpEventToServer();
+	virtual void SendJumpLandEventToServer();
 
 	void OnPawnDataSet();
 

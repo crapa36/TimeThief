@@ -36,6 +36,16 @@ void ATimeThiefNetworkCharacterBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+FRotator ATimeThiefNetworkCharacterBase::GetBaseAimRotation() const
+{
+	if (IsLocalPlayer())
+	{
+		return Super::GetBaseAimRotation();
+	}
+
+	return FRotator(CurrentNetworkPitch, GetNetworkYaw(), 0.0f);
+}
+
 // Called to bind functionality to input
 void ATimeThiefNetworkCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {

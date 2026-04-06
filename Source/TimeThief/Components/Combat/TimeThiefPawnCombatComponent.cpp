@@ -11,13 +11,14 @@
 #include "Network/State/CombatNotifyType.h"
 #include "Network/State/RemoteAttackNotify.h"
 #include "Network/NetworkCombatSyncComponent.h"
+#include "Network/MovableNetworkEntityInterface.h"
 #include "TimeThiefGameplayTags.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = true;
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UTimeThiefPawnCombatComponent::BeginPlay()
@@ -258,12 +259,31 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 	switch (AttackRequest.NotifyType)
 	{
 	case ECombatNotifyType::Aiming:
+		Remote_SyncAimLocation(AttackRequest.Origin, AttackRequest.Direction);
 		Remote_SyncAimingState(true);
 		break;
 	case ECombatNotifyType::Readying:
 		Remote_SyncAimingState(false);
 		break;
 	case ECombatNotifyType::Fire:
+		Remote_SyncAimLocation(AttackRequest.Origin, AttackRequest.Direction);
+		++RemoteFireNotifyCount;
+		if (AttackRequest.WeaponId != 0)
+		{
+			const FGameplayTag PreviousWeaponTag = CurrentEquippedWeaponTag;
+			const FGameplayTag DesiredWeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId);
+			if (DesiredWeaponTag.IsValid() && DesiredWeaponTag != CurrentEquippedWeaponTag)
+			{
+				++RemoteFireWeaponCorrectionCount;
+				UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest(Fire): correction=%d/%d from %s to %s (WeaponId=%u)"),
+					RemoteFireWeaponCorrectionCount,
+					RemoteFireNotifyCount,
+					*PreviousWeaponTag.ToString(),
+					*DesiredWeaponTag.ToString(),
+					AttackRequest.WeaponId);
+				EquipWeapon(DesiredWeaponTag);
+			}
+		}
 		Remote_SyncFireAction();
 		break;
 	case ECombatNotifyType::Reload:
@@ -284,6 +304,28 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 	}
 }
 
+
+void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction)
+{
+	if (!Direction.IsNearlyZero())
+	{
+		CachedRemoteAimDirection = Direction.GetSafeNormal();
+		CachedRemoteAimLocation = Origin + CachedRemoteAimDirection * 10000.0f;
+		return;
+	}
+
+	if (const ACharacter* OwningCharacter = GetPawn<ACharacter>())
+	{
+		const FVector FallbackDirection = OwningCharacter->GetBaseAimRotation().Vector().GetSafeNormal();
+		if (!FallbackDirection.IsNearlyZero())
+		{
+			CachedRemoteAimDirection = FallbackDirection;
+			const FVector FallbackOrigin = Origin.IsNearlyZero() ? OwningCharacter->GetActorLocation() : Origin;
+			CachedRemoteAimLocation = FallbackOrigin + CachedRemoteAimDirection * 10000.0f;
+		}
+	}
+}
+
 void UTimeThiefPawnCombatComponent::Remote_SyncAimingState(bool bNewAiming)
 {
 	bIsAiming = bNewAiming;
@@ -291,18 +333,56 @@ void UTimeThiefPawnCombatComponent::Remote_SyncAimingState(bool bNewAiming)
 
 void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 {
+	if (bIsEquippingWeapon)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			TWeakObjectPtr<UTimeThiefPawnCombatComponent> WeakThis(this);
+			World->GetTimerManager().SetTimerForNextTick([WeakThis]()
+			{
+				if (!WeakThis.IsValid())
+				{
+					return;
+				}
+
+				WeakThis->Remote_SyncFireAction();
+			});
+		}
+		return;
+	}
+
+	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
+	{
+		FVector AimDirection = CachedRemoteAimDirection;
+		if (AimDirection.IsNearlyZero() && !CachedRemoteAimLocation.IsNearlyZero())
+		{
+			FVector BaseLocation = OwningCharacter->GetActorLocation();
+			if (MasterWeaponPtr)
+			{
+				BaseLocation = MasterWeaponPtr->GetActorLocation();
+			}
+
+			AimDirection = (CachedRemoteAimLocation - BaseLocation).GetSafeNormal();
+		}
+
+		if (!AimDirection.IsNearlyZero())
+		{
+			const FRotator AimRotation = AimDirection.Rotation();
+			OwningCharacter->SetActorRotation(FRotator(0.0f, AimRotation.Yaw, 0.0f));
+
+			if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
+			{
+				Movable->SetNetworkPitch(AimRotation.Pitch);
+			}
+		}
+	}
+
+	if (UTimeThiefWeaponComponentBase* CurrentWeapon = GetCharacterCurrentEquippedWeapon())
+	{
+		CurrentWeapon->ExecuteRemoteFireShot();
+	}
+
 	PlayFireMontage();
-}
-
-void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& NewAimLocation)
-{
-	RemoteTargetAimLocation = NewAimLocation;
-}
-
-void UTimeThiefPawnCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	TargetAimLocation = FMath::VInterpTo(TargetAimLocation, RemoteTargetAimLocation, DeltaTime, 15.f);
 }
 
 void UTimeThiefPawnCombatComponent::OnEquipAnimFinished() {}

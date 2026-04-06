@@ -18,6 +18,7 @@
 #include "TimeThiefPlayerState.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -184,6 +185,44 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+}
+
+void ATimeThiefPlayerCharacter::OnJumped_Implementation()
+{
+	Super::OnJumped_Implementation();
+	SendJumpEventToServer();
+}
+
+void ATimeThiefPlayerCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	SendJumpLandEventToServer();
+}
+
+void ATimeThiefPlayerCharacter::SendJumpEventToServer()
+{
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->SendJump();
+	}
+}
+
+void ATimeThiefPlayerCharacter::SendJumpLandEventToServer()
+{
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->SendJumpLand();
+	}
 }
 
 void ATimeThiefPlayerCharacter::PawnClientRestart()

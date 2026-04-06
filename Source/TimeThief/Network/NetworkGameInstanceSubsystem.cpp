@@ -15,6 +15,7 @@
 #include "TimeThiefNetworkSettings.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
@@ -121,6 +122,20 @@ void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
 	Movement->set_movement_mode(MoveData.MovementMode);
 	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Pkt);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendJump()
+{
+	se::game::C_JumpReq Request;
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendJumpLand()
+{
+	se::game::C_JumpLand Request;
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
 
@@ -561,10 +576,31 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleJump(const se::game::N_Jump& pkt)
 {
+	const uint32 EntityId = pkt.entity_id().value();
+	if (ACharacter* Character = Cast<ACharacter>(GetOrSpawnEntityActor(EntityId)))
+	{
+		if (UCharacterMovementComponent* CMC = Character->GetCharacterMovement())
+		{
+			CMC->SetMovementMode(MOVE_Falling);
+		}
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& pkt)
 {
+	const uint32 EntityId = pkt.entity_id().value();
+	if (ACharacter* Character = Cast<ACharacter>(GetOrSpawnEntityActor(EntityId)))
+	{
+		if (UCharacterMovementComponent* CMC = Character->GetCharacterMovement())
+		{
+			const FEntityRuntimeEntry* Entry = EntityEntries.Find(EntityId);
+			const EMovementMode DesiredMode = Entry
+				? Entry->State.MovementMode
+				: MOVE_Walking;
+
+			CMC->SetMovementMode(DesiredMode == MOVE_Falling ? MOVE_Walking : DesiredMode);
+		}
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& pkt)
@@ -589,11 +625,24 @@ void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& pkt)
 	}
 	
 	const uint32 EntityId = pkt.entity_id().value();
+	const FEntityRuntimeEntry* Entry = EntityEntries.Find(EntityId);
 	FRemoteAttackNotify Notify{};
 	Notify.AttackerEntityId = EntityId;
 	Notify.NotifyType = pkt.is_aiming()
 		? ECombatNotifyType::Aiming
 		: ECombatNotifyType::Readying;
+
+	if (Entry)
+	{
+		const FRotator AimRotation(Entry->State.Pitch, Entry->State.Yaw, 0.0f);
+		Notify.Direction = AimRotation.Vector().GetSafeNormal();
+		Notify.Origin = Entry->State.Position;
+	}
+	else
+	{
+		Notify.Direction = FVector::ZeroVector;
+		Notify.Origin = FVector::ZeroVector;
+	}
 	
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
@@ -777,6 +826,14 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 	// TODO: EntityState의 정보를 바탕으로 어떤 Actor 클래스를 스폰할지 결정하는 로직을 구현해야 한다
 	//		 어떤 ObjectType, TemplateId 여도 처리할 수 있도록 (조합가능한 기준)
 	if (!SpawnData) return nullptr;
+
+	if (EntityState.ObjectType == se::common::OBJ_PLAYER)
+	{
+		if (SpawnData->LocalPlayerClass)
+		{
+			return SpawnData->LocalPlayerClass;
+		}
+	}
 	
 	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
 	

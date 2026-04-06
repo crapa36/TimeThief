@@ -63,10 +63,8 @@ public:
 	virtual void Remote_AttackRequest(const FRemoteAttackNotify& AttackRequest);
 
 	virtual void Remote_SyncAimingState(bool bNewAiming);
+	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction);
 	virtual void Remote_SyncFireAction();
-	virtual void Remote_SyncAimLocation(const FVector& NewAimLocation);
-
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual void OnEquipAnimFinished();
 	virtual void OnUnequipAnimFinished();
@@ -97,10 +95,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	UAnimMontage* FireMontage;
 
-	FVector TargetAimLocation;
-	FVector RemoteTargetAimLocation;
-
 	FTimerHandle EquipTimerHandle;
+	FVector CachedRemoteAimLocation = FVector::ZeroVector;
+	FVector CachedRemoteAimDirection = FVector::ForwardVector;
+	int32 RemoteFireNotifyCount = 0;
+	int32 RemoteFireWeaponCorrectionCount = 0;
 
 private:
 	UPROPERTY(Transient)

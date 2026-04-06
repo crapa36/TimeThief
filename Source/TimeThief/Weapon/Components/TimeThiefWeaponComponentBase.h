@@ -108,6 +108,9 @@ protected:
 	FVector GetLocalAttackOrigin() const;
 	FVector GetLocalAttackDirection() const;
 
+public:
+	virtual void ExecuteRemoteFireShot();
+
 	void NotifyAmmoChanged();
 	FVector GetMuzzleLocation() const;
 

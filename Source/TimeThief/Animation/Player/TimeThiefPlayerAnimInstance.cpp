@@ -186,8 +186,15 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
 		return;
 	}
 
-	AimPitch = PlayerCharacter->GetNetworkPitch();
-	AimDirection = FRotator(AimPitch, PlayerCharacter->GetNetworkYaw(), 0.0f).Vector();
+	const FRotator BaseAimRotation = PlayerCharacter->GetBaseAimRotation();
+	AimPitch = FRotator::NormalizeAxis(BaseAimRotation.Pitch);
+
+	if (bIsAiming || bUseWeaponControlRigRotation) {
+		AimDirection = BaseAimRotation.Vector().GetSafeNormal();
+	} else {
+		const FVector FlatDirection = FVector(BaseAimRotation.Vector().X, BaseAimRotation.Vector().Y, 0.0f);
+		AimDirection = FlatDirection.GetSafeNormal();
+	}
 
 	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
 		WorldAimLocation = PlayerCombat->GetWorldAimLocation();

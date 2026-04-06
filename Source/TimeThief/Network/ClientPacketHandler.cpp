@@ -277,12 +277,42 @@ bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 
 bool Handle_N_Jump(PacketSessionRef& session, const se::game::N_Jump& pkt)
 {
-	return false;	
+	if (!session)
+		return false;
+
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+		return false;
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleJump(pkt);
+			return true;
+		}
+	}
+
+	return false;
 }
 	
 bool Handle_N_JumpLand(PacketSessionRef& session, const se::game::N_JumpLand& pkt)
 {
-	return false;	
+	if (!session)
+		return false;
+
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+		return false;
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleJumpLand(pkt);
+			return true;
+		}
+	}
+
+	return false;
 }
 	
 bool Handle_N_Crouch(PacketSessionRef& session, const se::game::N_Crouch& pkt)

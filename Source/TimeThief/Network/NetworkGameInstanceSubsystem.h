@@ -54,6 +54,8 @@ public:
 	
 public:
 	void SendMove(const FMoveSyncData& MoveData);
+	void SendJump();
+	void SendJumpLand();
 	
 private:
 	void ConnectToServer(const FString& IPAddress, int32 Port);

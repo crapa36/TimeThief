@@ -19,7 +19,9 @@ public:
 
 	void SetMaxHistorySeconds(double InMaxHistorySeconds);
 	void AddSample(double TimeSeconds, const FVector& Position, float YawDeg, const FVector& Velocity2D);
+	void ResetToSample(double TimeSeconds, const FVector& Position, float YawDeg, const FVector& Velocity2D);
 	bool SampleAt(double QueryTime, FVector& OutPos, float& OutYawDeg, FVector& OutVelocity2D) const;
+	bool GetLast(FRemoteNetSample& OutLast) const;
 	bool GetLastTwo(FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const;
 	bool GetLastThree(FRemoteNetSample& OutPrev2, FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const;
 
@@ -54,8 +56,23 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory")
 	int32 PredictionSamplesPerSecond = 10;
 
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
+	float HardSnapDistanceCm = 250.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
+	float SoftSnapDistanceCm = 90.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
+	float HardSnapYawDeg = 55.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
+	float SnapCooldownSeconds = 0.08f;
+
 private:
 	FRemoteTrajectoryHistory RemoteHistory;
 	double SimulatedTime = 0.0;
 	FVector LastSmoothedVelocity = FVector::ZeroVector;
+	double LastSnapTimeSeconds = -1000000.0;
+	int32 HardSnapCount = 0;
+	int32 SoftSnapCount = 0;
 };

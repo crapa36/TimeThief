@@ -93,6 +93,11 @@ bool UTimeThiefWeaponComponentBase::CanReload() const {
 
 void UTimeThiefWeaponComponentBase::ExecuteFireShot() {}
 
+void UTimeThiefWeaponComponentBase::ExecuteRemoteFireShot()
+{
+	ExecuteFireShot();
+}
+
 void UTimeThiefWeaponComponentBase::OnReloadStarted() {
 	if (ReloadAnimation) {
 		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()->GetOwner())) {

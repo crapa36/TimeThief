@@ -80,7 +80,16 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		}
 		else
 		{
+			const FGameplayTag PreviousWeaponTag = CurrentEquippedWeaponTag;
 			EquipWeapon(*WeaponTag);
+
+			if (CurrentEquippedWeaponTag.IsValid() && CurrentEquippedWeaponTag != PreviousWeaponTag)
+			{
+				FCombatAttackRequest Request{};
+				Request.NotifyType = ECombatNotifyType::WeaponChange;
+				Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(CurrentEquippedWeaponTag);
+				BroadcastCombatAttackRequest(Request);
+			}
 		}
 		return;
 	}
@@ -143,13 +152,6 @@ void UTimeThiefPlayerCombatComponent::OnEquipFinished()
 {
 	Super::OnEquipFinished();
 
-	if (CurrentEquippedWeaponTag.IsValid())
-	{
-		FCombatAttackRequest Request{};
-		Request.NotifyType = ECombatNotifyType::WeaponChange;
-		Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(CurrentEquippedWeaponTag);
-		BroadcastCombatAttackRequest(Request);
-	}
 
 	if (bIsFireInputHeld && MasterWeaponPtr)
 	{

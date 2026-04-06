@@ -19,4 +19,10 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	// TODO: ObjectType 만으로 분기할 수 있나..?
 	TMap<int32, TSubclassOf<AActor>> SpawnClassMap;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> LocalPlayerClass;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> RemotePlayerClass;
 };

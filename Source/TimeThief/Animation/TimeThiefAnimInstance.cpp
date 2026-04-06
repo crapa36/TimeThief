@@ -53,12 +53,15 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	VerticalVelocity = Velocity.Z;
 	GroundSpeed = Velocity.Size2D();
-	bHasVelocity = !FMath::IsNearlyZero(GroundSpeed);
+
+	const bool bIsRemoteCharacter = MovableNetworkInterface.GetInterface() && !CharacterOwner->IsLocallyControlled();
+	const float MoveSpeedThreshold = bIsRemoteCharacter ? 6.0f : 1.0f;
+	bHasVelocity = GroundSpeed > MoveSpeedThreshold;
 	
 	bIsFalling = CharacterMovement->IsFalling();
 	
 	const bool bHasAcceleration = !CharacterMovement->GetCurrentAcceleration().IsNearlyZero();
-	bShouldMove = (GroundSpeed > 0.01f) && bHasAcceleration;
+	bShouldMove = bIsRemoteCharacter ? bHasVelocity : ((GroundSpeed > 0.01f) && bHasAcceleration);
 	
 	bIsMoving = bHasVelocity && !bIsFalling;
 
