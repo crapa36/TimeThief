@@ -12,6 +12,8 @@ class USoundBase;
 class UStaticMesh;
 class UStaticMeshComponent;
 
+enum ECombatNotifyType : uint8;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChangedSignature, int32, int32);
 
 UCLASS(Blueprintable, ClassGroup = (TimeThief), meta = (BlueprintSpawnableComponent))
@@ -102,6 +104,9 @@ protected:
 	virtual void OnReloadStarted();
 	virtual void OnReloadFinished();
 	virtual void ApplyRecoilAndSpread();
+	void BroadcastCombatAttackRequest(ECombatNotifyType NotifyType) const;
+	FVector GetLocalAttackOrigin() const;
+	FVector GetLocalAttackDirection() const;
 
 	void NotifyAmmoChanged();
 	FVector GetMuzzleLocation() const;

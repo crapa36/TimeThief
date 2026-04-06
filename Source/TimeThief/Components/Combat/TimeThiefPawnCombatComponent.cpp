@@ -8,7 +8,10 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Network/State/CombatNotifyType.h"
+#include "Network/State/RemoteAttackNotify.h"
 #include "Network/NetworkCombatSyncComponent.h"
+#include "TimeThiefGameplayTags.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -24,14 +27,29 @@ void UTimeThiefPawnCombatComponent::BeginPlay()
 	
 	if (AActor* Owner = GetOwner())
 	{
-		if (auto NCSC = Owner->FindComponentByClass<UNetworkCombatSyncComponent>())
+		CachedCombatSyncComponent = Owner->FindComponentByClass<UNetworkCombatSyncComponent>();
+		if (CachedCombatSyncComponent)
 		{
-			NCSC->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
-			
-			// TODO: EndPlay나 다른 곳에서 바인딩 해제 할 것
+			CachedCombatSyncComponent->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
 		}
 	}
 	
+}
+
+void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EquipTimerHandle);
+	}
+
+	if (CachedCombatSyncComponent)
+	{
+		CachedCombatSyncComponent->OnRemoteAttackNotify.RemoveAll(this);
+		CachedCombatSyncComponent = nullptr;
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void UTimeThiefPawnCombatComponent::SpawnMasterWeapon()
@@ -169,6 +187,11 @@ void UTimeThiefPawnCombatComponent::AttachMasterWeaponToCharacter(FName SocketNa
 	MasterWeaponPtr->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
 }
 
+void UTimeThiefPawnCombatComponent::BroadcastCombatAttackRequest(const FCombatAttackRequest& AttackRequest)
+{
+	OnCombatAttackRequest_Delegate.Broadcast(AttackRequest);
+}
+
 void UTimeThiefPawnCombatComponent::PlayFireMontage()
 {
 	if (ATimeThiefCharacterBase* Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
@@ -232,8 +255,33 @@ void UTimeThiefPawnCombatComponent::RemoveCombatStateTag(FGameplayTag WeaponTag)
 
 void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNotify& AttackRequest)
 {
-	// TODO: AttackRequest에 맞는 상황에 맞게 멤버 설정 및 애니메이션 재생 될 수 있도록 작성
-	
+	switch (AttackRequest.NotifyType)
+	{
+	case ECombatNotifyType::Aiming:
+		Remote_SyncAimingState(true);
+		break;
+	case ECombatNotifyType::Readying:
+		Remote_SyncAimingState(false);
+		break;
+	case ECombatNotifyType::Fire:
+		Remote_SyncFireAction();
+		break;
+	case ECombatNotifyType::Reload:
+		UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest: Reload notify received."));
+		break;
+	case ECombatNotifyType::WeaponChange:
+		if (const FGameplayTag WeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId); WeaponTag.IsValid())
+		{
+			EquipWeapon(WeaponTag);
+		}
+		break;
+	case ECombatNotifyType::Throw:
+		UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest: Throw notify received."));
+		break;
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("Remote_AttackRequest: Unknown NotifyType=%d"), static_cast<int32>(AttackRequest.NotifyType));
+		break;
+	}
 }
 
 void UTimeThiefPawnCombatComponent::Remote_SyncAimingState(bool bNewAiming)

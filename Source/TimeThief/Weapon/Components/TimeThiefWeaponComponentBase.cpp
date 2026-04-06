@@ -1,12 +1,18 @@
 ﻿#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimSequenceBase.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerController.h"
+#include "Network/State/CombatAttackRequest.h"
+#include "Network/State/CombatNotifyType.h"
+#include "TimeThiefGameplayTags.h"
 
 UTimeThiefWeaponComponentBase::UTimeThiefWeaponComponentBase() {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -71,6 +77,7 @@ void UTimeThiefWeaponComponentBase::Reload() {
 	bIsReloading = true;
 	StopFiringLoop();
 	OnReloadStarted();
+	BroadcastCombatAttackRequest(ECombatNotifyType::Reload);
 	if (UWorld* World = GetWorld()) {
 		World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UTimeThiefWeaponComponentBase::FinishReload, ReloadTime, false);
 	}
@@ -123,6 +130,7 @@ void UTimeThiefWeaponComponentBase::HandleAutoFireShot() {
 	CurrentAmmo--;
 	NotifyAmmoChanged();
 	ExecuteFireShot();
+	BroadcastCombatAttackRequest(ECombatNotifyType::Fire);
 	ApplyRecoilAndSpread();
 	if (CurrentAmmo <= 0) {
 		StopFiringLoop();
@@ -149,6 +157,56 @@ void UTimeThiefWeaponComponentBase::FinishReload() {
 	NotifyAmmoChanged();
 	OnReloadFinished();
 	if (bWantsToFire) StartFire();
+}
+
+void UTimeThiefWeaponComponentBase::BroadcastCombatAttackRequest(ECombatNotifyType NotifyType) const
+{
+	const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr);
+	if (!OwnerPawn)
+	{
+		return;
+	}
+
+	UTimeThiefPawnCombatComponent* CombatComponent = OwnerPawn->FindComponentByClass<UTimeThiefPawnCombatComponent>();
+	if (!CombatComponent)
+	{
+		return;
+	}
+
+	FCombatAttackRequest Request{};
+	Request.NotifyType = NotifyType;
+	Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(WeaponTag);
+
+	if (NotifyType == ECombatNotifyType::Fire || NotifyType == ECombatNotifyType::Throw)
+	{
+		Request.Origin = GetLocalAttackOrigin();
+		Request.Direction = GetLocalAttackDirection();
+	}
+
+	CombatComponent->BroadcastCombatAttackRequest(Request);
+}
+
+FVector UTimeThiefWeaponComponentBase::GetLocalAttackOrigin() const
+{
+	return GetMuzzleLocation();
+}
+
+FVector UTimeThiefWeaponComponentBase::GetLocalAttackDirection() const
+{
+	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr))
+	{
+		if (const APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		{
+			FVector CameraLocation;
+			FRotator CameraRotation;
+			PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+			return CameraRotation.Vector().GetSafeNormal();
+		}
+
+		return OwnerPawn->GetBaseAimRotation().Vector().GetSafeNormal();
+	}
+
+	return FVector::ForwardVector;
 }
 
 FTransform UTimeThiefWeaponComponentBase::GetSocketTransformByName(FName InSocketName) const {

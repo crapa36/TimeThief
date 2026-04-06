@@ -115,6 +115,11 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan() const
 
 void UTimeThiefRifleComponent::ApplyDamage(const FRifleHitResult& HitResult)
 {
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
 	if (!HitResult.HitActor.IsValid())
 	{
 		return;

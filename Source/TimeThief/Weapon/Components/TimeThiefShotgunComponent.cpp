@@ -112,6 +112,11 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan() con
 
 void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& HitResults)
 {
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
 	AController* InstigatorController = nullptr;
 	if (AActor* MasterWeapon = GetOwner())
 	{

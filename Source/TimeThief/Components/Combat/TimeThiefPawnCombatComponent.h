@@ -6,6 +6,7 @@
 #include "TimeThiefPawnCombatComponent.generated.h"
 
 class ATimeThiefMasterWeapon;
+class UNetworkCombatSyncComponent;
 class UTimeThiefWeaponComponentBase;
 class UAnimMontage;
 
@@ -22,6 +23,8 @@ class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensi
 
 public:
 	UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual void EquipWeapon(FGameplayTag WeaponTag);
@@ -40,6 +43,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	void AttachMasterWeaponToCharacter(FName SocketName);
+
+	void BroadcastCombatAttackRequest(const FCombatAttackRequest& AttackRequest);
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	bool IsEquippingWeapon() const { return bIsEquippingWeapon; }
@@ -67,7 +72,6 @@ public:
 	virtual void OnUnequipAnimFinished();
 
 protected:
-	virtual void BeginPlay() override;
 	virtual void OnEquipFinished();
 
 	void PlayFireMontage();
@@ -99,5 +103,8 @@ protected:
 	FTimerHandle EquipTimerHandle;
 
 private:
+	UPROPERTY(Transient)
+	TObjectPtr<UNetworkCombatSyncComponent> CachedCombatSyncComponent = nullptr;
+
 	void SpawnMasterWeapon();
 };

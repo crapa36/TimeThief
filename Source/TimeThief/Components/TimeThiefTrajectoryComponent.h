@@ -9,6 +9,7 @@ struct FRemoteNetSample
 	double TimeSeconds = 0.0;
 	FVector Position = FVector::ZeroVector;
 	float YawDeg = 0.f;
+	FVector Velocity2D = FVector::ZeroVector;
 };
 
 class FRemoteTrajectoryHistory
@@ -17,8 +18,8 @@ public:
 	explicit FRemoteTrajectoryHistory(double InMaxHistorySeconds = 3.0);
 
 	void SetMaxHistorySeconds(double InMaxHistorySeconds);
-	void AddSample(double TimeSeconds, const FVector& Position, float YawDeg);
-	bool SampleAt(double QueryTime, FVector& OutPos, float& OutYawDeg) const;
+	void AddSample(double TimeSeconds, const FVector& Position, float YawDeg, const FVector& Velocity2D);
+	bool SampleAt(double QueryTime, FVector& OutPos, float& OutYawDeg, FVector& OutVelocity2D) const;
 	bool GetLastTwo(FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const;
 	bool GetLastThree(FRemoteNetSample& OutPrev2, FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const;
 
@@ -35,11 +36,11 @@ class TIMETHIEF_API UTimeThiefTrajectoryComponent : public UCharacterTrajectoryC
 public:
 	UTimeThiefTrajectoryComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
 	void UpdateRemoteTrajectory(float DeltaTime);
-	FVector EstimatePlanarVelocityFromHistory(const FRemoteTrajectoryHistory& History) const;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory")
 	float HistoryLengthSeconds = 1.0f;
@@ -56,4 +57,5 @@ protected:
 private:
 	FRemoteTrajectoryHistory RemoteHistory;
 	double SimulatedTime = 0.0;
+	FVector LastSmoothedVelocity = FVector::ZeroVector;
 };
