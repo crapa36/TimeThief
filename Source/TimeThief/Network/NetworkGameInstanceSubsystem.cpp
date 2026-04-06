@@ -1216,6 +1216,11 @@ void UNetworkGameInstanceSubsystem::ApplyAllEntityStates()
 
 void UNetworkGameInstanceSubsystem::ApplyRemoteAttackNotifyToActor(uint32 EntityId, const FRemoteAttackNotify& Notify)
 {
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
+
 	AActor* Actor = FindEntityActor(EntityId);
 	if (Actor == nullptr)
 	{

@@ -9,6 +9,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/World.h"
+#include "Network/State/CombatAttackRequest.h"
+#include "Network/State/CombatNotifyType.h"
 
 UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -141,6 +143,14 @@ void UTimeThiefPlayerCombatComponent::OnEquipFinished()
 {
 	Super::OnEquipFinished();
 
+	if (CurrentEquippedWeaponTag.IsValid())
+	{
+		FCombatAttackRequest Request{};
+		Request.NotifyType = ECombatNotifyType::WeaponChange;
+		Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(CurrentEquippedWeaponTag);
+		BroadcastCombatAttackRequest(Request);
+	}
+
 	if (bIsFireInputHeld && MasterWeaponPtr)
 	{
 		SnapRotationToAim();
@@ -165,6 +175,10 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 	}
 
 	UpdateCombatRotation();
+
+	FCombatAttackRequest Request{};
+	Request.NotifyType = ECombatNotifyType::Aiming;
+	BroadcastCombatAttackRequest(Request);
 }
 
 void UTimeThiefPlayerCombatComponent::StopAiming()
@@ -182,6 +196,10 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 	}
 
 	UpdateCombatRotation();
+
+	FCombatAttackRequest Request{};
+	Request.NotifyType = ECombatNotifyType::Readying;
+	BroadcastCombatAttackRequest(Request);
 }
 
 void UTimeThiefPlayerCombatComponent::Local_StartAiming()

@@ -9,6 +9,8 @@ struct FTimeThiefGameplayTags {
 public:
 	static const FTimeThiefGameplayTags& Get() { return GameplayTags; }
 	static void InitializeNativeGameplayTags();
+	static uint32 ResolveWeaponIdFromTag(const FGameplayTag& WeaponTag);
+	static FGameplayTag ResolveWeaponTagFromId(uint32 WeaponId);
 
 	// Input Tags
 	FGameplayTag InputTag_Action_Move;
@@ -31,12 +33,12 @@ public:
 	FGameplayTag Weapon_Shotgun;
 	FGameplayTag Weapon_RocketLauncher;
 	FGameplayTag Weapon_Pistol;
-
+	
 	FGameplayTag State_Combat_Rifle;
 	FGameplayTag State_Combat_Shotgun;
 	FGameplayTag State_Combat_RocketLauncher;
 	FGameplayTag State_Combat_Pistol;
-
+	
 	FGameplayTag InitState_Spawned;
 	FGameplayTag InitState_DataAvailable;
 	FGameplayTag InitState_DataInitialized;

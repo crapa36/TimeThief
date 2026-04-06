@@ -25,16 +25,57 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.AddTag(GameplayTags.Weapon_Shotgun, "Weapon.Shotgun", "Shotgun Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_RocketLauncher, "Weapon.RocketLauncher", "RocketLauncher Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_Pistol, "Weapon.Pistol", "Pistol Weapon Type");
-
+	
 	GameplayTags.AddTag(GameplayTags.State_Combat_Rifle, "State.Combat.Rifle", "Character is holding a Rifle");
 	GameplayTags.AddTag(GameplayTags.State_Combat_Shotgun, "State.Combat.Shotgun", "Character is holding a Shotgun");
 	GameplayTags.AddTag(GameplayTags.State_Combat_RocketLauncher, "State.Combat.RocketLauncher", "Character is holding a RocketLauncher");
 	GameplayTags.AddTag(GameplayTags.State_Combat_Pistol, "State.Combat.Pistol", "Character is holding a Pistol");
-
+	
 	GameplayTags.AddTag(GameplayTags.InitState_Spawned, "InitState.Spawned", "Actor has been spawned");
 	GameplayTags.AddTag(GameplayTags.InitState_DataAvailable, "InitState.DataAvailable", "Data is available");
 	GameplayTags.AddTag(GameplayTags.InitState_DataInitialized, "InitState.DataInitialized", "Data has been initialized");
 	GameplayTags.AddTag(GameplayTags.InitState_GameplayReady, "InitState.GameplayReady", "Ready for gameplay");
+}
+
+uint32 FTimeThiefGameplayTags::ResolveWeaponIdFromTag(const FGameplayTag& WeaponTag)
+{
+	const FTimeThiefGameplayTags& Tags = Get();
+	if (WeaponTag == Tags.Weapon_Rifle)
+	{
+		return 1;
+	}
+	if (WeaponTag == Tags.Weapon_Shotgun)
+	{
+		return 2;
+	}
+	if (WeaponTag == Tags.Weapon_RocketLauncher)
+	{
+		return 3;
+	}
+	if (WeaponTag == Tags.Weapon_Pistol)
+	{
+		return 4;
+	}
+
+	return 0;
+}
+
+FGameplayTag FTimeThiefGameplayTags::ResolveWeaponTagFromId(uint32 WeaponId)
+{
+	const FTimeThiefGameplayTags& Tags = Get();
+	switch (WeaponId)
+	{
+	case 1:
+		return Tags.Weapon_Rifle;
+	case 2:
+		return Tags.Weapon_Shotgun;
+	case 3:
+		return Tags.Weapon_RocketLauncher;
+	case 4:
+		return Tags.Weapon_Pistol;
+	default:
+		return FGameplayTag();
+	}
 }
 
 void FTimeThiefGameplayTags::AddTag(FGameplayTag& OutTag, const ANSICHAR* TagName, const ANSICHAR* TagComment)
