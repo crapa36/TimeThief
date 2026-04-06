@@ -56,6 +56,8 @@ Plugins/*/Saved/
 # JetBrains Rider
 .idea/
 *.sln.iml
+TimeThief.uproject.DotSettings.user
+TimeThief.sln.DotSettings.user
 
 # Visual Studio Code
 .vscode/
@@ -129,10 +131,10 @@ External/ProtobufBuild/
 # Documents
 /Docs
 
-
-content/Fab/
-content/FuturisticMetaCity/
-content/Paragon/
-content/Realistic_Starter_VFX_Pack_Vol2/
-content/Robot3/
-content/Sci-Fi_Shots_Pack2_Game_Of_Weapons/
+# Contents
+Content/Fab/
+Content/FuturisticMetaCity/
+Content/Paragon/
+Content/Realistic_Starter_VFX_Pack_Vol2/
+Content/Robot3/
+Content/Sci-Fi_Shots_Pack2_Game_Of_Weapons/
