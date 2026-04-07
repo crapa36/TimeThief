@@ -98,6 +98,21 @@ void UTimeThiefWeaponComponentBase::ExecuteRemoteFireShot()
 	ExecuteFireShot();
 }
 
+void UTimeThiefWeaponComponentBase::SetRemoteShotSyncData(const FVector& InOrigin, const FVector& InDirection)
+{
+	if (InDirection.IsNearlyZero())
+	{
+		bHasRemoteShotSyncData = false;
+		RemoteShotOrigin = FVector::ZeroVector;
+		RemoteShotDirection = FVector::ForwardVector;
+		return;
+	}
+
+	bHasRemoteShotSyncData = true;
+	RemoteShotOrigin = InOrigin;
+	RemoteShotDirection = InDirection.GetSafeNormal();
+}
+
 void UTimeThiefWeaponComponentBase::OnReloadStarted() {
 	if (ReloadAnimation) {
 		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()->GetOwner())) {
@@ -182,7 +197,15 @@ void UTimeThiefWeaponComponentBase::BroadcastCombatAttackRequest(ECombatNotifyTy
 	Request.NotifyType = NotifyType;
 	Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(WeaponTag);
 
-	if (NotifyType == ECombatNotifyType::Fire || NotifyType == ECombatNotifyType::Throw)
+	if (NotifyType == ECombatNotifyType::Fire)
+	{
+		if (!TryGetLastShotSyncData(Request.Origin, Request.Direction))
+		{
+			Request.Origin = GetLocalAttackOrigin();
+			Request.Direction = GetLocalAttackDirection();
+		}
+	}
+	else if (NotifyType == ECombatNotifyType::Throw)
 	{
 		Request.Origin = GetLocalAttackOrigin();
 		Request.Direction = GetLocalAttackDirection();
@@ -212,6 +235,63 @@ FVector UTimeThiefWeaponComponentBase::GetLocalAttackDirection() const
 	}
 
 	return FVector::ForwardVector;
+}
+
+bool UTimeThiefWeaponComponentBase::ResolveFireAimView(FVector& OutViewLocation, FVector& OutViewDirection) const
+{
+	if (bHasRemoteShotSyncData && !RemoteShotDirection.IsNearlyZero())
+	{
+		OutViewLocation = RemoteShotOrigin;
+		OutViewDirection = RemoteShotDirection.GetSafeNormal();
+		return true;
+	}
+
+	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr))
+	{
+		if (const APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		{
+			FRotator CameraRotation;
+			PC->GetPlayerViewPoint(OutViewLocation, CameraRotation);
+			OutViewDirection = CameraRotation.Vector().GetSafeNormal();
+			return true;
+		}
+
+		OutViewLocation = OwnerPawn->GetPawnViewLocation();
+		OutViewDirection = OwnerPawn->GetBaseAimRotation().Vector().GetSafeNormal();
+		return true;
+	}
+
+	OutViewLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+	OutViewDirection = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
+	OutViewDirection = OutViewDirection.GetSafeNormal();
+	return true;
+}
+
+void UTimeThiefWeaponComponentBase::CacheLastShotSyncData(const FVector& InOrigin, const FVector& InDirection)
+{
+	if (InDirection.IsNearlyZero())
+	{
+		bHasLastShotSyncData = false;
+		LastShotOrigin = FVector::ZeroVector;
+		LastShotDirection = FVector::ForwardVector;
+		return;
+	}
+
+	bHasLastShotSyncData = true;
+	LastShotOrigin = InOrigin;
+	LastShotDirection = InDirection.GetSafeNormal();
+}
+
+bool UTimeThiefWeaponComponentBase::TryGetLastShotSyncData(FVector& OutOrigin, FVector& OutDirection) const
+{
+	if (!bHasLastShotSyncData)
+	{
+		return false;
+	}
+
+	OutOrigin = LastShotOrigin;
+	OutDirection = LastShotDirection;
+	return !OutDirection.IsNearlyZero();
 }
 
 FTransform UTimeThiefWeaponComponentBase::GetSocketTransformByName(FName InSocketName) const {

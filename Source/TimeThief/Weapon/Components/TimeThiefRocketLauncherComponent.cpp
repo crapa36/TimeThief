@@ -39,26 +39,9 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 		return false;
 	}
 
-	FVector CameraLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
-	FVector CameraAimDirection = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
-
-	if (AActor* MasterWeapon = GetOwner())
-	{
-		if (APawn* OwnerPawn = Cast<APawn>(MasterWeapon->GetOwner()))
-		{
-			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
-			{
-				FRotator CameraRotation;
-				PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-				CameraAimDirection = CameraRotation.Vector();
-			}
-			else
-			{
-				CameraLocation = OwnerPawn->GetPawnViewLocation();
-				CameraAimDirection = OwnerPawn->GetBaseAimRotation().Vector();
-			}
-		}
-	}
+	FVector CameraLocation = FVector::ZeroVector;
+	FVector CameraAimDirection = FVector::ForwardVector;
+	ResolveFireAimView(CameraLocation, CameraAimDirection);
 
 	const FVector MuzzleLocation = GetMuzzleLocation();
 	const FVector CameraTraceEnd = CameraLocation + (CameraAimDirection * AimTraceRange);
@@ -76,6 +59,7 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	const FVector TargetLocation = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : CameraTraceEnd;
 
 	const FVector ShootDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
+	CacheLastShotSyncData(MuzzleLocation, ShootDirection);
 	const FVector SpawnLocation = MuzzleLocation + ShootDirection;
 	const FTransform SpawnTransform(ShootDirection.Rotation(), SpawnLocation);
 

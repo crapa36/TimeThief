@@ -96,6 +96,7 @@ protected:
 	UAnimMontage* FireMontage;
 
 	FTimerHandle EquipTimerHandle;
+	FVector CachedRemoteShotOrigin = FVector::ZeroVector;
 	FVector CachedRemoteAimLocation = FVector::ZeroVector;
 	FVector CachedRemoteAimDirection = FVector::ForwardVector;
 	int32 RemoteFireNotifyCount = 0;

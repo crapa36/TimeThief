@@ -7,8 +7,10 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/World.h"
+#include "Network/MovableNetworkEntityInterface.h"
 #include "Network/State/CombatAttackRequest.h"
 #include "Network/State/CombatNotifyType.h"
 
@@ -64,6 +66,57 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		{
 			CachedFirstPersonCamera = BaseChar->GetFirstPersonCamera();
 		}
+	}
+}
+
+void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction)
+{
+	Super::Remote_SyncAimLocation(Origin, Direction);
+
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
+	{
+		return;
+	}
+
+	if (!Direction.IsNearlyZero())
+	{
+		CachedWorldAimLocation = Origin + Direction.GetSafeNormal() * 50000.0f;
+	}
+	else
+	{
+		FVector StartLoc = OwningCharacter->GetActorLocation();
+		if (MasterWeaponPtr)
+		{
+			StartLoc = MasterWeaponPtr->GetActorLocation();
+		}
+		CachedWorldAimLocation = StartLoc + OwningCharacter->GetBaseAimRotation().Vector() * 50000.0f;
+	}
+
+	FVector StartLoc = OwningCharacter->GetActorLocation();
+	if (MasterWeaponPtr)
+	{
+		StartLoc = MasterWeaponPtr->GetActorLocation();
+	}
+
+	const FVector AimVector = CachedWorldAimLocation - StartLoc;
+	if (AimVector.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FRotator AimRotation = AimVector.GetSafeNormal().Rotation();
+	OwningCharacter->SetActorRotation(FRotator(0.0f, AimRotation.Yaw, 0.0f));
+
+	if (AController* OwnerController = OwningCharacter->GetController())
+	{
+		OwnerController->SetControlRotation(AimRotation);
+	}
+
+	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
+	{
+		Movable->SetNetworkPitch(AimRotation.Pitch);
+		Movable->SetNetworkYaw(AimRotation.Yaw);
 	}
 }
 

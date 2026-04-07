@@ -38,11 +38,6 @@ void ATimeThiefNetworkCharacterBase::Tick(float DeltaTime)
 
 FRotator ATimeThiefNetworkCharacterBase::GetBaseAimRotation() const
 {
-	if (IsLocalPlayer())
-	{
-		return Super::GetBaseAimRotation();
-	}
-
 	return FRotator(CurrentNetworkPitch, GetNetworkYaw(), 0.0f);
 }
 
@@ -112,14 +107,8 @@ void ATimeThiefNetworkCharacterBase::SetNetworkMovementMode(EMovementMode NewMov
 
 float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
 {
-	if (Controller == nullptr)
-	{
-		return 0.0f;
-	}
-	
-	float ControlPitch = Controller->GetControlRotation().Pitch;
-	ControlPitch = FRotator::NormalizeAxis(ControlPitch);
-	return FMath::Clamp(ControlPitch, -89.0f, 89.0f);
+	const float ActorPitch = FRotator::NormalizeAxis(GetActorRotation().Pitch);
+	return FMath::Clamp(ActorPitch, -89.0f, 89.0f);
 }
 
 FVector2D ATimeThiefNetworkCharacterBase::GetLocalControlVelocity2D() const

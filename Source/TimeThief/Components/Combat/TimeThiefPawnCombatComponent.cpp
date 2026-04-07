@@ -307,6 +307,8 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 
 void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction)
 {
+	CachedRemoteShotOrigin = Origin;
+
 	if (!Direction.IsNearlyZero())
 	{
 		CachedRemoteAimDirection = Direction.GetSafeNormal();
@@ -379,6 +381,7 @@ void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 
 	if (UTimeThiefWeaponComponentBase* CurrentWeapon = GetCharacterCurrentEquippedWeapon())
 	{
+		CurrentWeapon->SetRemoteShotSyncData(CachedRemoteShotOrigin, CachedRemoteAimDirection);
 		CurrentWeapon->ExecuteRemoteFireShot();
 	}
 

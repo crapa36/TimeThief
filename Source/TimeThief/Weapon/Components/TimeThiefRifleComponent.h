@@ -45,7 +45,7 @@ public:
 
 protected:
 	virtual void ExecuteFireShot() override;
-	FRifleHitResult PerformHitScan() const;
+	FRifleHitResult PerformHitScan();
 	void ApplyDamage(const FRifleHitResult& HitResult);
 	void PlayFireEffects();
 	void PlayImpactEffects(const FRifleHitResult& HitResult);

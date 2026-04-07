@@ -30,30 +30,13 @@ void UTimeThiefRifleComponent::ExecuteFireShot()
 	PlayImpactEffects(HitResult);
 }
 
-FRifleHitResult UTimeThiefRifleComponent::PerformHitScan() const
+FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 {
 	FRifleHitResult Result;
 
-	FVector CameraLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
-	FVector CameraAimDir = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
-
-	if (AActor* MasterWeapon = GetOwner())
-	{
-		if (APawn* OwnerPawn = Cast<APawn>(MasterWeapon->GetOwner()))
-		{
-			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
-			{
-				FRotator CameraRotation;
-				PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-				CameraAimDir = CameraRotation.Vector();
-			}
-			else
-			{
-				CameraLocation = OwnerPawn->GetPawnViewLocation();
-				CameraAimDir = OwnerPawn->GetBaseAimRotation().Vector();
-			}
-		}
-	}
+	FVector CameraLocation = FVector::ZeroVector;
+	FVector CameraAimDir = FVector::ForwardVector;
+	ResolveFireAimView(CameraLocation, CameraAimDir);
 
 	const float SpreadAngle = GetSpreadAngleForFire();
 	if (SpreadAngle > 0.0f)
@@ -90,6 +73,7 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan() const
 	}
 
 	Result.FireDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
+	CacheLastShotSyncData(MuzzleLocation, Result.FireDirection);
 
 	if (bWeaponHit)
 	{

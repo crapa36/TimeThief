@@ -165,7 +165,7 @@ bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 	
 	OutSyncData.Position = Movable->GetNetworkLocation();
 	OutSyncData.Yaw = Movable->GetNetworkYaw();
-	OutSyncData.Pitch = Movable->GetLocalControlPitch();
+	OutSyncData.Pitch = Movable->GetNetworkPitch();
 	OutSyncData.Velocity = Movable->GetLocalControlVelocity2D();
 	OutSyncData.MovementMode = Movable->GetLocalControlMovementMode();
 	
@@ -333,6 +333,7 @@ void UNetworkMoveComponent::SnapToTarget()
 	Movable->SetNetworkYaw(TargetYaw);
 	Movable->SetNetworkPitch(TargetPitch);
 	Movable->SetNetworkVelocity2D(TargetVelocity);
+	MoveStep = FVector(TargetVelocity.X, TargetVelocity.Y, 0.0f);
 	
 	if (Character && Character->GetCharacterMovement())
 	{

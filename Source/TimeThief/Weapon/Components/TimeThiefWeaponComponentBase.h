@@ -107,9 +107,13 @@ protected:
 	void BroadcastCombatAttackRequest(ECombatNotifyType NotifyType) const;
 	FVector GetLocalAttackOrigin() const;
 	FVector GetLocalAttackDirection() const;
+	bool ResolveFireAimView(FVector& OutViewLocation, FVector& OutViewDirection) const;
+	void CacheLastShotSyncData(const FVector& InOrigin, const FVector& InDirection);
+	bool TryGetLastShotSyncData(FVector& OutOrigin, FVector& OutDirection) const;
 
 public:
 	virtual void ExecuteRemoteFireShot();
+	void SetRemoteShotSyncData(const FVector& InOrigin, const FVector& InDirection);
 
 	void NotifyAmmoChanged();
 	FVector GetMuzzleLocation() const;
@@ -163,6 +167,14 @@ public:
 
 	FTimerHandle AutoFireTimerHandle;
 	FTimerHandle ReloadTimerHandle;
+
+	bool bHasLastShotSyncData = false;
+	FVector LastShotOrigin = FVector::ZeroVector;
+	FVector LastShotDirection = FVector::ForwardVector;
+
+	bool bHasRemoteShotSyncData = false;
+	FVector RemoteShotOrigin = FVector::ZeroVector;
+	FVector RemoteShotDirection = FVector::ForwardVector;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FGameplayTag WeaponTag;

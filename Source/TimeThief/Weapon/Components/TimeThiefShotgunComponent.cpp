@@ -34,32 +34,15 @@ void UTimeThiefShotgunComponent::ExecuteFireShot()
 	PlayImpactEffects(HitResults);
 }
 
-TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan() const
+TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 {
 	TArray<FShotgunHitResult> Results;
 	Results.Reserve(PelletCount);
 
 	const FVector MuzzleLocation = GetMuzzleLocation();
-	FVector CameraLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
-	FVector CameraAimDir = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
-
-	if (AActor* MasterWeapon = GetOwner())
-	{
-		if (APawn* OwnerPawn = Cast<APawn>(MasterWeapon->GetOwner()))
-		{
-			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
-			{
-				FRotator CameraRotation;
-				PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-				CameraAimDir = CameraRotation.Vector();
-			}
-			else
-			{
-				CameraLocation = OwnerPawn->GetPawnViewLocation();
-				CameraAimDir = OwnerPawn->GetBaseAimRotation().Vector();
-			}
-		}
-	}
+	FVector CameraLocation = FVector::ZeroVector;
+	FVector CameraAimDir = FVector::ForwardVector;
+	ResolveFireAimView(CameraLocation, CameraAimDir);
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
@@ -69,6 +52,12 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan() con
 	}
 	QueryParams.bTraceComplex = true;
 	QueryParams.bReturnPhysicalMaterial = true;
+
+	const FVector CenterTraceEnd = CameraLocation + CameraAimDir * MaxRange;
+	FHitResult CenterHitResult;
+	GetWorld()->LineTraceSingleByChannel(CenterHitResult, CameraLocation, CenterTraceEnd, ECC_Visibility, QueryParams);
+	const FVector CenterTargetLocation = CenterHitResult.bBlockingHit ? CenterHitResult.ImpactPoint : CenterTraceEnd;
+	CacheLastShotSyncData(MuzzleLocation, (CenterTargetLocation - MuzzleLocation).GetSafeNormal());
 
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));

@@ -42,7 +42,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void ExecuteFireShot() override;
-	TArray<FShotgunHitResult> PerformPelletHitScan() const;
+	TArray<FShotgunHitResult> PerformPelletHitScan();
 	void ApplyDamage(const TArray<FShotgunHitResult>& HitResults);
 	void PlayFireEffects();
 	void PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults);

@@ -44,6 +44,14 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	
 	if (MovableNetworkInterface.GetInterface())
 	{
+		if (!CharacterOwner->IsLocallyControlled())
+		{
+			const FVector2D NetworkVelocity2D = MovableNetworkInterface->GetNetworkVelocity2D();
+			if (Velocity.SizeSquared2D() < 0.25f && !NetworkVelocity2D.IsNearlyZero(0.5f))
+			{
+				Velocity = FVector(NetworkVelocity2D.X, NetworkVelocity2D.Y, Velocity.Z);
+			}
+		}
 		Velocity = MovableNetworkInterface->GetMoveStep();
 	}
 	else
@@ -55,7 +63,7 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	GroundSpeed = Velocity.Size2D();
 
 	const bool bIsRemoteCharacter = MovableNetworkInterface.GetInterface() && !CharacterOwner->IsLocallyControlled();
-	const float MoveSpeedThreshold = bIsRemoteCharacter ? 6.0f : 1.0f;
+	const float MoveSpeedThreshold = bIsRemoteCharacter ? 0.5f : 1.0f;
 	bHasVelocity = GroundSpeed > MoveSpeedThreshold;
 	
 	bIsFalling = CharacterMovement->IsFalling();
