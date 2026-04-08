@@ -15,6 +15,7 @@ class UTimeThiefHeroComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
+class UNiagaraSystem;
 
 DECLARE_MULTICAST_DELEGATE(FOnVicinityItemUpdatedEvent);
 
@@ -117,6 +118,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float LookingDistance = 50.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Jump")
+	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;
 	
 	FTimerHandle InteractCheckTimerHandle;
 	

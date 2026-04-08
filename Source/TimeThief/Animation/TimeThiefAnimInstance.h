@@ -20,6 +20,9 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	UFUNCTION(BlueprintCallable, Category = "Jump")
+	void TriggerDoubleJump();
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<ACharacter> CharacterOwner;
@@ -52,6 +55,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
 	float VerticalVelocity;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Jump")
+	bool bIsDoubleJumping = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bIsAiming;

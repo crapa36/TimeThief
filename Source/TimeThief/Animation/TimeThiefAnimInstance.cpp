@@ -18,9 +18,15 @@ void UTimeThiefAnimInstance::NativeInitializeAnimation()
 	Super::NativeInitializeAnimation();
 }
 
+void UTimeThiefAnimInstance::TriggerDoubleJump()
+{
+	bIsDoubleJumping = true;
+}
+
 void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
+	bIsDoubleJumping = false;
 
 	if (!CharacterOwner)
 	{

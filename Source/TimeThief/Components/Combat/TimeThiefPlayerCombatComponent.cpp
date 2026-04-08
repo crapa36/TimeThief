@@ -5,13 +5,13 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
-#include "Camera/CameraComponent.h"
 #include "Engine/World.h"
-#include "Network/MovableNetworkEntityInterface.h"
 #include "Network/State/CombatAttackRequest.h"
+#include "Network/MovableNetworkEntityInterface.h"
 #include "Network/State/CombatNotifyType.h"
 
 UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent(const FObjectInitializer& ObjectInitializer)

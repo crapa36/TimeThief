@@ -19,6 +19,8 @@
 #include "Components/System/TimePointSystemComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Animation/TimeThiefAnimInstance.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -50,6 +52,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	JumpMaxCount = 2;
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bCastHiddenShadow = true;
@@ -191,6 +194,34 @@ void ATimeThiefPlayerCharacter::OnJumped_Implementation()
 {
 	Super::OnJumped_Implementation();
 	SendJumpEventToServer();
+
+	if (JumpMaxCount <= 1 || JumpCurrentCount != JumpMaxCount)
+	{
+		return;
+	}
+
+	if (DoubleJumpEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			DoubleJumpEffect,
+			GetMesh()->GetComponentLocation(),
+			GetActorRotation()
+		);
+	}
+
+	if (UTimeThiefAnimInstance* AnimInst = Cast<UTimeThiefAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		AnimInst->TriggerDoubleJump();
+	}
+
+	if (FirstPersonMesh)
+	{
+		if (UTimeThiefAnimInstance* FPAnimInst = Cast<UTimeThiefAnimInstance>(FirstPersonMesh->GetAnimInstance()))
+		{
+			FPAnimInst->TriggerDoubleJump();
+		}
+	}
 }
 
 void ATimeThiefPlayerCharacter::Landed(const FHitResult& Hit)
