@@ -2,19 +2,22 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/Interface/LifeObserver.h"
 #include "TimeThiefHealthComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnHealthChangedSignature, const UTimeThiefHealthComponent*, float, float, AActor*);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathSignature, AActor*, OwningActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeathSignature);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class TIMETHIEF_API UTimeThiefHealthComponent : public UActorComponent
+class TIMETHIEF_API UTimeThiefHealthComponent : public UActorComponent, public ILifeObserver
 {
 	GENERATED_BODY()
 
 public:
 	UTimeThiefHealthComponent();
 
+	virtual void OnEndRespawn() override;
+	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	void InitializeWithHealth(float InMaxHealth);
 
@@ -64,9 +67,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Health")
 	float MaxHealth;
 
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Health")
 	bool bIsDead = false;
-
+	
 	UPROPERTY()
 	TObjectPtr<AActor> LastDamageInstigator;
 };

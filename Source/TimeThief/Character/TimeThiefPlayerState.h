@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/Interface/LifeObserver.h"
 #include "GameplayTagContainer.h"
 #include "DataAssets/UpgradeData.h"
 #include "GameFramework/PlayerState.h"
@@ -51,13 +52,17 @@ struct FAppliedWeaponUpgradeStats
 };
 
 UCLASS()
-class TIMETHIEF_API ATimeThiefPlayerState : public APlayerState
+class TIMETHIEF_API ATimeThiefPlayerState : public APlayerState, public ILifeObserver
 {
 	GENERATED_BODY()
 	
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FStatus Status;
+	
+	FStatus SaveStatus;
+	
+	virtual void OnBeginRespawn() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FAppliedUpgradeStats AppliedUpgradeStats;

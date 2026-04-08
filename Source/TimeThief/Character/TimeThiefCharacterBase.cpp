@@ -43,24 +43,114 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	FirstPersonCamera->SetActive(false);
 
 	bIsFirstPerson = false;
-	
+
 	TimePointSystemComponent = CreateDefaultSubobject<UTimePointSystemComponent>(TEXT("TimePointSystemComponent"));
-	
+
 	DisappearFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DisappearFX"));
 	DisappearFX->SetupAttachment(GetMesh());
+
+	DeadFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DeadFX"));
+	DeadFX->SetupAttachment(GetMesh());
+	DeadFX->bAutoActivate = false;
+
+	SpawnFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnFX"));
+	SpawnFX->SetupAttachment(GetMesh());
+	DeadFX->bAutoActivate = false;
+}
+
+void ATimeThiefCharacterBase::Save()
+{
+	SaveLocation = GetActorLocation();
+	
+	if (auto PS =  Cast<ATimeThiefPlayerState>(GetPlayerState()))
+	{
+		PS->SaveStatus = PS->Status;
+	}
+}
+
+void ATimeThiefCharacterBase::OnDeath()
+{
+	bIsRespawn = false;
+	bIsDead = true;
+
+	DeadFX->Activate(true);
+	DisappearFX->SetActive(false, true);
+	
+	for (auto Comp : GetComponents())
+	{
+		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
+		{
+			LifeObserver->OnDeath();
+		}
+	}
+}
+
+void ATimeThiefCharacterBase::OnBeginRespawn()
+{
+	if (bIsDead)
+	{
+		bPendingRespawn = false;
+		bIsRespawn = true;
+		Mask = 0;
+		
+		SetActorLocation(SaveLocation);
+		
+		DeadFX->Deactivate();
+		SpawnFX->Activate(true);
+		DisappearFX->SetActive(false, true);
+		
+		if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
+		{
+			PS->OnBeginRespawn();
+		}
+		for (auto Comp : GetComponents())
+		{
+			if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
+			{
+				LifeObserver->OnBeginRespawn();
+			}
+		}
+	}
+}
+
+void ATimeThiefCharacterBase::OnEndRespawn()
+{
+	SpawnFX->Deactivate();
+	DisappearFX->Activate();
+	
+	bIsDead = false;
+	bIsRespawn = false;
+	
+	for (auto Comp : GetComponents())
+	{
+		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
+		{
+			LifeObserver->OnEndRespawn();
+		}
+	}
 }
 
 void ATimeThiefCharacterBase::SetMask(float NewMask)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	Mask = std::clamp(NewMask, 0.2f, 1.f);
-	
+
 	UpdateMask();
 }
 
 void ATimeThiefCharacterBase::AddMask(float Amount)
 {
+	if (bIsDead)
+	{
+		return;
+	}
+
 	Mask = std::clamp(Mask + Amount, 0.2f, 1.f);
-	
+
 	UpdateMask();
 }
 
@@ -68,14 +158,26 @@ void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	Save();
+	
+	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
+	{
+		Health->OnDeath.AddDynamic(this, &ThisClass::OnDeath);
+	}
+	
 	const auto& Materials = GetMesh()->GetMaterials();
-	for (int i = 0;i < Materials.Num(); ++i)
+	for (int i = 0; i < Materials.Num(); ++i)
 	{
 		if (UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Materials[i], this))
 		{
 			GetMesh()->SetMaterial(i, MID);
 		}
 	}
+
+	DeadFX->SetVariableFloat(FName("User.Loop"), InterpTime);
+	SpawnFX->SetVariableFloat(FName("User.MaxLifeTime"), InterpTime);
+
+	OnBeginRespawn();
 }
 
 void ATimeThiefCharacterBase::OnPlayerInitialized()
@@ -85,7 +187,7 @@ void ATimeThiefCharacterBase::OnPlayerInitialized()
 		if (FirstPersonMesh)
 		{
 			FirstPersonMesh->SetLeaderPoseComponent(GetMesh());
-			
+
 			FirstPersonMesh->HideBoneByName(FName("head"), EPhysBodyOp::PBO_None);
 			FirstPersonMesh->HideBoneByName(FName("neck_01"), EPhysBodyOp::PBO_None);
 			FirstPersonMesh->HideBoneByName(FName("neck_02"), EPhysBodyOp::PBO_None);
@@ -134,6 +236,40 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
 }
 
+void ATimeThiefCharacterBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	if (bPendingRespawn)
+	{
+		return;
+	}
+	if (bIsDead && !bIsRespawn)
+	{
+		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
+
+		if (Mask == 0)
+		{
+			FTimerHandle TempHandle;
+			bPendingRespawn = true;
+			GetWorldTimerManager().SetTimer(TempHandle, this, &ThisClass::OnBeginRespawn, 5);
+		}
+		
+		UpdateMask();
+	}
+	else if (bIsRespawn)
+	{
+		Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
+
+		if (Mask == 1)
+		{
+			OnEndRespawn();
+		}
+		
+		UpdateMask();
+	}
+}
+
 void ATimeThiefCharacterBase::UpdateMask()
 {
 	for (auto Material : GetMesh()->GetMaterials())
@@ -143,7 +279,7 @@ void ATimeThiefCharacterBase::UpdateMask()
 			MID->SetScalarParameterValue(FName("Mask"), Mask);
 		}
 	}
-	
+
 	DisappearFX->SetVariableFloat(FName("User.Mask"), Mask);
 }
 
@@ -168,7 +304,8 @@ void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, floa
 	}
 }
 
-void ATimeThiefCharacterBase::PlayAnimationOnAllMeshes(UAnimSequenceBase* Animation, FName SlotName, float BlendInTime, float BlendOutTime, float PlayRate)
+void ATimeThiefCharacterBase::PlayAnimationOnAllMeshes(UAnimSequenceBase* Animation, FName SlotName, float BlendInTime,
+                                                       float BlendOutTime, float PlayRate)
 {
 	if (!Animation)
 	{
@@ -184,7 +321,8 @@ void ATimeThiefCharacterBase::PlayAnimationOnAllMeshes(UAnimSequenceBase* Animat
 	{
 		if (UAnimInstance* FirstPersonAnim = FirstPersonMesh->GetAnimInstance())
 		{
-			FirstPersonAnim->PlaySlotAnimationAsDynamicMontage(Animation, SlotName, BlendInTime, BlendOutTime, PlayRate);
+			FirstPersonAnim->
+				PlaySlotAnimationAsDynamicMontage(Animation, SlotName, BlendInTime, BlendOutTime, PlayRate);
 		}
 	}
 }

@@ -83,10 +83,13 @@ protected:
 	virtual void SendJumpLandEventToServer();
 
 	void OnPawnDataSet();
-
-	UFUNCTION()
-	void OnDeath(AActor* OwningActor);
-
+	
+	virtual void OnDeath() override;
+	
+	virtual void OnBeginRespawn() override;
+	
+	virtual void OnEndRespawn() override;
+	
 	void CheckInteractableObject();
 	
 protected:
