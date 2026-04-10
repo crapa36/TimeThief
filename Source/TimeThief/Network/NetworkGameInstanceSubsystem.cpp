@@ -812,6 +812,15 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
 {
+	check(IsInGameThread());
+	
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Time Storm Changed: Radus=%.1f, Wait=%.1f, Shrink=%.1f"), Pkt.radius(), Pkt.waiting_time(), Pkt.shrinking_time()));
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
 }
 
 void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)

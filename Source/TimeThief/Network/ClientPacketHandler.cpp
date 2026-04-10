@@ -581,5 +581,24 @@ bool Handle_N_TimePointChanged(PacketSessionRef& session, const se::game::N_Time
 	
 bool Handle_N_TimeStormChange(PacketSessionRef& session, const se::game::N_TimeStormChange& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_center())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_TimeStormChange: pkt has no center"));
+		return false;
+	}
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleTimeStormChange(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_TimeStormChange: Failed to get NGIS"));
 	return false;	
 }
