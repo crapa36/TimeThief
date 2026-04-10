@@ -58,8 +58,11 @@ public:
 	void SendJumpLand();
 	
 private:
-	void ConnectToServer(const FString& IPAddress, int32 Port);
+	void ConnectToServer();
 	void DisconnectFromServer();
+	
+	bool TryConnect(const FString& Host, int32 Port);
+	void HandleConnectFailed();
 	
 	void Handshaking();
 	

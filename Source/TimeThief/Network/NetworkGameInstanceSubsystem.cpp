@@ -65,7 +65,7 @@ void UNetworkGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collect
 		return;
 	}
 	
-	ConnectToServer(ClientConfig.ServerIp, ClientConfig.ServerPort);
+	ConnectToServer();
 	
 	if (bIsConnected)
 	{
@@ -140,7 +140,7 @@ void UNetworkGameInstanceSubsystem::SendJumpLand()
 	SendPacket(Buffer);
 }
 
-void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, int32 Port)
+void UNetworkGameInstanceSubsystem::ConnectToServer()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));
 	if (Socket == nullptr)
@@ -149,45 +149,44 @@ void UNetworkGameInstanceSubsystem::ConnectToServer(const FString& IPAddress, in
 		return;
 	}
 	
-	FIPv4Address ip;
-	if (FIPv4Address::Parse(IPAddress, ip) == false)
-	{
-		UE_LOG(LogTemp, Error, TEXT("[Network] Invalid IP address: %s"), *IPAddress);
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
-		Socket = nullptr;
-		return;
-	}
+	TArray<FString> HostsToTry;
 	
-	TSharedPtr<FInternetAddr> addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
-	addr->SetIp(ip.Value);
-	addr->SetPort(Port);
+#if WITH_EDITOR
+	// 개발 빌드에서는 Fallback IP (로컬호스트)만 시도하도록 설정
+	if (!ClientConfig.FallbackIp.IsEmpty())
+	{
+		HostsToTry.Add(ClientConfig.FallbackIp);
+	}
+#else
+	if (!ClientConfig.ServerDNS.IsEmpty())
+	{
+		HostsToTry.Add(ClientConfig.ServerDNS);
+	}
+	if (!ClientConfig.FallbackIp.IsEmpty())
+	{
+		HostsToTry.Add(ClientConfig.FallbackIp);
+	}
+#endif
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Connecting to Server...")));
-	
-	bool connected = Socket->Connect(*addr);
-	
-	if (connected)
+	for (const FString& Host : HostsToTry)
 	{
-		bIsConnected = true;
-		PlayState = ENetworkPlayState::Connected;
+		if (TryConnect(Host, ClientConfig.ServerPort))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Connected to %s:%d"), *Host, ClientConfig.ServerPort);
+			
+			bIsConnected = true;
+			PlayState = ENetworkPlayState::Connected;
 		
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Connection Success")));
+			GameSession = MakeShared<PacketSession>(Socket);
+			GameSession->Run();
+			
+			return;
+		}
 		
-		GameSession = MakeShared<PacketSession>(Socket);
-		GameSession->Run();
-		
-		// se::lobby::C_LobbyEnterReq lobbyEnterReq;
-		// auto packet = ClientPacketHandler::MakeSendBuffer(lobbyEnterReq);
-		// SendPacket(packet);
+		UE_LOG(LogTemp, Warning, TEXT("Failed to connect to %s:%d"), *Host, ClientConfig.ServerPort);
 	}
-	else
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Connection Failed")));
-		
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
-		Socket = nullptr;
-		bIsConnected = false;
-	}
+	
+	HandleConnectFailed();
 }
 
 void UNetworkGameInstanceSubsystem::DisconnectFromServer()
@@ -230,6 +229,35 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	bIsConnected = false;
 	
 	UE_LOG(LogTemp, Log, TEXT("Disconnected and cleaned up"));
+}
+
+bool UNetworkGameInstanceSubsystem::TryConnect(const FString& Host, int32 Port)
+{
+	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
+
+	TSharedRef<FInternetAddr> Addr = SocketSubsystem->CreateInternetAddr();
+
+	bool bIsValid = false;
+	Addr->SetIp(*Host, bIsValid);
+
+	if (!bIsValid)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Network] Failed to resolve host: %s"), *Host);
+		return false;
+	}
+
+	Addr->SetPort(Port);
+
+	return Socket->Connect(*Addr);
+}
+
+void UNetworkGameInstanceSubsystem::HandleConnectFailed()
+{
+	UE_LOG(LogTemp, Error, TEXT("Failed to connect to server"));
+		
+	ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+	Socket = nullptr;
+	bIsConnected = false;
 }
 
 void UNetworkGameInstanceSubsystem::Handshaking()

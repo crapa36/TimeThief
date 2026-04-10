@@ -31,10 +31,16 @@ bool FClientConfigLoader::ParseClientConfig(const FString& JsonText, FClientConf
 	const TSharedPtr<FJsonObject>* NetworkObject = nullptr;
 	if (RootObject->TryGetObjectField(TEXT("network"), NetworkObject) && NetworkObject && NetworkObject->IsValid())
 	{
-		FString ServerIp;
-		if ((*NetworkObject)->TryGetStringField(TEXT("server_ip"), ServerIp))
+		FString ServerDNS;
+		if ((*NetworkObject)->TryGetStringField(TEXT("server_dns"), ServerDNS))
 		{
-			OutConfig.ServerIp = ServerIp;
+			OutConfig.ServerDNS = ServerDNS;
+		}
+		
+		FString ServerIp;
+		if ((*NetworkObject)->TryGetStringField(TEXT("fallback_ip"), ServerIp))
+		{
+			OutConfig.FallbackIp = ServerIp;
 		}
 		
 		int32 ServerPort;

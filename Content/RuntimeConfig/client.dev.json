@@ -1,6 +1,7 @@
 {
     "network": {
-        "server_ip": "127.0.0.1",
+        "server_dns": "timethiefserver.ddns.net",
+        "fallback_ip": "127.0.0.1",
         "server_port": 8252
     }
 }

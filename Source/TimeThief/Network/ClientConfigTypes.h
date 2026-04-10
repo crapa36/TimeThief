@@ -11,7 +11,10 @@ struct FClientConfig
 	
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	FString ServerIp = TEXT("127.0.0.1");
+	FString ServerDNS = TEXT("localhost");
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FString FallbackIp = TEXT("127.0.0.1");
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 ServerPort = 8252;
