@@ -31,7 +31,7 @@ public:
 	float WireResistance = 50.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
-	float MaxSwingSpeedMultiplier = 2.0f;
+	float MaxSwingSpeedMultiplier = 2.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Physics")
 	float VerticalDamping = 75000.0f;
