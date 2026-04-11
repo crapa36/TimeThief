@@ -15,6 +15,7 @@ class UStaticMesh;
 class UMaterialInterface;
 class APlayerCameraManager;
 class UCameraShakeBase;
+class USoundBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWire, Log, All);
 
@@ -146,6 +147,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay, ClampMin = "0.0", UIMin = "0.0"))
 	float PullAnchorHeightOffset = 300.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
+	TObjectPtr<USoundBase> FireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
+	TObjectPtr<USoundBase> AttachSound;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UStaticMesh> WireMeshTemplate;
 
@@ -212,9 +219,6 @@ private:
 
 	UPROPERTY()
 	FVector AnchorPoint = FVector::ZeroVector;
-
-	UPROPERTY()
-	FVector AnchorNormal = FVector::UpVector;
 
 	UPROPERTY()
 	FVector FireDirection = FVector::ZeroVector;
