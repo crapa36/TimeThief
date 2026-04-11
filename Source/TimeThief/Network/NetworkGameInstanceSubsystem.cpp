@@ -23,6 +23,7 @@
 #include "Protocol/ProtocolVersion.h"
 #include "State/RemoteAttackNotify.h"
 #include "Network/NetworkCombatSyncComponent.h"
+#include "State/NetworkActionTypes.h"
 
 namespace
 {
@@ -574,48 +575,51 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	ApplyEntityStateToActor(EntityId);
 }
 
-void UNetworkGameInstanceSubsystem::HandleJump(const se::game::N_Jump& pkt)
+void UNetworkGameInstanceSubsystem::HandleJump(const se::game::N_Jump& Pkt)
 {
-	const uint32 EntityId = pkt.entity_id().value();
-	if (ACharacter* Character = Cast<ACharacter>(GetOrSpawnEntityActor(EntityId)))
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
 	{
-		if (UCharacterMovementComponent* CMC = Character->GetCharacterMovement())
-		{
-			CMC->SetMovementMode(MOVE_Falling);
-		}
+		return;
+	}
+
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		return;
+	}
+
+	if (auto* NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
+	{
+		NMC->HandleActionEvent(FNetworkActionEvent{ ENetworkActionType::Jump, ENetworkActionPhase::Start });
 	}
 }
 
-void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& pkt)
+void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& Pkt)
 {
-	const uint32 EntityId = pkt.entity_id().value();
-	if (ACharacter* Character = Cast<ACharacter>(GetOrSpawnEntityActor(EntityId)))
-	{
-		if (UCharacterMovementComponent* CMC = Character->GetCharacterMovement())
-		{
-			const FEntityRuntimeEntry* Entry = EntityEntries.Find(EntityId);
-			const EMovementMode DesiredMode = Entry
-				? Entry->State.MovementMode
-				: MOVE_Walking;
+	check(IsInGameThread());
 
-			CMC->SetMovementMode(DesiredMode == MOVE_Falling ? MOVE_Walking : DesiredMode);
-		}
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		return;
+	}
+
+	if (auto* NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
+	{
+		NMC->HandleActionEvent(FNetworkActionEvent{ ENetworkActionType::Jump, ENetworkActionPhase::Land });
 	}
 }
 
-void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& pkt)
-{
-}
-
-void UNetworkGameInstanceSubsystem::HandleWireAction(const se::game::N_WireAction& pkt)
-{
-}
-
-void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireActionEnd& pkt)
-{
-}
-
-void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& pkt)
+void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& Pkt)
 {
 	check(IsInGameThread());
 	
@@ -624,11 +628,42 @@ void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& pkt)
 		return;
 	}
 	
-	const uint32 EntityId = pkt.entity_id().value();
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr)
+	{
+		return;
+	}
+	
+	if (auto NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
+	{
+		ENetworkActionPhase Phase = Pkt.is_crouching() ? ENetworkActionPhase::Start : ENetworkActionPhase::End;
+		NMC->HandleActionEvent(FNetworkActionEvent{ENetworkActionType::Crouch, Phase});
+	}
+}
+
+void UNetworkGameInstanceSubsystem::HandleWireAction(const se::game::N_WireAction& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireActionEnd& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
 	const FEntityRuntimeEntry* Entry = EntityEntries.Find(EntityId);
 	FRemoteAttackNotify Notify{};
 	Notify.AttackerEntityId = EntityId;
-	Notify.NotifyType = pkt.is_aiming()
+	Notify.NotifyType = Pkt.is_aiming()
 		? ECombatNotifyType::Aiming
 		: ECombatNotifyType::Readying;
 

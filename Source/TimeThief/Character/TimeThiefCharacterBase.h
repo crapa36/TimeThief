@@ -25,6 +25,17 @@ class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
 public:
 	ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
+	virtual void Save();
+	
+	UFUNCTION(BlueprintCallable)
+	virtual void OnDeath();
+	
+	UFUNCTION(BlueprintCallable)
+	virtual void OnBeginRespawn();
+	
+	UFUNCTION(BlueprintCallable)
+	virtual void OnEndRespawn();
+	
 	UFUNCTION(BlueprintCallable)
 	void SetMask(float NewMask);
 	
@@ -81,7 +92,14 @@ protected:
 	virtual void NotifyControllerChanged() override;
 	
 	virtual void ApplyPerspective();
-
+	
+public:
+	virtual void Tick(float DeltaTime) override;
+	
+	bool bIsDead = false;
+	bool bIsRespawn = true;
+	bool bPendingRespawn = false;
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")
 	TObjectPtr<UTimePointSystemComponent> TimePointSystemComponent;
@@ -98,8 +116,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "VFX")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
 	TObjectPtr<UNiagaraComponent> DisappearFX;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
+	TObjectPtr<UNiagaraComponent> DeadFX;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
+	TObjectPtr<UNiagaraComponent> SpawnFX;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
@@ -109,6 +133,10 @@ protected:
 	
 	float Mask = 1;
 	
+	UPROPERTY(EditAnywhere, Category = "VFX | Dissolve")
+	float InterpTime = 1;
+	
+	FVector SaveLocation;
 private:
 	void UpdateMask();
 };

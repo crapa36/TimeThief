@@ -5,11 +5,14 @@
 #include "NetworkMoveComponent.generated.h"
 
 
+enum class ENetworkActionPhase : uint8;
+struct FNetworkActionEvent;
 class IMovableNetworkEntityInterface;
 struct FMoveSyncData;
 struct FNetworkEntityState;
 class UNetworkEntityComponent;
 class UNetworkGameInstanceSubsystem;
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnRemoteAcitonNotify, const FNetworkActionEvent&);
 
 UCLASS(ClassGroup=(Network), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UNetworkMoveComponent : public UActorComponent
@@ -19,6 +22,9 @@ class TIMETHIEF_API UNetworkMoveComponent : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	UNetworkMoveComponent();
+	
+public:
+	FOnRemoteAcitonNotify OnRemoteActionNotify;
 
 protected:
 	// Called when the game starts
@@ -35,6 +41,14 @@ public:
 	void SetMovementUpdateInterval(float InInterval);
 	
 	FVector GetMoveStep() const { return MoveStep; }
+	
+public:
+	void HandleActionEvent(const FNetworkActionEvent& ActionEvent);
+	
+protected:
+	void ApplyActionEvent(const FNetworkActionEvent& ActionEvent);
+	void ApplyJumpAction(ENetworkActionPhase Phase);
+	void ApplyCrouchAction(ENetworkActionPhase Phase);	
 	
 public:
 	bool BuildMoveSyncData(FMoveSyncData& OutSyncData) const;

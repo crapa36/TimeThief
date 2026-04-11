@@ -317,6 +317,21 @@ bool Handle_N_JumpLand(PacketSessionRef& session, const se::game::N_JumpLand& pk
 	
 bool Handle_N_Crouch(PacketSessionRef& session, const se::game::N_Crouch& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleCrouch(pkt);
+			return true;
+		}
+	}
+	
 	return false;	
 }
 	

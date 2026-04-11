@@ -12,6 +12,7 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "State/NetworkActionTypes.h"
 
 
 class FTimeThiefMovementAccessor : public UCharacterMovementComponent
@@ -152,6 +153,69 @@ void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
 	
 	InterpDuration = InInterval;
 	SendMoveInterval = InInterval;
+}
+
+void UNetworkMoveComponent::HandleActionEvent(const FNetworkActionEvent& ActionEvent)
+{
+	// ApplyActionEvent(ActionEvent);	// NMC에서 CMC를 직접 다루기가 부담스럽다 Broadcast만 하자
+	OnRemoteActionNotify.Broadcast(ActionEvent);
+}
+
+void UNetworkMoveComponent::ApplyActionEvent(const FNetworkActionEvent& ActionEvent)
+{
+	switch (ActionEvent.ActionType)
+	{
+	case ENetworkActionType::Jump:
+		ApplyJumpAction(ActionEvent.Phase);
+		break;
+
+	case ENetworkActionType::Crouch:
+		ApplyCrouchAction(ActionEvent.Phase);
+		break;
+
+	default:
+		break;
+	}
+}
+
+void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
+{
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (!Character)
+	{
+		return;
+	}
+
+	UCharacterMovementComponent* CMC = Character->GetCharacterMovement();
+	if (!CMC)
+	{
+		return;
+	}
+
+	switch (Phase)
+	{
+	case ENetworkActionPhase::Start:
+		CMC->SetMovementMode(MOVE_Falling);
+		break;
+
+	case ENetworkActionPhase::Land:
+		{
+			EMovementMode DesiredMode = RecentMovementMode;
+			if (DesiredMode == MOVE_Falling || DesiredMode == MOVE_None)
+			{
+				DesiredMode = MOVE_Walking;
+			}
+			CMC->SetMovementMode(DesiredMode);
+			break;
+		}
+
+	default:
+		break;
+	}
+}
+
+void UNetworkMoveComponent::ApplyCrouchAction(ENetworkActionPhase Phase)
+{
 }
 
 bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const

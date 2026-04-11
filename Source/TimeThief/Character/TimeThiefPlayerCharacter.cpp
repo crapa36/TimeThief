@@ -377,6 +377,19 @@ void ATimeThiefPlayerCharacter::BeginPlay()
        WireComponent->OnWireStateChanged.AddDynamic(this, &ATimeThiefPlayerCharacter::OnWireStateChanged);
     }
     
+	GetWorldTimerManager().SetTimer(
+		InteractCheckTimerHandle,
+		this,
+		&ATimeThiefPlayerCharacter::CheckInteractableObject,
+		0.1f,
+		true
+	);
+	
+    if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+    {
+       MovementComp->MaxWalkSpeed = BaseMoveSpeed;
+       MovementComp->JumpZVelocity = BaseJumpVelocity;
+    }
 }
 
 void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)
@@ -485,17 +498,35 @@ void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController)
     }
 }
 
-void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor)
+void ATimeThiefPlayerCharacter::OnDeath()
 {
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-       DisableInput(PC);
-    }
+	Super::OnDeath();
+	
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(PC);
+	}
+	
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->DisableMovement();
+	}
+}
 
-    if (UCharacterMovementComponent* Movement = GetCharacterMovement())
-    {
-       Movement->DisableMovement();
-    }
+void ATimeThiefPlayerCharacter::OnBeginRespawn()
+{
+	Super::OnBeginRespawn();
+}
+
+void ATimeThiefPlayerCharacter::OnEndRespawn()
+{
+	Super::OnEndRespawn();
+	
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		EnableInput(PC);
+	}
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }
 
 void ATimeThiefPlayerCharacter::OnWireStateChanged(EWireState OldState, EWireState NewState)

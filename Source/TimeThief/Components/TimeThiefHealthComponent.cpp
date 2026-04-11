@@ -1,5 +1,6 @@
 ﻿#include "Components/TimeThiefHealthComponent.h"
 
+#include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerState.h"
 #include "GameFramework/Character.h"
 
@@ -8,6 +9,17 @@ UTimeThiefHealthComponent::UTimeThiefHealthComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 	MaxHealth = DefaultMaxHealth;
 	CurrentHealth = DefaultMaxHealth;
+}
+
+void UTimeThiefHealthComponent::OnEndRespawn()
+{
+	bIsDead = false;
+	if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Cast<ACharacter>(GetOwner())->GetPlayerState()))
+	{
+		MaxHealth = DefaultMaxHealth + PS->Status.Health * UpgradeAmount;
+		CurrentHealth = MaxHealth;
+		OnHealthChanged_Delegate.Broadcast(this, CurrentHealth, CurrentHealth, nullptr);
+	}
 }
 
 void UTimeThiefHealthComponent::BeginPlay()
@@ -94,5 +106,5 @@ void UTimeThiefHealthComponent::HandleDeath()
 	}
 
 	bIsDead = true;
-	OnDeath.Broadcast(GetOwner());
+	OnDeath.Broadcast();
 }

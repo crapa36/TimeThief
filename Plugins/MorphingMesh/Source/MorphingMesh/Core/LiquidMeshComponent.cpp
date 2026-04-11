@@ -52,7 +52,7 @@ void ULiquidMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                          FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (ParentComponent == nullptr || !ParentComponent->MorphingMeshData->IsValid())
+	if (ParentComponent == nullptr || !ParentComponent->bIsValid)
 	{
 		return;
 	}
@@ -81,8 +81,7 @@ FBoxSphereBounds ULiquidMeshComponent::CalcBounds(const FTransform& LocalToWorld
 
 FPrimitiveSceneProxy* ULiquidMeshComponent::CreateSceneProxy()
 {
-	// DensityTextures와 Bounds가 유효하고, 데이터가 있을 때만 프록시 생성
-	if (ParentComponent == nullptr || !ParentComponent->MorphingMeshData->IsValid())
+	if (ParentComponent == nullptr || !ParentComponent->bIsValid)
 	{
 		return nullptr;
 	}

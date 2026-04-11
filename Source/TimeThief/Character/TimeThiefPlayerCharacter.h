@@ -91,6 +91,13 @@ protected:
 	UFUNCTION()
 	void OnWireStateChanged(EWireState OldState, EWireState NewState);
 
+	
+	virtual void OnDeath() override;
+	
+	virtual void OnBeginRespawn() override;
+	
+	virtual void OnEndRespawn() override;
+	
 	void CheckInteractableObject();
 	
 protected:

@@ -54,6 +54,13 @@ void UMorphingMeshComponent::OnRegister()
 {
 	Super::OnRegister();
 	
+	if (MorphingMeshData == nullptr)
+	{
+		bIsSkeletalMesh = false;
+		bIsValid = false;
+		return;
+	}
+	
 	bIsSkeletalMesh = MorphingMeshData->IsSkeletalValid();
 	bIsValid = MorphingMeshData->IsValid();
 	
@@ -86,6 +93,10 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                            FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (MorphingMeshData == nullptr)
+	{
+		return;
+	}
 	if (ElapsedTime >= MorphingTime)
 	{
 		CurrAlpha = DestAlpha;
@@ -175,7 +186,12 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	{
 		return;
 	}
-
+	
+	if (MorphingMeshData == nullptr)
+	{
+		return;
+	}
+	
 	ElapsedTime = 0;
 	int Index = static_cast<int>(NewType);
 	DestAlpha = FVector3f::ZeroVector;
