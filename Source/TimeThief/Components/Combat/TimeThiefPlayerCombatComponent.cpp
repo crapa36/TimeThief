@@ -4,6 +4,7 @@
 #include "TimeThiefGameplayTags.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
+#include "Character/TimeThiefPlayerState.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
@@ -32,7 +33,6 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		WeaponToStateTagMap.Add(Tags.Weapon_Rifle, Tags.State_Combat_Rifle);
 		WeaponToStateTagMap.Add(Tags.Weapon_Shotgun, Tags.State_Combat_Shotgun);
 		WeaponToStateTagMap.Add(Tags.Weapon_RocketLauncher, Tags.State_Combat_RocketLauncher);
-		WeaponToStateTagMap.Add(Tags.Weapon_Pistol, Tags.State_Combat_Pistol);
 	}
 
 	if (InputToWeaponTagMap.Num() == 0)
@@ -201,10 +201,55 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 	Super::HandleInputReleased(InputTag);
 }
 
+void UTimeThiefPlayerCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
+{
+	Super::EquipWeapon(WeaponTag);
+	ApplyUpgradeStatsToActiveWeapon();
+}
+
+void UTimeThiefPlayerCombatComponent::ApplyUpgradeStatsToActiveWeapon()
+{
+	if (!MasterWeaponPtr)
+	{
+		return;
+	}
+
+	UTimeThiefWeaponComponentBase* CurrentWeaponComp = MasterWeaponPtr->GetActiveWeaponComponent();
+	if (!CurrentWeaponComp)
+	{
+		return;
+	}
+
+	const ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter)
+	{
+		return;
+	}
+
+	const ATimeThiefPlayerState* PS = OwningCharacter->GetPlayerState<ATimeThiefPlayerState>();
+	if (!PS)
+	{
+		return;
+	}
+
+	if (const FAppliedWeaponUpgradeStats* WeaponStats = PS->GetAppliedWeaponUpgradeStats(CurrentWeaponComp->GetWeaponTag()))
+	{
+		CurrentWeaponComp->SetDamageBonus(WeaponStats->DamageBonus);
+		CurrentWeaponComp->SetCapacityBonus(WeaponStats->CapacityBonusAmmo);
+		CurrentWeaponComp->SetRecoilReduction(WeaponStats->RecoilReduction);
+	}
+	else
+	{
+		CurrentWeaponComp->SetDamageBonus(0.0f);
+		CurrentWeaponComp->SetCapacityBonus(0);
+		CurrentWeaponComp->SetRecoilReduction(0.0f);
+	}
+}
+
 void UTimeThiefPlayerCombatComponent::OnEquipFinished()
 {
 	Super::OnEquipFinished();
-
+	ApplyUpgradeStatsToActiveWeapon();
 
 	if (bIsFireInputHeld && MasterWeaponPtr)
 	{
@@ -401,7 +446,6 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 		{
 			OwningCharacter->SetActorRotation(FRotator(0.0f, TargetRotation.Yaw, 0.0f));
 		}
-		
 	}
 }
 
@@ -499,4 +543,39 @@ void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 			CachedFirstPersonCamera->SetFieldOfView(NewFOV);
 		}
 	}
+}
+
+void UTimeThiefPlayerCombatComponent::SetMoveSpeedUpgradeBonus(float InMoveSpeedBonus)
+{
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter) return;
+
+	UCharacterMovementComponent* MC = OwningCharacter->GetCharacterMovement();
+	if (!MC) return;
+
+	float BaseSpeed = DefaultMaxWalkSpeed;
+	if (const ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(OwningCharacter))
+	{
+		BaseSpeed = PlayerChar->GetBaseMoveSpeed();
+	}
+	else if (BaseSpeed <= 0.0f)
+	{
+		BaseSpeed = MC->MaxWalkSpeed;
+	}
+
+	DefaultMaxWalkSpeed = BaseSpeed + InMoveSpeedBonus;
+
+	if (!bIsAiming)
+	{
+		MC->MaxWalkSpeed = DefaultMaxWalkSpeed;
+	}
+
+#if !UE_BUILD_SHIPPING
+	UE_LOG(LogTemp, Log, TEXT("[Combat][MoveSpeed] Base=%.2f Bonus=%.2f DefaultMaxWalkSpeed=%.2f AppliedMaxWalkSpeed=%.2f bIsAiming=%s"),
+		BaseSpeed,
+		InMoveSpeedBonus,
+		DefaultMaxWalkSpeed,
+		MC->MaxWalkSpeed,
+		bIsAiming ? TEXT("true") : TEXT("false"));
+#endif
 }

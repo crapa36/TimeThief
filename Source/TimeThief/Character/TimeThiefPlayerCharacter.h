@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "TimeThiefNetworkCharacterBase.h"
 #include "GameplayTagContainer.h"
+#include "DataAssets/UpgradeData.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
 class AInteractionActorBase;
@@ -55,6 +56,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Movement")
+	float GetBaseMoveSpeed() const { return BaseMoveSpeed; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Movement")
+	float GetBaseJumpVelocity() const { return BaseJumpVelocity; }
 	
 	void AddVicinityItem(AItemBase* Item);
 	void RemoveVicinityItem(AItemBase* Item);
@@ -118,6 +125,27 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly)
 	float LookingDistance = 50.f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Movement")
+	float BaseMoveSpeed = 600.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Movement")
+	float BaseJumpVelocity = 600.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TArray<float> MoveSpeedBonusPerLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TArray<float> JumpVelocityBonusPerLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TMap<FGameplayTag, FUpgradeFloatLevels> DamageBonusByWeaponAndLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TMap<FGameplayTag, FUpgradeIntLevels> CapacityBonusByWeaponAndLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TMap<FGameplayTag, FUpgradeFloatLevels> RecoilReductionByWeaponAndLevel;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Jump")
 	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;

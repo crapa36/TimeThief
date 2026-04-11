@@ -19,6 +19,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction) override;
+	virtual void EquipWeapon(FGameplayTag WeaponTag) override;
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
@@ -46,8 +47,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
 
+	void SetMoveSpeedUpgradeBonus(float InMoveSpeedBonus);
+
 protected:
 	virtual void OnEquipFinished() override;
+	void ApplyUpgradeStatsToActiveWeapon();
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TMap<FGameplayTag, FGameplayTag> InputToWeaponTagMap;

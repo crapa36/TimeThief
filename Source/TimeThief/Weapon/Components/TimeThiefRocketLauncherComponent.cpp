@@ -1,5 +1,4 @@
 ﻿#include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
-#include "Weapon/TimeThiefMasterWeapon.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -89,6 +88,12 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 
 	if (Projectile)
 	{
+		Projectile->SetDamageBonus(GetDamageBonus());
+
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Log, TEXT("[RocketLauncher][Fire] DamageBonus=%.2f RecoilReduction=%.3f"), GetDamageBonus(), GetRecoilReduction());
+#endif
+
 		Projectile->ActivateProjectile(SpawnTransform);
 		Projectile->InitializeProjectile(GetOwner() ? GetOwner()->GetOwner() : nullptr, Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr));
 		return true;
