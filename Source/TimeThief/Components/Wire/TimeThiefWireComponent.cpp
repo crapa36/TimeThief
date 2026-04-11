@@ -9,6 +9,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
+#include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY(LogWire);
 
@@ -190,10 +192,14 @@ void UTimeThiefWireComponent::FireWire()
 	}
 
 	AnchorPoint = WireStartLocation;
-	AnchorNormal = -FireDirection;
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
 	GroundCheckTimer = 0.0f;
+
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, WireStartLocation);
+	}
 
 	SetComponentTickEnabled(true);
 	SetWireState(EWireState::Firing);
@@ -268,10 +274,9 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 	if (WireTargeting && WireTargeting->CheckAnchorCollision(PreviousAnchorPoint, AnchorPoint, HitResult, GetOwner()))
 	{
 		AnchorPoint = HitResult.ImpactPoint;
-		AnchorNormal = HitResult.ImpactNormal;
 		AttachedWireLength = FVector::Dist(StartLocation, GetPullAnchorPoint());
 		
-		AttachedAnchorRotation = (-AnchorNormal).Rotation() + AnchorMeshRotationOffset;
+		AttachedAnchorRotation = FireDirection.Rotation() + AnchorMeshRotationOffset;
 		
 		SetWireState(EWireState::Attached);
 		OnWireAttached.Broadcast(AnchorPoint);
@@ -287,6 +292,11 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 void UTimeThiefWireComponent::OnAnchorAttached()
 {
 	if (!IsValid(CachedMovementComponent)) return;
+
+	if (AttachSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, AttachSound, AnchorPoint);
+	}
 
 	CachedAirControl = CachedMovementComponent->AirControl;
 	CachedMovementComponent->AirControl = AirControlOnWire;
