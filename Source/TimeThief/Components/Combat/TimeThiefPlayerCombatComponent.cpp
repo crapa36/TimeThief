@@ -340,8 +340,9 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 				if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
 				{
 					FRotator TargetRotation = AimDirection.Rotation();
+					const float ClampedTargetYaw = GetClampedYawFromCamera(OwningCharacter, TargetRotation.Yaw);
 					FRotator CurrentRotation = OwningCharacter->GetActorRotation();
-					FRotator NewRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.0f, TargetRotation.Yaw, 0.0f), DeltaTime, 20.0f);
+					FRotator NewRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.0f, ClampedTargetYaw, 0.0f), DeltaTime, 20.0f);
 
 					if (OwningCharacter->IsLocallyControlled())
 					{
@@ -441,12 +442,26 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 	if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
 	{
 		FRotator TargetRotation = AimDirection.Rotation();
+		const float ClampedTargetYaw = GetClampedYawFromCamera(OwningCharacter, TargetRotation.Yaw);
 		
 		if (OwningCharacter->IsLocallyControlled())
 		{
-			OwningCharacter->SetActorRotation(FRotator(0.0f, TargetRotation.Yaw, 0.0f));
+			OwningCharacter->SetActorRotation(FRotator(0.0f, ClampedTargetYaw, 0.0f));
 		}
 	}
+}
+
+float UTimeThiefPlayerCombatComponent::GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const
+{
+	if (const AController* OwnerController = OwningCharacter->GetController())
+	{
+		const float CameraYaw = OwnerController->GetControlRotation().Yaw;
+		const float DeltaYaw = FMath::FindDeltaAngleDegrees(CameraYaw, TargetYaw);
+		const float ClampedDeltaYaw = FMath::Clamp(DeltaYaw, -MaxYawOffsetFromCamera, MaxYawOffsetFromCamera);
+		return FRotator::NormalizeAxis(CameraYaw + ClampedDeltaYaw);
+	}
+
+	return TargetYaw;
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()

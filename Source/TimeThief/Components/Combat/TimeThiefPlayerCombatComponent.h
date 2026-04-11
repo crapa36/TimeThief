@@ -77,6 +77,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
 	float PostFireRotationDelay = 0.5f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
+	float MaxYawOffsetFromCamera = 45.0f;
+
 	bool bIsFireInputHeld = false;
 
 private:
@@ -90,6 +93,7 @@ private:
 
 	void UpdateWorldAimLocation();
 	void SnapRotationToAim();
+	float GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const;
 
 	float DefaultMaxWalkSpeed = 0.0f;
 	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
