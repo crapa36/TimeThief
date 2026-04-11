@@ -25,6 +25,7 @@ public:
 	void ActivateProjectile(const FTransform& SpawnTransform);
 	void DeactivateProjectile();
 	bool IsActive() const { return !bExploded; }
+	void SetDamageBonus(float InDamageBonus) { DamageBonus = FMath::Max(0.0f, InDamageBonus); }
 
 protected:
 	virtual void BeginPlay() override;
@@ -79,6 +80,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Damage")
 	float SelfDamageScale = 1.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Runtime")
+	float DamageBonus = 0.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Life", meta = (ClampMin = "0.1", UIMin = "0.1"))
 	float MaxLifeTime = 4.0f;
