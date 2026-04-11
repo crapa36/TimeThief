@@ -124,7 +124,7 @@ protected:
 	float WireCooldown = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float ArrivalDistance = 300.0f;
+	float ArrivalDistance = 350.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	FName WireStartSocketName = FName("WireSocket");
@@ -133,7 +133,7 @@ protected:
 	float WireLengthUpdateTolerance = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
-	float StuckSpeedThreshold = 30.0f;
+	float StuckSpeedThreshold = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
 	float StuckCheckDelay = 0.3f;
@@ -197,6 +197,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
 	float WireRotationMinSpeed = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
+	float WireRotationForceAngleThreshold = 90.0f;
 
 private:
 	UPROPERTY(Transient)

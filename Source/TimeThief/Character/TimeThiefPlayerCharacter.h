@@ -4,6 +4,7 @@
 #include "TimeThiefNetworkCharacterBase.h"
 #include "GameplayTagContainer.h"
 #include "DataAssets/UpgradeData.h"
+#include "Components/Wire/TimeThiefWireTypes.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
 class AInteractionActorBase;
@@ -87,6 +88,9 @@ protected:
 	UFUNCTION()
 	void OnDeath(AActor* OwningActor);
 
+	UFUNCTION()
+	void OnWireStateChanged(EWireState OldState, EWireState NewState);
+
 	void CheckInteractableObject();
 	
 protected:
@@ -126,6 +130,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	float LookingDistance = 50.f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Camera")
+	float DefaultCameraLagSpeed = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Camera")
+	float WireCameraLagSpeed = 8.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Movement")
 	float BaseMoveSpeed = 600.0f;
 
@@ -151,6 +161,7 @@ protected:
 	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;
 	
 	FTimerHandle InteractCheckTimerHandle;
+	float CachedCameraLagSpeed = 0.0f;
 	
 public:
 	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }

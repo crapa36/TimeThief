@@ -32,6 +32,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
     CameraBoom->TargetArmLength = 400.0f;
     CameraBoom->bUsePawnControlRotation = true;
     CameraBoom->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f));
+    CameraBoom->CameraLagSpeed = DefaultCameraLagSpeed;
 
     FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
     FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -344,6 +345,9 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
+    CameraBoom->bEnableCameraLag = true;
+    CachedCameraLagSpeed = CameraBoom->CameraLagSpeed;
+
     if (!PawnData && DefaultPawnData)
     {
        SetPawnData(DefaultPawnData);
@@ -367,6 +371,11 @@ void ATimeThiefPlayerCharacter::BeginPlay()
        0.1f,
        true
     );
+
+    if (WireComponent)
+    {
+       WireComponent->OnWireStateChanged.AddDynamic(this, &ATimeThiefPlayerCharacter::OnWireStateChanged);
+    }
     
 }
 
@@ -486,6 +495,22 @@ void ATimeThiefPlayerCharacter::OnDeath(AActor* OwningActor)
     if (UCharacterMovementComponent* Movement = GetCharacterMovement())
     {
        Movement->DisableMovement();
+    }
+}
+
+void ATimeThiefPlayerCharacter::OnWireStateChanged(EWireState OldState, EWireState NewState)
+{
+    if (NewState == EWireState::Attached)
+    {
+       CameraBoom->bEnableCameraLag = true;
+       CameraBoom->CameraLagSpeed = WireCameraLagSpeed;
+       return;
+    }
+
+    if (OldState == EWireState::Attached)
+    {
+       CameraBoom->bEnableCameraLag = true;
+       CameraBoom->CameraLagSpeed = CachedCameraLagSpeed;
     }
 }
 

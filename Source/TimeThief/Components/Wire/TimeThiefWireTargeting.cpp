@@ -1,5 +1,6 @@
 ﻿#include "Components/Wire/TimeThiefWireTargeting.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "Components/PrimitiveComponent.h"
 
@@ -17,105 +18,229 @@ void UTimeThiefWireTargeting::Initialize(ACharacter* InCharacter)
 bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, const FVector& StartLocation, const FVector& AimDirection, float MaxLength)
 {
 	if (!IsValid(CachedCharacter)) return false;
+	const FVector SafeAimDirection = AimDirection.GetSafeNormal();
+	if (SafeAimDirection.IsNearlyZero()) return false;
 
 	UWorld* World = CachedCharacter->GetWorld();
 	if (!World) return false;
+	APlayerController* PlayerController = Cast<APlayerController>(CachedCharacter->GetController());
+	if (!PlayerController) return false;
+	const FVector CharacterLocation = CachedCharacter->GetActorLocation();
 
-	const FVector EndLocation = StartLocation + AimDirection * MaxLength;
+	int32 ViewportX = 0;
+	int32 ViewportY = 0;
+	PlayerController->GetViewportSize(ViewportX, ViewportY);
+	if (ViewportX <= 0 || ViewportY <= 0) return false;
+
+	const FVector2D ScreenCenter(ViewportX * 0.5f, ViewportY * 0.5f);
+	const float ResolutionScale = FMath::Min(static_cast<float>(ViewportX), static_cast<float>(ViewportY)) / 1080.0f;
+	const float ScaledScreenRadiusPx = ScreenTargetingRadiusPx * FMath::Max(ResolutionScale, 0.1f);
+	const float MaxScreenDistanceSq = FMath::Square(ScaledScreenRadiusPx);
+	const float MinDistanceSq = FMath::Square(MinTargetDistance);
+	const float MaxDistanceSq = FMath::Square(MaxLength);
 
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(CachedCharacter);
+	const FCollisionObjectQueryParams ObjectQueryParams(CollisionObjectTypes);
 
-	TArray<FHitResult> Candidates;
-
-	FHitResult LineHit;
-	if (World->LineTraceSingleByObjectType(LineHit, StartLocation, EndLocation, FCollisionObjectQueryParams(CollisionObjectTypes), QueryParams))
+	struct FScreenCandidate
 	{
-		Candidates.Add(LineHit);
+		FVector TargetLocation = FVector::ZeroVector;
+		TWeakObjectPtr<UPrimitiveComponent> Component;
+		TWeakObjectPtr<AActor> Actor;
+		float DistanceToAimSq = FLT_MAX;
+		float ScreenDistanceSq = FLT_MAX;
+		bool bIsCenter = false;
+	};
+
+	TArray<FScreenCandidate> LedgeCandidates;
+	TArray<FScreenCandidate> SurfaceCandidates;
+	LedgeCandidates.Reserve(8);
+	SurfaceCandidates.Reserve(16);
+	
+	const float PixelStep = FMath::Max(1.0f, ScreenSamplePixelStep);
+	const int32 NumPitchSteps = FMath::Max(1, FMath::CeilToInt(ScaledScreenRadiusPx / PixelStep));
+	const int32 NumYawSteps = FMath::Max(1, FMath::CeilToInt(ScaledScreenRadiusPx / PixelStep));
+
+	for (int32 PitchStep = -NumPitchSteps; PitchStep <= NumPitchSteps; ++PitchStep)
+	{
+		for (int32 YawStep = -NumYawSteps; YawStep <= NumYawSteps; ++YawStep)
+		{
+			const bool bIsCenter = PitchStep == 0 && YawStep == 0;
+			const float SampleOffsetX = YawStep * PixelStep;
+			const float SampleOffsetY = PitchStep * PixelStep;
+			const float SampleRadiusSq = FMath::Square(SampleOffsetX) + FMath::Square(SampleOffsetY);
+			if (SampleRadiusSq > MaxScreenDistanceSq)
+			{
+				continue;
+			}
+
+			const float SampleScreenX = ScreenCenter.X + SampleOffsetX;
+			const float SampleScreenY = ScreenCenter.Y + SampleOffsetY;
+
+			FVector RayWorldOrigin;
+			FVector RayWorldDirection;
+			if (!PlayerController->DeprojectScreenPositionToWorld(SampleScreenX, SampleScreenY, RayWorldOrigin, RayWorldDirection))
+			{
+				continue;
+			}
+
+			const FVector SampleDir = RayWorldDirection.GetSafeNormal();
+			if (SampleDir.IsNearlyZero())
+			{
+				continue;
+			}
+
+			const FVector TraceStart = RayWorldOrigin;
+			const FVector TraceEnd = TraceStart + SampleDir * MaxLength;
+
+			FHitResult Hit;
+			if (!World->LineTraceSingleByObjectType(
+				Hit,
+				TraceStart,
+				TraceEnd,
+				ObjectQueryParams,
+				QueryParams
+			))
+			{
+				continue;
+			}
+
+			UPrimitiveComponent* HitComponent = Hit.GetComponent();
+			if (!IsValid(HitComponent))
+			{
+				continue;
+			}
+
+			if (HitComponent->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Overlap)
+			{
+				continue;
+			}
+
+			const FVector ImpactPoint = Hit.ImpactPoint;
+			const float DistanceToPlayerSq = FVector::DistSquared(CharacterLocation, ImpactPoint);
+			if (DistanceToPlayerSq < MinDistanceSq || DistanceToPlayerSq > MaxDistanceSq)
+			{
+				continue;
+			}
+
+			FVector2D CandidateScreenPosition;
+			if (!PlayerController->ProjectWorldLocationToScreen(ImpactPoint, CandidateScreenPosition))
+			{
+				continue;
+			}
+
+			const float ScreenDistanceSq = FVector2D::DistSquared(CandidateScreenPosition, ScreenCenter);
+			if (ScreenDistanceSq > MaxScreenDistanceSq)
+			{
+				continue;
+			}
+
+			const float DistanceToAimLine = FMath::PointDistToLine(ImpactPoint, SafeAimDirection, StartLocation);
+			const float DistanceToAimSq = FMath::Square(DistanceToAimLine);
+
+			const FVector HorizontalNormal = FVector(Hit.ImpactNormal.X, Hit.ImpactNormal.Y, 0.0f).GetSafeNormal();
+			const FVector AbsHorizontalNormal = HorizontalNormal.GetAbs();
+			const FVector Extent = HitComponent->Bounds.BoxExtent;
+			const float ThicknessAlongNormal = (Extent.X * AbsHorizontalNormal.X) + (Extent.Y * AbsHorizontalNormal.Y);
+			const float ProbeDistance = FMath::Clamp(ThicknessAlongNormal * ProbeDistanceScale, ProbeDistanceMin, ProbeDistanceMax);
+			const FVector LedgeCheckStart = ImpactPoint + (HorizontalNormal * -ProbeDistance) + FVector(0.0f, 0.0f, LedgeCheckHeight * 0.5f);
+			const FVector LedgeCheckEnd = LedgeCheckStart - FVector(0.0f, 0.0f, LedgeCheckHeight);
+
+			FHitResult LedgeHit;
+			const bool bIsLedge = World->LineTraceSingleByObjectType(
+				LedgeHit,
+				LedgeCheckStart,
+				LedgeCheckEnd,
+				ObjectQueryParams,
+				QueryParams
+			) && LedgeHit.ImpactNormal.Z >= LedgeMinNormalZ && (LedgeHit.ImpactPoint.Z > ImpactPoint.Z + LedgeMinHeightDelta);
+
+			FScreenCandidate Candidate;
+			Candidate.TargetLocation = bIsLedge ? FVector(LedgeHit.ImpactPoint.X, LedgeHit.ImpactPoint.Y, ImpactPoint.Z + 5.0f) : ImpactPoint;
+			Candidate.Component = HitComponent;
+			Candidate.Actor = Hit.GetActor();
+			Candidate.DistanceToAimSq = DistanceToAimSq;
+			Candidate.ScreenDistanceSq = ScreenDistanceSq;
+			Candidate.bIsCenter = bIsCenter;
+
+			if (bIsLedge)
+			{
+				LedgeCandidates.Add(Candidate);
+			}
+			else
+			{
+				SurfaceCandidates.Add(Candidate);
+			}
+		}
 	}
 
-	TArray<FHitResult> SweepHits;
-	World->SweepMultiByObjectType(
-		SweepHits, StartLocation, EndLocation, FQuat::Identity,
-		FCollisionObjectQueryParams(CollisionObjectTypes),
-		FCollisionShape::MakeSphere(AutoAimRadius),
-		QueryParams
-	);
-	
-	Candidates.Append(SweepHits);
+	const TArray<FScreenCandidate>& ActiveCandidates = !LedgeCandidates.IsEmpty() ? LedgeCandidates : SurfaceCandidates;
 
-	if (Candidates.IsEmpty()) return false;
-
-	float BestLedgeDistanceSq = FLT_MAX;
-	float BestSurfaceDistanceSq = FLT_MAX;
-	FVector BestLedgeLocation = FVector::ZeroVector;
-	FVector BestSurfaceLocation = FVector::ZeroVector;
-	bool bFoundLedgeCandidate = false;
-	bool bFoundSurfaceCandidate = false;
-
-	for (const FHitResult& Hit : Candidates)
+	if (ActiveCandidates.IsEmpty())
 	{
-		if (Hit.Component.IsValid() && Hit.Component->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Overlap)
+		return false;
+	}
+
+	int32 BestCandidateIndex = INDEX_NONE;
+	for (int32 CandidateIndex = 0; CandidateIndex < ActiveCandidates.Num(); ++CandidateIndex)
+	{
+		const FScreenCandidate& Candidate = ActiveCandidates[CandidateIndex];
+		if (BestCandidateIndex == INDEX_NONE)
 		{
+			BestCandidateIndex = CandidateIndex;
 			continue;
 		}
 
-		float DistanceToPlayer = FVector::Dist(StartLocation, Hit.ImpactPoint);
-		if (DistanceToPlayer < MinTargetDistance) continue;
-
-		if (!bAllowFloorAttachment && Hit.ImpactNormal.Z >= 0.7f) continue;
-
-		bool bIsLedge = false;
-		const FVector LedgeCheckStart = Hit.ImpactPoint + FVector(0, 0, LedgeCheckHeight);
-		const FVector LedgeCheckEnd = LedgeCheckStart + (Hit.ImpactNormal * -20.0f);
-		
-		FHitResult LedgeHit;
-		bool bLedgeBlocked = World->LineTraceSingleByObjectType(
-			LedgeHit, LedgeCheckStart, LedgeCheckEnd,
-			FCollisionObjectQueryParams(CollisionObjectTypes),
-			QueryParams
-		);
-
-		if (!bLedgeBlocked)
+		const FScreenCandidate& BestCandidate = ActiveCandidates[BestCandidateIndex];
+		if (Candidate.DistanceToAimSq < BestCandidate.DistanceToAimSq)
 		{
-			bIsLedge = true;
+			BestCandidateIndex = CandidateIndex;
+			continue;
 		}
-
-		const FVector CandidateLocation = bIsLedge ? Hit.ImpactPoint + FVector(0, 0, 5.0f) : FVector(Hit.ImpactPoint);
-		const float DistanceToAimLine = FMath::PointDistToLine(CandidateLocation, AimDirection, StartLocation);
-		const float DistanceToAimSq = FMath::Square(DistanceToAimLine);
-
-		if (bIsLedge)
+		if (FMath::IsNearlyEqual(Candidate.DistanceToAimSq, BestCandidate.DistanceToAimSq) && Candidate.ScreenDistanceSq < BestCandidate.ScreenDistanceSq)
 		{
-			if (!bFoundLedgeCandidate || DistanceToAimSq < BestLedgeDistanceSq)
-			{
-				BestLedgeDistanceSq = DistanceToAimSq;
-				BestLedgeLocation = CandidateLocation;
-				bFoundLedgeCandidate = true;
-			}
+			BestCandidateIndex = CandidateIndex;
+			continue;
 		}
-		else if (!bFoundSurfaceCandidate || DistanceToAimSq < BestSurfaceDistanceSq)
+		if (FMath::IsNearlyEqual(Candidate.DistanceToAimSq, BestCandidate.DistanceToAimSq)
+			&& FMath::IsNearlyEqual(Candidate.ScreenDistanceSq, BestCandidate.ScreenDistanceSq)
+			&& Candidate.bIsCenter && !BestCandidate.bIsCenter)
 		{
-			BestSurfaceDistanceSq = DistanceToAimSq;
-			BestSurfaceLocation = CandidateLocation;
-			bFoundSurfaceCandidate = true;
+			BestCandidateIndex = CandidateIndex;
 		}
 	}
 
-	if (bFoundLedgeCandidate)
+	if (BestCandidateIndex == INDEX_NONE)
 	{
-		OutTargetLocation = BestLedgeLocation;
+		return false;
+	}
+
+	const FScreenCandidate& BestCandidate = ActiveCandidates[BestCandidateIndex];
+	FHitResult ScreenValidatedHit;
+	const bool bHasBlockingHit = World->LineTraceSingleByObjectType(
+		ScreenValidatedHit,
+		StartLocation,
+		BestCandidate.TargetLocation,
+		ObjectQueryParams,
+		QueryParams
+	);
+
+	if (!bHasBlockingHit)
+	{
+		return false;
+	}
+
+	if (ScreenValidatedHit.Component == BestCandidate.Component || ScreenValidatedHit.GetActor() == BestCandidate.Actor)
+	{
+		OutTargetLocation = BestCandidate.TargetLocation;
 		return true;
 	}
 
-	if (bFoundSurfaceCandidate)
-	{
-		OutTargetLocation = BestSurfaceLocation;
-		return true;
-	}
 
 	return false;
 }
+
 
 bool UTimeThiefWireTargeting::CheckAnchorCollision(const FVector& Start, const FVector& End, FHitResult& OutHit, AActor* IgnoredActor)
 {

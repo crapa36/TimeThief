@@ -471,6 +471,11 @@ bool UTimeThiefWireComponent::IsFacingAwayFromWire() const
 
 FVector UTimeThiefWireComponent::GetPullAnchorPoint() const
 {
+	if (IsValid(CachedCharacter) && CachedCharacter->GetActorLocation().Z > AnchorPoint.Z)
+	{
+		return AnchorPoint;
+	}
+
 	return AnchorPoint + FVector(0.0f, 0.0f, PullAnchorHeightOffset);
 }
 
@@ -653,17 +658,30 @@ void UTimeThiefWireComponent::UpdateWireRotation(float DeltaTime)
 	if (!bOrientToVelocityOnWire) return;
 	if (!IsValid(CachedCharacter) || !IsValid(CachedMovementComponent)) return;
 
+	const FVector WireVector = GetPullAnchorPoint() - GetWireStartLocation();
+	const FVector LateralWireDirection(WireVector.X, WireVector.Y, 0.0f);
+	if (LateralWireDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const float CurrentYaw = CachedCharacter->GetActorRotation().Yaw;
+	const float WireYaw = LateralWireDirection.GetSafeNormal().Rotation().Yaw;
+	const float WireAngleDelta = FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentYaw, WireYaw));
+	const bool bForceRotateToWire = WireAngleDelta > WireRotationForceAngleThreshold;
+
 	const FVector Velocity = CachedMovementComponent->Velocity;
 	const FVector LateralVelocity = FVector(Velocity.X, Velocity.Y, 0.0f);
 	const float LateralSpeed = LateralVelocity.Size();
 
-	if (LateralSpeed < WireRotationMinSpeed)
+	if (!bForceRotateToWire && LateralSpeed < WireRotationMinSpeed)
 	{
 		return;
 	}
 
 	const FRotator CurrentRotation = CachedCharacter->GetActorRotation();
-	const FRotator TargetRotation = FRotator(0.0f, LateralVelocity.Rotation().Yaw, 0.0f);
+	const float TargetYaw = bForceRotateToWire ? WireYaw : LateralVelocity.Rotation().Yaw;
+	const FRotator TargetRotation = FRotator(0.0f, TargetYaw, 0.0f);
 
 	const FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, WireRotationInterpSpeed);
 	CachedCharacter->SetActorRotation(FRotator(CurrentRotation.Pitch, NewRotation.Yaw, CurrentRotation.Roll));
