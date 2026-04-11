@@ -85,8 +85,6 @@ protected:
 
 	void OnPawnDataSet();
 
-	UFUNCTION()
-	void OnDeath(AActor* OwningActor);
 
 	UFUNCTION()
 	void OnWireStateChanged(EWireState OldState, EWireState NewState);
