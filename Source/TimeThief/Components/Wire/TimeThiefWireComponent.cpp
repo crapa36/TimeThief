@@ -45,7 +45,7 @@ void UTimeThiefWireComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CachedCharacter = GetPawn<ACharacter>();
+	CachedCharacter = Cast<ACharacter>(GetOwner());
 	if (IsValid(CachedCharacter))
 	{
 		CachedMovementComponent = CachedCharacter->GetCharacterMovement();
@@ -61,7 +61,15 @@ void UTimeThiefWireComponent::BeginPlay()
 
 		if (WireMeshComponent)
 		{
-			WireMeshComponent->AttachToComponent(CachedCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
+			USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh();
+			if (Mesh && Mesh->DoesSocketExist(WireStartSocketName))
+			{
+				WireMeshComponent->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
+			}
+			else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
+			{
+				WireMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+			}
 			
 			if (WireMeshTemplate)
 			{
@@ -76,7 +84,14 @@ void UTimeThiefWireComponent::BeginPlay()
 
 		if (AnchorMeshComponent)
 		{
-			AnchorMeshComponent->AttachToComponent(CachedCharacter->GetMesh(), FAttachmentTransformRules::KeepWorldTransform);
+			if (USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh())
+			{
+				AnchorMeshComponent->AttachToComponent(Mesh, FAttachmentTransformRules::KeepWorldTransform);
+			}
+			else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
+			{
+				AnchorMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+			}
 			
 			if (AnchorMeshTemplate)
 			{
@@ -110,6 +125,20 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	const bool bIsLocallyControlled = IsValid(CachedCharacter) && CachedCharacter->IsLocallyControlled();
+	if (!bIsLocallyControlled)
+	{
+		if (CurrentState == EWireState::Attached)
+		{
+			UpdateWireVisuals();
+		}
+		else if (CurrentState == EWireState::Idle)
+		{
+			SetComponentTickEnabled(false);
+		}
+		return;
+	}
+
 	UpdateCooldown(DeltaTime);
 
 	switch (CurrentState)
@@ -133,6 +162,43 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		SetComponentTickEnabled(false);
 	}
+}
+
+void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
+{
+	AnchorPoint = RemoteAnchorPoint;
+	AttachedWireLength = FVector::Dist(GetWireStartLocation(), GetPullAnchorPoint());
+	AttachedAnchorRotation = (GetPullAnchorPoint() - GetWireStartLocation()).GetSafeNormal().Rotation() + AnchorMeshRotationOffset;
+
+	if (CurrentState != EWireState::Attached)
+	{
+		const EWireState OldState = CurrentState;
+		CurrentState = EWireState::Attached;
+		OnWireStateChanged.Broadcast(OldState, CurrentState);
+	}
+
+	OnWireAttached.Broadcast(AnchorPoint);
+	SetComponentTickEnabled(true);
+	UpdateWireVisuals();
+}
+
+void UTimeThiefWireComponent::SimulateDetach()
+{
+	if (CurrentState == EWireState::Idle)
+	{
+		return;
+	}
+
+	const EWireState OldState = CurrentState;
+	CurrentState = EWireState::Idle;
+	OnWireStateChanged.Broadcast(OldState, CurrentState);
+
+	AnchorPoint = FVector::ZeroVector;
+	FireDirection = FVector::ZeroVector;
+	CurrentFireDistance = 0.0f;
+	AttachedWireLength = 0.0f;
+	UpdateWireVisuals();
+	SetComponentTickEnabled(false);
 }
 
 bool UTimeThiefWireComponent::ShouldTickComponent() const

@@ -17,6 +17,7 @@ class UTimeThiefHeroComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
+class UNetworkWireComponent;
 class UNiagaraSystem;
 
 DECLARE_MULTICAST_DELEGATE(FOnVicinityItemUpdatedEvent);
@@ -119,6 +120,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wire")
 	TObjectPtr<UTimeThiefWireComponent> WireComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wire")
+	TObjectPtr<UNetworkWireComponent> NetworkWireComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UInventorySystemComponent> InventoryComponent;

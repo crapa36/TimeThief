@@ -17,6 +17,7 @@
 #include "Components/System/TimePointSystemComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "Network/NetworkWireComponent.h"
 #include "Game/ItemSettings.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Animation/TimeThiefAnimInstance.h"
@@ -41,6 +42,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
     HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
     PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
     WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
+      NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
     InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
 
     CharacterTrajectoryComponent = CreateDefaultSubobject<UTimeThiefTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));

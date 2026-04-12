@@ -11,7 +11,7 @@ static constexpr int32 HistoryCleanupThreshold = 20;
 
 static FORCEINLINE FVector ConvertToTrajectoryLocalSpace(const FVector& V)
 {
-	return FVector(V.Y, -V.X, V.Z);
+	return FVector(-V.Y, V.X, V.Z);
 }
 
 FRemoteTrajectoryHistory::FRemoteTrajectoryHistory(double InMaxHistorySeconds)

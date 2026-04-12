@@ -337,12 +337,72 @@ bool Handle_N_Crouch(PacketSessionRef& session, const se::game::N_Crouch& pkt)
 	
 bool Handle_N_WireAction(PacketSessionRef& session, const se::game::N_WireAction& pkt)
 {
-	return false;	
+	if (!session)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireAction] session is null"));
+		return false;
+	}
+
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireAction] invalid entity_id"));
+		return false;
+	}
+
+	if (!pkt.has_anchor_point())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireAction] missing anchor_point entity=%u"), pkt.entity_id().value());
+		return false;
+	}
+
+	const auto& Anchor = pkt.anchor_point();
+	UE_LOG(LogTemp, Log,
+		TEXT("[WirePkt][Stage=Recv][N_WireAction] EntityId=%u Anchor=(%.1f, %.1f, %.1f)"),
+		pkt.entity_id().value(),
+		Anchor.x(),
+		Anchor.y(),
+		Anchor.z());
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleWireAction(pkt);
+			return true;
+		}
+	}
+
+	return false;
 }
 	
 bool Handle_N_WireActionEnd(PacketSessionRef& session, const se::game::N_WireActionEnd& pkt)
 {
-	return false;	
+	if (!session)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireActionEnd] session is null"));
+		return false;
+	}
+
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireActionEnd] invalid entity_id"));
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[WirePkt][Stage=Recv][N_WireActionEnd] EntityId=%u"),
+		pkt.entity_id().value());
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleWireActionEnd(pkt);
+			return true;
+		}
+	}
+
+	return false;
 }
 	
 bool Handle_N_Aim(PacketSessionRef& session, const se::game::N_Aim& pkt)

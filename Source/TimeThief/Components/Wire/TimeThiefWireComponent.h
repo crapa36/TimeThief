@@ -39,6 +39,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	void Jump();
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire|Network")
+	void SimulateAttach(const FVector& RemoteAnchorPoint);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire|Network")
+	void SimulateDetach();
+
 	void HandleInputPressed(FGameplayTag InputTag);
 	void SetMoveInput(const FVector2D& Input) { MoveInput = Input; }
 
