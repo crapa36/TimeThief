@@ -211,17 +211,12 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 	const FVector CurrentPos = NetChar->GetNetworkLocation();
 	const float CurrentYaw = NetChar->GetNetworkYaw();
 
-	FVector WorldPlanarVel = NetChar->GetMoveStep();
-	WorldPlanarVel.Z = 0.f;
 	const FVector2D NetworkVelocity2D = NetChar->GetNetworkVelocity2D();
 	const FVector NetworkPlanarVel(NetworkVelocity2D.X, NetworkVelocity2D.Y, 0.0f);
+	FVector WorldPlanarVel = NetworkPlanarVel;
+	const UCharacterMovementComponent* CMC = NetChar->GetCharacterMovement();
 
-	if (NetworkPlanarVel.SizeSquared() > FMath::Square(4.0f) && WorldPlanarVel.SizeSquared() < FMath::Square(1.0f))
-	{
-		WorldPlanarVel = NetworkPlanarVel;
-	}
-
-	if (NetworkPlanarVel.SizeSquared() < FMath::Square(4.0f) && WorldPlanarVel.SizeSquared() < FMath::Square(100.0f))
+	if (NetworkPlanarVel.SizeSquared() < FMath::Square(4.0f))
 	{
 		WorldPlanarVel = FVector::ZeroVector;
 	}
@@ -331,7 +326,7 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 	}
 
 	float MaxYawRateDeg = 360.0f;
-	if (UCharacterMovementComponent* CMC = NetChar->GetCharacterMovement())
+	if (CMC)
 	{
 		MaxYawRateDeg = CMC->RotationRate.Yaw;
 	}

@@ -376,6 +376,20 @@ void ATimeThiefPlayerCharacter::BeginPlay()
     {
        WireComponent->OnWireStateChanged.AddDynamic(this, &ATimeThiefPlayerCharacter::OnWireStateChanged);
     }
+
+	GetWorldTimerManager().SetTimer(
+		InteractCheckTimerHandle,
+		this,
+		&ATimeThiefPlayerCharacter::CheckInteractableObject,
+		0.1f,
+		true
+	);
+
+    if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
+    {
+       MovementComp->MaxWalkSpeed = BaseMoveSpeed;
+       MovementComp->JumpZVelocity = BaseJumpVelocity;
+    }
 }
 
 void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)

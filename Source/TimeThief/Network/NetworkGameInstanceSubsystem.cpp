@@ -561,6 +561,11 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	{
 		return;
 	}
+
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
 	
 	FNetworkEntityState& EntityState = EntityEntry->State;
 	const auto& Movement = Pkt.movement();
@@ -591,6 +596,11 @@ void UNetworkGameInstanceSubsystem::HandleJump(const se::game::N_Jump& Pkt)
 		return;
 	}
 
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
+
 	if (auto* NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
 	{
 		NMC->HandleActionEvent(FNetworkActionEvent{ ENetworkActionType::Jump, ENetworkActionPhase::Start });
@@ -613,6 +623,11 @@ void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& P
 		return;
 	}
 
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
+
 	if (auto* NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
 	{
 		NMC->HandleActionEvent(FNetworkActionEvent{ ENetworkActionType::Jump, ENetworkActionPhase::Land });
@@ -631,6 +646,11 @@ void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& Pkt)
 	const uint32 EntityId = Pkt.entity_id().value();
 	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
 	if (EntityEntry == nullptr)
+	{
+		return;
+	}
+
+	if (IsLocalPlayerEntity(EntityId))
 	{
 		return;
 	}
