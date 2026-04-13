@@ -5,6 +5,7 @@
 #include "MorphingMeshData.h"
 #include "Core/LiquidMeshComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 // Sets default values for this component's properties
@@ -61,6 +62,10 @@ void UMorphingMeshComponent::OnRegister()
 		return;
 	}
 	
+	if (MorphingMeshData->Material)
+	{
+		LiquidMaterial = MorphingMeshData->Material;
+	}
 	bIsSkeletalMesh = MorphingMeshData->IsSkeletalValid();
 	bIsValid = MorphingMeshData->IsValid();
 	
@@ -141,7 +146,6 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				BaseSkeletalMeshComponent->EmptyOverrideMaterials();
 				BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[GetActiveSkeletalIndex()]);
 				BaseSkeletalMeshComponent->SetAnimInstanceClass(MorphingMeshData->AnimInstances[GetActiveSkeletalIndex()]);
-				UE_LOG(LogTemp, Warning, TEXT("SkeletalMesh %s"), *MorphingMeshData->SkeletalMeshes[GetActiveSkeletalIndex()]->GetName());
 			}
 			else
 			{
@@ -158,6 +162,11 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 int UMorphingMeshComponent::GetActiveSkeletalIndex() const
 {
 	if (CurrAlpha == FVector3f::ZeroVector)
+	{
+		return -1;
+	}
+	
+	if (!bIsSkeletalMesh)
 	{
 		return -1;
 	}
