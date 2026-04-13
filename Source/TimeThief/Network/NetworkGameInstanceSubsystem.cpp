@@ -817,15 +817,15 @@ void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlaye
 {
 }
 
-void UNetworkGameInstanceSubsystem::Handle_S_ReloadRes(const se::game::S_ReloadRes& pkt)
+void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes& pkt)
 {
 }
 
-void UNetworkGameInstanceSubsystem::Handle_N_EntityHit(const se::game::N_EntityHit& pkt)
+void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit& pkt)
 {
 }
 
-void UNetworkGameInstanceSubsystem::Handle_N_ProjectileMove(const se::game::N_ProjectileMove& pkt)
+void UNetworkGameInstanceSubsystem::HandleProjectileMove(const se::game::N_ProjectileMove& pkt)
 {
 }
 

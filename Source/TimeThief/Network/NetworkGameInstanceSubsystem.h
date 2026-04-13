@@ -107,9 +107,9 @@ public:
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
 	void HandleUseAbility(const se::game::N_UseAbility& Pkt);
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
-	void Handle_S_ReloadRes(const se::game::S_ReloadRes& pkt);
-	void Handle_N_EntityHit(const se::game::N_EntityHit& pkt);
-	void Handle_N_ProjectileMove(const se::game::N_ProjectileMove& pkt);
+	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
+	void HandleEntityHit(const se::game::N_EntityHit& pkt);
+	void HandleProjectileMove(const se::game::N_ProjectileMove& pkt);
 	void HandleUseItem(const se::game::N_UseItem& Pkt);
 	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
 	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);
