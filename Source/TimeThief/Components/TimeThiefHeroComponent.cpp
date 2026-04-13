@@ -94,7 +94,8 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this, &ThisClass::Input_ToggleMinimap);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Interact, ETriggerEvent::Started, this, &ThisClass::Input_Interact);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Inventory, ETriggerEvent::Started, this, &ThisClass::Input_ToggleInventory);
-
+	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Started, this, &ThisClass::Input_WheelMenu);
+	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Completed, this, &ThisClass::Input_WheelMenu);
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
@@ -196,6 +197,17 @@ void UTimeThiefHeroComponent::Input_ToggleInventory(const FInputActionValue& Val
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 	{
 		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController())) PC->ToggleWidget(EWidgetType::Inventory);
+	}
+}
+
+void UTimeThiefHeroComponent::Input_WheelMenu(const FInputActionValue& Value)
+{
+	if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (auto PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
+		{
+			PC->SetVisibilityWidget(EWidgetType::WheelMenu, Value.Get<bool>());
+		}
 	}
 }
 

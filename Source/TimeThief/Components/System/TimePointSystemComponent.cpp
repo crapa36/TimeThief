@@ -35,7 +35,7 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
                                               FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	
+
 	if (const ATimeThiefGameState* GameState = GetWorld()->GetGameState<ATimeThiefGameState>())
 	{
 		if (const UTimeStormComponent* TimeStormComponent= GameState->TimeStormComponent)
@@ -73,6 +73,23 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	{
 		OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
 	}
+}
+
+void UTimePointSystemComponent::OnEndRespawn()
+{
+	ILifeObserver::OnEndRespawn();
+	
+	SetActive(true);
+}
+
+void UTimePointSystemComponent::OnDeath()
+{
+	ILifeObserver::OnDeath();
+	
+	DamagedElapsedTime = 0;
+	RecoveredElapsedTime = 0;
+	
+	SetActive(false);
 }
 
 bool UTimePointSystemComponent::ModifyTimePoints(int Value)

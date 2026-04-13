@@ -167,6 +167,9 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 
 void ATimeThiefRocketProjectile::ApplyExplosionDamage()
 {
+	const float FinalMaxDamage = MaxDamage + DamageBonus;
+	const float FinalMinDamage = MinDamage + DamageBonus;
+
 	AController* InstigatorController = nullptr;
 	if (APawn* InstigatorPawn = CachedInstigatorPawn.Get())
 	{
@@ -183,8 +186,8 @@ void ATimeThiefRocketProjectile::ApplyExplosionDamage()
 
 	UGameplayStatics::ApplyRadialDamageWithFalloff(
 		this,
-		MaxDamage,
-		MinDamage,
+		FinalMaxDamage,
+		FinalMinDamage,
 		GetActorLocation(),
 		DamageInnerRadius,
 		ExplosionRadius,
@@ -202,12 +205,12 @@ void ATimeThiefRocketProjectile::ApplyExplosionDamage()
 		const float DistanceToOwner = FVector::Distance(GetActorLocation(), OwnerActor->GetActorLocation());
 		if (DistanceToOwner <= ExplosionRadius)
 		{
-			float OwnerDamage = MaxDamage;
+			float OwnerDamage = FinalMaxDamage;
 			if (DistanceToOwner > SafeInnerRadius)
 			{
 				const float RadiusSpan = FMath::Max(1.0f, ExplosionRadius - SafeInnerRadius);
 				const float FalloffAlpha = FMath::Clamp((DistanceToOwner - SafeInnerRadius) / RadiusSpan, 0.0f, 1.0f);
-				OwnerDamage = FMath::Lerp(MaxDamage, MinDamage, FalloffAlpha);
+				OwnerDamage = FMath::Lerp(FinalMaxDamage, FinalMinDamage, FalloffAlpha);
 			}
 
 			const float OwnerDamageScale = FMath::Max(SelfDamageScale, 0.01f);

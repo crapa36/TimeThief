@@ -15,6 +15,7 @@ class UStaticMesh;
 class UMaterialInterface;
 class APlayerCameraManager;
 class UCameraShakeBase;
+class USoundBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWire, Log, All);
 
@@ -37,6 +38,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	void Jump();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire|Network")
+	void SimulateAttach(const FVector& RemoteAnchorPoint);
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire|Network")
+	void SimulateDetach();
 
 	void HandleInputPressed(FGameplayTag InputTag);
 	void SetMoveInput(const FVector2D& Input) { MoveInput = Input; }
@@ -123,7 +130,7 @@ protected:
 	float WireCooldown = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float ArrivalDistance = 300.0f;
+	float ArrivalDistance = 350.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	FName WireStartSocketName = FName("WireSocket");
@@ -132,7 +139,7 @@ protected:
 	float WireLengthUpdateTolerance = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
-	float StuckSpeedThreshold = 30.0f;
+	float StuckSpeedThreshold = 100.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay))
 	float StuckCheckDelay = 0.3f;
@@ -145,6 +152,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay, ClampMin = "0.0", UIMin = "0.0"))
 	float PullAnchorHeightOffset = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
+	TObjectPtr<USoundBase> FireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
+	TObjectPtr<USoundBase> AttachSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UStaticMesh> WireMeshTemplate;
@@ -191,6 +204,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
 	float WireRotationMinSpeed = 100.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
+	float WireRotationForceAngleThreshold = 90.0f;
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<ACharacter> CachedCharacter;
@@ -212,9 +228,6 @@ private:
 
 	UPROPERTY()
 	FVector AnchorPoint = FVector::ZeroVector;
-
-	UPROPERTY()
-	FVector AnchorNormal = FVector::UpVector;
 
 	UPROPERTY()
 	FVector FireDirection = FVector::ZeroVector;

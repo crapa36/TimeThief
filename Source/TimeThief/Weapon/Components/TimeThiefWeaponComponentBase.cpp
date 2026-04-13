@@ -21,10 +21,24 @@ UTimeThiefWeaponComponentBase::UTimeThiefWeaponComponentBase() {
 
 void UTimeThiefWeaponComponentBase::BeginPlay() {
 	Super::BeginPlay();
+	BaseMaxAmmo = MaxAmmo;
 	CurrentAmmo = MaxAmmo;
 	CurrentSpread = 0.0f;
 	NextAllowedFireTime = 0.0f;
 	bWantsToFire = false;
+}
+
+void UTimeThiefWeaponComponentBase::SetCapacityBonus(int32 InBonus)
+{
+	CapacityBonus = FMath::Max(0, InBonus);
+	MaxAmmo = FMath::Max(1, BaseMaxAmmo + CapacityBonus);
+
+	if (CurrentAmmo > MaxAmmo)
+	{
+		CurrentAmmo = MaxAmmo;
+	}
+
+	NotifyAmmoChanged();
 }
 
 void UTimeThiefWeaponComponentBase::EndPlay(const EEndPlayReason::Type EndPlayReason) {
@@ -63,6 +77,17 @@ void UTimeThiefWeaponComponentBase::StartFire() {
 		Reload();
 		return;
 	}
+
+	if (UWorld* World = GetWorld()) {
+		const float Now = World->GetTimeSeconds();
+		if (Now + KINDA_SMALL_NUMBER < NextAllowedFireTime) {
+			bIsFiring = true;
+			const float RemainingDelay = FMath::Max(NextAllowedFireTime - Now, 0.0f);
+			World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &UTimeThiefWeaponComponentBase::HandleAutoFireShot, RemainingDelay, false);
+			return;
+		}
+	}
+
 	bIsFiring = true;
 	HandleAutoFireShot();
 }
@@ -147,17 +172,31 @@ void UTimeThiefWeaponComponentBase::HandleAutoFireShot() {
 		if (CurrentAmmo <= 0) Reload();
 		return;
 	}
+
+	if (UWorld* World = GetWorld()) {
+		const float Now = World->GetTimeSeconds();
+		if (Now + KINDA_SMALL_NUMBER < NextAllowedFireTime) {
+			const float RemainingDelay = FMath::Max(NextAllowedFireTime - Now, 0.0f);
+			World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &UTimeThiefWeaponComponentBase::HandleAutoFireShot, RemainingDelay, false);
+			return;
+		}
+	}
+
 	CurrentAmmo--;
 	NotifyAmmoChanged();
 	ExecuteFireShot();
 	BroadcastCombatAttackRequest(ECombatNotifyType::Fire);
 	ApplyRecoilAndSpread();
+	if (UWorld* World = GetWorld()) {
+		NextAllowedFireTime = World->GetTimeSeconds() + GetFireInterval();
+	}
 	if (CurrentAmmo <= 0) {
 		StopFiringLoop();
 		Reload();
 	} else if (bWantsToFire) {
 		if (UWorld* World = GetWorld()) {
-			World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &UTimeThiefWeaponComponentBase::HandleAutoFireShot, GetFireInterval(), false);
+			const float Delay = FMath::Max(NextAllowedFireTime - World->GetTimeSeconds(), 0.0f);
+			World->GetTimerManager().SetTimer(AutoFireTimerHandle, this, &UTimeThiefWeaponComponentBase::HandleAutoFireShot, Delay, false);
 		}
 	}
 }

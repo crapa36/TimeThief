@@ -26,6 +26,7 @@
 #include "State/RemoteAttackNotify.h"
 #include "Network/NetworkCombatSyncComponent.h"
 #include "State/NetworkActionTypes.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 
 namespace
 {
@@ -138,6 +139,28 @@ void UNetworkGameInstanceSubsystem::SendJump()
 void UNetworkGameInstanceSubsystem::SendJumpLand()
 {
 	se::game::C_JumpLand Request;
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendWireAction(const FVector& AnchorPoint)
+{
+	se::game::C_WireActionReq Request;
+	auto* Anchor = Request.mutable_anchor_point();
+	Anchor->set_x(AnchorPoint.X);
+	Anchor->set_y(AnchorPoint.Y);
+	Anchor->set_z(AnchorPoint.Z);
+
+	UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Send][C_WireActionReq] Anchor=(%.1f, %.1f, %.1f)"), AnchorPoint.X, AnchorPoint.Y, AnchorPoint.Z);
+
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendWireActionEnd()
+{
+	se::game::C_WireActionEnd Request;
+	UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Send][C_WireActionEnd]"));
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -598,6 +621,11 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	{
 		return;
 	}
+
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
 	
 	FNetworkEntityState& EntityState = EntityEntry->State;
 	const auto& Movement = Pkt.movement();
@@ -628,6 +656,11 @@ void UNetworkGameInstanceSubsystem::HandleJump(const se::game::N_Jump& Pkt)
 		return;
 	}
 
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
+
 	if (auto* NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
 	{
 		NMC->HandleActionEvent(FNetworkActionEvent{ ENetworkActionType::Jump, ENetworkActionPhase::Start });
@@ -646,6 +679,11 @@ void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& P
 	const uint32 EntityId = Pkt.entity_id().value();
 	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
 	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		return;
+	}
+
+	if (IsLocalPlayerEntity(EntityId))
 	{
 		return;
 	}
@@ -675,6 +713,11 @@ void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& Pkt)
 	{
 		return;
 	}
+
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
 	
 	if (auto NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
 	{
@@ -685,10 +728,91 @@ void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleWireAction(const se::game::N_WireAction& Pkt)
 {
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	if (!Pkt.has_entity_id() || !Pkt.has_anchor_point())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireAction] missing required fields"));
+		return;
+	}
+
+	const uint32 EntityId = Pkt.entity_id().value();
+	const auto& Anchor = Pkt.anchor_point();
+	UE_LOG(LogTemp, Log,
+		TEXT("[WirePkt][Stage=Apply][N_WireAction] EntityId=%u Anchor=(%.1f, %.1f, %.1f)"),
+		EntityId,
+		Anchor.x(),
+		Anchor.y(),
+		Anchor.z());
+
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireAction] skipped local entity=%u"), EntityId);
+		return;
+	}
+
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireAction] actor missing for entity=%u"), EntityId);
+		return;
+	}
+
+	if (UTimeThiefWireComponent* WireComponent = EntityEntry->Actor->GetComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComponent->SimulateAttach(FVector(Anchor.x(), Anchor.y(), Anchor.z()));
+		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireAction] simulate attach entity=%u actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireAction] wire component missing entity=%u actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireActionEnd& Pkt)
 {
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	if (!Pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireActionEnd] missing entity_id"));
+		return;
+	}
+
+	const uint32 EntityId = Pkt.entity_id().value();
+	UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireActionEnd] EntityId=%u"), EntityId);
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireActionEnd] skipped local entity=%u"), EntityId);
+		return;
+	}
+
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireActionEnd] actor missing for entity=%u"), EntityId);
+		return;
+	}
+
+	if (UTimeThiefWireComponent* WireComponent = EntityEntry->Actor->GetComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComponent->SimulateDetach();
+		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireActionEnd] simulate detach entity=%u actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireActionEnd] wire component missing entity=%u actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleWireLaunch(const se::game::N_WireLaunch& pkt)

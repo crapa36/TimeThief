@@ -56,6 +56,8 @@ public:
 	void SendMove(const FMoveSyncData& MoveData);
 	void SendJump();
 	void SendJumpLand();
+	void SendWireAction(const FVector& AnchorPoint);
+	void SendWireActionEnd();
 	
 private:
 	void ConnectToServer();

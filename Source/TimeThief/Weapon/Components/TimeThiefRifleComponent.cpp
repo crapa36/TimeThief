@@ -120,13 +120,17 @@ void UTimeThiefRifleComponent::ApplyDamage(const FRifleHitResult& HitResult)
 
 	UGameplayStatics::ApplyPointDamage(
 		HitResult.HitActor.Get(),
-		BaseDamage,
+		BaseDamage + GetDamageBonus(),
 		HitResult.FireDirection,
 		HitResult.OriginalHitResult,
 		InstigatorController,
 		GetOwner(),
 		nullptr
 	);
+
+#if !UE_BUILD_SHIPPING
+	UE_LOG(LogTemp, Log, TEXT("[Rifle][Damage] Base=%.2f Bonus=%.2f Final=%.2f"), BaseDamage, GetDamageBonus(), BaseDamage + GetDamageBonus());
+#endif
 }
 
 void UTimeThiefRifleComponent::PlayFireEffects()
@@ -197,7 +201,21 @@ void UTimeThiefRifleComponent::ApplyRecoilAndSpread()
 		{
 			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadDecreasePerSecond);
 			CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, BaseSpread, MaxSpread);
-			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(MaxVerticalRecoil, MaxHorizontalRecoil, RecoilBuildupPerShot, SpreadIncreasePerShot);
+			const float AppliedRecoilReduction = GetRecoilReduction();
+			const float FinalVerticalRecoil = FMath::Max(0.0f, MaxVerticalRecoil - AppliedRecoilReduction);
+			const float FinalHorizontalRecoil = FMath::Max(0.0f, MaxHorizontalRecoil - AppliedRecoilReduction);
+			const float FinalRecoilBuildup = FMath::Max(0.0f, RecoilBuildupPerShot - AppliedRecoilReduction);
+
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogTemp, Log, TEXT("[Rifle][Recoil] Reduction=%.3f FinalV=%.3f FinalH=%.3f FinalBuildup=%.3f"), AppliedRecoilReduction, FinalVerticalRecoil, FinalHorizontalRecoil, FinalRecoilBuildup);
+#endif
+
+			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(
+				FinalVerticalRecoil,
+				FinalHorizontalRecoil,
+				FinalRecoilBuildup,
+				SpreadIncreasePerShot
+			);
 
 			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
 			{

@@ -15,6 +15,7 @@ enum class EWidgetType : uint8 {
 	Inventory,
 	Store,
 	Minimap,
+	WheelMenu,
 	SIZE,
 	None
 };

@@ -5,6 +5,7 @@
 #include "MorphingMeshData.h"
 #include "Core/LiquidMeshComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 // Sets default values for this component's properties
@@ -54,6 +55,17 @@ void UMorphingMeshComponent::OnRegister()
 {
 	Super::OnRegister();
 	
+	if (MorphingMeshData == nullptr)
+	{
+		bIsSkeletalMesh = false;
+		bIsValid = false;
+		return;
+	}
+	
+	if (MorphingMeshData->Material)
+	{
+		LiquidMaterial = MorphingMeshData->Material;
+	}
 	bIsSkeletalMesh = MorphingMeshData->IsSkeletalValid();
 	bIsValid = MorphingMeshData->IsValid();
 	
@@ -86,6 +98,10 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                            FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (MorphingMeshData == nullptr)
+	{
+		return;
+	}
 	if (ElapsedTime >= MorphingTime)
 	{
 		CurrAlpha = DestAlpha;
@@ -130,7 +146,6 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				BaseSkeletalMeshComponent->EmptyOverrideMaterials();
 				BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[GetActiveSkeletalIndex()]);
 				BaseSkeletalMeshComponent->SetAnimInstanceClass(MorphingMeshData->AnimInstances[GetActiveSkeletalIndex()]);
-				UE_LOG(LogTemp, Warning, TEXT("SkeletalMesh %s"), *MorphingMeshData->SkeletalMeshes[GetActiveSkeletalIndex()]->GetName());
 			}
 			else
 			{
@@ -147,6 +162,11 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 int UMorphingMeshComponent::GetActiveSkeletalIndex() const
 {
 	if (CurrAlpha == FVector3f::ZeroVector)
+	{
+		return -1;
+	}
+	
+	if (!bIsSkeletalMesh)
 	{
 		return -1;
 	}
@@ -175,7 +195,12 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	{
 		return;
 	}
-
+	
+	if (MorphingMeshData == nullptr)
+	{
+		return;
+	}
+	
 	ElapsedTime = 0;
 	int Index = static_cast<int>(NewType);
 	DestAlpha = FVector3f::ZeroVector;

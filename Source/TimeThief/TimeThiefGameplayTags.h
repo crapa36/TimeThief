@@ -28,16 +28,15 @@ public:
 	FGameplayTag InputTag_Action_ToggleMinimap;
 	FGameplayTag InputTag_Action_Interact;
 	FGameplayTag InputTag_Action_Inventory;
+	FGameplayTag InputTag_Action_WheelMenu;
 	
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Shotgun;
 	FGameplayTag Weapon_RocketLauncher;
-	FGameplayTag Weapon_Pistol;
 	
 	FGameplayTag State_Combat_Rifle;
 	FGameplayTag State_Combat_Shotgun;
 	FGameplayTag State_Combat_RocketLauncher;
-	FGameplayTag State_Combat_Pistol;
 	
 	FGameplayTag InitState_Spawned;
 	FGameplayTag InitState_DataAvailable;

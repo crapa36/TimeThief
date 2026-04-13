@@ -123,7 +123,6 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	const float CurrentYaw = Movable->GetNetworkYaw();
 	const float CurrentPitch = Movable->GetNetworkPitch();
 	const FVector2D CurrentVelocity = Movable->GetNetworkVelocity2D();
-	const EMovementMode CurrentMovementMode = Movable->GetNetworkMovementMode();
 	
 	InterpStartPosition = CurrentPosition;
 	InterpTargetPosition = EntityState.Position;
@@ -157,8 +156,12 @@ void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
 
 void UNetworkMoveComponent::HandleActionEvent(const FNetworkActionEvent& ActionEvent)
 {
-	// ApplyActionEvent(ActionEvent);	// NMC에서 CMC를 직접 다루기가 부담스럽다 Broadcast만 하자
-	OnRemoteActionNotify.Broadcast(ActionEvent);
+	const bool bIsLocalControlled = NetworkEntityComponent && NetworkEntityComponent->IsLocalControlled();
+	if (!bIsLocalControlled)
+	{
+		ApplyActionEvent(ActionEvent);	// NMC에서 CMC를 직접 다루기가 부담스럽다 Broadcast만 하자
+		OnRemoteActionNotify.Broadcast(ActionEvent);
+	}
 }
 
 void UNetworkMoveComponent::ApplyActionEvent(const FNetworkActionEvent& ActionEvent)
@@ -195,7 +198,10 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 	switch (Phase)
 	{
 	case ENetworkActionPhase::Start:
-		CMC->SetMovementMode(MOVE_Falling);
+		if (!CMC->IsFalling())
+		{
+			CMC->SetMovementMode(MOVE_Falling);
+		}
 		break;
 
 	case ENetworkActionPhase::Land:
@@ -216,6 +222,32 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 
 void UNetworkMoveComponent::ApplyCrouchAction(ENetworkActionPhase Phase)
 {
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (!Character)
+	{
+		return;
+	}
+
+	switch (Phase)
+	{
+	case ENetworkActionPhase::Start:
+		if (!Character->bIsCrouched)
+		{
+			Character->Crouch(true);
+		}
+		break;
+
+	case ENetworkActionPhase::End:
+	case ENetworkActionPhase::Land:
+		if (Character->bIsCrouched)
+		{
+			Character->UnCrouch(true);
+		}
+		break;
+
+	default:
+		break;
+	}
 }
 
 bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
@@ -356,12 +388,23 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	if (DeltaTime > 0.0f)
 	{
 		MoveStep = (NewPosition - CurrentPosition) / DeltaTime;
-		
-		CMC->Velocity = MoveStep;
+
+		FVector NewVelocity = MoveStep;
+		if (CMC->MovementMode == MOVE_Falling)
+		{
+			// Keep vertical momentum during jump/fall. Network packets currently carry only planar velocity.
+			NewVelocity.Z = CMC->Velocity.Z;
+		}
+		else
+		{
+			NewVelocity.Z = 0.0f;
+		}
+		CMC->Velocity = NewVelocity;
 		
 		if (!MoveStep.IsNearlyZero())
 		{
-			FTimeThiefMovementAccessor::SetAcceleration(CMC, MoveStep.GetSafeNormal() * CMC->GetMaxAcceleration());
+			const FVector PlanarDirection = FVector(MoveStep.X, MoveStep.Y, 0.0f).GetSafeNormal();
+			FTimeThiefMovementAccessor::SetAcceleration(CMC, PlanarDirection * CMC->GetMaxAcceleration());
 		}
 		else
 		{
@@ -401,13 +444,19 @@ void UNetworkMoveComponent::SnapToTarget()
 	
 	if (Character && Character->GetCharacterMovement())
 	{
-		if (RecentMovementMode != MOVE_None && Character->GetCharacterMovement()->MovementMode != RecentMovementMode)
+		UCharacterMovementComponent* CMC = Character->GetCharacterMovement();
+		if (RecentMovementMode != MOVE_None && CMC->MovementMode != RecentMovementMode)
 		{
-			Character->GetCharacterMovement()->SetMovementMode(RecentMovementMode);
+			CMC->SetMovementMode(RecentMovementMode);
 		}
 
-		Character->GetCharacterMovement()->Velocity = FVector::ZeroVector;
-		FTimeThiefMovementAccessor::SetAcceleration(Character->GetCharacterMovement(), FVector::ZeroVector);
+		FVector SnapVelocity(TargetVelocity.X, TargetVelocity.Y, 0.0f);
+		if (CMC->MovementMode == MOVE_Falling)
+		{
+			SnapVelocity.Z = CMC->Velocity.Z;
+		}
+		CMC->Velocity = SnapVelocity;
+		FTimeThiefMovementAccessor::SetAcceleration(CMC, FVector::ZeroVector);
 	}
 }
 

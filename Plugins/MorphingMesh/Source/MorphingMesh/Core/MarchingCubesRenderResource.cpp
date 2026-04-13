@@ -151,7 +151,7 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	EmitParams->UVMapSampler = TStaticSamplerState<SF_Trilinear>::GetRHI();
 	EmitParams->UVBuffer = GraphBuilder.CreateUAV(UVRDG);
 	EmitParams->BoneIndicesSampler = TStaticSamplerState<>::GetRHI();
-	EmitParams->BoneIndicesTexture = BoneIndicesTexture ? BoneIndicesTexture->GetResource()->GetTexture3DRHI() : nullptr;
+	EmitParams->BoneIndicesTexture = BoneIndicesTexture ? BoneIndicesTexture->GetResource()->GetTexture3DRHI() : VolumeTextures[0]->GetResource()->GetTexture3DRHI();
 	FRDGBufferRef BoneIndicesBuffer = GraphBuilder.CreateBuffer(
 	FRDGBufferDesc::CreateStructuredDesc(sizeof(uint), NumVertex),
 	TEXT("BoneIndicesBuffer"));
@@ -165,8 +165,9 @@ void FMarchingCubesRenderResource::RunComputeShader(
 		EmitParams,
 		FIntVector(GroupCount, 1, 1));
 	
-	if (!SkinMatrices.IsEmpty())
+	if (BoneIndicesTexture && SkinMatrices.Num() > 0)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Rigging"));
 		FRDGBufferRef BoneMatrixRDG = GraphBuilder.CreateBuffer(
 			FRDGBufferDesc::CreateStructuredDesc(sizeof(FMatrix44f), SkinMatrices.Num()),
 			TEXT("BoneMatrixBuffer"));

@@ -20,16 +20,15 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_ToggleMinimap, "InputTag.Action.ToggleMinimap", "Toggle Show Minimap Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Interact, "InputTag.Action.Interact", "Interact Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Inventory, "InputTag.Action.Inventory", "Inventory Interaction Input");
+	GameplayTags.AddTag(GameplayTags.InputTag_Action_WheelMenu, "InputTag.Action.WheelMenu", "Use Item Wheel Menu Input");
 	
 	GameplayTags.AddTag(GameplayTags.Weapon_Rifle, "Weapon.Rifle", "Rifle Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_Shotgun, "Weapon.Shotgun", "Shotgun Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_RocketLauncher, "Weapon.RocketLauncher", "RocketLauncher Weapon Type");
-	GameplayTags.AddTag(GameplayTags.Weapon_Pistol, "Weapon.Pistol", "Pistol Weapon Type");
 	
 	GameplayTags.AddTag(GameplayTags.State_Combat_Rifle, "State.Combat.Rifle", "Character is holding a Rifle");
 	GameplayTags.AddTag(GameplayTags.State_Combat_Shotgun, "State.Combat.Shotgun", "Character is holding a Shotgun");
 	GameplayTags.AddTag(GameplayTags.State_Combat_RocketLauncher, "State.Combat.RocketLauncher", "Character is holding a RocketLauncher");
-	GameplayTags.AddTag(GameplayTags.State_Combat_Pistol, "State.Combat.Pistol", "Character is holding a Pistol");
 	
 	GameplayTags.AddTag(GameplayTags.InitState_Spawned, "InitState.Spawned", "Actor has been spawned");
 	GameplayTags.AddTag(GameplayTags.InitState_DataAvailable, "InitState.DataAvailable", "Data is available");
@@ -52,11 +51,6 @@ uint32 FTimeThiefGameplayTags::ResolveWeaponIdFromTag(const FGameplayTag& Weapon
 	{
 		return 3;
 	}
-	if (WeaponTag == Tags.Weapon_Pistol)
-	{
-		return 4;
-	}
-
 	return 0;
 }
 
@@ -71,8 +65,6 @@ FGameplayTag FTimeThiefGameplayTags::ResolveWeaponTagFromId(uint32 WeaponId)
 		return Tags.Weapon_Shotgun;
 	case 3:
 		return Tags.Weapon_RocketLauncher;
-	case 4:
-		return Tags.Weapon_Pistol;
 	default:
 		return FGameplayTag();
 	}

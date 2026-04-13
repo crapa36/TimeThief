@@ -86,7 +86,7 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 			ParamAlpha = CachedAlpha;
 			ParamDensityTextures = CachedDensityTextures;
 			ParamUVMaps = CachedUVMaps;
-			ParamBoneIndicesTexture = CachedBoneIndicesTexture;
+			ParamBoneIndicesTexture = nullptr;
 			ParamBoneMatrices = CachedBoneMatrices;
 		}
 		RenderResource->RunComputeShader(

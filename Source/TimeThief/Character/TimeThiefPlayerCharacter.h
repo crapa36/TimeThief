@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "TimeThiefNetworkCharacterBase.h"
 #include "GameplayTagContainer.h"
+#include "DataAssets/UpgradeData.h"
+#include "Components/Wire/TimeThiefWireTypes.h"
 #include "TimeThiefPlayerCharacter.generated.h"
 
 class AInteractionActorBase;
@@ -15,6 +17,7 @@ class UTimeThiefHeroComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
 class UTimeThiefWireComponent;
+class UNetworkWireComponent;
 class UNiagaraSystem;
 
 DECLARE_MULTICAST_DELEGATE(FOnVicinityItemUpdatedEvent);
@@ -55,6 +58,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Movement")
+	float GetBaseMoveSpeed() const { return BaseMoveSpeed; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Movement")
+	float GetBaseJumpVelocity() const { return BaseJumpVelocity; }
 	
 	void AddVicinityItem(AItemBase* Item);
 	void RemoveVicinityItem(AItemBase* Item);
@@ -77,9 +86,17 @@ protected:
 
 	void OnPawnDataSet();
 
-	UFUNCTION()
-	void OnDeath(AActor* OwningActor);
 
+	UFUNCTION()
+	void OnWireStateChanged(EWireState OldState, EWireState NewState);
+
+	
+	virtual void OnDeath() override;
+	
+	virtual void OnBeginRespawn() override;
+	
+	virtual void OnEndRespawn() override;
+	
 	void CheckInteractableObject();
 	
 protected:
@@ -103,6 +120,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wire")
 	TObjectPtr<UTimeThiefWireComponent> WireComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wire")
+	TObjectPtr<UNetworkWireComponent> NetworkWireComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UInventorySystemComponent> InventoryComponent;
@@ -119,10 +139,38 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	float LookingDistance = 50.f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Camera")
+	float DefaultCameraLagSpeed = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Camera")
+	float WireCameraLagSpeed = 8.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Movement")
+	float BaseMoveSpeed = 600.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Movement")
+	float BaseJumpVelocity = 600.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TArray<float> MoveSpeedBonusPerLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TArray<float> JumpVelocityBonusPerLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TMap<FGameplayTag, FUpgradeFloatLevels> DamageBonusByWeaponAndLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TMap<FGameplayTag, FUpgradeIntLevels> CapacityBonusByWeaponAndLevel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
+	TMap<FGameplayTag, FUpgradeFloatLevels> RecoilReductionByWeaponAndLevel;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Jump")
 	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;
 	
 	FTimerHandle InteractCheckTimerHandle;
+	float CachedCameraLagSpeed = 0.0f;
 	
 public:
 	FORCEINLINE UTimeThiefPlayerCombatComponent* GetPlayerCombatComponent() const { return PlayerCombatComponent; }

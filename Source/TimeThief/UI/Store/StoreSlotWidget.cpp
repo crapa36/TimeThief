@@ -17,6 +17,8 @@ void UStoreSlotWidget::NativeConstruct()
 
 void UStoreSlotWidget::OnSlotClicked()
 {
+	UGameItemData* ItemData = GetDefault<UItemSettings>()->ItemData.LoadSynchronous();
+
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 	{
 		if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))

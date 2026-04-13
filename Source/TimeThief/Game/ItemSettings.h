@@ -6,6 +6,7 @@
 #include "Engine/DeveloperSettings.h"
 #include "DataAssets/GameItemData.h"
 #include "DataAssets/StoreCategoryData.h"
+#include "DataAssets/UpgradeData.h"
 #include "ItemSettings.generated.h"
 
 /**
@@ -22,4 +23,7 @@ public:
 	
 	UPROPERTY(config, EditAnywhere, Category = "Store")
 	TSoftObjectPtr<UStoreCategoryData> CategoryData;
+
+	UPROPERTY(config, EditAnywhere, Category = "Store")
+	TSoftObjectPtr<UUpgradeData> UpgradeData;
 };

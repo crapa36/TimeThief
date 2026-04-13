@@ -14,8 +14,8 @@ void UMinimapWidget::NativeConstruct()
 	
 	MinimapSize = Cast<UCanvasPanelSlot>(Minimap_Image->Slot)->GetSize();
 
-	StormZoneDMI = StormZone_Image->GetDynamicMaterial();
-	NextStormZoneDMI = NextStormZone_Image->GetDynamicMaterial();
+	StormZoneMID = StormZone_Image->GetDynamicMaterial();
+	NextStormZoneMID = NextStormZone_Image->GetDynamicMaterial();
 	
 	GameState = GetWorld()->GetGameState<ATimeThiefGameState>();
 }
@@ -39,11 +39,11 @@ void UMinimapWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		FVector2D Center;
 	
 		GameState->TimeStormComponent->GetCurrStormZone_UV(Center, Radius);
-		StormZoneDMI->SetScalarParameterValue(FName{"Radius"}, Radius);
-		StormZoneDMI->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
+		StormZoneMID->SetScalarParameterValue(FName{"Radius"}, Radius);
+		StormZoneMID->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
 	
 		GameState->TimeStormComponent->GetDestStormZone_UV(Center, Radius);
-		NextStormZoneDMI->SetScalarParameterValue(FName{"Radius"}, Radius);
-		NextStormZoneDMI->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
+		NextStormZoneMID->SetScalarParameterValue(FName{"Radius"}, Radius);
+		NextStormZoneMID->SetVectorParameterValue(FName{"CenterPosition"}, FVector(Center.X, Center.Y, 0));
 	}
 }

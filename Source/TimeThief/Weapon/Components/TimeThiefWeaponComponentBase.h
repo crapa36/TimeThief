@@ -61,6 +61,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	float GetSpreadAngleForFire() const { return FMath::Clamp(BaseSpread + CurrentSpread, 0.0f, MaxSpread); }
 
+	void SetDamageBonus(float InDamageBonus) { DamageBonus = FMath::Max(0.0f, InDamageBonus); }
+	void SetRecoilReduction(float InRecoilReduction) { RecoilReduction = FMath::Max(0.0f, InRecoilReduction); }
+	void SetCapacityBonus(int32 InBonus);
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon|Stats")
+	float GetDamageBonus() const { return DamageBonus; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon|Stats")
+	float GetRecoilReduction() const { return RecoilReduction; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon|Ammo")
+	int32 GetCapacityBonus() const { return CapacityBonus; }
+
 	FOnWeaponAmmoChangedSignature OnAmmoChanged_Delegate;
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
@@ -124,6 +137,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float RoundsPerSecond = 0.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
+	float DamageBonus = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
+	float RecoilReduction = 0.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Ammo")
 	int32 MaxAmmo = 30;
 
@@ -156,6 +175,12 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	float CurrentSpread = 0.0f;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
+	int32 CapacityBonus = 0;
+
+	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
+	int32 BaseMaxAmmo = 0;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	bool bWantsToFire = false;

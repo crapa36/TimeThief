@@ -19,6 +19,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction) override;
+	virtual void EquipWeapon(FGameplayTag WeaponTag) override;
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
@@ -46,8 +47,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
 
+	void SetMoveSpeedUpgradeBonus(float InMoveSpeedBonus);
+
 protected:
 	virtual void OnEquipFinished() override;
+	void ApplyUpgradeStatsToActiveWeapon();
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
 	TMap<FGameplayTag, FGameplayTag> InputToWeaponTagMap;
@@ -73,6 +77,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
 	float PostFireRotationDelay = 0.5f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
+	float MaxYawOffsetFromCamera = 45.0f;
+
 	bool bIsFireInputHeld = false;
 
 private:
@@ -86,6 +93,7 @@ private:
 
 	void UpdateWorldAimLocation();
 	void SnapRotationToAim();
+	float GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const;
 
 	float DefaultMaxWalkSpeed = 0.0f;
 	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);

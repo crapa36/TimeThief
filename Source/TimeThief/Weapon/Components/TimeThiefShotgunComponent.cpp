@@ -1,5 +1,4 @@
 ﻿#include "Weapon/Components/TimeThiefShotgunComponent.h"
-#include "Weapon/TimeThiefMasterWeapon.h"
 #include "Animation/Player/TimeThiefPlayerAnimInstance.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/Character.h"
@@ -124,7 +123,7 @@ void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& Hi
 
 		UGameplayStatics::ApplyPointDamage(
 			HitResult.HitActor.Get(),
-			DamagePerPellet,
+			DamagePerPellet + GetDamageBonus(),
 			HitResult.FireDirection,
 			HitResult.OriginalHitResult,
 			InstigatorController,
@@ -132,6 +131,10 @@ void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& Hi
 			nullptr
 		);
 	}
+
+#if !UE_BUILD_SHIPPING
+	UE_LOG(LogTemp, Log, TEXT("[Shotgun][Damage] PelletBase=%.2f Bonus=%.2f FinalPerPellet=%.2f PelletCount=%d"), DamagePerPellet, GetDamageBonus(), DamagePerPellet + GetDamageBonus(), PelletCount);
+#endif
 }
 
 void UTimeThiefShotgunComponent::PlayFireEffects()
@@ -200,7 +203,15 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
 			AnimInst->SetRecoilRecoverySpeed(0.f, SpreadDecreasePerSecond);
-			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(VerticalRecoil, HorizontalRecoil, 0.0f, 0.0f);
+			const float AppliedRecoilReduction = GetRecoilReduction();
+			const float FinalVerticalRecoil = FMath::Max(0.0f, VerticalRecoil - AppliedRecoilReduction);
+			const float FinalHorizontalRecoil = FMath::Max(0.0f, HorizontalRecoil - AppliedRecoilReduction);
+
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogTemp, Log, TEXT("[Shotgun][Recoil] Reduction=%.3f FinalV=%.3f FinalH=%.3f"), AppliedRecoilReduction, FinalVerticalRecoil, FinalHorizontalRecoil);
+#endif
+
+			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(FinalVerticalRecoil, FinalHorizontalRecoil, 0.0f, 0.0f);
 
 			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
 			{

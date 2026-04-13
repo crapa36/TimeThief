@@ -62,4 +62,7 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
 	TArray<TSubclassOf<UAnimInstance>> AnimInstances;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TObjectPtr<UMaterial> Material;
 };
