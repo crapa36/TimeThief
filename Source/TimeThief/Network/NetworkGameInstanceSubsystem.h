@@ -182,6 +182,7 @@ public:
 	TObjectPtr<const UTimeThiefPawnData> DefaultLocalPlayerPawnData;
 	
 private:
+	bool bDisconnecting = false;
 	bool bIsConnected = false;
 	FSocket* Socket = nullptr;
 	

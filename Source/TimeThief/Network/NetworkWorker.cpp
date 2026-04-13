@@ -1,5 +1,4 @@
 ﻿#include "NetworkWorker.h"
-#include "TempHeader.h"
 
 /*--------------
    RecvWorker
@@ -24,17 +23,12 @@ uint32 RecvWorker::Run()
 {
 	while (Running)
 	{
-		TArray<uint8> Packet;
-		
-		if (ReceivePacket(OUT Packet))
+		if (!PumpRecv())
 		{
-			if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
-			{
-				Session->RecvPacketQueue.Enqueue(Packet);
-			}
+			FPlatformProcess::Sleep(0.001f);
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -46,63 +40,110 @@ void RecvWorker::Exit()
 void RecvWorker::Destroy()
 {
 	Running = false;
+	
+	if (Thread)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
 }
 
-bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
+bool RecvWorker::PumpRecv()
 {
-	// TEMP: PacketHeader Size는 FTempHeader size라고 정의
-	const int32 HeaderSize = sizeof(FTempHeader);
-	TArray<uint8> HeaderBuffer;
-	HeaderBuffer.AddZeroed(HeaderSize);
-	
-	if (not ReceiveDesiredBytes(HeaderBuffer.GetData(), HeaderSize))
+	if (!Socket || !Running)
 		return false;
-	
-	FTempHeader Header;
+
+	uint32 PendingDataSize = 0;
+	if (!Socket->HasPendingData(PendingDataSize) || PendingDataSize == 0)
+		return false;
+
+	const int32 ReadSize = FMath::Min<int32>((int32)PendingDataSize, 4096);
+
+	TArray<uint8> TempBuffer;
+	TempBuffer.SetNumUninitialized(ReadSize);
+
+	int32 NumRead = 0;
+	if (!Socket->Recv(TempBuffer.GetData(), ReadSize, NumRead))
 	{
-		FMemoryReader Reader(HeaderBuffer);
-		Reader << Header;
-		// UE_LOG(LogTemp, Log, TEXT("PacketId: %d, PacketSize: %d"), Header.PacketId, Header.PacketSize);
+		Running = false;
+		return false;
 	}
-	
-	OutPacket = HeaderBuffer;
-	
-	TArray<uint8> PayloadBuffer;
-	const int32 PayloadSize = Header.PacketSize - HeaderSize;
-	if (PayloadSize == 0)
+
+	if (NumRead <= 0)
+	{
+		Running = false;
+		return false;
+	}
+
+	if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
+	{
+		Session->RecvPacketQueue.Enqueue(MoveTemp(TempBuffer));
 		return true;
-	
-	OutPacket.AddZeroed(PayloadSize);
-	
-	if (ReceiveDesiredBytes(&OutPacket[HeaderSize], PayloadSize))
-		return true;
-	
+	}
+
+	Running = false;
 	return false;
 }
 
-bool RecvWorker::ReceiveDesiredBytes(uint8* Result, int32 Size)
-{
-	uint32 PendingDataSize = 0;
-	if (Socket->HasPendingData(PendingDataSize) == false or PendingDataSize <= 0)
-		return false;
-	
-	int32 Offset = 0;
-
-	while (Size > 0)
-	{
-		int32 NumRead = 0;
-		Socket->Recv(Result + Offset, Size, OUT NumRead);
-		check(NumRead <= Size);
-		
-		if (NumRead <= 0)
-			return false;
-		
-		Offset += NumRead;
-		Size -= NumRead;
-	}
-	
-	return true;
-}
+// bool RecvWorker::ReceivePacket(TArray<uint8>& OutPacket)
+// {
+// 	// TEMP: PacketHeader Size는 FTempHeader size라고 정의
+// 	const int32 HeaderSize = sizeof(FTempHeader);
+// 	TArray<uint8> HeaderBuffer;
+// 	HeaderBuffer.AddZeroed(HeaderSize);
+// 	
+// 	if (not ReceiveDesiredBytes(HeaderBuffer.GetData(), HeaderSize))
+// 		return false;
+// 	
+// 	FTempHeader Header;
+// 	{
+// 		FMemoryReader Reader(HeaderBuffer);
+// 		Reader << Header;
+// 		// UE_LOG(LogTemp, Log, TEXT("PacketId: %d, PacketSize: %d"), Header.PacketId, Header.PacketSize);
+// 	}
+// 	
+// 	OutPacket = HeaderBuffer;
+// 	
+// 	TArray<uint8> PayloadBuffer;
+// 	const int32 PayloadSize = Header.PacketSize - HeaderSize;
+// 	if (PayloadSize == 0)
+// 		return true;
+// 	
+// 	OutPacket.AddZeroed(PayloadSize);
+// 	
+// 	if (ReceiveDesiredBytes(&OutPacket[HeaderSize], PayloadSize))
+// 		return true;
+// 	
+// 	return false;
+// }
+//
+// bool RecvWorker::ReceiveDesiredBytes(uint8* Result, int32 Size)
+// {
+// 	if (!Socket || !Running)
+// 		return false;
+// 	
+// 	uint32 PendingDataSize = 0;
+// 	if (Socket->HasPendingData(PendingDataSize) == false or PendingDataSize <= 0)
+// 		return false;
+// 	
+// 	int32 Offset = 0;
+//
+// 	while (Size > 0)
+// 	{
+// 		int32 NumRead = 0;
+// 		Socket->Recv(Result + Offset, Size, OUT NumRead);
+// 		check(NumRead <= Size);
+// 		
+// 		if (NumRead <= 0)
+// 			return false;
+// 		
+// 		Offset += NumRead;
+// 		Size -= NumRead;
+// 	}
+// 	
+// 	return true;
+// }
 
 /*--------------
    SendWorker
@@ -127,21 +168,28 @@ uint32 SendWorker::Run()
 {
 	while (Running)
 	{
-		TSharedPtr<SendBuffer> SendBuffer;;
-		
+		TSharedPtr<SendBuffer> SendBuffer;
+
 		if (TSharedPtr<PacketSession> Session = SessionRef.Pin())
 		{
-			if (Session->SendPacketQueue.Dequeue(OUT SendBuffer))
+			if (Session->SendPacketQueue.Dequeue(SendBuffer))
 			{
-				SendPacket(SendBuffer);
+				if (!SendPacket(SendBuffer))
+				{
+					break;
+				}
+			}
+			else
+			{
+				FPlatformProcess::Sleep(0.001f);
 			}
 		}
-		
-		// Sleep to prevent busy-waiting
-		// FPlatformProcess::Sleep(0.01f);
-		// but not critical for latency (is optional)
+		else
+		{
+			break;
+		}
 	}
-	
+
 	return 0;
 }
 
@@ -153,6 +201,13 @@ void SendWorker::Exit()
 void SendWorker::Destroy()
 {
 	Running = false;
+	
+	if (Thread)
+	{
+		Thread->WaitForCompletion();
+		delete Thread;
+		Thread = nullptr;
+	}
 }
 
 bool SendWorker::SendPacket(TSharedPtr<SendBuffer> SendBuffer)
@@ -165,6 +220,9 @@ bool SendWorker::SendPacket(TSharedPtr<SendBuffer> SendBuffer)
 
 bool SendWorker::SendDesiredBytes(const uint8* Buffer, int32 Size)
 {
+	if (!Socket || !Running)
+		return false;
+	
 	while (Size > 0)
 	{
 		int32 BytesSend = 0;

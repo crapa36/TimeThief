@@ -31,15 +31,22 @@ public:
 	
 	void Disconnect();
 	
+private:
+	void TryAssemblePackets();
+	
 public:
 	FSocket*						Socket;
+	TAtomic<bool>					bDisconnected{false};
 	
 	// TODO: Network Worker 먼저 만들기
 	TSharedPtr<class RecvWorker>	RecvWorkerThread;
 	TSharedPtr<class SendWorker>	SendWorkerThread;
 	
 	// SPSC Queue (Single Producer Single Consumer)
+	// 아래 위험..? (EQueueMode 설정해야 할 수도)
 	TQueue<TArray<uint8>>			RecvPacketQueue;
 	TQueue<TSharedPtr<SendBuffer>>	SendPacketQueue;
+	
+	TArray<uint8> RecvStreamBuffer;
 	
 };

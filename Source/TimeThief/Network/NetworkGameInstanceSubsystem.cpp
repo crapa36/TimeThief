@@ -191,17 +191,27 @@ void UNetworkGameInstanceSubsystem::ConnectToServer()
 
 void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 {
-	// // 이미 연결이 끊겼거나 소켓이 유효하지 않은 경우에는 아무 작업도 수행하지 않습니다.
-	// if (bIsConnected == false or Socket == nullptr) return;
+	if (bDisconnecting)
+		return;
 	
+	bDisconnecting = true;
+	bIsConnected = false;
+	PlayState = ENetworkPlayState::Disconnected;
+	
+	// 타이머 정지 (Ping 타이머)
 	StopPingTimer();
-	
-	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
-	
 	// 타이머 정지 (패킷 처리 타이머)
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(QueueProcessingTimer);
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
+	
+	if (Socket)
+	{
+		Socket->Shutdown(ESocketShutdownMode::ReadWrite);
+		Socket->Close();
 	}
 	
 	// 세션 종료 (Worker 스레드 종료 포함)
@@ -214,19 +224,12 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	// 소켓 닫기 및 정리
 	if (Socket)
 	{
-		Socket->Shutdown(ESocketShutdownMode::ReadWrite);
-		Socket->Close();
-		
 		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
 		Socket = nullptr;
 	}
 	
 	ClearRoomState();
 	LocalPlayerInfo = FLocalPlayerInfo();
-	
-	PlayState = ENetworkPlayState::Disconnected;
-	
-	bIsConnected = false;
 	
 	UE_LOG(LogTemp, Log, TEXT("Disconnected and cleaned up"));
 }

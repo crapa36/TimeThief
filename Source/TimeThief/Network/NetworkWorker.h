@@ -31,12 +31,13 @@ public:
 	void Destroy();
 	
 private:
-	bool ReceivePacket(TArray<uint8>& OutPacket);
-	bool ReceiveDesiredBytes(uint8* Result, int32 Size);
+	bool PumpRecv();
+	// bool ReceivePacket(TArray<uint8>& OutPacket);
+	// bool ReceiveDesiredBytes(uint8* Result, int32 Size);
 	
 protected:
 	FRunnableThread* Thread = nullptr;
-	bool Running = true;
+	TAtomic<bool> Running = true;
 	FSocket* Socket;
 	TWeakPtr<PacketSession> SessionRef;
 
@@ -69,7 +70,7 @@ private:
 	
 protected:
 	FRunnableThread* Thread = nullptr;
-	bool Running = true;
+	TAtomic<bool> Running = true;
 	FSocket* Socket;
 	TWeakPtr<PacketSession> SessionRef;
 	
