@@ -15,6 +15,7 @@
 #include "TimeThiefNetworkSettings.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
+#include "Components/TimeThiefHealthComponent.h"
 #include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameStateBase.h"
@@ -973,6 +974,42 @@ void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGaine
 
 void UNetworkGameInstanceSubsystem::HandleHealthChanged(const se::game::N_HealthChanged& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	if (EntityId == LocalPlayerEntityId)
+	{
+		// 로컬 플레이어의 체력 변동만 유효함
+		auto Entry = EntityEntries.Find(EntityId);
+		if (Entry == nullptr)
+		{
+			return;
+		}
+		
+		auto Actor = Entry->Actor.Get();
+		if (Actor == nullptr)
+		{
+			return;
+		}
+		
+		auto HealthComp = Actor->FindComponentByClass<UTimeThiefHealthComponent>();
+		if (HealthComp == nullptr)
+		{
+			return;
+		}
+		
+		HealthComp->HandleHealthChanged(Pkt.new_health(), Pkt.delta());
+	}
+	else
+	{
+		// Remote Player나 Server Auth NPC 객체의 체력이 회복되는 이펙트
+		// 체력이 줄어드는 이펙트가 필요하다면 여기서 연결
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleEntityDied(const se::game::N_EntityDied& Pkt)

@@ -88,6 +88,33 @@ void UTimeThiefHealthComponent::Heal(float HealAmount, AActor* HealInstigator)
 	OnHealthChanged_Delegate.Broadcast(this, OldHealth, CurrentHealth, HealInstigator);
 }
 
+void UTimeThiefHealthComponent::HandleHealthChanged(float NewHealth, float DeltaHealth)
+{
+	if (bIsDead || FMath::IsNearlyEqual(DeltaHealth, 0.0f))
+	{
+		return;
+	}
+	
+	if (DeltaHealth < 0.0f)
+	{
+		if (!FMath::IsNearlyEqual(GetCurrentHealth() + DeltaHealth, NewHealth))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("C/S Health desync detected: CurrentHealth=%f, DeltaHealth=%f, NewHealth=%f"), GetCurrentHealth(), DeltaHealth, NewHealth);
+		}
+		
+		TakeDamage(-DeltaHealth, nullptr);
+	}
+	else
+	{
+		if (!FMath::IsNearlyEqual(GetCurrentHealth() + DeltaHealth, NewHealth))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("C/S Health desync detected: CurrentHealth=%f, DeltaHealth=%f, NewHealth=%f"), GetCurrentHealth(), DeltaHealth, NewHealth);
+		}
+		
+		Heal(DeltaHealth, nullptr);
+	}
+}
+
 void UTimeThiefHealthComponent::Upgrade()
 {
 	if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Cast<ACharacter>(GetOwner())->GetPlayerState()))

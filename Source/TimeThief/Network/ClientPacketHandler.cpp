@@ -646,6 +646,31 @@ bool Handle_N_ItemGained(PacketSessionRef& session, const se::game::N_ItemGained
 	
 bool Handle_N_HealthChanged(PacketSessionRef& session, const se::game::N_HealthChanged& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthChanged: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthChanged: entity_id is 0"));
+		return false;
+	}
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleHealthChanged(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthChanged: Failed to get NGIS"));
 	return false;	
 }
 	
