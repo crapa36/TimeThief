@@ -64,6 +64,7 @@ private:
 	void Input_ToggleMinimap(const FInputActionValue& Value);
 	void Input_Interact(const FInputActionValue& Value);
 	void Input_ToggleInventory(const FInputActionValue& Value);
+	void Input_WheelMenu(const FInputActionValue& Value);
 	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")

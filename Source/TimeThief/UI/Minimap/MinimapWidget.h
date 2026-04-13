@@ -38,10 +38,10 @@ public:
 	TObjectPtr<UImage> NextStormZone_Image;
 	
 	UPROPERTY()
-	TObjectPtr<UMaterialInstanceDynamic> StormZoneDMI;
+	TObjectPtr<UMaterialInstanceDynamic> StormZoneMID;
 	
 	UPROPERTY()
-	TObjectPtr<UMaterialInstanceDynamic> NextStormZoneDMI;
+	TObjectPtr<UMaterialInstanceDynamic> NextStormZoneMID;
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<AActor> Player;
