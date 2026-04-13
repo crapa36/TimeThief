@@ -232,6 +232,11 @@ bool Handle_N_EntityDespawn(PacketSessionRef& session, const se::room::N_EntityD
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityDespawn: Failed to get NGIS"));
 	return false;	
 }
+
+bool Handle_S_RoomSetupEnd(PacketSessionRef& session, const se::room::S_RoomSetupEnd& pkt)
+{
+	return false;
+}
 	
 bool Handle_N_RoomClosed(PacketSessionRef& session, const se::room::N_RoomClosed& pkt)
 {
@@ -314,6 +319,11 @@ bool Handle_N_JumpLand(PacketSessionRef& session, const se::game::N_JumpLand& pk
 
 	return false;
 }
+
+bool Handle_N_DoubleJump(PacketSessionRef& session, const se::game::N_DoubleJump& pkt)
+{
+	return false;
+}
 	
 bool Handle_N_Crouch(PacketSessionRef& session, const se::game::N_Crouch& pkt)
 {
@@ -341,6 +351,11 @@ bool Handle_N_WireAction(PacketSessionRef& session, const se::game::N_WireAction
 }
 	
 bool Handle_N_WireActionEnd(PacketSessionRef& session, const se::game::N_WireActionEnd& pkt)
+{
+	return false;	
+}
+
+bool Handle_N_WireLaunch(PacketSessionRef& session, const se::game::N_WireLaunch& pkt)
 {
 	return false;	
 }
@@ -532,6 +547,21 @@ bool Handle_N_UseAbility(PacketSessionRef& session, const se::game::N_UseAbility
 bool Handle_N_KillPlayer(PacketSessionRef& session, const se::game::N_KillPlayer& pkt)
 {
 	return false;	
+}
+
+bool Handle_S_ReloadRes(PacketSessionRef& session, const se::game::S_ReloadRes& pkt)
+{
+	return false;
+}
+
+bool Handle_N_EntityHit(PacketSessionRef& session, const se::game::N_EntityHit& pkt)
+{
+	return false;
+}
+
+bool Handle_N_ProjectileMove(PacketSessionRef& session, const se::game::N_ProjectileMove& pkt)
+{
+	return false;
 }
 	
 bool Handle_N_UseItem(PacketSessionRef& session, const se::game::N_UseItem& pkt)

@@ -87,15 +87,18 @@ public:
 	void HandleRoomLeaveRes(const se::room::S_RoomLeaveRes& Pkt);
 	void HandleEntitySpawn(const se::room::N_EntitySpawn& Pkt);
 	void HandleEntityDespawn(const se::room::N_EntityDespawn& Pkt);
+	void HandleRoomSetupEnd(const se::room::S_RoomSetupEnd& pkt);
 	void HandleRoomClosed(const se::room::N_RoomClosed& Pkt);
 	void HandleGameStart(const se::game::N_GameStart& Pkt);
 	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
 	void HandleMove(const se::game::N_Move& Pkt);
 	void HandleJump(const se::game::N_Jump& pkt);
 	void HandleJumpLand(const se::game::N_JumpLand& pkt);
+	void HandleDoubleJump(const se::game::N_DoubleJump& pkt);
 	void HandleCrouch(const se::game::N_Crouch& pkt);
 	void HandleWireAction(const se::game::N_WireAction& pkt);
 	void HandleWireActionEnd(const se::game::N_WireActionEnd& pkt);
+	void HandleWireLaunch(const se::game::N_WireLaunch& pkt);
 	void HandleAim(const se::game::N_Aim& pkt);
 	void HandleFire(const se::game::N_Fire& Pkt);
 	void HandleAttack(const se::game::N_Attack& Pkt);
@@ -104,6 +107,9 @@ public:
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
 	void HandleUseAbility(const se::game::N_UseAbility& Pkt);
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
+	void Handle_S_ReloadRes(const se::game::S_ReloadRes& pkt);
+	void Handle_N_EntityHit(const se::game::N_EntityHit& pkt);
+	void Handle_N_ProjectileMove(const se::game::N_ProjectileMove& pkt);
 	void HandleUseItem(const se::game::N_UseItem& Pkt);
 	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
 	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);

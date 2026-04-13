@@ -565,6 +565,10 @@ void UNetworkGameInstanceSubsystem::HandleEntityDespawn(const se::room::N_Entity
 	UE_LOG(LogTemp, Log, TEXT("[Network] Entity despawned: EntityId=%u"), EntityId);
 }
 
+void UNetworkGameInstanceSubsystem::HandleRoomSetupEnd(const se::room::S_RoomSetupEnd& pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
 {
 }
@@ -650,6 +654,10 @@ void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& P
 	}
 }
 
+void UNetworkGameInstanceSubsystem::HandleDoubleJump(const se::game::N_DoubleJump& pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& Pkt)
 {
 	check(IsInGameThread());
@@ -678,6 +686,10 @@ void UNetworkGameInstanceSubsystem::HandleWireAction(const se::game::N_WireActio
 }
 
 void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireActionEnd& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleWireLaunch(const se::game::N_WireLaunch& pkt)
 {
 }
 
@@ -802,6 +814,18 @@ void UNetworkGameInstanceSubsystem::HandleUseAbility(const se::game::N_UseAbilit
 }
 
 void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlayer& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::Handle_S_ReloadRes(const se::game::S_ReloadRes& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::Handle_N_EntityHit(const se::game::N_EntityHit& pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::Handle_N_ProjectileMove(const se::game::N_ProjectileMove& pkt)
 {
 }
 

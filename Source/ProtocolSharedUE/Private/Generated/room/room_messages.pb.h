@@ -73,6 +73,9 @@ PROTOCOLSHAREDUE_API extern S_RoomEnterResDefaultTypeInternal _S_RoomEnterRes_de
 class S_RoomLeaveRes;
 struct S_RoomLeaveResDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern S_RoomLeaveResDefaultTypeInternal _S_RoomLeaveRes_default_instance_;
+class S_RoomSetupEnd;
+struct S_RoomSetupEndDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern S_RoomSetupEndDefaultTypeInternal _S_RoomSetupEnd_default_instance_;
 }  // namespace room
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
@@ -83,6 +86,7 @@ template<> PROTOCOLSHAREDUE_API ::se::room::N_EntitySpawn* Arena::CreateMaybeMes
 template<> PROTOCOLSHAREDUE_API ::se::room::N_RoomClosed* Arena::CreateMaybeMessage<::se::room::N_RoomClosed>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::S_RoomEnterRes* Arena::CreateMaybeMessage<::se::room::S_RoomEnterRes>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::S_RoomLeaveRes* Arena::CreateMaybeMessage<::se::room::S_RoomLeaveRes>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::room::S_RoomSetupEnd* Arena::CreateMaybeMessage<::se::room::S_RoomSetupEnd>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
 namespace room {
@@ -1045,6 +1049,124 @@ class PROTOCOLSHAREDUE_API N_EntityDespawn final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API S_RoomSetupEnd final :
+    public ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase /* @@protoc_insertion_point(class_definition:se.room.S_RoomSetupEnd) */ {
+ public:
+  inline S_RoomSetupEnd() : S_RoomSetupEnd(nullptr) {}
+  explicit PROTOBUF_CONSTEXPR S_RoomSetupEnd(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  S_RoomSetupEnd(const S_RoomSetupEnd& from);
+  S_RoomSetupEnd(S_RoomSetupEnd&& from) noexcept
+    : S_RoomSetupEnd() {
+    *this = ::std::move(from);
+  }
+
+  inline S_RoomSetupEnd& operator=(const S_RoomSetupEnd& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline S_RoomSetupEnd& operator=(S_RoomSetupEnd&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const S_RoomSetupEnd& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const S_RoomSetupEnd* internal_default_instance() {
+    return reinterpret_cast<const S_RoomSetupEnd*>(
+               &_S_RoomSetupEnd_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  friend void swap(S_RoomSetupEnd& a, S_RoomSetupEnd& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(S_RoomSetupEnd* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(S_RoomSetupEnd* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  S_RoomSetupEnd* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_RoomSetupEnd>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyFrom;
+  inline void CopyFrom(const S_RoomSetupEnd& from) {
+    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::CopyImpl(*this, from);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeFrom;
+  void MergeFrom(const S_RoomSetupEnd& from) {
+    ::PROTOBUF_NAMESPACE_ID::internal::ZeroFieldsBase::MergeImpl(*this, from);
+  }
+  public:
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.room.S_RoomSetupEnd";
+  }
+  protected:
+  explicit S_RoomSetupEnd(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // @@protoc_insertion_point(class_scope:se.room.S_RoomSetupEnd)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+  };
+  friend struct ::TableStruct_room_2froom_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API N_RoomClosed final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.N_RoomClosed) */ {
  public:
@@ -1093,7 +1215,7 @@ class PROTOCOLSHAREDUE_API N_RoomClosed final :
                &_N_RoomClosed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   friend void swap(N_RoomClosed& a, N_RoomClosed& b) {
     a.Swap(&b);
@@ -1805,6 +1927,10 @@ inline void N_EntityDespawn::set_allocated_entity_id(::se::common::ObjectId* ent
 
 // -------------------------------------------------------------------
 
+// S_RoomSetupEnd
+
+// -------------------------------------------------------------------
+
 // N_RoomClosed
 
 // uint32 room_id = 1;
@@ -1850,6 +1976,8 @@ inline void N_RoomClosed::set_reason(::se::room::RoomClosedReason value) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
