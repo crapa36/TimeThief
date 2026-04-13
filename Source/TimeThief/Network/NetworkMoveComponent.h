@@ -37,6 +37,7 @@ public:
 	
 public:
 	void ApplyNetworkState(const FNetworkEntityState& EntityState);
+	void SetYaw(float NewYaw);
 	
 	void SetMovementUpdateInterval(float InInterval);
 	

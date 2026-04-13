@@ -18,7 +18,9 @@ UENUM(BlueprintType)
 enum class ENetworkActionPhase : uint8
 {
 	None UMETA(DisplayName="None"),
+	Launch UMETA(DisplayName="Launch"),
 	Start UMETA(DisplayName="Start"),
+	Double UMETA(DisplayName="Double"),
 	End UMETA(DisplayName="End"),
 	Land UMETA(DisplayName="Land"),
 };

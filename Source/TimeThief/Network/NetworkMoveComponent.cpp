@@ -142,6 +142,13 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	InterpElapsed = 0.0f;
 }
 
+void UNetworkMoveComponent::SetYaw(float NewYaw)
+// TODO: Fire와 같은 액션이 발생 했을 때 Remote Player의 Yaw Interpolation이 더 이상 필요하지 않을 경우 호출하기
+{
+	StartYaw = NewYaw;
+	TargetYaw = NewYaw;
+}
+
 void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
 {
 	if (InInterval <= 0.0f)
@@ -202,6 +209,10 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 		{
 			CMC->SetMovementMode(MOVE_Falling);
 		}
+		break;
+		
+	case ENetworkActionPhase::Double:
+		// TODO: 더블 점프
 		break;
 
 	case ENetworkActionPhase::Land:
