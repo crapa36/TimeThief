@@ -37,6 +37,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartRandomStormZoneShrink();
 	
+	UFUNCTION(BlueprintCallable)
+	void SetStormPhase(const FVector2D& InDestCenter, float InDestRadius, float InWaitingTime, float InShrinkingTime); 
+	
 	void GetCurrStormZone_UV(FVector2D& OutCenter, float& OutRadius) const;
 	void GetDestStormZone_UV(FVector2D& OutCenter, float& OutRadius) const;
 	
@@ -46,10 +49,12 @@ public:
 	FVector2f MapSize;
 	
 private:
-	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"))
-	TObjectPtr<UTimeStormData> DataTable;
+	// UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"))
+	// TObjectPtr<UTimeStormData> DataTable;	// 서버에서만 필요한 듯 싶어서 제거함
 	
-	float ElapsedTime = 0.0f;
+	// float ElapsedTime = 0.0f;
+	float PhaseElapsedTime = 0.0f;	// 기존의 ElapsedTime ㅇ역할
+	float WaitDuration = 0.0f;
 	float ShrinkDuration = 0.5f;
 	
 	FVector2D CurrCenter{0.0f, 0.0f};
@@ -62,5 +67,5 @@ private:
 	
 	bool bIsShrinking = false;
 	
-	int NumShrinks = 0;
+	int NumShrinks = 0;	// 이게 아마 Phase 역할 일듯
 };

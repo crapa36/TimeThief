@@ -15,7 +15,9 @@
 #include "TimeThiefNetworkSettings.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
+#include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/GameStateBase.h"
 #include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
@@ -876,6 +878,30 @@ void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_Time
 		return;
 	}
 	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+	
+	AGameStateBase* GameState = World->GetGameState();
+	if (GameState == nullptr)
+	{
+		return;
+	}
+	
+	UTimeStormComponent* TimeStormComp = GameState->FindComponentByClass<UTimeStormComponent>();
+	if (TimeStormComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] GameState has no UTimeStormComponent"));
+		return;
+	}
+	
+	auto Pos = Pkt.center();
+	const FVector2D DestCenter(Pos.x(), Pos.y());
+	const float DestRadius = Pkt.radius();
+	
+	TimeStormComp->SetStormPhase(DestCenter, DestRadius, Pkt.waiting_time(), Pkt.shrinking_time());
 }
 
 void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)
