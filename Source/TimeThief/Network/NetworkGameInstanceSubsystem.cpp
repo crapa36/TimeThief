@@ -4,6 +4,7 @@
 #include <Generated/ClientPacketHandler.h>
 
 #include "SocketSubsystem.h"
+#include "IPAddress.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 
 #include "Protocol.pb.h"
@@ -263,21 +264,62 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 bool UNetworkGameInstanceSubsystem::TryConnect(const FString& Host, int32 Port)
 {
 	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
-
-	TSharedRef<FInternetAddr> Addr = SocketSubsystem->CreateInternetAddr();
-
-	bool bIsValid = false;
-	Addr->SetIp(*Host, bIsValid);
-
-	if (!bIsValid)
+	if (SocketSubsystem == nullptr || Socket == nullptr)
 	{
-		UE_LOG(LogTemp, Error, TEXT("[Network] Failed to resolve host: %s"), *Host);
 		return false;
 	}
+	
+	// IP 문자열 Try
+	{
+		TSharedRef<FInternetAddr> Addr = SocketSubsystem->CreateInternetAddr();
 
-	Addr->SetPort(Port);
+		bool bIsValidIp = false;
+		Addr->SetIp(*Host, bIsValidIp);
 
-	return Socket->Connect(*Addr);
+		if (bIsValidIp)
+		{
+			Addr->SetPort(Port);
+
+			UE_LOG(LogTemp, Log, TEXT("[Network] Trying direct IP connect: %s:%d"), *Host, Port);
+			return Socket->Connect(*Addr);
+		}
+	}
+	
+	// DNS로 호스트명 해석 시도
+	{
+		FAddressInfoResult Result = SocketSubsystem->GetAddressInfo(
+			*Host,
+			nullptr,
+			EAddressInfoFlags::Default,
+			NAME_None);
+
+		if (Result.ReturnCode != SE_NO_ERROR || Result.Results.Num() == 0)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[Network] Failed to resolve host: %s, ReturnCode=%d"),
+				*Host, (int32)Result.ReturnCode);
+			return false;
+		}
+
+		// 주소들 순회하며 연결 시도
+		for (const FAddressInfoResultData& Entry : Result.Results)
+		{
+			Entry.Address->SetPort(Port);
+
+			UE_LOG(LogTemp, Log, TEXT("[Network] Trying resolved address %s for host %s"),
+				*Entry.Address->ToString(true),
+				*Host);
+
+			if (Socket->Connect(*Entry.Address))
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Network] Connected to %s"),
+					*Entry.Address->ToString(true));
+				return true;
+			}
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Network] Failed to connect to resolved host: %s"), *Host);
+	return false;
 }
 
 void UNetworkGameInstanceSubsystem::HandleConnectFailed()
