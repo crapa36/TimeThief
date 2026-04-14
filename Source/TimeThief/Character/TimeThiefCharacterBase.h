@@ -100,6 +100,11 @@ public:
 	bool bIsRespawn = true;
 	bool bPendingRespawn = false;
 	
+public:
+	void HandleDeathFromServer();
+	void HandleRespawnFromServer(const FVector& RespawnLocation);
+	void FinishRespawnPresentation();
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")
 	TObjectPtr<UTimePointSystemComponent> TimePointSystemComponent;

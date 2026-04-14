@@ -240,33 +240,159 @@ void ATimeThiefCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (bPendingRespawn)
+	if (bIsDead)
+	{
+		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
+		UpdateMask();
+		return;
+	}
+	
+	if (bIsRespawn)
+	{
+		Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
+		
+		if (Mask >= 1.f - KINDA_SMALL_NUMBER)
+		{
+			Mask = 1;
+			UpdateMask();
+			FinishRespawnPresentation();
+			return;
+		}
+		
+		UpdateMask();
+	}
+	
+	// 기존 코드 (클라에서 자체 Respawn 로직을 가지고 있을 때)
+	// if (bPendingRespawn)
+	// {
+	// 	return;
+	// }
+	// if (bIsDead && !bIsRespawn)
+	// {
+	// 	Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
+	//
+	// 	if (Mask == 0)
+	// 	{
+	// 		FTimerHandle TempHandle;
+	// 		bPendingRespawn = true;
+	// 		GetWorldTimerManager().SetTimer(TempHandle, this, &ThisClass::OnBeginRespawn, 5);
+	// 	}
+	// 	
+	// 	UpdateMask();
+	// }
+	// else if (bIsRespawn)
+	// {
+	// 	Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
+	//
+	// 	if (Mask == 1)
+	// 	{
+	// 		OnEndRespawn();
+	// 	}
+	// 	
+	// 	UpdateMask();
+	// }
+}
+
+void ATimeThiefCharacterBase::HandleDeathFromServer()
+{
+	bIsDead = true;
+	bIsRespawn = false;
+	bPendingRespawn = false;
+	
+	// PlayDeathEffects();
+	// NotifyLifeObserversDeath();
+	
+	// 아마 아래 코드가 Death 연출 및 필요작업인듯
+	DeadFX->Activate(true);
+	DisappearFX->SetActive(false, true);
+	
+	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
+	{
+		PS->OnDeath();
+	}
+	for (auto Comp : GetComponents())
+	{
+		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
+		{
+			LifeObserver->OnDeath();
+		}
+	}
+}
+
+void ATimeThiefCharacterBase::HandleRespawnFromServer(const FVector& RespawnLocation)
+{
+	bIsDead = false;
+	bIsRespawn = true;
+	bPendingRespawn = false;
+	Mask = 0;
+	
+	SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	
+	// 없애고 싶은 코드;
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			PC->SetIgnoreMoveInput(false);
+			PC->SetIgnoreLookInput(false);
+			EnableInput(PC);
+		}
+		
+		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+		{
+			MoveComp->StopMovementImmediately();
+			MoveComp->SetMovementMode(MOVE_Walking);
+		}
+	}
+	
+	DeadFX->Deactivate();
+	SpawnFX->Activate(true);
+	DisappearFX->SetActive(false, true);
+		
+	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
+	{
+		PS->OnBeginRespawn();
+	}
+	for (auto Comp : GetComponents())
+	{
+		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
+		{
+			LifeObserver->OnBeginRespawn();
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("LocallyControlled=%d"), IsLocallyControlled() ? 1 : 0);
+	UE_LOG(LogTemp, Warning, TEXT("MovementMode=%d"), (int32)GetCharacterMovement()->MovementMode);
+	UE_LOG(LogTemp, Warning, TEXT("CapsuleCollision=%d"), (int32)GetCapsuleComponent()->GetCollisionEnabled());
+	UE_LOG(LogTemp, Warning, TEXT("ActorEnableCollision=%d"), GetActorEnableCollision() ? 1 : 0);
+	UE_LOG(LogTemp, Warning, TEXT("MeshSimPhysics=%d"), GetMesh()->IsSimulatingPhysics() ? 1 : 0);
+	
+}
+
+void ATimeThiefCharacterBase::FinishRespawnPresentation()
+{
+	if (!bIsRespawn)
 	{
 		return;
 	}
-	if (bIsDead && !bIsRespawn)
-	{
-		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
+	
+	bIsRespawn = false;
+	
+	// StopRespawnEffects();
+	// NotifyLifeObserversEndRespawn();
+	
+	SpawnFX->Deactivate();
+	DisappearFX->Activate();
 
-		if (Mask == 0)
-		{
-			FTimerHandle TempHandle;
-			bPendingRespawn = true;
-			GetWorldTimerManager().SetTimer(TempHandle, this, &ThisClass::OnBeginRespawn, 5);
-		}
-		
-		UpdateMask();
+	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
+	{
+		PS->OnEndRespawn();
 	}
-	else if (bIsRespawn)
+	for (auto Comp : GetComponents())
 	{
-		Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
-
-		if (Mask == 1)
+		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
 		{
-			OnEndRespawn();
+			LifeObserver->OnEndRespawn();
 		}
-		
-		UpdateMask();
 	}
 }
 

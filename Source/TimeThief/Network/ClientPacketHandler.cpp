@@ -676,11 +676,69 @@ bool Handle_N_HealthChanged(PacketSessionRef& session, const se::game::N_HealthC
 	
 bool Handle_N_EntityDied(PacketSessionRef& session, const se::game::N_EntityDied& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityDied: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityDied: entity_id is 0"));
+		return false;
+	}
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleEntityDied(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityDied: Failed to get NGIS"));
 	return false;	
 }
 	
 bool Handle_N_EntityRespawned(PacketSessionRef& session, const se::game::N_EntityRespawned& pkt)
 {
+	UE_LOG(LogTemp, Log, TEXT("Handle_N_EntityRespawned: Received pkt"));
+	
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityRespawned: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityRespawned: entity_id is 0"));
+		return false;
+	}
+	
+	if (!pkt.has_transform())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityRespawned: pkt has no transform"));
+		return false;
+	}
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleEntityRespawned(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityRespawned: Failed to get NGIS"));
 	return false;	
 }
 	

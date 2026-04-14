@@ -1014,10 +1014,86 @@ void UNetworkGameInstanceSubsystem::HandleHealthChanged(const se::game::N_Health
 
 void UNetworkGameInstanceSubsystem::HandleEntityDied(const se::game::N_EntityDied& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	auto Entry = EntityEntries.Find(EntityId);
+	if (Entry == nullptr || Entry->Actor == nullptr)
+	{
+		return;
+	}
+	
+	auto Actor = Entry->Actor.Get();
+	if (Actor == nullptr)
+	{
+		return;
+	}
+	
+	auto TTCharacter = dynamic_cast<ATimeThiefCharacterBase*>(Actor);
+	if (TTCharacter == nullptr)
+	{
+		return;
+	}
+	
+	if (EntityId == LocalPlayerEntityId)
+	{
+		// 로컬 플레이어 사망 처리 후 컨트롤 불가하게
+		TTCharacter->HandleDeathFromServer();
+	}
+	else
+	{
+		// 타 플레이어는 사망 연출 진행
+		TTCharacter->HandleDeathFromServer();
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	const auto& Transform = Pkt.transform();
+	const auto& Pos = Transform.position();
+	FVector RespawnPosition(Pos.x(), Pos.y(), Pos.z());
+	const float Yaw = Transform.yaw();
+	auto Entry = EntityEntries.Find(EntityId);
+	if (Entry == nullptr || Entry->Actor == nullptr)
+	{
+		return;
+	}
+	
+	auto Actor = Entry->Actor.Get();
+	if (Actor == nullptr)
+	{
+		return;
+	}
+	
+	auto TTCharacter = dynamic_cast<ATimeThiefCharacterBase*>(Actor);
+	if (TTCharacter == nullptr)
+	{
+		return;
+	}
+	
+	if (EntityId == LocalPlayerEntityId)
+	{
+		// 로컬 플레이어 부활 처리 후 컨트롤 가능하게
+		TTCharacter->HandleRespawnFromServer(RespawnPosition);
+	}
+	else
+	{
+		// 타 플레이어는 부활 연출 진행
+		TTCharacter->HandleRespawnFromServer(RespawnPosition);
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt)
