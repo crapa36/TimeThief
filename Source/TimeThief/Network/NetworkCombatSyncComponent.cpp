@@ -78,6 +78,7 @@ void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRe
 			Dir->set_x(AttackRequest.Direction.X);
 			Dir->set_y(AttackRequest.Direction.Y);
 			Dir->set_z(AttackRequest.Direction.Z);
+			Request.set_shot_seed(AttackRequest.ShotSeed);
 			
 			Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 		}

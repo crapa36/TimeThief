@@ -3516,6 +3516,7 @@ class PROTOCOLSHAREDUE_API C_FireReq final :
     kStartPositionFieldNumber = 2,
     kDirectionFieldNumber = 3,
     kWeaponIdFieldNumber = 1,
+    kShotSeedFieldNumber = 4,
   };
   // .se.common.Vector3 start_position = 2;
   bool has_start_position() const;
@@ -3562,6 +3563,15 @@ class PROTOCOLSHAREDUE_API C_FireReq final :
   void _internal_set_weapon_id(uint32_t value);
   public:
 
+  // uint32 shot_seed = 4;
+  void clear_shot_seed();
+  uint32_t shot_seed() const;
+  void set_shot_seed(uint32_t value);
+  private:
+  uint32_t _internal_shot_seed() const;
+  void _internal_set_shot_seed(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.game.C_FireReq)
  private:
   class _Internal;
@@ -3573,6 +3583,7 @@ class PROTOCOLSHAREDUE_API C_FireReq final :
     ::se::common::Vector3* start_position_;
     ::se::common::Vector3* direction_;
     uint32_t weapon_id_;
+    uint32_t shot_seed_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -3705,6 +3716,7 @@ class PROTOCOLSHAREDUE_API N_Fire final :
     kStartPositionFieldNumber = 3,
     kDirectionFieldNumber = 4,
     kWeaponIdFieldNumber = 2,
+    kShotSeedFieldNumber = 5,
   };
   // .se.common.ObjectId entity_id = 1;
   bool has_entity_id() const;
@@ -3769,6 +3781,15 @@ class PROTOCOLSHAREDUE_API N_Fire final :
   void _internal_set_weapon_id(uint32_t value);
   public:
 
+  // uint32 shot_seed = 5;
+  void clear_shot_seed();
+  uint32_t shot_seed() const;
+  void set_shot_seed(uint32_t value);
+  private:
+  uint32_t _internal_shot_seed() const;
+  void _internal_set_shot_seed(uint32_t value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.game.N_Fire)
  private:
   class _Internal;
@@ -3781,6 +3802,7 @@ class PROTOCOLSHAREDUE_API N_Fire final :
     ::se::common::Vector3* start_position_;
     ::se::common::Vector3* direction_;
     uint32_t weapon_id_;
+    uint32_t shot_seed_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -6972,7 +6994,7 @@ class PROTOCOLSHAREDUE_API C_UseStoreReq final :
 
   enum : int {
     kStoreEntityIdFieldNumber = 1,
-    kSlotFieldNumber = 2,
+    kStoreItemIdFieldNumber = 2,
   };
   // .se.common.ObjectId store_entity_id = 1;
   bool has_store_entity_id() const;
@@ -6992,13 +7014,13 @@ class PROTOCOLSHAREDUE_API C_UseStoreReq final :
       ::se::common::ObjectId* store_entity_id);
   ::se::common::ObjectId* unsafe_arena_release_store_entity_id();
 
-  // uint32 slot = 2;
-  void clear_slot();
-  uint32_t slot() const;
-  void set_slot(uint32_t value);
+  // uint32 store_item_id = 2;
+  void clear_store_item_id();
+  uint32_t store_item_id() const;
+  void set_store_item_id(uint32_t value);
   private:
-  uint32_t _internal_slot() const;
-  void _internal_set_slot(uint32_t value);
+  uint32_t _internal_store_item_id() const;
+  void _internal_set_store_item_id(uint32_t value);
   public:
 
   // @@protoc_insertion_point(class_scope:se.game.C_UseStoreReq)
@@ -7010,7 +7032,7 @@ class PROTOCOLSHAREDUE_API C_UseStoreReq final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::ObjectId* store_entity_id_;
-    uint32_t slot_;
+    uint32_t store_item_id_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -7141,7 +7163,7 @@ class PROTOCOLSHAREDUE_API S_UseStoreRes final :
   enum : int {
     kResultFieldNumber = 2,
     kSuccessFieldNumber = 1,
-    kSlotFieldNumber = 3,
+    kStoreItemIdFieldNumber = 3,
   };
   // .se.common.Result result = 2;
   bool has_result() const;
@@ -7170,13 +7192,13 @@ class PROTOCOLSHAREDUE_API S_UseStoreRes final :
   void _internal_set_success(bool value);
   public:
 
-  // uint32 slot = 3;
-  void clear_slot();
-  uint32_t slot() const;
-  void set_slot(uint32_t value);
+  // uint32 store_item_id = 3;
+  void clear_store_item_id();
+  uint32_t store_item_id() const;
+  void set_store_item_id(uint32_t value);
   private:
-  uint32_t _internal_slot() const;
-  void _internal_set_slot(uint32_t value);
+  uint32_t _internal_store_item_id() const;
+  void _internal_set_store_item_id(uint32_t value);
   public:
 
   // @@protoc_insertion_point(class_scope:se.game.S_UseStoreRes)
@@ -7189,7 +7211,7 @@ class PROTOCOLSHAREDUE_API S_UseStoreRes final :
   struct Impl_ {
     ::se::common::Result* result_;
     bool success_;
-    uint32_t slot_;
+    uint32_t store_item_id_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -10340,6 +10362,26 @@ inline void C_FireReq::set_allocated_direction(::se::common::Vector3* direction)
   // @@protoc_insertion_point(field_set_allocated:se.game.C_FireReq.direction)
 }
 
+// uint32 shot_seed = 4;
+inline void C_FireReq::clear_shot_seed() {
+  _impl_.shot_seed_ = 0u;
+}
+inline uint32_t C_FireReq::_internal_shot_seed() const {
+  return _impl_.shot_seed_;
+}
+inline uint32_t C_FireReq::shot_seed() const {
+  // @@protoc_insertion_point(field_get:se.game.C_FireReq.shot_seed)
+  return _internal_shot_seed();
+}
+inline void C_FireReq::_internal_set_shot_seed(uint32_t value) {
+  
+  _impl_.shot_seed_ = value;
+}
+inline void C_FireReq::set_shot_seed(uint32_t value) {
+  _internal_set_shot_seed(value);
+  // @@protoc_insertion_point(field_set:se.game.C_FireReq.shot_seed)
+}
+
 // -------------------------------------------------------------------
 
 // N_Fire
@@ -10617,6 +10659,26 @@ inline void N_Fire::set_allocated_direction(::se::common::Vector3* direction) {
   }
   _impl_.direction_ = direction;
   // @@protoc_insertion_point(field_set_allocated:se.game.N_Fire.direction)
+}
+
+// uint32 shot_seed = 5;
+inline void N_Fire::clear_shot_seed() {
+  _impl_.shot_seed_ = 0u;
+}
+inline uint32_t N_Fire::_internal_shot_seed() const {
+  return _impl_.shot_seed_;
+}
+inline uint32_t N_Fire::shot_seed() const {
+  // @@protoc_insertion_point(field_get:se.game.N_Fire.shot_seed)
+  return _internal_shot_seed();
+}
+inline void N_Fire::_internal_set_shot_seed(uint32_t value) {
+  
+  _impl_.shot_seed_ = value;
+}
+inline void N_Fire::set_shot_seed(uint32_t value) {
+  _internal_set_shot_seed(value);
+  // @@protoc_insertion_point(field_set:se.game.N_Fire.shot_seed)
 }
 
 // -------------------------------------------------------------------
@@ -12885,24 +12947,24 @@ inline void C_UseStoreReq::set_allocated_store_entity_id(::se::common::ObjectId*
   // @@protoc_insertion_point(field_set_allocated:se.game.C_UseStoreReq.store_entity_id)
 }
 
-// uint32 slot = 2;
-inline void C_UseStoreReq::clear_slot() {
-  _impl_.slot_ = 0u;
+// uint32 store_item_id = 2;
+inline void C_UseStoreReq::clear_store_item_id() {
+  _impl_.store_item_id_ = 0u;
 }
-inline uint32_t C_UseStoreReq::_internal_slot() const {
-  return _impl_.slot_;
+inline uint32_t C_UseStoreReq::_internal_store_item_id() const {
+  return _impl_.store_item_id_;
 }
-inline uint32_t C_UseStoreReq::slot() const {
-  // @@protoc_insertion_point(field_get:se.game.C_UseStoreReq.slot)
-  return _internal_slot();
+inline uint32_t C_UseStoreReq::store_item_id() const {
+  // @@protoc_insertion_point(field_get:se.game.C_UseStoreReq.store_item_id)
+  return _internal_store_item_id();
 }
-inline void C_UseStoreReq::_internal_set_slot(uint32_t value) {
+inline void C_UseStoreReq::_internal_set_store_item_id(uint32_t value) {
   
-  _impl_.slot_ = value;
+  _impl_.store_item_id_ = value;
 }
-inline void C_UseStoreReq::set_slot(uint32_t value) {
-  _internal_set_slot(value);
-  // @@protoc_insertion_point(field_set:se.game.C_UseStoreReq.slot)
+inline void C_UseStoreReq::set_store_item_id(uint32_t value) {
+  _internal_set_store_item_id(value);
+  // @@protoc_insertion_point(field_set:se.game.C_UseStoreReq.store_item_id)
 }
 
 // -------------------------------------------------------------------
@@ -13014,24 +13076,24 @@ inline void S_UseStoreRes::set_allocated_result(::se::common::Result* result) {
   // @@protoc_insertion_point(field_set_allocated:se.game.S_UseStoreRes.result)
 }
 
-// uint32 slot = 3;
-inline void S_UseStoreRes::clear_slot() {
-  _impl_.slot_ = 0u;
+// uint32 store_item_id = 3;
+inline void S_UseStoreRes::clear_store_item_id() {
+  _impl_.store_item_id_ = 0u;
 }
-inline uint32_t S_UseStoreRes::_internal_slot() const {
-  return _impl_.slot_;
+inline uint32_t S_UseStoreRes::_internal_store_item_id() const {
+  return _impl_.store_item_id_;
 }
-inline uint32_t S_UseStoreRes::slot() const {
-  // @@protoc_insertion_point(field_get:se.game.S_UseStoreRes.slot)
-  return _internal_slot();
+inline uint32_t S_UseStoreRes::store_item_id() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseStoreRes.store_item_id)
+  return _internal_store_item_id();
 }
-inline void S_UseStoreRes::_internal_set_slot(uint32_t value) {
+inline void S_UseStoreRes::_internal_set_store_item_id(uint32_t value) {
   
-  _impl_.slot_ = value;
+  _impl_.store_item_id_ = value;
 }
-inline void S_UseStoreRes::set_slot(uint32_t value) {
-  _internal_set_slot(value);
-  // @@protoc_insertion_point(field_set:se.game.S_UseStoreRes.slot)
+inline void S_UseStoreRes::set_store_item_id(uint32_t value) {
+  _internal_set_store_item_id(value);
+  // @@protoc_insertion_point(field_set:se.game.S_UseStoreRes.store_item_id)
 }
 
 // -------------------------------------------------------------------

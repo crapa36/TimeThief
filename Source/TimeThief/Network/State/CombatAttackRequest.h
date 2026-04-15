@@ -22,6 +22,10 @@ struct FCombatAttackRequest
 	uint32 WeaponId = 0;
 	
 	UPROPERTY()
+	// 무기가 샷건인 경우 필요한 샷 시드값 (샷건의 탄퍼짐 계산에 사용)
+	uint32 ShotSeed = 0;
+	
+	UPROPERTY()
 	// 공격의 시작 위치
 	FVector Origin = FVector::ZeroVector;
 	

@@ -912,6 +912,7 @@ void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)
 	Notify.Origin = FVector(Origin.x(), Origin.y(), Origin.z());
 	const auto& Dir = Pkt.direction();
 	Notify.Direction = FVector(Dir.x(), Dir.y(), Dir.z());
+	Notify.ShotSeed = Pkt.shot_seed();
 	
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }

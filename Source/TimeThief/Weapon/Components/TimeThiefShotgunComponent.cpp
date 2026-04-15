@@ -6,6 +6,32 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "DrawDebugHelpers.h"
+#include "Utils/Random32.h"
+
+namespace 
+{
+	FVector MyRandomCone(const FVector& Direction, float ConeHalfAngleRad, float r1, float r2)
+	{
+		FVector helper = (FMath::Abs(Direction.X) > 0.1f) ? FVector(0, 1, 0) : FVector(1, 0, 0);
+		FVector u = helper.Cross(Direction).GetSafeNormal();
+		FVector v = Direction.Cross(u);
+		
+		const float cosMin = FMath::Cos(ConeHalfAngleRad);
+		
+		float cosTheta = 1.0f - r1 * (1.0f - cosMin);
+		float sinTheta = FMath::Sqrt(std::max(0.0f, 1.0f - cosTheta * cosTheta));
+		float phi = 2.0f * PI * r2;
+        
+		FVector dir = {
+			u * (FMath::Cos(phi) * sinTheta) +
+			v * (FMath::Sin(phi) * sinTheta) +
+			Direction * cosTheta
+		};
+        
+		return dir.GetSafeNormal();
+	}
+	
+}
 
 UTimeThiefShotgunComponent::UTimeThiefShotgunComponent()
 {
@@ -60,12 +86,18 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
+	const uint32 RandomSeed = FMath::Rand();
+	// TODO: 이 Seed 값을 패킷에 담아야 함!
+	FRandom32 SeededRandom(RandomSeed);
 
 	for (int32 PelletIndex = 0; PelletIndex < PelletCount; ++PelletIndex)
 	{
 		FShotgunHitResult PelletResult;
 
-		const FVector PelletAimDir = FMath::VRandCone(CameraAimDir, HalfSpreadRad);
+		// const FVector PelletAimDir = FMath::VRandCone(CameraAimDir, HalfSpreadRad);
+		const float r1 = SeededRandom.NextFloat01();
+		const float r2 = SeededRandom.NextFloat01();
+		const FVector PelletAimDir = MyRandomCone(CameraAimDir, HalfSpreadRad, r1, r2);
 		const FVector CameraTraceEnd = CameraLocation + PelletAimDir * MaxRange;
 
 		FHitResult CameraHitResult;
