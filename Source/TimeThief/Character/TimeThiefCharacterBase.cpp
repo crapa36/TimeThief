@@ -13,6 +13,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Components/Skill/SavePointSkillComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
@@ -57,7 +58,9 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 
 	SpawnFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnFX"));
 	SpawnFX->SetupAttachment(GetMesh());
-	DeadFX->bAutoActivate = false;
+	SpawnFX->bAutoActivate = false;
+	
+	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
 }
 
 void ATimeThiefCharacterBase::Save()
@@ -77,6 +80,8 @@ void ATimeThiefCharacterBase::Save()
 	{
 		PS->SaveStatus = PS->Status;
 	}
+	
+	SavePointSkillComponent->ActivateSkill();
 }
 
 void ATimeThiefCharacterBase::OnDeath()
@@ -86,6 +91,11 @@ void ATimeThiefCharacterBase::OnDeath()
 
 	DeadFX->Activate(true);
 	DisappearFX->SetActive(false, true);
+	
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+	}
 	
 	for (auto Comp : GetComponents())
 	{
@@ -174,7 +184,12 @@ void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	Save();
+	SaveLocation = GetActorLocation();
+	
+	if (auto PS =  Cast<ATimeThiefPlayerState>(GetPlayerState()))
+	{
+		PS->SaveStatus = PS->Status;
+	}
 	
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
@@ -256,11 +271,6 @@ void ATimeThiefCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (SaveCoolTimeLeft != 0)
-	{
-		SaveCoolTimeLeft = FMath::Min(0, SaveCoolTimeLeft - DeltaTime);
-	}
-	
 	if (bPendingRespawn)
 	{
 		return;
@@ -288,7 +298,6 @@ void ATimeThiefCharacterBase::Tick(float DeltaTime)
 		
 		if (Mask == 1.f)
 		{
-			Mask = 1;
 			OnEndRespawn();
 		}
 		

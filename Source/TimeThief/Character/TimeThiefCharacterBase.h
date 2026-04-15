@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "TimeThiefCharacterBase.generated.h"
 
+class USavePointSkillComponent;
 class UTimePointSystemComponent;
 class UTimeThiefPawnCombatComponent;
 class UTimeThiefHealthComponent;
@@ -131,6 +132,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
 	TObjectPtr<UNiagaraComponent> SpawnFX;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Skill")
+	TObjectPtr<USavePointSkillComponent> SavePointSkillComponent;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
