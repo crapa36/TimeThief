@@ -3,13 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ItemCommons.h"
 #include "SkillBaseComponent.h"
+#include "Character/TimeThiefPlayerState.h"
+#include "Components/Interface/LifeObserver.h"
 #include "SavePointSkillComponent.generated.h"
 
 class UNiagaraComponent;
+class UInventoryObject;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class TIMETHIEF_API USavePointSkillComponent : public USkillBaseComponent
+class TIMETHIEF_API USavePointSkillComponent : public USkillBaseComponent, public ILifeObserver
 {
 	GENERATED_BODY()
 	
@@ -18,6 +22,12 @@ class TIMETHIEF_API USavePointSkillComponent : public USkillBaseComponent
 	
 	UPROPERTY(EditAnywhere, Category= "VFX")
 	TObjectPtr<UAnimMontage> Montage;
+public:
+	virtual void OnDeath() override;
+	
+	virtual void OnBeginRespawn() override;
+	
+	virtual void OnEndRespawn() override;
 	
 public:
 	// Sets default values for this component's properties
@@ -35,8 +45,14 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 	virtual void ActivateSkill() override;
-	
+
 protected:
 	UFUNCTION()
 	void OnFinished(UNiagaraComponent* FinishedComponent);
+	
+	void Save();
+	
+	FVector SavedLocation;
+	FStatus SavedStatus;
+	TArray<TPair<EItemID,int>> SavedInventory;
 };

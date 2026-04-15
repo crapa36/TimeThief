@@ -7,6 +7,8 @@
 #include "SkillBaseComponent.generated.h"
 
 
+class ATimeThiefCharacterBase;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API USkillBaseComponent : public UActorComponent
 {
@@ -19,7 +21,9 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+	
+	virtual void OnRegister() override;
+	
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
@@ -28,11 +32,16 @@ public:
 	UFUNCTION()
 	virtual void ActivateSkill(){}
 	
-	bool CanActivate() const { return LeftCoolTime <= 0; }
+	bool CanActivate() const;
 	
 protected:
+	bool bCanActivate = false;
+	
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	float CoolTime = 0;
 	
 	float LeftCoolTime;
+	
+	UPROPERTY()
+	TObjectPtr<ATimeThiefCharacterBase> OwnerCharacter;
 };

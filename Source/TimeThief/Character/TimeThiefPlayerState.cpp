@@ -3,13 +3,6 @@
 
 #include "TimeThiefPlayerState.h"
 
-void ATimeThiefPlayerState::OnBeginRespawn()
-{
-	ILifeObserver::OnBeginRespawn();
-	
-	Status = SaveStatus;
-}
-
 namespace
 {
 	template <typename TValue>

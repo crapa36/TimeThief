@@ -18,7 +18,7 @@ public:
 	EItemID ItemID;
 
 	int Quantity = 0;
-
+	
 	FOnInventoryObjectUpdatedEvent OnInventoryObjectUpdatedEvent;
 };
 
@@ -51,7 +51,8 @@ public:
 
 	void AddItem(EItemID ItemID, int Amount = 1);
 	bool RemoveItem(EItemID ItemID, int Amount = 1);
-
+	
+	void SetInventory(const TArray<TPair<EItemID,int>>& NewInventory);
 	const TArray<TObjectPtr<UInventoryObject>>& GetInventory() const { return ItemQuantities; }
 
 	void SetEquipment(EItemID ItemID);

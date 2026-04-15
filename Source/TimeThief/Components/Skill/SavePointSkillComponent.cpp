@@ -5,10 +5,41 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "Character/TimeThiefCharacterBase.h"
+#include "Character/TimeThiefPlayerCharacter.h"
+#include "Components/System/InventorySystemComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+
+void USavePointSkillComponent::OnDeath()
+{
+	ILifeObserver::OnDeath();
+	
+}
+
+void USavePointSkillComponent::OnBeginRespawn()
+{
+	ILifeObserver::OnBeginRespawn();
+	
+	if (auto PS = Cast<ATimeThiefPlayerState>(OwnerCharacter->GetPlayerState()))
+	{
+		PS->Status = SavedStatus;
+	}
+	
+	OwnerCharacter->SetActorLocation(SavedLocation);
+	
+	if (auto Player = Cast<ATimeThiefPlayerCharacter>(OwnerCharacter))
+	{
+		Player->GetInventoryComponent()->SetInventory(SavedInventory);
+	}
+}
+
+void USavePointSkillComponent::OnEndRespawn()
+{
+	ILifeObserver::OnEndRespawn();
+}
 
 // Sets default values for this component's properties
 USavePointSkillComponent::USavePointSkillComponent()
@@ -19,6 +50,8 @@ USavePointSkillComponent::USavePointSkillComponent()
 
 	SavePointEffect = CreateDefaultSubobject<UNiagaraComponent>("SavePointEffect");
 	SavePointEffect->bAutoActivate = false;
+	
+	bCanActivate = true;
 }
 
 // Called when the game starts
@@ -27,15 +60,17 @@ void USavePointSkillComponent::BeginPlay()
 	Super::BeginPlay();
 
 	SavePointEffect->OnSystemFinished.AddDynamic(this, &ThisClass::OnFinished);
+	
+	Save();
 }
 
 void USavePointSkillComponent::OnRegister()
 {
 	Super::OnRegister();
 	
-	if (auto Owner = Cast<ACharacter>(GetOwner()))
+	if (OwnerCharacter)
 	{
-		SavePointEffect->AttachToComponent(Owner->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
+		SavePointEffect->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
 	}
 }
 
@@ -50,34 +85,76 @@ void USavePointSkillComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void USavePointSkillComponent::ActivateSkill()
 {
-	UKismetSystemLibrary::PrintString(this, TEXT("Save Point Skill Activated"));
-	SavePointEffect->Activate(true);
-	if (auto Character = Cast<ACharacter>(GetOwner()))
+	if (!CanActivate())
 	{
-		if (UAnimInstance* ThirdPersonAnim = Character->GetMesh()->GetAnimInstance())
+		return;
+	}
+	
+	Save();
+	
+	SavePointEffect->Activate(true);
+	
+	if (OwnerCharacter)
+	{
+		if (UAnimInstance* ThirdPersonAnim = OwnerCharacter->GetMesh()->GetAnimInstance())
 		{
 			ThirdPersonAnim->Montage_Play(Montage);
 		}
 	}
 	
-	if (auto Owner = Cast<ACharacter>(GetOwner()))
+	if (OwnerCharacter)
 	{
-		if (auto PC = Cast<APlayerController>(Owner->GetController()))
+		if (auto PC = Cast<APlayerController>(OwnerCharacter->GetController()))
 		{
-			Owner->DisableInput(PC);
+			OwnerCharacter->DisableInput(PC);
 		}
-		Owner->GetCharacterMovement()->StopMovementImmediately();
+		OwnerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	}
+	
 	LeftCoolTime = CoolTime;
 }
 
 void USavePointSkillComponent::OnFinished(UNiagaraComponent* FinishedComponent)
 {
-	if (auto Character = Cast<ACharacter>(GetOwner()))
+	UKismetSystemLibrary::PrintString(this, TEXT("Save Skill Finished"));
+	if (OwnerCharacter)
 	{
-		if (auto PC = Cast<APlayerController>(Character->GetController()))
+		if (auto PC = Cast<APlayerController>(OwnerCharacter->GetController()))
 		{
-			Character->EnableInput(PC);
+			OwnerCharacter->EnableInput(PC);
+		}
+	}
+	
+	if (OwnerCharacter)
+	{
+		if (UAnimInstance* ThirdPersonAnim = OwnerCharacter->GetMesh()->GetAnimInstance())
+		{
+			ThirdPersonAnim->Montage_Stop(0.2f, Montage);
+		}
+	}
+}
+
+void USavePointSkillComponent::Save()
+{
+	SavedLocation = OwnerCharacter->GetActorLocation();
+	
+	if (auto PS = Cast<ATimeThiefPlayerState>(OwnerCharacter->GetPlayerState()))
+	{
+		SavedStatus = PS->Status;
+	}
+	
+	if (auto InventoryComp = OwnerCharacter->GetComponentByClass<UInventorySystemComponent>())
+	{
+		const auto& Inventory = InventoryComp->GetInventory();
+		if (SavedInventory.Num() != Inventory.Num())
+		{
+			SavedInventory.SetNum(Inventory.Num());
+		}
+		for (auto p : Inventory)
+		{
+			int Index = static_cast<int>(p->ItemID) - static_cast<int>(EItemID::SmallPotion);
+			SavedInventory[Index].Key = p->ItemID;
+			SavedInventory[Index].Value = p->Quantity;
 		}
 	}
 }

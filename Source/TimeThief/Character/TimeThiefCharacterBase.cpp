@@ -63,34 +63,10 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
 }
 
-void ATimeThiefCharacterBase::Save()
-{
-	if (!CanUpdateSavePoint())
-	{
-		return;
-	}
-	
-	UKismetSystemLibrary::PrintString(this, TEXT("Save Point Updated"));
-	
-	SaveCoolTimeLeft = SaveCoolTime;
-	
-	SaveLocation = GetActorLocation();
-	
-	if (auto PS =  Cast<ATimeThiefPlayerState>(GetPlayerState()))
-	{
-		PS->SaveStatus = PS->Status;
-	}
-	
-	SavePointSkillComponent->ActivateSkill();
-}
-
 void ATimeThiefCharacterBase::OnDeath()
 {
 	bIsRespawn = false;
 	bIsDead = true;
-
-	DeadFX->Activate(true);
-	DisappearFX->SetActive(false, true);
 	
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
@@ -104,6 +80,9 @@ void ATimeThiefCharacterBase::OnDeath()
 			LifeObserver->OnDeath();
 		}
 	}
+	
+	DeadFX->Activate(true);
+	DisappearFX->SetActive(false, true);
 }
 
 void ATimeThiefCharacterBase::OnBeginRespawn()
@@ -114,16 +93,6 @@ void ATimeThiefCharacterBase::OnBeginRespawn()
 		bIsRespawn = true;
 		Mask = 0;
 		
-		SetActorLocation(SaveLocation);
-		
-		DeadFX->Deactivate();
-		SpawnFX->Activate(true);
-		DisappearFX->SetActive(false, true);
-		
-		if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
-		{
-			PS->OnBeginRespawn();
-		}
 		for (auto Comp : GetComponents())
 		{
 			if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
@@ -131,14 +100,15 @@ void ATimeThiefCharacterBase::OnBeginRespawn()
 				LifeObserver->OnBeginRespawn();
 			}
 		}
+		
+		DeadFX->Deactivate();
+		SpawnFX->Activate(true);
+		DisappearFX->SetActive(false, true);
 	}
 }
 
 void ATimeThiefCharacterBase::OnEndRespawn()
 {
-	SpawnFX->Deactivate();
-	DisappearFX->Activate();
-	
 	bIsDead = false;
 	bIsRespawn = false;
 	
@@ -149,6 +119,9 @@ void ATimeThiefCharacterBase::OnEndRespawn()
 			LifeObserver->OnEndRespawn();
 		}
 	}
+	
+	SpawnFX->Deactivate();
+	DisappearFX->Activate();
 }
 
 void ATimeThiefCharacterBase::SetMask(float NewMask)
@@ -175,21 +148,10 @@ void ATimeThiefCharacterBase::AddMask(float Amount)
 	UpdateMask();
 }
 
-bool ATimeThiefCharacterBase::CanUpdateSavePoint() const
-{
-	return SaveCoolTimeLeft == 0;
-}
 
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	SaveLocation = GetActorLocation();
-	
-	if (auto PS =  Cast<ATimeThiefPlayerState>(GetPlayerState()))
-	{
-		PS->SaveStatus = PS->Status;
-	}
 	
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
@@ -394,11 +356,7 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 	
 	SpawnFX->Deactivate();
 	DisappearFX->Activate();
-
-	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
-	{
-		PS->OnEndRespawn();
-	}
+	
 	for (auto Comp : GetComponents())
 	{
 		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))

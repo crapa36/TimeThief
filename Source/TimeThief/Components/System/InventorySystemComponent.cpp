@@ -141,6 +141,26 @@ bool UInventorySystemComponent::RemoveItem(EItemID ItemID, int Amount)
 	return false;
 }
 
+void UInventorySystemComponent::SetInventory(const TArray<TPair<EItemID,int>>& NewInventory)
+{
+	if (ItemQuantities.Num() != NewInventory.Num())
+	{
+		return;
+	}
+	
+	for (const auto& [ItemID, Quantity] : NewInventory)
+	{
+		int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
+		if (Index < 0 || Index >= ItemQuantities.Num())
+		{
+			continue;
+		}
+		
+		ItemQuantities[Index]->Quantity = Quantity;
+	}
+	OnInventoryUpdatedEvent.Broadcast();
+}
+
 void UInventorySystemComponent::SetEquipment(EItemID ItemID)
 {
 	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();

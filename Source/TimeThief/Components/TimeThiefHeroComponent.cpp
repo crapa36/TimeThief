@@ -13,6 +13,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
+#include "Skill/SavePointSkillComponent.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -218,9 +219,12 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 {
 	if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 	{
-		if (Player->CanUpdateSavePoint())
+		if (auto SaveSkill = Player->GetSavePointSkillComponent())
 		{
-			Player->Save();
+			if (SaveSkill->CanActivate())
+			{
+				SaveSkill->ActivateSkill();
+			}
 		}
 	}
 }

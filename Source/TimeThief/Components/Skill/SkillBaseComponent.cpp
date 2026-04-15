@@ -3,6 +3,8 @@
 
 #include "SkillBaseComponent.h"
 
+#include "Character/TimeThiefCharacterBase.h"
+
 
 // Sets default values for this component's properties
 USkillBaseComponent::USkillBaseComponent()
@@ -10,8 +12,6 @@ USkillBaseComponent::USkillBaseComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -22,6 +22,13 @@ void USkillBaseComponent::BeginPlay()
 
 	// ...
 	
+}
+
+void USkillBaseComponent::OnRegister()
+{
+	Super::OnRegister();
+	
+	OwnerCharacter = Cast<ATimeThiefCharacterBase>(GetOwner());
 }
 
 
@@ -35,5 +42,10 @@ void USkillBaseComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		LeftCoolTime = FMath::Max(0, LeftCoolTime - DeltaTime);
 	}
+}
+
+bool USkillBaseComponent::CanActivate() const
+{
+	return bCanActivate && LeftCoolTime == 0;
 }
 
