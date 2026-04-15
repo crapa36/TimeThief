@@ -14,6 +14,8 @@
 #include "Animation/AnimSequence.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "Components/System/InventorySystemComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -60,6 +62,15 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 
 void ATimeThiefCharacterBase::Save()
 {
+	if (!CanUpdateSavePoint())
+	{
+		return;
+	}
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("Save Point Updated"));
+	
+	SaveCoolTimeLeft = SaveCoolTime;
+	
 	SaveLocation = GetActorLocation();
 	
 	if (auto PS =  Cast<ATimeThiefPlayerState>(GetPlayerState()))
@@ -154,6 +165,11 @@ void ATimeThiefCharacterBase::AddMask(float Amount)
 	UpdateMask();
 }
 
+bool ATimeThiefCharacterBase::CanUpdateSavePoint() const
+{
+	return SaveCoolTimeLeft == 0;
+}
+
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -240,57 +256,44 @@ void ATimeThiefCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (bIsDead)
+	if (SaveCoolTimeLeft != 0)
 	{
-		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
-		UpdateMask();
+		SaveCoolTimeLeft = FMath::Min(0, SaveCoolTimeLeft - DeltaTime);
+	}
+	
+	if (bPendingRespawn)
+	{
 		return;
 	}
 	
-	if (bIsRespawn)
+	if (bIsDead && !bIsRespawn)
+	{
+		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
+		UpdateMask();
+		
+		if (Mask == 0)
+		{
+			bPendingRespawn = true;
+			if (auto GI = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>(); 
+				GI && !GI->IsConnected())
+			{
+				OnBeginRespawn();
+			}
+		}
+	}
+	
+	else if (bIsRespawn)
 	{
 		Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
 		
-		if (Mask >= 1.f - KINDA_SMALL_NUMBER)
+		if (Mask == 1.f)
 		{
 			Mask = 1;
-			UpdateMask();
-			FinishRespawnPresentation();
-			return;
+			OnEndRespawn();
 		}
 		
 		UpdateMask();
 	}
-	
-	// 기존 코드 (클라에서 자체 Respawn 로직을 가지고 있을 때)
-	// if (bPendingRespawn)
-	// {
-	// 	return;
-	// }
-	// if (bIsDead && !bIsRespawn)
-	// {
-	// 	Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
-	//
-	// 	if (Mask == 0)
-	// 	{
-	// 		FTimerHandle TempHandle;
-	// 		bPendingRespawn = true;
-	// 		GetWorldTimerManager().SetTimer(TempHandle, this, &ThisClass::OnBeginRespawn, 5);
-	// 	}
-	// 	
-	// 	UpdateMask();
-	// }
-	// else if (bIsRespawn)
-	// {
-	// 	Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
-	//
-	// 	if (Mask == 1)
-	// 	{
-	// 		OnEndRespawn();
-	// 	}
-	// 	
-	// 	UpdateMask();
-	// }
 }
 
 void ATimeThiefCharacterBase::HandleDeathFromServer()

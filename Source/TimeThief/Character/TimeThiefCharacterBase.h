@@ -41,6 +41,8 @@ public:
 	
 	void AddMask(float Amount);
 	
+	bool CanUpdateSavePoint() const;
+	
 	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const { return nullptr; }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
@@ -140,6 +142,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, Category = "VFX | Dissolve")
 	float InterpTime = 1;
+	
+	const float SaveCoolTime = 0.f;
+	float SaveCoolTimeLeft = 0.f;
 	
 	FVector SaveLocation;
 private:

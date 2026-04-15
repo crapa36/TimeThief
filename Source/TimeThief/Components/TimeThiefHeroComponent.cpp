@@ -96,6 +96,9 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Inventory, ETriggerEvent::Started, this, &ThisClass::Input_ToggleInventory);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Started, this, &ThisClass::Input_WheelMenu);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Completed, this, &ThisClass::Input_WheelMenu);
+	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_SavePoint, ETriggerEvent::Started, this, &ThisClass::Input_SavePoint);
+	
+	
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
@@ -207,6 +210,17 @@ void UTimeThiefHeroComponent::Input_WheelMenu(const FInputActionValue& Value)
 		if (auto PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 		{
 			PC->SetVisibilityWidget(EWidgetType::WheelMenu, Value.Get<bool>());
+		}
+	}
+}
+
+void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
+{
+	if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (Player->CanUpdateSavePoint())
+		{
+			Player->Save();
 		}
 	}
 }
