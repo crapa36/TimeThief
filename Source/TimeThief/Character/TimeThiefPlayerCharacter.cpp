@@ -508,11 +508,6 @@ void ATimeThiefPlayerCharacter::OnDeath()
 	{
 		DisableInput(PC);
 	}
-	
-	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
-	{
-		Movement->DisableMovement();
-	}
 }
 
 void ATimeThiefPlayerCharacter::OnBeginRespawn()
@@ -528,7 +523,6 @@ void ATimeThiefPlayerCharacter::OnEndRespawn()
 	{
 		EnableInput(PC);
 	}
-	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 }
 
 void ATimeThiefPlayerCharacter::OnWireStateChanged(EWireState OldState, EWireState NewState)

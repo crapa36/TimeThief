@@ -29,6 +29,7 @@ public:
 	FGameplayTag InputTag_Action_Interact;
 	FGameplayTag InputTag_Action_Inventory;
 	FGameplayTag InputTag_Action_WheelMenu;
+	FGameplayTag InputTag_Action_SavePoint;
 	
 	FGameplayTag Weapon_Rifle;
 	FGameplayTag Weapon_Shotgun;

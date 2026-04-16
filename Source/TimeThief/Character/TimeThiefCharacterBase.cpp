@@ -13,7 +13,10 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Components/Skill/SavePointSkillComponent.h"
 #include "Components/System/InventorySystemComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -55,26 +58,20 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 
 	SpawnFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnFX"));
 	SpawnFX->SetupAttachment(GetMesh());
-	DeadFX->bAutoActivate = false;
-}
-
-void ATimeThiefCharacterBase::Save()
-{
-	SaveLocation = GetActorLocation();
+	SpawnFX->bAutoActivate = false;
 	
-	if (auto PS =  Cast<ATimeThiefPlayerState>(GetPlayerState()))
-	{
-		PS->SaveStatus = PS->Status;
-	}
+	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
 }
 
 void ATimeThiefCharacterBase::OnDeath()
 {
 	bIsRespawn = false;
 	bIsDead = true;
-
-	DeadFX->Activate(true);
-	DisappearFX->SetActive(false, true);
+	
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+	}
 	
 	for (auto Comp : GetComponents())
 	{
@@ -83,6 +80,9 @@ void ATimeThiefCharacterBase::OnDeath()
 			LifeObserver->OnDeath();
 		}
 	}
+	
+	DeadFX->Activate(true);
+	DisappearFX->SetActive(false, true);
 }
 
 void ATimeThiefCharacterBase::OnBeginRespawn()
@@ -93,16 +93,6 @@ void ATimeThiefCharacterBase::OnBeginRespawn()
 		bIsRespawn = true;
 		Mask = 0;
 		
-		SetActorLocation(SaveLocation);
-		
-		DeadFX->Deactivate();
-		SpawnFX->Activate(true);
-		DisappearFX->SetActive(false, true);
-		
-		if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
-		{
-			PS->OnBeginRespawn();
-		}
 		for (auto Comp : GetComponents())
 		{
 			if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
@@ -110,14 +100,15 @@ void ATimeThiefCharacterBase::OnBeginRespawn()
 				LifeObserver->OnBeginRespawn();
 			}
 		}
+		
+		DeadFX->Deactivate();
+		SpawnFX->Activate(true);
+		DisappearFX->SetActive(false, true);
 	}
 }
 
 void ATimeThiefCharacterBase::OnEndRespawn()
 {
-	SpawnFX->Deactivate();
-	DisappearFX->Activate();
-	
 	bIsDead = false;
 	bIsRespawn = false;
 	
@@ -128,6 +119,9 @@ void ATimeThiefCharacterBase::OnEndRespawn()
 			LifeObserver->OnEndRespawn();
 		}
 	}
+	
+	SpawnFX->Deactivate();
+	DisappearFX->Activate();
 }
 
 void ATimeThiefCharacterBase::SetMask(float NewMask)
@@ -154,11 +148,10 @@ void ATimeThiefCharacterBase::AddMask(float Amount)
 	UpdateMask();
 }
 
+
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	Save();
 	
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
@@ -240,57 +233,38 @@ void ATimeThiefCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (bIsDead)
+	if (bPendingRespawn)
 	{
-		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
-		UpdateMask();
 		return;
 	}
 	
-	if (bIsRespawn)
+	if (bIsDead && !bIsRespawn)
+	{
+		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
+		UpdateMask();
+		
+		if (Mask == 0)
+		{
+			bPendingRespawn = true;
+			if (auto GI = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>(); 
+				GI && !GI->IsConnected())
+			{
+				OnBeginRespawn();
+			}
+		}
+	}
+	
+	else if (bIsRespawn)
 	{
 		Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
 		
-		if (Mask >= 1.f - KINDA_SMALL_NUMBER)
+		if (Mask == 1.f)
 		{
-			Mask = 1;
-			UpdateMask();
-			FinishRespawnPresentation();
-			return;
+			OnEndRespawn();
 		}
 		
 		UpdateMask();
 	}
-	
-	// 기존 코드 (클라에서 자체 Respawn 로직을 가지고 있을 때)
-	// if (bPendingRespawn)
-	// {
-	// 	return;
-	// }
-	// if (bIsDead && !bIsRespawn)
-	// {
-	// 	Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
-	//
-	// 	if (Mask == 0)
-	// 	{
-	// 		FTimerHandle TempHandle;
-	// 		bPendingRespawn = true;
-	// 		GetWorldTimerManager().SetTimer(TempHandle, this, &ThisClass::OnBeginRespawn, 5);
-	// 	}
-	// 	
-	// 	UpdateMask();
-	// }
-	// else if (bIsRespawn)
-	// {
-	// 	Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
-	//
-	// 	if (Mask == 1)
-	// 	{
-	// 		OnEndRespawn();
-	// 	}
-	// 	
-	// 	UpdateMask();
-	// }
 }
 
 void ATimeThiefCharacterBase::HandleDeathFromServer()
@@ -382,11 +356,7 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 	
 	SpawnFX->Deactivate();
 	DisappearFX->Activate();
-
-	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
-	{
-		PS->OnEndRespawn();
-	}
+	
 	for (auto Comp : GetComponents())
 	{
 		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
