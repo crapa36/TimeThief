@@ -24,9 +24,9 @@ public:
 	UFUNCTION(Exec)
 	void CancelMatchQueue();
 	
-	UFUNCTION(Exec)
-	void JoinRoom();
-	
-	UFUNCTION(Exec)
-	void LeaveRoom();
+	// UFUNCTION(Exec)
+	// void JoinRoom();
+	//
+	// UFUNCTION(Exec)
+	// void LeaveRoom();
 };

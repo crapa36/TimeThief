@@ -26,18 +26,18 @@ void UNTCheatManager::CancelMatchQueue()
 	}
 }
 
-void UNTCheatManager::JoinRoom()
-{
-	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
-	{
-		NGIS->RequestEnterRoom();
-	}
-}
-
-void UNTCheatManager::LeaveRoom()
-{
-	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
-	{
-		NGIS->RequestLeaveRoom();
-	}
-}
+// void UNTCheatManager::JoinRoom()
+// {
+// 	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+// 	{
+// 		NGIS->RequestEnterRoom();
+// 	}
+// }
+//
+// void UNTCheatManager::LeaveRoom()
+// {
+// 	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+// 	{
+// 		NGIS->RequestLeaveRoom();
+// 	}
+// }

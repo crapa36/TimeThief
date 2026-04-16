@@ -25,4 +25,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> RemotePlayerClass;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> RocketProjectileClass;
 };

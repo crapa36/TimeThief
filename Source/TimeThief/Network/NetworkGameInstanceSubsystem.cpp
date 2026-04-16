@@ -1239,6 +1239,13 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 			return SpawnData->LocalPlayerClass;
 		}
 	}
+	else if (EntityState.ObjectType == se::common::OJB_PROJECTILE)
+	{
+		if (SpawnData->RocketProjectileClass)
+		{
+			return SpawnData->RocketProjectileClass;
+		}
+	}
 	
 	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
 	
