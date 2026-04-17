@@ -19,6 +19,7 @@ public:
 
 protected:
 	virtual void ExecuteFireShot() override;
+	virtual void ExecuteRemoteFireShot() override;
 
 	void PlayFireEffects();
 	bool SpawnRocketProjectile();
@@ -28,6 +29,8 @@ protected:
 
 	UPROPERTY()
 	TArray<TObjectPtr<ATimeThiefRocketProjectile>> ProjectilePool;
+
+	int32 NextPoolIndex = 0;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Projectile")
 	float AimTraceRange = 50000.0f;

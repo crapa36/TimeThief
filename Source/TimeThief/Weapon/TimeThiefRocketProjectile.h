@@ -24,7 +24,7 @@ public:
 	void InitializeProjectile(AActor* InOwnerActor, APawn* InInstigatorPawn);
 	void ActivateProjectile(const FTransform& SpawnTransform);
 	void DeactivateProjectile();
-	bool IsActive() const { return !bExploded; }
+	bool IsActive() const { return bIsActivated && !bExploded; }
 	void SetDamageBonus(float InDamageBonus) { DamageBonus = FMath::Max(0.0f, InDamageBonus); }
 
 protected:
@@ -36,7 +36,7 @@ protected:
 	void HandleLifeTimeExpired();
 	UFUNCTION()
 	void ExplodeOnce(const FHitResult& Hit);
-	void ApplyExplosionDamage();
+	void ApplyExplosionDamage(const FVector& ExplosionLocation);
 	void PlayExplosionEffects(const FVector& ExplosionLocation, const FVector& ExplosionNormal);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
@@ -104,6 +104,7 @@ protected:
 
 private:
 	FTimerHandle LifeTimeTimerHandle;
+	bool bIsActivated = false;
 	bool bExploded = false;
 	TWeakObjectPtr<AActor> CachedOwnerActor;
 	TWeakObjectPtr<APawn> CachedInstigatorPawn;
