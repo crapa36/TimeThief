@@ -71,8 +71,11 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR N_Move::N_Move(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
-  , /*decltype(_impl_.movement_)*/nullptr
-  , /*decltype(_impl_._cached_size_)*/{}} {}
+  , /*decltype(_impl_.transform_)*/nullptr
+  , /*decltype(_impl_.object_type_)*/0
+  , /*decltype(_impl_.detail_)*/{}
+  , /*decltype(_impl_._cached_size_)*/{}
+  , /*decltype(_impl_._oneof_case_)*/{}} {}
 struct N_MoveDefaultTypeInternal {
   PROTOBUF_CONSTEXPR N_MoveDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -366,21 +369,6 @@ struct N_ThrowGrenadeDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_ThrowGrenadeDefaultTypeInternal _N_ThrowGrenade_default_instance_;
-PROTOBUF_CONSTEXPR N_ProjectileMove::N_ProjectileMove(
-    ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.projectile_id_)*/nullptr
-  , /*decltype(_impl_.position_)*/nullptr
-  , /*decltype(_impl_.direction_)*/nullptr
-  , /*decltype(_impl_._cached_size_)*/{}} {}
-struct N_ProjectileMoveDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR N_ProjectileMoveDefaultTypeInternal()
-      : _instance(::_pbi::ConstantInitialized{}) {}
-  ~N_ProjectileMoveDefaultTypeInternal() {}
-  union {
-    N_ProjectileMove _instance;
-  };
-};
-PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_ProjectileMoveDefaultTypeInternal _N_ProjectileMove_default_instance_;
 PROTOBUF_CONSTEXPR C_ReloadReq::C_ReloadReq(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.weapon_id_)*/0u
@@ -520,6 +508,21 @@ struct C_UseItemReqDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_UseItemReqDefaultTypeInternal _C_UseItemReq_default_instance_;
+PROTOBUF_CONSTEXPR S_UseItemRes::S_UseItemRes(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.result_)*/nullptr
+  , /*decltype(_impl_.success_)*/false
+  , /*decltype(_impl_.item_id_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_UseItemResDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_UseItemResDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_UseItemResDefaultTypeInternal() {}
+  union {
+    S_UseItemRes _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_UseItemResDefaultTypeInternal _S_UseItemRes_default_instance_;
 PROTOBUF_CONSTEXPR N_UseItem::N_UseItem(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
@@ -547,6 +550,20 @@ struct C_ChestInteractReqDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_ChestInteractReqDefaultTypeInternal _C_ChestInteractReq_default_instance_;
+PROTOBUF_CONSTEXPR N_ChestInteracted::N_ChestInteracted(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.entity_id_)*/nullptr
+  , /*decltype(_impl_.chest_entity_id_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_ChestInteractedDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_ChestInteractedDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_ChestInteractedDefaultTypeInternal() {}
+  union {
+    N_ChestInteracted _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_ChestInteractedDefaultTypeInternal _N_ChestInteracted_default_instance_;
 PROTOBUF_CONSTEXPR C_PickupItemReq::C_PickupItemReq(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.item_entity_id_)*/nullptr
@@ -630,6 +647,21 @@ struct C_SetSavePointReqDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_SetSavePointReqDefaultTypeInternal _C_SetSavePointReq_default_instance_;
+PROTOBUF_CONSTEXPR S_SetSavePointRes::S_SetSavePointRes(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.result_)*/nullptr
+  , /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.success_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct S_SetSavePointResDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR S_SetSavePointResDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~S_SetSavePointResDefaultTypeInternal() {}
+  union {
+    S_SetSavePointRes _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_SetSavePointResDefaultTypeInternal _S_SetSavePointRes_default_instance_;
 PROTOBUF_CONSTEXPR N_HealthChanged::N_HealthChanged(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
@@ -645,6 +677,21 @@ struct N_HealthChangedDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_HealthChangedDefaultTypeInternal _N_HealthChanged_default_instance_;
+PROTOBUF_CONSTEXPR N_MaxHealthChanged::N_MaxHealthChanged(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.entity_id_)*/nullptr
+  , /*decltype(_impl_.new_max_health_)*/0
+  , /*decltype(_impl_.new_current_health_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_MaxHealthChangedDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_MaxHealthChangedDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_MaxHealthChangedDefaultTypeInternal() {}
+  union {
+    N_MaxHealthChanged _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_MaxHealthChangedDefaultTypeInternal _N_MaxHealthChanged_default_instance_;
 PROTOBUF_CONSTEXPR N_EntityDied::N_EntityDied(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
@@ -717,7 +764,7 @@ struct N_TimeStormChangeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_TimeStormChangeDefaultTypeInternal _N_TimeStormChange_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[51];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[54];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 
@@ -750,11 +797,16 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _internal_metadata_),
   ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _impl_._oneof_case_[0]),
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _impl_.entity_id_),
-  PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _impl_.movement_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _impl_.object_type_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _impl_.transform_),
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  PROTOBUF_FIELD_OFFSET(::se::game::N_Move, _impl_.detail_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::C_JumpReq, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -918,15 +970,6 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.start_position_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.direction_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::se::game::N_ProjectileMove, _internal_metadata_),
-  ~0u,  // no _extensions_
-  ~0u,  // no _oneof_case_
-  ~0u,  // no _weak_field_map_
-  ~0u,  // no _inlined_string_donated_
-  PROTOBUF_FIELD_OFFSET(::se::game::N_ProjectileMove, _impl_.projectile_id_),
-  PROTOBUF_FIELD_OFFSET(::se::game::N_ProjectileMove, _impl_.position_),
-  PROTOBUF_FIELD_OFFSET(::se::game::N_ProjectileMove, _impl_.direction_),
-  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::C_ReloadReq, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -1006,6 +1049,15 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::C_UseItemReq, _impl_.item_id_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::S_UseItemRes, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::S_UseItemRes, _impl_.success_),
+  PROTOBUF_FIELD_OFFSET(::se::game::S_UseItemRes, _impl_.result_),
+  PROTOBUF_FIELD_OFFSET(::se::game::S_UseItemRes, _impl_.item_id_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_UseItem, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -1020,6 +1072,14 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::C_ChestInteractReq, _impl_.chest_entity_id_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_ChestInteracted, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_ChestInteracted, _impl_.entity_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_ChestInteracted, _impl_.chest_entity_id_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::C_PickupItemReq, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -1068,6 +1128,15 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::C_SetSavePointReq, _impl_.position_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::S_SetSavePointRes, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::S_SetSavePointRes, _impl_.success_),
+  PROTOBUF_FIELD_OFFSET(::se::game::S_SetSavePointRes, _impl_.result_),
+  PROTOBUF_FIELD_OFFSET(::se::game::S_SetSavePointRes, _impl_.position_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_HealthChanged, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -1076,6 +1145,15 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   PROTOBUF_FIELD_OFFSET(::se::game::N_HealthChanged, _impl_.entity_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_HealthChanged, _impl_.new_health_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_HealthChanged, _impl_.delta_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MaxHealthChanged, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MaxHealthChanged, _impl_.entity_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MaxHealthChanged, _impl_.new_max_health_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MaxHealthChanged, _impl_.new_current_health_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_EntityDied, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -1123,52 +1201,55 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 12, -1, -1, sizeof(::se::game::N_GameEnd)},
   { 18, -1, -1, sizeof(::se::game::C_MoveReq)},
   { 25, -1, -1, sizeof(::se::game::N_Move)},
-  { 33, -1, -1, sizeof(::se::game::C_JumpReq)},
-  { 39, -1, -1, sizeof(::se::game::N_Jump)},
-  { 46, -1, -1, sizeof(::se::game::C_DoubleJumpReq)},
-  { 52, -1, -1, sizeof(::se::game::N_DoubleJump)},
-  { 59, -1, -1, sizeof(::se::game::C_JumpLand)},
-  { 65, -1, -1, sizeof(::se::game::N_JumpLand)},
-  { 72, -1, -1, sizeof(::se::game::C_CrouchReq)},
-  { 79, -1, -1, sizeof(::se::game::N_Crouch)},
-  { 87, -1, -1, sizeof(::se::game::C_WireLaunchReq)},
-  { 95, -1, -1, sizeof(::se::game::N_WireLaunch)},
-  { 104, -1, -1, sizeof(::se::game::C_WireActionReq)},
-  { 111, -1, -1, sizeof(::se::game::N_WireAction)},
-  { 119, -1, -1, sizeof(::se::game::C_WireActionEnd)},
-  { 125, -1, -1, sizeof(::se::game::N_WireActionEnd)},
-  { 132, -1, -1, sizeof(::se::game::C_AimReq)},
-  { 139, -1, -1, sizeof(::se::game::N_Aim)},
-  { 147, -1, -1, sizeof(::se::game::C_FireReq)},
-  { 157, -1, -1, sizeof(::se::game::N_Fire)},
-  { 168, -1, -1, sizeof(::se::game::N_Attack)},
-  { 176, -1, -1, sizeof(::se::game::C_ThrowGrenadeReq)},
-  { 185, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
-  { 195, -1, -1, sizeof(::se::game::N_ProjectileMove)},
-  { 204, -1, -1, sizeof(::se::game::C_ReloadReq)},
-  { 211, -1, -1, sizeof(::se::game::S_ReloadRes)},
-  { 221, -1, -1, sizeof(::se::game::N_Reload)},
-  { 229, -1, -1, sizeof(::se::game::C_WeaponChangeReq)},
-  { 236, -1, -1, sizeof(::se::game::N_WeaponChanged)},
-  { 244, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
-  { 251, -1, -1, sizeof(::se::game::N_UseAbility)},
-  { 259, -1, -1, sizeof(::se::game::N_KillPlayer)},
-  { 267, -1, -1, sizeof(::se::game::N_EntityHit)},
-  { 276, -1, -1, sizeof(::se::game::C_UseItemReq)},
-  { 283, -1, -1, sizeof(::se::game::N_UseItem)},
-  { 291, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
-  { 298, -1, -1, sizeof(::se::game::C_PickupItemReq)},
-  { 305, -1, -1, sizeof(::se::game::N_PickupItem)},
-  { 313, -1, -1, sizeof(::se::game::C_UseStoreReq)},
-  { 321, -1, -1, sizeof(::se::game::S_UseStoreRes)},
-  { 330, -1, -1, sizeof(::se::game::N_ItemGained)},
-  { 338, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
-  { 345, -1, -1, sizeof(::se::game::N_HealthChanged)},
-  { 354, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 361, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 369, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 376, -1, -1, sizeof(::se::game::N_TimePointChanged)},
-  { 384, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 38, -1, -1, sizeof(::se::game::C_JumpReq)},
+  { 44, -1, -1, sizeof(::se::game::N_Jump)},
+  { 51, -1, -1, sizeof(::se::game::C_DoubleJumpReq)},
+  { 57, -1, -1, sizeof(::se::game::N_DoubleJump)},
+  { 64, -1, -1, sizeof(::se::game::C_JumpLand)},
+  { 70, -1, -1, sizeof(::se::game::N_JumpLand)},
+  { 77, -1, -1, sizeof(::se::game::C_CrouchReq)},
+  { 84, -1, -1, sizeof(::se::game::N_Crouch)},
+  { 92, -1, -1, sizeof(::se::game::C_WireLaunchReq)},
+  { 100, -1, -1, sizeof(::se::game::N_WireLaunch)},
+  { 109, -1, -1, sizeof(::se::game::C_WireActionReq)},
+  { 116, -1, -1, sizeof(::se::game::N_WireAction)},
+  { 124, -1, -1, sizeof(::se::game::C_WireActionEnd)},
+  { 130, -1, -1, sizeof(::se::game::N_WireActionEnd)},
+  { 137, -1, -1, sizeof(::se::game::C_AimReq)},
+  { 144, -1, -1, sizeof(::se::game::N_Aim)},
+  { 152, -1, -1, sizeof(::se::game::C_FireReq)},
+  { 162, -1, -1, sizeof(::se::game::N_Fire)},
+  { 173, -1, -1, sizeof(::se::game::N_Attack)},
+  { 181, -1, -1, sizeof(::se::game::C_ThrowGrenadeReq)},
+  { 190, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
+  { 200, -1, -1, sizeof(::se::game::C_ReloadReq)},
+  { 207, -1, -1, sizeof(::se::game::S_ReloadRes)},
+  { 217, -1, -1, sizeof(::se::game::N_Reload)},
+  { 225, -1, -1, sizeof(::se::game::C_WeaponChangeReq)},
+  { 232, -1, -1, sizeof(::se::game::N_WeaponChanged)},
+  { 240, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
+  { 247, -1, -1, sizeof(::se::game::N_UseAbility)},
+  { 255, -1, -1, sizeof(::se::game::N_KillPlayer)},
+  { 263, -1, -1, sizeof(::se::game::N_EntityHit)},
+  { 272, -1, -1, sizeof(::se::game::C_UseItemReq)},
+  { 279, -1, -1, sizeof(::se::game::S_UseItemRes)},
+  { 288, -1, -1, sizeof(::se::game::N_UseItem)},
+  { 296, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
+  { 303, -1, -1, sizeof(::se::game::N_ChestInteracted)},
+  { 311, -1, -1, sizeof(::se::game::C_PickupItemReq)},
+  { 318, -1, -1, sizeof(::se::game::N_PickupItem)},
+  { 326, -1, -1, sizeof(::se::game::C_UseStoreReq)},
+  { 334, -1, -1, sizeof(::se::game::S_UseStoreRes)},
+  { 343, -1, -1, sizeof(::se::game::N_ItemGained)},
+  { 351, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
+  { 358, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
+  { 367, -1, -1, sizeof(::se::game::N_HealthChanged)},
+  { 376, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
+  { 385, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 392, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 400, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 407, -1, -1, sizeof(::se::game::N_TimePointChanged)},
+  { 415, -1, -1, sizeof(::se::game::N_TimeStormChange)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1198,7 +1279,6 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_N_Attack_default_instance_._instance,
   &::se::game::_C_ThrowGrenadeReq_default_instance_._instance,
   &::se::game::_N_ThrowGrenade_default_instance_._instance,
-  &::se::game::_N_ProjectileMove_default_instance_._instance,
   &::se::game::_C_ReloadReq_default_instance_._instance,
   &::se::game::_S_ReloadRes_default_instance_._instance,
   &::se::game::_N_Reload_default_instance_._instance,
@@ -1209,15 +1289,19 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_N_KillPlayer_default_instance_._instance,
   &::se::game::_N_EntityHit_default_instance_._instance,
   &::se::game::_C_UseItemReq_default_instance_._instance,
+  &::se::game::_S_UseItemRes_default_instance_._instance,
   &::se::game::_N_UseItem_default_instance_._instance,
   &::se::game::_C_ChestInteractReq_default_instance_._instance,
+  &::se::game::_N_ChestInteracted_default_instance_._instance,
   &::se::game::_C_PickupItemReq_default_instance_._instance,
   &::se::game::_N_PickupItem_default_instance_._instance,
   &::se::game::_C_UseStoreReq_default_instance_._instance,
   &::se::game::_S_UseStoreRes_default_instance_._instance,
   &::se::game::_N_ItemGained_default_instance_._instance,
   &::se::game::_C_SetSavePointReq_default_instance_._instance,
+  &::se::game::_S_SetSavePointRes_default_instance_._instance,
   &::se::game::_N_HealthChanged_default_instance_._instance,
+  &::se::game::_N_MaxHealthChanged_default_instance_._instance,
   &::se::game::_N_EntityDied_default_instance_._instance,
   &::se::game::_N_EntityRespawned_default_instance_._instance,
   &::se::game::_N_EntityDestroyed_default_instance_._instance,
@@ -1228,121 +1312,136 @@ static const ::_pb::Message* const file_default_instances[] = {
 const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
   "\n\030game/game_messages.proto\022\007se.game\032\034opt"
   "ions/packet_options.proto\032\031common/common"
-  "_types.proto\032\025game/game_enums.proto\032\025gam"
-  "e/game_types.proto\"%\n\024C_LoadingCompleteR"
-  "eq:\r\210\265\030\240\037\220\265\030\001\230\265\030\004\"\034\n\013N_GameStart:\r\210\265\030\241\037\220"
-  "\265\030\002\230\265\030\004\"\032\n\tN_GameEnd:\r\210\265\030\242\037\220\265\030\002\230\265\030\004\"F\n\tC"
-  "_MoveReq\022*\n\010movement\030\001 \001(\0132\030.se.common.M"
-  "ovementState:\r\210\265\030\252\037\220\265\030\001\230\265\030\004\"k\n\006N_Move\022&\n"
-  "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022*\n"
-  "\010movement\030\002 \001(\0132\030.se.common.MovementStat"
-  "e:\r\210\265\030\253\037\220\265\030\002\230\265\030\004\"\032\n\tC_JumpReq:\r\210\265\030\264\037\220\265\030\001"
-  "\230\265\030\004\"\?\n\006N_Jump\022&\n\tentity_id\030\001 \001(\0132\023.se.c"
-  "ommon.ObjectId:\r\210\265\030\265\037\220\265\030\002\230\265\030\004\" \n\017C_Doubl"
-  "eJumpReq:\r\210\265\030\270\037\220\265\030\001\230\265\030\004\"E\n\014N_DoubleJump\022"
-  "&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId:"
-  "\r\210\265\030\271\037\220\265\030\002\230\265\030\004\"\033\n\nC_JumpLand:\r\210\265\030\266\037\220\265\030\001\230"
-  "\265\030\004\"C\n\nN_JumpLand\022&\n\tentity_id\030\001 \001(\0132\023.s"
-  "e.common.ObjectId:\r\210\265\030\267\037\220\265\030\002\230\265\030\004\"2\n\013C_Cr"
-  "ouchReq\022\024\n\014is_crouching\030\001 \001(\010:\r\210\265\030\276\037\220\265\030\001"
-  "\230\265\030\004\"W\n\010N_Crouch\022&\n\tentity_id\030\001 \001(\0132\023.se"
-  ".common.ObjectId\022\024\n\014is_crouching\030\002 \001(\010:\r"
-  "\210\265\030\277\037\220\265\030\002\230\265\030\004\"s\n\017C_WireLaunchReq\022*\n\016star"
-  "t_position\030\001 \001(\0132\022.se.common.Vector3\022%\n\t"
-  "direction\030\002 \001(\0132\022.se.common.Vector3:\r\210\265\030"
-  "\314\037\220\265\030\001\230\265\030\004\"\230\001\n\014N_WireLaunch\022&\n\tentity_id"
-  "\030\001 \001(\0132\023.se.common.ObjectId\022*\n\016start_pos"
-  "ition\030\002 \001(\0132\022.se.common.Vector3\022%\n\tdirec"
-  "tion\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\315\037\220\265\030"
-  "\002\230\265\030\004\"J\n\017C_WireActionReq\022(\n\014anchor_point"
-  "\030\001 \001(\0132\022.se.common.Vector3:\r\210\265\030\310\037\220\265\030\001\230\265\030"
-  "\004\"o\n\014N_WireAction\022&\n\tentity_id\030\001 \001(\0132\023.s"
-  "e.common.ObjectId\022(\n\014anchor_point\030\002 \001(\0132"
-  "\022.se.common.Vector3:\r\210\265\030\311\037\220\265\030\002\230\265\030\004\" \n\017C_"
-  "WireActionEnd:\r\210\265\030\312\037\220\265\030\001\230\265\030\004\"H\n\017N_WireAc"
-  "tionEnd\022&\n\tentity_id\030\001 \001(\0132\023.se.common.O"
-  "bjectId:\r\210\265\030\313\037\220\265\030\002\230\265\030\004\",\n\010C_AimReq\022\021\n\tis"
-  "_aiming\030\001 \001(\010:\r\210\265\030\372\037\220\265\030\001\230\265\030\004\"Q\n\005N_Aim\022&\n"
+  "_types.proto\032\031common/common_enums.proto\032"
+  "\025game/game_enums.proto\032\025game/game_types."
+  "proto\"%\n\024C_LoadingCompleteReq:\r\210\265\030\240\037\220\265\030\001"
+  "\230\265\030\004\"\034\n\013N_GameStart:\r\210\265\030\241\037\220\265\030\002\230\265\030\004\"\032\n\tN_"
+  "GameEnd:\r\210\265\030\242\037\220\265\030\002\230\265\030\004\"F\n\tC_MoveReq\022*\n\010m"
+  "ovement\030\001 \001(\0132\030.se.common.MovementState:"
+  "\r\210\265\030\252\037\220\265\030\001\230\265\030\004\"\304\002\n\006N_Move\022&\n\tentity_id\030\001"
+  " \001(\0132\023.se.common.ObjectId\022*\n\013object_type"
+  "\030\002 \001(\0162\025.se.common.ObjectType\022\'\n\ttransfo"
+  "rm\030\003 \001(\0132\024.se.common.Transform\0222\n\017player"
+  "_movement\030\004 \001(\0132\027.se.game.PlayerMovement"
+  "H\000\0224\n\020monster_movement\030\005 \001(\0132\030.se.game.M"
+  "onsterMovementH\000\022:\n\023projectile_movement\030"
+  "\006 \001(\0132\033.se.game.ProjectileMovementH\000:\r\210\265"
+  "\030\253\037\220\265\030\002\230\265\030\004B\010\n\006detail\"\032\n\tC_JumpReq:\r\210\265\030\264"
+  "\037\220\265\030\001\230\265\030\004\"\?\n\006N_Jump\022&\n\tentity_id\030\001 \001(\0132\023"
+  ".se.common.ObjectId:\r\210\265\030\265\037\220\265\030\002\230\265\030\004\" \n\017C_"
+  "DoubleJumpReq:\r\210\265\030\270\037\220\265\030\001\230\265\030\004\"E\n\014N_Double"
+  "Jump\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obje"
+  "ctId:\r\210\265\030\271\037\220\265\030\002\230\265\030\004\"\033\n\nC_JumpLand:\r\210\265\030\266\037"
+  "\220\265\030\001\230\265\030\004\"C\n\nN_JumpLand\022&\n\tentity_id\030\001 \001("
+  "\0132\023.se.common.ObjectId:\r\210\265\030\267\037\220\265\030\002\230\265\030\004\"2\n"
+  "\013C_CrouchReq\022\024\n\014is_crouching\030\001 \001(\010:\r\210\265\030\276"
+  "\037\220\265\030\001\230\265\030\004\"W\n\010N_Crouch\022&\n\tentity_id\030\001 \001(\013"
+  "2\023.se.common.ObjectId\022\024\n\014is_crouching\030\002 "
+  "\001(\010:\r\210\265\030\277\037\220\265\030\002\230\265\030\004\"s\n\017C_WireLaunchReq\022*\n"
+  "\016start_position\030\001 \001(\0132\022.se.common.Vector"
+  "3\022%\n\tdirection\030\002 \001(\0132\022.se.common.Vector3"
+  ":\r\210\265\030\314\037\220\265\030\001\230\265\030\004\"\230\001\n\014N_WireLaunch\022&\n\tenti"
+  "ty_id\030\001 \001(\0132\023.se.common.ObjectId\022*\n\016star"
+  "t_position\030\002 \001(\0132\022.se.common.Vector3\022%\n\t"
+  "direction\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030"
+  "\315\037\220\265\030\002\230\265\030\004\"J\n\017C_WireActionReq\022(\n\014anchor_"
+  "point\030\001 \001(\0132\022.se.common.Vector3:\r\210\265\030\310\037\220\265"
+  "\030\001\230\265\030\004\"o\n\014N_WireAction\022&\n\tentity_id\030\001 \001("
+  "\0132\023.se.common.ObjectId\022(\n\014anchor_point\030\002"
+  " \001(\0132\022.se.common.Vector3:\r\210\265\030\311\037\220\265\030\002\230\265\030\004\""
+  " \n\017C_WireActionEnd:\r\210\265\030\312\037\220\265\030\001\230\265\030\004\"H\n\017N_W"
+  "ireActionEnd\022&\n\tentity_id\030\001 \001(\0132\023.se.com"
+  "mon.ObjectId:\r\210\265\030\313\037\220\265\030\002\230\265\030\004\",\n\010C_AimReq\022"
+  "\021\n\tis_aiming\030\001 \001(\010:\r\210\265\030\372\037\220\265\030\001\230\265\030\004\"Q\n\005N_A"
+  "im\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Object"
+  "Id\022\021\n\tis_aiming\030\002 \001(\010:\r\210\265\030\373\037\220\265\030\002\230\265\030\004\"\223\001\n"
+  "\tC_FireReq\022\021\n\tweapon_id\030\001 \001(\r\022*\n\016start_p"
+  "osition\030\002 \001(\0132\022.se.common.Vector3\022%\n\tdir"
+  "ection\030\003 \001(\0132\022.se.common.Vector3\022\021\n\tshot"
+  "_seed\030\004 \001(\r:\r\210\265\030\204 \220\265\030\001\230\265\030\004\"\270\001\n\006N_Fire\022&\n"
   "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\021\n"
-  "\tis_aiming\030\002 \001(\010:\r\210\265\030\373\037\220\265\030\002\230\265\030\004\"\223\001\n\tC_Fi"
-  "reReq\022\021\n\tweapon_id\030\001 \001(\r\022*\n\016start_positi"
-  "on\030\002 \001(\0132\022.se.common.Vector3\022%\n\tdirectio"
-  "n\030\003 \001(\0132\022.se.common.Vector3\022\021\n\tshot_seed"
-  "\030\004 \001(\r:\r\210\265\030\204 \220\265\030\001\230\265\030\004\"\270\001\n\006N_Fire\022&\n\tenti"
-  "ty_id\030\001 \001(\0132\023.se.common.ObjectId\022\021\n\tweap"
-  "on_id\030\002 \001(\r\022*\n\016start_position\030\003 \001(\0132\022.se"
-  ".common.Vector3\022%\n\tdirection\030\004 \001(\0132\022.se."
-  "common.Vector3\022\021\n\tshot_seed\030\005 \001(\r:\r\210\265\030\205 "
-  "\220\265\030\002\230\265\030\004\"V\n\010N_Attack\022&\n\tentity_id\030\001 \001(\0132"
-  "\023.se.common.ObjectId\022\023\n\013attack_type\030\002 \001("
-  "\r:\r\210\265\030\207 \220\265\030\002\230\265\030\004\"\213\001\n\021C_ThrowGrenadeReq\022\024"
-  "\n\014grenade_type\030\001 \001(\r\022*\n\016start_position\030\002"
-  " \001(\0132\022.se.common.Vector3\022%\n\tdirection\030\003 "
-  "\001(\0132\022.se.common.Vector3:\r\210\265\030\210 \220\265\030\001\230\265\030\004\"\260"
-  "\001\n\016N_ThrowGrenade\022&\n\tentity_id\030\001 \001(\0132\023.s"
-  "e.common.ObjectId\022\024\n\014grenade_type\030\002 \001(\r\022"
-  "*\n\016start_position\030\003 \001(\0132\022.se.common.Vect"
-  "or3\022%\n\tdirection\030\004 \001(\0132\022.se.common.Vecto"
-  "r3:\r\210\265\030\211 \220\265\030\002\230\265\030\004\"\232\001\n\020N_ProjectileMove\022*"
-  "\n\rprojectile_id\030\001 \001(\0132\023.se.common.Object"
-  "Id\022$\n\010position\030\002 \001(\0132\022.se.common.Vector3"
-  "\022%\n\tdirection\030\003 \001(\0132\022.se.common.Vector3:"
-  "\r\210\265\030\223 \220\265\030\002\230\265\030\004\"/\n\013C_ReloadReq\022\021\n\tweapon_"
-  "id\030\001 \001(\r:\r\210\265\030\212 \220\265\030\001\230\265\030\004\"o\n\013S_ReloadRes\022\017"
-  "\n\007success\030\001 \001(\010\022\021\n\tweapon_id\030\002 \001(\r\022\025\n\rre"
-  "loaded_ammo\030\003 \001(\r\022\026\n\016remaining_ammo\030\004 \001("
-  "\r:\r\210\265\030\221 \220\265\030\002\230\265\030\004\"T\n\010N_Reload\022&\n\tentity_i"
-  "d\030\001 \001(\0132\023.se.common.ObjectId\022\021\n\tweapon_i"
-  "d\030\002 \001(\r:\r\210\265\030\213 \220\265\030\002\230\265\030\004\"5\n\021C_WeaponChange"
-  "Req\022\021\n\tweapon_id\030\001 \001(\r:\r\210\265\030\214 \220\265\030\001\230\265\030\004\"[\n"
-  "\017N_WeaponChanged\022&\n\tentity_id\030\001 \001(\0132\023.se"
-  ".common.ObjectId\022\021\n\tweapon_id\030\002 \001(\r:\r\210\265\030"
-  "\215 \220\265\030\002\230\265\030\004\"4\n\017C_UseAbilityReq\022\022\n\nability"
-  "_id\030\001 \001(\r:\r\210\265\030\216 \220\265\030\001\230\265\030\004\"Y\n\014N_UseAbility"
+  "\tweapon_id\030\002 \001(\r\022*\n\016start_position\030\003 \001(\013"
+  "2\022.se.common.Vector3\022%\n\tdirection\030\004 \001(\0132"
+  "\022.se.common.Vector3\022\021\n\tshot_seed\030\005 \001(\r:\r"
+  "\210\265\030\205 \220\265\030\002\230\265\030\004\"V\n\010N_Attack\022&\n\tentity_id\030\001"
+  " \001(\0132\023.se.common.ObjectId\022\023\n\013attack_type"
+  "\030\002 \001(\r:\r\210\265\030\207 \220\265\030\002\230\265\030\004\"\213\001\n\021C_ThrowGrenade"
+  "Req\022\024\n\014grenade_type\030\001 \001(\r\022*\n\016start_posit"
+  "ion\030\002 \001(\0132\022.se.common.Vector3\022%\n\tdirecti"
+  "on\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\210 \220\265\030\001\230"
+  "\265\030\004\"\260\001\n\016N_ThrowGrenade\022&\n\tentity_id\030\001 \001("
+  "\0132\023.se.common.ObjectId\022\024\n\014grenade_type\030\002"
+  " \001(\r\022*\n\016start_position\030\003 \001(\0132\022.se.common"
+  ".Vector3\022%\n\tdirection\030\004 \001(\0132\022.se.common."
+  "Vector3:\r\210\265\030\211 \220\265\030\002\230\265\030\004\"/\n\013C_ReloadReq\022\021\n"
+  "\tweapon_id\030\001 \001(\r:\r\210\265\030\212 \220\265\030\001\230\265\030\004\"o\n\013S_Rel"
+  "oadRes\022\017\n\007success\030\001 \001(\010\022\021\n\tweapon_id\030\002 \001"
+  "(\r\022\025\n\rreloaded_ammo\030\003 \001(\r\022\026\n\016remaining_a"
+  "mmo\030\004 \001(\r:\r\210\265\030\221 \220\265\030\002\230\265\030\004\"T\n\010N_Reload\022&\n\t"
+  "entity_id\030\001 \001(\0132\023.se.common.ObjectId\022\021\n\t"
+  "weapon_id\030\002 \001(\r:\r\210\265\030\213 \220\265\030\002\230\265\030\004\"5\n\021C_Weap"
+  "onChangeReq\022\021\n\tweapon_id\030\001 \001(\r:\r\210\265\030\214 \220\265\030"
+  "\001\230\265\030\004\"[\n\017N_WeaponChanged\022&\n\tentity_id\030\001 "
+  "\001(\0132\023.se.common.ObjectId\022\021\n\tweapon_id\030\002 "
+  "\001(\r:\r\210\265\030\215 \220\265\030\002\230\265\030\004\"4\n\017C_UseAbilityReq\022\022\n"
+  "\nability_id\030\001 \001(\r:\r\210\265\030\216 \220\265\030\001\230\265\030\004\"Y\n\014N_Us"
+  "eAbility\022&\n\tentity_id\030\001 \001(\0132\023.se.common."
+  "ObjectId\022\022\n\nability_id\030\002 \001(\r:\r\210\265\030\217 \220\265\030\002\230"
+  "\265\030\004\"m\n\014N_KillPlayer\022&\n\tkiller_id\030\001 \001(\0132\023"
+  ".se.common.ObjectId\022&\n\tvictim_id\030\002 \001(\0132\023"
+  ".se.common.ObjectId:\r\210\265\030\220 \220\265\030\002\230\265\030\004\"~\n\013N_"
+  "EntityHit\022&\n\tentity_id\030\001 \001(\0132\023.se.common"
+  ".ObjectId\022(\n\014hit_position\030\002 \001(\0132\022.se.com"
+  "mon.Vector3\022\016\n\006damage\030\003 \001(\r:\r\210\265\030\222 \220\265\030\002\230\265"
+  "\030\004\".\n\014C_UseItemReq\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030"
+  "\350 \220\265\030\001\230\265\030\004\"b\n\014S_UseItemRes\022\017\n\007success\030\001 "
+  "\001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.Result\022\017"
+  "\n\007item_id\030\003 \001(\r:\r\210\265\030\362 \220\265\030\002\230\265\030\004\"S\n\tN_UseI"
+  "tem\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
+  "tId\022\017\n\007item_id\030\002 \001(\r:\r\210\265\030\351 \220\265\030\002\230\265\030\004\"Q\n\022C"
+  "_ChestInteractReq\022,\n\017chest_entity_id\030\001 \001"
+  "(\0132\023.se.common.ObjectId:\r\210\265\030\352 \220\265\030\001\230\265\030\004\"x"
+  "\n\021N_ChestInteracted\022&\n\tentity_id\030\001 \001(\0132\023"
+  ".se.common.ObjectId\022,\n\017chest_entity_id\030\002"
+  " \001(\0132\023.se.common.ObjectId:\r\210\265\030\361 \220\265\030\002\230\265\030\004"
+  "\"M\n\017C_PickupItemReq\022+\n\016item_entity_id\030\001 "
+  "\001(\0132\023.se.common.ObjectId:\r\210\265\030\353 \220\265\030\001\230\265\030\004\""
+  "r\n\014N_PickupItem\022&\n\tentity_id\030\001 \001(\0132\023.se."
+  "common.ObjectId\022+\n\016item_entity_id\030\002 \001(\0132"
+  "\023.se.common.ObjectId:\r\210\265\030\354 \220\265\030\002\230\265\030\004\"c\n\rC"
+  "_UseStoreReq\022,\n\017store_entity_id\030\001 \001(\0132\023."
+  "se.common.ObjectId\022\025\n\rstore_item_id\030\002 \001("
+  "\r:\r\210\265\030\355 \220\265\030\001\230\265\030\004\"i\n\rS_UseStoreRes\022\017\n\007suc"
+  "cess\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.R"
+  "esult\022\025\n\rstore_item_id\030\003 \001(\r:\r\210\265\030\356 \220\265\030\002\230"
+  "\265\030\004\"@\n\014N_ItemGained\022\017\n\007item_id\030\001 \001(\r\022\020\n\010"
+  "quantity\030\002 \001(\r:\r\210\265\030\357 \220\265\030\002\230\265\030\004\"H\n\021C_SetSa"
+  "vePointReq\022$\n\010position\030\001 \001(\0132\022.se.common"
+  ".Vector3:\r\210\265\030\360 \220\265\030\001\230\265\030\004\"|\n\021S_SetSavePoin"
+  "tRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021."
+  "se.common.Result\022$\n\010position\030\003 \001(\0132\022.se."
+  "common.Vector3:\r\210\265\030\363 \220\265\030\002\230\265\030\004\"k\n\017N_Healt"
+  "hChanged\022&\n\tentity_id\030\001 \001(\0132\023.se.common."
+  "ObjectId\022\022\n\nnew_health\030\002 \001(\005\022\r\n\005delta\030\003 "
+  "\001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n\022N_MaxHealthChanged"
   "\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId"
-  "\022\022\n\nability_id\030\002 \001(\r:\r\210\265\030\217 \220\265\030\002\230\265\030\004\"m\n\014N"
-  "_KillPlayer\022&\n\tkiller_id\030\001 \001(\0132\023.se.comm"
-  "on.ObjectId\022&\n\tvictim_id\030\002 \001(\0132\023.se.comm"
-  "on.ObjectId:\r\210\265\030\220 \220\265\030\002\230\265\030\004\"~\n\013N_EntityHi"
-  "t\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectI"
-  "d\022(\n\014hit_position\030\002 \001(\0132\022.se.common.Vect"
-  "or3\022\016\n\006damage\030\003 \001(\r:\r\210\265\030\222 \220\265\030\002\230\265\030\004\".\n\014C_"
-  "UseItemReq\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\350 \220\265\030\001\230\265"
-  "\030\004\"S\n\tN_UseItem\022&\n\tentity_id\030\001 \001(\0132\023.se."
-  "common.ObjectId\022\017\n\007item_id\030\002 \001(\r:\r\210\265\030\351 \220"
-  "\265\030\002\230\265\030\004\"Q\n\022C_ChestInteractReq\022,\n\017chest_e"
-  "ntity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030"
-  "\352 \220\265\030\001\230\265\030\004\"M\n\017C_PickupItemReq\022+\n\016item_en"
-  "tity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\353"
-  " \220\265\030\001\230\265\030\004\"r\n\014N_PickupItem\022&\n\tentity_id\030\001"
-  " \001(\0132\023.se.common.ObjectId\022+\n\016item_entity"
-  "_id\030\002 \001(\0132\023.se.common.ObjectId:\r\210\265\030\354 \220\265\030"
-  "\002\230\265\030\004\"c\n\rC_UseStoreReq\022,\n\017store_entity_i"
-  "d\030\001 \001(\0132\023.se.common.ObjectId\022\025\n\rstore_it"
-  "em_id\030\002 \001(\r:\r\210\265\030\355 \220\265\030\001\230\265\030\004\"i\n\rS_UseStore"
-  "Res\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.s"
-  "e.common.Result\022\025\n\rstore_item_id\030\003 \001(\r:\r"
-  "\210\265\030\356 \220\265\030\002\230\265\030\004\"@\n\014N_ItemGained\022\017\n\007item_id"
-  "\030\001 \001(\r\022\020\n\010quantity\030\002 \001(\r:\r\210\265\030\357 \220\265\030\002\230\265\030\004\""
-  "H\n\021C_SetSavePointReq\022$\n\010position\030\001 \001(\0132\022"
-  ".se.common.Vector3:\r\210\265\030\360 \220\265\030\001\230\265\030\004\"k\n\017N_H"
-  "ealthChanged\022&\n\tentity_id\030\001 \001(\0132\023.se.com"
-  "mon.ObjectId\022\022\n\nnew_health\030\002 \001(\005\022\r\n\005delt"
-  "a\030\003 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDied\022&"
-  "\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId:\r"
-  "\210\265\030\315!\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022&\n\ten"
-  "tity_id\030\001 \001(\0132\023.se.common.ObjectId\022\'\n\ttr"
-  "ansform\030\002 \001(\0132\024.se.common.Transform:\r\210\265\030"
-  "\316!\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\tentit"
-  "y_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\317!\220\265"
-  "\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n\017new_time"
-  "_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\320!\220\265\030\002\230"
-  "\265\030\004\"\204\001\n\021N_TimeStormChange\022\"\n\006center\030\001 \001("
-  "\0132\022.se.common.Vector3\022\016\n\006radius\030\002 \001(\002\022\024\n"
-  "\014waiting_time\030\003 \001(\002\022\026\n\016shrinking_time\030\004 "
-  "\001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
+  "\022\026\n\016new_max_health\030\002 \001(\005\022\032\n\022new_current_"
+  "health\030\003 \001(\005:\r\210\265\030\321!\220\265\030\002\230\265\030\004\"E\n\014N_EntityD"
+  "ied\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
+  "tId:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022"
+  "&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022"
+  "\'\n\ttransform\030\002 \001(\0132\024.se.common.Transform"
+  ":\r\210\265\030\316!\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\t"
+  "entity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265"
+  "\030\317!\220\265\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n\017new"
+  "_time_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\320!"
+  "\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeStormChange\022\"\n\006center"
+  "\030\001 \001(\0132\022.se.common.Vector3\022\016\n\006radius\030\002 \001"
+  "(\002\022\024\n\014waiting_time\030\003 \001(\002\022\026\n\016shrinking_ti"
+  "me\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
   ;
-static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[4] = {
+static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
+  &::descriptor_table_common_2fcommon_5fenums_2eproto,
   &::descriptor_table_common_2fcommon_5ftypes_2eproto,
   &::descriptor_table_game_2fgame_5fenums_2eproto,
   &::descriptor_table_game_2fgame_5ftypes_2eproto,
@@ -1350,9 +1449,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 4586, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 5151, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
-    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 4, 51,
+    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 54,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
     file_level_metadata_game_2fgame_5fmessages_2eproto, file_level_enum_descriptors_game_2fgame_5fmessages_2eproto,
     file_level_service_descriptors_game_2fgame_5fmessages_2eproto,
@@ -1690,16 +1789,31 @@ void C_MoveReq::InternalSwap(C_MoveReq* other) {
 class N_Move::_Internal {
  public:
   static const ::se::common::ObjectId& entity_id(const N_Move* msg);
-  static const ::se::common::MovementState& movement(const N_Move* msg);
+  static const ::se::common::Transform& transform(const N_Move* msg);
+  static const ::se::game::PlayerMovement& player_movement(const N_Move* msg);
+  static const ::se::game::MonsterMovement& monster_movement(const N_Move* msg);
+  static const ::se::game::ProjectileMovement& projectile_movement(const N_Move* msg);
 };
 
 const ::se::common::ObjectId&
 N_Move::_Internal::entity_id(const N_Move* msg) {
   return *msg->_impl_.entity_id_;
 }
-const ::se::common::MovementState&
-N_Move::_Internal::movement(const N_Move* msg) {
-  return *msg->_impl_.movement_;
+const ::se::common::Transform&
+N_Move::_Internal::transform(const N_Move* msg) {
+  return *msg->_impl_.transform_;
+}
+const ::se::game::PlayerMovement&
+N_Move::_Internal::player_movement(const N_Move* msg) {
+  return *msg->_impl_.detail_.player_movement_;
+}
+const ::se::game::MonsterMovement&
+N_Move::_Internal::monster_movement(const N_Move* msg) {
+  return *msg->_impl_.detail_.monster_movement_;
+}
+const ::se::game::ProjectileMovement&
+N_Move::_Internal::projectile_movement(const N_Move* msg) {
+  return *msg->_impl_.detail_.projectile_movement_;
 }
 void N_Move::clear_entity_id() {
   if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
@@ -1707,11 +1821,83 @@ void N_Move::clear_entity_id() {
   }
   _impl_.entity_id_ = nullptr;
 }
-void N_Move::clear_movement() {
-  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
-    delete _impl_.movement_;
+void N_Move::clear_transform() {
+  if (GetArenaForAllocation() == nullptr && _impl_.transform_ != nullptr) {
+    delete _impl_.transform_;
   }
-  _impl_.movement_ = nullptr;
+  _impl_.transform_ = nullptr;
+}
+void N_Move::set_allocated_player_movement(::se::game::PlayerMovement* player_movement) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (player_movement) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(player_movement));
+    if (message_arena != submessage_arena) {
+      player_movement = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, player_movement, submessage_arena);
+    }
+    set_has_player_movement();
+    _impl_.detail_.player_movement_ = player_movement;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_Move.player_movement)
+}
+void N_Move::clear_player_movement() {
+  if (_internal_has_player_movement()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.detail_.player_movement_;
+    }
+    clear_has_detail();
+  }
+}
+void N_Move::set_allocated_monster_movement(::se::game::MonsterMovement* monster_movement) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (monster_movement) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(monster_movement));
+    if (message_arena != submessage_arena) {
+      monster_movement = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, monster_movement, submessage_arena);
+    }
+    set_has_monster_movement();
+    _impl_.detail_.monster_movement_ = monster_movement;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_Move.monster_movement)
+}
+void N_Move::clear_monster_movement() {
+  if (_internal_has_monster_movement()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.detail_.monster_movement_;
+    }
+    clear_has_detail();
+  }
+}
+void N_Move::set_allocated_projectile_movement(::se::game::ProjectileMovement* projectile_movement) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (projectile_movement) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(projectile_movement));
+    if (message_arena != submessage_arena) {
+      projectile_movement = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, projectile_movement, submessage_arena);
+    }
+    set_has_projectile_movement();
+    _impl_.detail_.projectile_movement_ = projectile_movement;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_Move.projectile_movement)
+}
+void N_Move::clear_projectile_movement() {
+  if (_internal_has_projectile_movement()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.detail_.projectile_movement_;
+    }
+    clear_has_detail();
+  }
 }
 N_Move::N_Move(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -1724,15 +1910,40 @@ N_Move::N_Move(const N_Move& from)
   N_Move* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
-    , decltype(_impl_.movement_){nullptr}
-    , /*decltype(_impl_._cached_size_)*/{}};
+    , decltype(_impl_.transform_){nullptr}
+    , decltype(_impl_.object_type_){}
+    , decltype(_impl_.detail_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+    , /*decltype(_impl_._oneof_case_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_entity_id()) {
     _this->_impl_.entity_id_ = new ::se::common::ObjectId(*from._impl_.entity_id_);
   }
-  if (from._internal_has_movement()) {
-    _this->_impl_.movement_ = new ::se::common::MovementState(*from._impl_.movement_);
+  if (from._internal_has_transform()) {
+    _this->_impl_.transform_ = new ::se::common::Transform(*from._impl_.transform_);
+  }
+  _this->_impl_.object_type_ = from._impl_.object_type_;
+  clear_has_detail();
+  switch (from.detail_case()) {
+    case kPlayerMovement: {
+      _this->_internal_mutable_player_movement()->::se::game::PlayerMovement::MergeFrom(
+          from._internal_player_movement());
+      break;
+    }
+    case kMonsterMovement: {
+      _this->_internal_mutable_monster_movement()->::se::game::MonsterMovement::MergeFrom(
+          from._internal_monster_movement());
+      break;
+    }
+    case kProjectileMovement: {
+      _this->_internal_mutable_projectile_movement()->::se::game::ProjectileMovement::MergeFrom(
+          from._internal_projectile_movement());
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
   }
   // @@protoc_insertion_point(copy_constructor:se.game.N_Move)
 }
@@ -1743,9 +1954,13 @@ inline void N_Move::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
-    , decltype(_impl_.movement_){nullptr}
+    , decltype(_impl_.transform_){nullptr}
+    , decltype(_impl_.object_type_){0}
+    , decltype(_impl_.detail_){}
     , /*decltype(_impl_._cached_size_)*/{}
+    , /*decltype(_impl_._oneof_case_)*/{}
   };
+  clear_has_detail();
 }
 
 N_Move::~N_Move() {
@@ -1760,12 +1975,44 @@ N_Move::~N_Move() {
 inline void N_Move::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete _impl_.entity_id_;
-  if (this != internal_default_instance()) delete _impl_.movement_;
+  if (this != internal_default_instance()) delete _impl_.transform_;
+  if (has_detail()) {
+    clear_detail();
+  }
 }
 
 void N_Move::SetCachedSize(int size) const {
   _impl_._cached_size_.Set(size);
 }
+
+void N_Move::clear_detail() {
+// @@protoc_insertion_point(one_of_clear_start:se.game.N_Move)
+  switch (detail_case()) {
+    case kPlayerMovement: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.player_movement_;
+      }
+      break;
+    }
+    case kMonsterMovement: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.monster_movement_;
+      }
+      break;
+    }
+    case kProjectileMovement: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.projectile_movement_;
+      }
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = DETAIL_NOT_SET;
+}
+
 
 void N_Move::Clear() {
 // @@protoc_insertion_point(message_clear_start:se.game.N_Move)
@@ -1777,10 +2024,12 @@ void N_Move::Clear() {
     delete _impl_.entity_id_;
   }
   _impl_.entity_id_ = nullptr;
-  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
-    delete _impl_.movement_;
+  if (GetArenaForAllocation() == nullptr && _impl_.transform_ != nullptr) {
+    delete _impl_.transform_;
   }
-  _impl_.movement_ = nullptr;
+  _impl_.transform_ = nullptr;
+  _impl_.object_type_ = 0;
+  clear_detail();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1798,10 +2047,43 @@ const char* N_Move::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
         } else
           goto handle_unusual;
         continue;
-      // .se.common.MovementState movement = 2;
+      // .se.common.ObjectType object_type = 2;
       case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
-          ptr = ctx->ParseMessage(_internal_mutable_movement(), ptr);
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          uint64_t val = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+          _internal_set_object_type(static_cast<::se::common::ObjectType>(val));
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Transform transform = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_transform(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.game.PlayerMovement player_movement = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_player_movement(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.game.MonsterMovement monster_movement = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
+          ptr = ctx->ParseMessage(_internal_mutable_monster_movement(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.game.ProjectileMovement projectile_movement = 6;
+      case 6:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 50)) {
+          ptr = ctx->ParseMessage(_internal_mutable_projectile_movement(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -1842,11 +2124,39 @@ uint8_t* N_Move::_InternalSerialize(
         _Internal::entity_id(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.MovementState movement = 2;
-  if (this->_internal_has_movement()) {
+  // .se.common.ObjectType object_type = 2;
+  if (this->_internal_object_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteEnumToArray(
+      2, this->_internal_object_type(), target);
+  }
+
+  // .se.common.Transform transform = 3;
+  if (this->_internal_has_transform()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(2, _Internal::movement(this),
-        _Internal::movement(this).GetCachedSize(), target, stream);
+      InternalWriteMessage(3, _Internal::transform(this),
+        _Internal::transform(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.game.PlayerMovement player_movement = 4;
+  if (_internal_has_player_movement()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(4, _Internal::player_movement(this),
+        _Internal::player_movement(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.game.MonsterMovement monster_movement = 5;
+  if (_internal_has_monster_movement()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(5, _Internal::monster_movement(this),
+        _Internal::monster_movement(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.game.ProjectileMovement projectile_movement = 6;
+  if (_internal_has_projectile_movement()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(6, _Internal::projectile_movement(this),
+        _Internal::projectile_movement(this).GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1872,13 +2182,45 @@ size_t N_Move::ByteSizeLong() const {
         *_impl_.entity_id_);
   }
 
-  // .se.common.MovementState movement = 2;
-  if (this->_internal_has_movement()) {
+  // .se.common.Transform transform = 3;
+  if (this->_internal_has_transform()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.movement_);
+        *_impl_.transform_);
   }
 
+  // .se.common.ObjectType object_type = 2;
+  if (this->_internal_object_type() != 0) {
+    total_size += 1 +
+      ::_pbi::WireFormatLite::EnumSize(this->_internal_object_type());
+  }
+
+  switch (detail_case()) {
+    // .se.game.PlayerMovement player_movement = 4;
+    case kPlayerMovement: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.player_movement_);
+      break;
+    }
+    // .se.game.MonsterMovement monster_movement = 5;
+    case kMonsterMovement: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.monster_movement_);
+      break;
+    }
+    // .se.game.ProjectileMovement projectile_movement = 6;
+    case kProjectileMovement: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.projectile_movement_);
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
+  }
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -1901,9 +2243,32 @@ void N_Move::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBU
     _this->_internal_mutable_entity_id()->::se::common::ObjectId::MergeFrom(
         from._internal_entity_id());
   }
-  if (from._internal_has_movement()) {
-    _this->_internal_mutable_movement()->::se::common::MovementState::MergeFrom(
-        from._internal_movement());
+  if (from._internal_has_transform()) {
+    _this->_internal_mutable_transform()->::se::common::Transform::MergeFrom(
+        from._internal_transform());
+  }
+  if (from._internal_object_type() != 0) {
+    _this->_internal_set_object_type(from._internal_object_type());
+  }
+  switch (from.detail_case()) {
+    case kPlayerMovement: {
+      _this->_internal_mutable_player_movement()->::se::game::PlayerMovement::MergeFrom(
+          from._internal_player_movement());
+      break;
+    }
+    case kMonsterMovement: {
+      _this->_internal_mutable_monster_movement()->::se::game::MonsterMovement::MergeFrom(
+          from._internal_monster_movement());
+      break;
+    }
+    case kProjectileMovement: {
+      _this->_internal_mutable_projectile_movement()->::se::game::ProjectileMovement::MergeFrom(
+          from._internal_projectile_movement());
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -1923,11 +2288,13 @@ void N_Move::InternalSwap(N_Move* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(N_Move, _impl_.movement_)
-      + sizeof(N_Move::_impl_.movement_)
+      PROTOBUF_FIELD_OFFSET(N_Move, _impl_.object_type_)
+      + sizeof(N_Move::_impl_.object_type_)
       - PROTOBUF_FIELD_OFFSET(N_Move, _impl_.entity_id_)>(
           reinterpret_cast<char*>(&_impl_.entity_id_),
           reinterpret_cast<char*>(&other->_impl_.entity_id_));
+  swap(_impl_.detail_, other->_impl_.detail_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata N_Move::GetMetadata() const {
@@ -6197,304 +6564,6 @@ void N_ThrowGrenade::InternalSwap(N_ThrowGrenade* other) {
 
 // ===================================================================
 
-class N_ProjectileMove::_Internal {
- public:
-  static const ::se::common::ObjectId& projectile_id(const N_ProjectileMove* msg);
-  static const ::se::common::Vector3& position(const N_ProjectileMove* msg);
-  static const ::se::common::Vector3& direction(const N_ProjectileMove* msg);
-};
-
-const ::se::common::ObjectId&
-N_ProjectileMove::_Internal::projectile_id(const N_ProjectileMove* msg) {
-  return *msg->_impl_.projectile_id_;
-}
-const ::se::common::Vector3&
-N_ProjectileMove::_Internal::position(const N_ProjectileMove* msg) {
-  return *msg->_impl_.position_;
-}
-const ::se::common::Vector3&
-N_ProjectileMove::_Internal::direction(const N_ProjectileMove* msg) {
-  return *msg->_impl_.direction_;
-}
-void N_ProjectileMove::clear_projectile_id() {
-  if (GetArenaForAllocation() == nullptr && _impl_.projectile_id_ != nullptr) {
-    delete _impl_.projectile_id_;
-  }
-  _impl_.projectile_id_ = nullptr;
-}
-void N_ProjectileMove::clear_position() {
-  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
-    delete _impl_.position_;
-  }
-  _impl_.position_ = nullptr;
-}
-void N_ProjectileMove::clear_direction() {
-  if (GetArenaForAllocation() == nullptr && _impl_.direction_ != nullptr) {
-    delete _impl_.direction_;
-  }
-  _impl_.direction_ = nullptr;
-}
-N_ProjectileMove::N_ProjectileMove(::PROTOBUF_NAMESPACE_ID::Arena* arena,
-                         bool is_message_owned)
-  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
-  SharedCtor(arena, is_message_owned);
-  // @@protoc_insertion_point(arena_constructor:se.game.N_ProjectileMove)
-}
-N_ProjectileMove::N_ProjectileMove(const N_ProjectileMove& from)
-  : ::PROTOBUF_NAMESPACE_ID::Message() {
-  N_ProjectileMove* const _this = this; (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_.projectile_id_){nullptr}
-    , decltype(_impl_.position_){nullptr}
-    , decltype(_impl_.direction_){nullptr}
-    , /*decltype(_impl_._cached_size_)*/{}};
-
-  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  if (from._internal_has_projectile_id()) {
-    _this->_impl_.projectile_id_ = new ::se::common::ObjectId(*from._impl_.projectile_id_);
-  }
-  if (from._internal_has_position()) {
-    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
-  }
-  if (from._internal_has_direction()) {
-    _this->_impl_.direction_ = new ::se::common::Vector3(*from._impl_.direction_);
-  }
-  // @@protoc_insertion_point(copy_constructor:se.game.N_ProjectileMove)
-}
-
-inline void N_ProjectileMove::SharedCtor(
-    ::_pb::Arena* arena, bool is_message_owned) {
-  (void)arena;
-  (void)is_message_owned;
-  new (&_impl_) Impl_{
-      decltype(_impl_.projectile_id_){nullptr}
-    , decltype(_impl_.position_){nullptr}
-    , decltype(_impl_.direction_){nullptr}
-    , /*decltype(_impl_._cached_size_)*/{}
-  };
-}
-
-N_ProjectileMove::~N_ProjectileMove() {
-  // @@protoc_insertion_point(destructor:se.game.N_ProjectileMove)
-  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
-  (void)arena;
-    return;
-  }
-  SharedDtor();
-}
-
-inline void N_ProjectileMove::SharedDtor() {
-  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  if (this != internal_default_instance()) delete _impl_.projectile_id_;
-  if (this != internal_default_instance()) delete _impl_.position_;
-  if (this != internal_default_instance()) delete _impl_.direction_;
-}
-
-void N_ProjectileMove::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
-}
-
-void N_ProjectileMove::Clear() {
-// @@protoc_insertion_point(message_clear_start:se.game.N_ProjectileMove)
-  uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  if (GetArenaForAllocation() == nullptr && _impl_.projectile_id_ != nullptr) {
-    delete _impl_.projectile_id_;
-  }
-  _impl_.projectile_id_ = nullptr;
-  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
-    delete _impl_.position_;
-  }
-  _impl_.position_ = nullptr;
-  if (GetArenaForAllocation() == nullptr && _impl_.direction_ != nullptr) {
-    delete _impl_.direction_;
-  }
-  _impl_.direction_ = nullptr;
-  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
-}
-
-const char* N_ProjectileMove::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
-#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
-  while (!ctx->Done(&ptr)) {
-    uint32_t tag;
-    ptr = ::_pbi::ReadTag(ptr, &tag);
-    switch (tag >> 3) {
-      // .se.common.ObjectId projectile_id = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
-          ptr = ctx->ParseMessage(_internal_mutable_projectile_id(), ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // .se.common.Vector3 position = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
-          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // .se.common.Vector3 direction = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
-          ptr = ctx->ParseMessage(_internal_mutable_direction(), ptr);
-          CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      default:
-        goto handle_unusual;
-    }  // switch
-  handle_unusual:
-    if ((tag == 0) || ((tag & 7) == 4)) {
-      CHK_(ptr);
-      ctx->SetLastTag(tag);
-      goto message_done;
-    }
-    ptr = UnknownFieldParse(
-        tag,
-        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
-        ptr, ctx);
-    CHK_(ptr != nullptr);
-  }  // while
-message_done:
-  return ptr;
-failure:
-  ptr = nullptr;
-  goto message_done;
-#undef CHK_
-}
-
-uint8_t* N_ProjectileMove::_InternalSerialize(
-    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_ProjectileMove)
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  // .se.common.ObjectId projectile_id = 1;
-  if (this->_internal_has_projectile_id()) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::projectile_id(this),
-        _Internal::projectile_id(this).GetCachedSize(), target, stream);
-  }
-
-  // .se.common.Vector3 position = 2;
-  if (this->_internal_has_position()) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(2, _Internal::position(this),
-        _Internal::position(this).GetCachedSize(), target, stream);
-  }
-
-  // .se.common.Vector3 direction = 3;
-  if (this->_internal_has_direction()) {
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(3, _Internal::direction(this),
-        _Internal::direction(this).GetCachedSize(), target, stream);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_ProjectileMove)
-  return target;
-}
-
-size_t N_ProjectileMove::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:se.game.N_ProjectileMove)
-  size_t total_size = 0;
-
-  uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // .se.common.ObjectId projectile_id = 1;
-  if (this->_internal_has_projectile_id()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.projectile_id_);
-  }
-
-  // .se.common.Vector3 position = 2;
-  if (this->_internal_has_position()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.position_);
-  }
-
-  // .se.common.Vector3 direction = 3;
-  if (this->_internal_has_direction()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.direction_);
-  }
-
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
-}
-
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_ProjectileMove::_class_data_ = {
-    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
-    N_ProjectileMove::MergeImpl
-};
-const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_ProjectileMove::GetClassData() const { return &_class_data_; }
-
-
-void N_ProjectileMove::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
-  auto* const _this = static_cast<N_ProjectileMove*>(&to_msg);
-  auto& from = static_cast<const N_ProjectileMove&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_ProjectileMove)
-  GOOGLE_DCHECK_NE(&from, _this);
-  uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if (from._internal_has_projectile_id()) {
-    _this->_internal_mutable_projectile_id()->::se::common::ObjectId::MergeFrom(
-        from._internal_projectile_id());
-  }
-  if (from._internal_has_position()) {
-    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
-        from._internal_position());
-  }
-  if (from._internal_has_direction()) {
-    _this->_internal_mutable_direction()->::se::common::Vector3::MergeFrom(
-        from._internal_direction());
-  }
-  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-}
-
-void N_ProjectileMove::CopyFrom(const N_ProjectileMove& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_ProjectileMove)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
-}
-
-bool N_ProjectileMove::IsInitialized() const {
-  return true;
-}
-
-void N_ProjectileMove::InternalSwap(N_ProjectileMove* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(N_ProjectileMove, _impl_.direction_)
-      + sizeof(N_ProjectileMove::_impl_.direction_)
-      - PROTOBUF_FIELD_OFFSET(N_ProjectileMove, _impl_.projectile_id_)>(
-          reinterpret_cast<char*>(&_impl_.projectile_id_),
-          reinterpret_cast<char*>(&other->_impl_.projectile_id_));
-}
-
-::PROTOBUF_NAMESPACE_ID::Metadata N_ProjectileMove::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[26]);
-}
-
-// ===================================================================
-
 class C_ReloadReq::_Internal {
  public:
 };
@@ -6668,7 +6737,7 @@ void C_ReloadReq::InternalSwap(C_ReloadReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ReloadReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[27]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[26]);
 }
 
 // ===================================================================
@@ -6927,7 +6996,7 @@ void S_ReloadRes::InternalSwap(S_ReloadRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_ReloadRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[28]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[27]);
 }
 
 // ===================================================================
@@ -7157,7 +7226,7 @@ void N_Reload::InternalSwap(N_Reload* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_Reload::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[29]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[28]);
 }
 
 // ===================================================================
@@ -7335,7 +7404,7 @@ void C_WeaponChangeReq::InternalSwap(C_WeaponChangeReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_WeaponChangeReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[30]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[29]);
 }
 
 // ===================================================================
@@ -7565,7 +7634,7 @@ void N_WeaponChanged::InternalSwap(N_WeaponChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_WeaponChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[31]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[30]);
 }
 
 // ===================================================================
@@ -7743,7 +7812,7 @@ void C_UseAbilityReq::InternalSwap(C_UseAbilityReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_UseAbilityReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[32]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[31]);
 }
 
 // ===================================================================
@@ -7973,7 +8042,7 @@ void N_UseAbility::InternalSwap(N_UseAbility* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_UseAbility::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[33]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[32]);
 }
 
 // ===================================================================
@@ -8224,7 +8293,7 @@ void N_KillPlayer::InternalSwap(N_KillPlayer* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_KillPlayer::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[34]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[33]);
 }
 
 // ===================================================================
@@ -8501,7 +8570,7 @@ void N_EntityHit::InternalSwap(N_EntityHit* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityHit::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[35]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[34]);
 }
 
 // ===================================================================
@@ -8677,6 +8746,264 @@ void C_UseItemReq::InternalSwap(C_UseItemReq* other) {
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata C_UseItemReq::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[35]);
+}
+
+// ===================================================================
+
+class S_UseItemRes::_Internal {
+ public:
+  static const ::se::common::Result& result(const S_UseItemRes* msg);
+};
+
+const ::se::common::Result&
+S_UseItemRes::_Internal::result(const S_UseItemRes* msg) {
+  return *msg->_impl_.result_;
+}
+void S_UseItemRes::clear_result() {
+  if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
+    delete _impl_.result_;
+  }
+  _impl_.result_ = nullptr;
+}
+S_UseItemRes::S_UseItemRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.S_UseItemRes)
+}
+S_UseItemRes::S_UseItemRes(const S_UseItemRes& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_UseItemRes* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.result_){nullptr}
+    , decltype(_impl_.success_){}
+    , decltype(_impl_.item_id_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_result()) {
+    _this->_impl_.result_ = new ::se::common::Result(*from._impl_.result_);
+  }
+  ::memcpy(&_impl_.success_, &from._impl_.success_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.item_id_) -
+    reinterpret_cast<char*>(&_impl_.success_)) + sizeof(_impl_.item_id_));
+  // @@protoc_insertion_point(copy_constructor:se.game.S_UseItemRes)
+}
+
+inline void S_UseItemRes::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.result_){nullptr}
+    , decltype(_impl_.success_){false}
+    , decltype(_impl_.item_id_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_UseItemRes::~S_UseItemRes() {
+  // @@protoc_insertion_point(destructor:se.game.S_UseItemRes)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_UseItemRes::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.result_;
+}
+
+void S_UseItemRes::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_UseItemRes::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.S_UseItemRes)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
+    delete _impl_.result_;
+  }
+  _impl_.result_ = nullptr;
+  ::memset(&_impl_.success_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.item_id_) -
+      reinterpret_cast<char*>(&_impl_.success_)) + sizeof(_impl_.item_id_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_UseItemRes::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // bool success = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.success_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Result result = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_result(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 item_id = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _impl_.item_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_UseItemRes::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.S_UseItemRes)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_success(), target);
+  }
+
+  // .se.common.Result result = 2;
+  if (this->_internal_has_result()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::result(this),
+        _Internal::result(this).GetCachedSize(), target, stream);
+  }
+
+  // uint32 item_id = 3;
+  if (this->_internal_item_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(3, this->_internal_item_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.S_UseItemRes)
+  return target;
+}
+
+size_t S_UseItemRes::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.S_UseItemRes)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Result result = 2;
+  if (this->_internal_has_result()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.result_);
+  }
+
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    total_size += 1 + 1;
+  }
+
+  // uint32 item_id = 3;
+  if (this->_internal_item_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_item_id());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_UseItemRes::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_UseItemRes::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_UseItemRes::GetClassData() const { return &_class_data_; }
+
+
+void S_UseItemRes::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_UseItemRes*>(&to_msg);
+  auto& from = static_cast<const S_UseItemRes&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.S_UseItemRes)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_result()) {
+    _this->_internal_mutable_result()->::se::common::Result::MergeFrom(
+        from._internal_result());
+  }
+  if (from._internal_success() != 0) {
+    _this->_internal_set_success(from._internal_success());
+  }
+  if (from._internal_item_id() != 0) {
+    _this->_internal_set_item_id(from._internal_item_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_UseItemRes::CopyFrom(const S_UseItemRes& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.S_UseItemRes)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_UseItemRes::IsInitialized() const {
+  return true;
+}
+
+void S_UseItemRes::InternalSwap(S_UseItemRes* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_UseItemRes, _impl_.item_id_)
+      + sizeof(S_UseItemRes::_impl_.item_id_)
+      - PROTOBUF_FIELD_OFFSET(S_UseItemRes, _impl_.result_)>(
+          reinterpret_cast<char*>(&_impl_.result_),
+          reinterpret_cast<char*>(&other->_impl_.result_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_UseItemRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
       file_level_metadata_game_2fgame_5fmessages_2eproto[36]);
@@ -9113,6 +9440,257 @@ void C_ChestInteractReq::InternalSwap(C_ChestInteractReq* other) {
 
 // ===================================================================
 
+class N_ChestInteracted::_Internal {
+ public:
+  static const ::se::common::ObjectId& entity_id(const N_ChestInteracted* msg);
+  static const ::se::common::ObjectId& chest_entity_id(const N_ChestInteracted* msg);
+};
+
+const ::se::common::ObjectId&
+N_ChestInteracted::_Internal::entity_id(const N_ChestInteracted* msg) {
+  return *msg->_impl_.entity_id_;
+}
+const ::se::common::ObjectId&
+N_ChestInteracted::_Internal::chest_entity_id(const N_ChestInteracted* msg) {
+  return *msg->_impl_.chest_entity_id_;
+}
+void N_ChestInteracted::clear_entity_id() {
+  if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
+    delete _impl_.entity_id_;
+  }
+  _impl_.entity_id_ = nullptr;
+}
+void N_ChestInteracted::clear_chest_entity_id() {
+  if (GetArenaForAllocation() == nullptr && _impl_.chest_entity_id_ != nullptr) {
+    delete _impl_.chest_entity_id_;
+  }
+  _impl_.chest_entity_id_ = nullptr;
+}
+N_ChestInteracted::N_ChestInteracted(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_ChestInteracted)
+}
+N_ChestInteracted::N_ChestInteracted(const N_ChestInteracted& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_ChestInteracted* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.entity_id_){nullptr}
+    , decltype(_impl_.chest_entity_id_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_entity_id()) {
+    _this->_impl_.entity_id_ = new ::se::common::ObjectId(*from._impl_.entity_id_);
+  }
+  if (from._internal_has_chest_entity_id()) {
+    _this->_impl_.chest_entity_id_ = new ::se::common::ObjectId(*from._impl_.chest_entity_id_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.game.N_ChestInteracted)
+}
+
+inline void N_ChestInteracted::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.entity_id_){nullptr}
+    , decltype(_impl_.chest_entity_id_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_ChestInteracted::~N_ChestInteracted() {
+  // @@protoc_insertion_point(destructor:se.game.N_ChestInteracted)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_ChestInteracted::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.entity_id_;
+  if (this != internal_default_instance()) delete _impl_.chest_entity_id_;
+}
+
+void N_ChestInteracted::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_ChestInteracted::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_ChestInteracted)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
+    delete _impl_.entity_id_;
+  }
+  _impl_.entity_id_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.chest_entity_id_ != nullptr) {
+    delete _impl_.chest_entity_id_;
+  }
+  _impl_.chest_entity_id_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_ChestInteracted::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.ObjectId entity_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_entity_id(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.ObjectId chest_entity_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_chest_entity_id(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_ChestInteracted::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_ChestInteracted)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.ObjectId entity_id = 1;
+  if (this->_internal_has_entity_id()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::entity_id(this),
+        _Internal::entity_id(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.ObjectId chest_entity_id = 2;
+  if (this->_internal_has_chest_entity_id()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::chest_entity_id(this),
+        _Internal::chest_entity_id(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_ChestInteracted)
+  return target;
+}
+
+size_t N_ChestInteracted::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_ChestInteracted)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.ObjectId entity_id = 1;
+  if (this->_internal_has_entity_id()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.entity_id_);
+  }
+
+  // .se.common.ObjectId chest_entity_id = 2;
+  if (this->_internal_has_chest_entity_id()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.chest_entity_id_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_ChestInteracted::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_ChestInteracted::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_ChestInteracted::GetClassData() const { return &_class_data_; }
+
+
+void N_ChestInteracted::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_ChestInteracted*>(&to_msg);
+  auto& from = static_cast<const N_ChestInteracted&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_ChestInteracted)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_entity_id()) {
+    _this->_internal_mutable_entity_id()->::se::common::ObjectId::MergeFrom(
+        from._internal_entity_id());
+  }
+  if (from._internal_has_chest_entity_id()) {
+    _this->_internal_mutable_chest_entity_id()->::se::common::ObjectId::MergeFrom(
+        from._internal_chest_entity_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_ChestInteracted::CopyFrom(const N_ChestInteracted& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_ChestInteracted)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_ChestInteracted::IsInitialized() const {
+  return true;
+}
+
+void N_ChestInteracted::InternalSwap(N_ChestInteracted* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(N_ChestInteracted, _impl_.chest_entity_id_)
+      + sizeof(N_ChestInteracted::_impl_.chest_entity_id_)
+      - PROTOBUF_FIELD_OFFSET(N_ChestInteracted, _impl_.entity_id_)>(
+          reinterpret_cast<char*>(&_impl_.entity_id_),
+          reinterpret_cast<char*>(&other->_impl_.entity_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_ChestInteracted::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[39]);
+}
+
+// ===================================================================
+
 class C_PickupItemReq::_Internal {
  public:
   static const ::se::common::ObjectId& item_entity_id(const C_PickupItemReq* msg);
@@ -9307,7 +9885,7 @@ void C_PickupItemReq::InternalSwap(C_PickupItemReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_PickupItemReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[39]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[40]);
 }
 
 // ===================================================================
@@ -9558,7 +10136,7 @@ void N_PickupItem::InternalSwap(N_PickupItem* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_PickupItem::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[40]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[41]);
 }
 
 // ===================================================================
@@ -9788,7 +10366,7 @@ void C_UseStoreReq::InternalSwap(C_UseStoreReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_UseStoreReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[41]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[42]);
 }
 
 // ===================================================================
@@ -10046,7 +10624,7 @@ void S_UseStoreRes::InternalSwap(S_UseStoreRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_UseStoreRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[42]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[43]);
 }
 
 // ===================================================================
@@ -10257,7 +10835,7 @@ void N_ItemGained::InternalSwap(N_ItemGained* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemGained::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[43]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[44]);
 }
 
 // ===================================================================
@@ -10456,7 +11034,284 @@ void C_SetSavePointReq::InternalSwap(C_SetSavePointReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_SetSavePointReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[44]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[45]);
+}
+
+// ===================================================================
+
+class S_SetSavePointRes::_Internal {
+ public:
+  static const ::se::common::Result& result(const S_SetSavePointRes* msg);
+  static const ::se::common::Vector3& position(const S_SetSavePointRes* msg);
+};
+
+const ::se::common::Result&
+S_SetSavePointRes::_Internal::result(const S_SetSavePointRes* msg) {
+  return *msg->_impl_.result_;
+}
+const ::se::common::Vector3&
+S_SetSavePointRes::_Internal::position(const S_SetSavePointRes* msg) {
+  return *msg->_impl_.position_;
+}
+void S_SetSavePointRes::clear_result() {
+  if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
+    delete _impl_.result_;
+  }
+  _impl_.result_ = nullptr;
+}
+void S_SetSavePointRes::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+S_SetSavePointRes::S_SetSavePointRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.S_SetSavePointRes)
+}
+S_SetSavePointRes::S_SetSavePointRes(const S_SetSavePointRes& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  S_SetSavePointRes* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.result_){nullptr}
+    , decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.success_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_result()) {
+    _this->_impl_.result_ = new ::se::common::Result(*from._impl_.result_);
+  }
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  _this->_impl_.success_ = from._impl_.success_;
+  // @@protoc_insertion_point(copy_constructor:se.game.S_SetSavePointRes)
+}
+
+inline void S_SetSavePointRes::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.result_){nullptr}
+    , decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.success_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+S_SetSavePointRes::~S_SetSavePointRes() {
+  // @@protoc_insertion_point(destructor:se.game.S_SetSavePointRes)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void S_SetSavePointRes::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.result_;
+  if (this != internal_default_instance()) delete _impl_.position_;
+}
+
+void S_SetSavePointRes::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void S_SetSavePointRes::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.S_SetSavePointRes)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.result_ != nullptr) {
+    delete _impl_.result_;
+  }
+  _impl_.result_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  _impl_.success_ = false;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* S_SetSavePointRes::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // bool success = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.success_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Result result = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_result(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 position = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* S_SetSavePointRes::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.S_SetSavePointRes)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(1, this->_internal_success(), target);
+  }
+
+  // .se.common.Result result = 2;
+  if (this->_internal_has_result()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::result(this),
+        _Internal::result(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 position = 3;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(3, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.S_SetSavePointRes)
+  return target;
+}
+
+size_t S_SetSavePointRes::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.S_SetSavePointRes)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Result result = 2;
+  if (this->_internal_has_result()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.result_);
+  }
+
+  // .se.common.Vector3 position = 3;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  // bool success = 1;
+  if (this->_internal_success() != 0) {
+    total_size += 1 + 1;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData S_SetSavePointRes::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    S_SetSavePointRes::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*S_SetSavePointRes::GetClassData() const { return &_class_data_; }
+
+
+void S_SetSavePointRes::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<S_SetSavePointRes*>(&to_msg);
+  auto& from = static_cast<const S_SetSavePointRes&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.S_SetSavePointRes)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_result()) {
+    _this->_internal_mutable_result()->::se::common::Result::MergeFrom(
+        from._internal_result());
+  }
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  if (from._internal_success() != 0) {
+    _this->_internal_set_success(from._internal_success());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void S_SetSavePointRes::CopyFrom(const S_SetSavePointRes& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.S_SetSavePointRes)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool S_SetSavePointRes::IsInitialized() const {
+  return true;
+}
+
+void S_SetSavePointRes::InternalSwap(S_SetSavePointRes* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(S_SetSavePointRes, _impl_.success_)
+      + sizeof(S_SetSavePointRes::_impl_.success_)
+      - PROTOBUF_FIELD_OFFSET(S_SetSavePointRes, _impl_.result_)>(
+          reinterpret_cast<char*>(&_impl_.result_),
+          reinterpret_cast<char*>(&other->_impl_.result_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata S_SetSavePointRes::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[46]);
 }
 
 // ===================================================================
@@ -10714,7 +11569,265 @@ void N_HealthChanged::InternalSwap(N_HealthChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_HealthChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[45]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[47]);
+}
+
+// ===================================================================
+
+class N_MaxHealthChanged::_Internal {
+ public:
+  static const ::se::common::ObjectId& entity_id(const N_MaxHealthChanged* msg);
+};
+
+const ::se::common::ObjectId&
+N_MaxHealthChanged::_Internal::entity_id(const N_MaxHealthChanged* msg) {
+  return *msg->_impl_.entity_id_;
+}
+void N_MaxHealthChanged::clear_entity_id() {
+  if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
+    delete _impl_.entity_id_;
+  }
+  _impl_.entity_id_ = nullptr;
+}
+N_MaxHealthChanged::N_MaxHealthChanged(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_MaxHealthChanged)
+}
+N_MaxHealthChanged::N_MaxHealthChanged(const N_MaxHealthChanged& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_MaxHealthChanged* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.entity_id_){nullptr}
+    , decltype(_impl_.new_max_health_){}
+    , decltype(_impl_.new_current_health_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_entity_id()) {
+    _this->_impl_.entity_id_ = new ::se::common::ObjectId(*from._impl_.entity_id_);
+  }
+  ::memcpy(&_impl_.new_max_health_, &from._impl_.new_max_health_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.new_current_health_) -
+    reinterpret_cast<char*>(&_impl_.new_max_health_)) + sizeof(_impl_.new_current_health_));
+  // @@protoc_insertion_point(copy_constructor:se.game.N_MaxHealthChanged)
+}
+
+inline void N_MaxHealthChanged::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.entity_id_){nullptr}
+    , decltype(_impl_.new_max_health_){0}
+    , decltype(_impl_.new_current_health_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_MaxHealthChanged::~N_MaxHealthChanged() {
+  // @@protoc_insertion_point(destructor:se.game.N_MaxHealthChanged)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_MaxHealthChanged::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.entity_id_;
+}
+
+void N_MaxHealthChanged::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_MaxHealthChanged::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_MaxHealthChanged)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
+    delete _impl_.entity_id_;
+  }
+  _impl_.entity_id_ = nullptr;
+  ::memset(&_impl_.new_max_health_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.new_current_health_) -
+      reinterpret_cast<char*>(&_impl_.new_max_health_)) + sizeof(_impl_.new_current_health_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_MaxHealthChanged::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.ObjectId entity_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_entity_id(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 new_max_health = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.new_max_health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 new_current_health = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _impl_.new_current_health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_MaxHealthChanged::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_MaxHealthChanged)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.ObjectId entity_id = 1;
+  if (this->_internal_has_entity_id()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::entity_id(this),
+        _Internal::entity_id(this).GetCachedSize(), target, stream);
+  }
+
+  // int32 new_max_health = 2;
+  if (this->_internal_new_max_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(2, this->_internal_new_max_health(), target);
+  }
+
+  // int32 new_current_health = 3;
+  if (this->_internal_new_current_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(3, this->_internal_new_current_health(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_MaxHealthChanged)
+  return target;
+}
+
+size_t N_MaxHealthChanged::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_MaxHealthChanged)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.ObjectId entity_id = 1;
+  if (this->_internal_has_entity_id()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.entity_id_);
+  }
+
+  // int32 new_max_health = 2;
+  if (this->_internal_new_max_health() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_new_max_health());
+  }
+
+  // int32 new_current_health = 3;
+  if (this->_internal_new_current_health() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_new_current_health());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_MaxHealthChanged::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_MaxHealthChanged::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_MaxHealthChanged::GetClassData() const { return &_class_data_; }
+
+
+void N_MaxHealthChanged::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_MaxHealthChanged*>(&to_msg);
+  auto& from = static_cast<const N_MaxHealthChanged&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_MaxHealthChanged)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_entity_id()) {
+    _this->_internal_mutable_entity_id()->::se::common::ObjectId::MergeFrom(
+        from._internal_entity_id());
+  }
+  if (from._internal_new_max_health() != 0) {
+    _this->_internal_set_new_max_health(from._internal_new_max_health());
+  }
+  if (from._internal_new_current_health() != 0) {
+    _this->_internal_set_new_current_health(from._internal_new_current_health());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_MaxHealthChanged::CopyFrom(const N_MaxHealthChanged& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_MaxHealthChanged)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_MaxHealthChanged::IsInitialized() const {
+  return true;
+}
+
+void N_MaxHealthChanged::InternalSwap(N_MaxHealthChanged* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(N_MaxHealthChanged, _impl_.new_current_health_)
+      + sizeof(N_MaxHealthChanged::_impl_.new_current_health_)
+      - PROTOBUF_FIELD_OFFSET(N_MaxHealthChanged, _impl_.entity_id_)>(
+          reinterpret_cast<char*>(&_impl_.entity_id_),
+          reinterpret_cast<char*>(&other->_impl_.entity_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_MaxHealthChanged::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[48]);
 }
 
 // ===================================================================
@@ -10913,7 +12026,7 @@ void N_EntityDied::InternalSwap(N_EntityDied* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDied::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[46]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[49]);
 }
 
 // ===================================================================
@@ -11164,7 +12277,7 @@ void N_EntityRespawned::InternalSwap(N_EntityRespawned* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityRespawned::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[47]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[50]);
 }
 
 // ===================================================================
@@ -11363,7 +12476,7 @@ void N_EntityDestroyed::InternalSwap(N_EntityDestroyed* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDestroyed::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[48]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[51]);
 }
 
 // ===================================================================
@@ -11574,7 +12687,7 @@ void N_TimePointChanged::InternalSwap(N_TimePointChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimePointChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[49]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[52]);
 }
 
 // ===================================================================
@@ -11892,7 +13005,7 @@ void N_TimeStormChange::InternalSwap(N_TimeStormChange* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimeStormChange::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[50]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[53]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -12003,10 +13116,6 @@ template<> PROTOBUF_NOINLINE ::se::game::N_ThrowGrenade*
 Arena::CreateMaybeMessage< ::se::game::N_ThrowGrenade >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::N_ThrowGrenade >(arena);
 }
-template<> PROTOBUF_NOINLINE ::se::game::N_ProjectileMove*
-Arena::CreateMaybeMessage< ::se::game::N_ProjectileMove >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::se::game::N_ProjectileMove >(arena);
-}
 template<> PROTOBUF_NOINLINE ::se::game::C_ReloadReq*
 Arena::CreateMaybeMessage< ::se::game::C_ReloadReq >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::C_ReloadReq >(arena);
@@ -12047,6 +13156,10 @@ template<> PROTOBUF_NOINLINE ::se::game::C_UseItemReq*
 Arena::CreateMaybeMessage< ::se::game::C_UseItemReq >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::C_UseItemReq >(arena);
 }
+template<> PROTOBUF_NOINLINE ::se::game::S_UseItemRes*
+Arena::CreateMaybeMessage< ::se::game::S_UseItemRes >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::S_UseItemRes >(arena);
+}
 template<> PROTOBUF_NOINLINE ::se::game::N_UseItem*
 Arena::CreateMaybeMessage< ::se::game::N_UseItem >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::N_UseItem >(arena);
@@ -12054,6 +13167,10 @@ Arena::CreateMaybeMessage< ::se::game::N_UseItem >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::C_ChestInteractReq*
 Arena::CreateMaybeMessage< ::se::game::C_ChestInteractReq >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::C_ChestInteractReq >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_ChestInteracted*
+Arena::CreateMaybeMessage< ::se::game::N_ChestInteracted >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_ChestInteracted >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::game::C_PickupItemReq*
 Arena::CreateMaybeMessage< ::se::game::C_PickupItemReq >(Arena* arena) {
@@ -12079,9 +13196,17 @@ template<> PROTOBUF_NOINLINE ::se::game::C_SetSavePointReq*
 Arena::CreateMaybeMessage< ::se::game::C_SetSavePointReq >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::C_SetSavePointReq >(arena);
 }
+template<> PROTOBUF_NOINLINE ::se::game::S_SetSavePointRes*
+Arena::CreateMaybeMessage< ::se::game::S_SetSavePointRes >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::S_SetSavePointRes >(arena);
+}
 template<> PROTOBUF_NOINLINE ::se::game::N_HealthChanged*
 Arena::CreateMaybeMessage< ::se::game::N_HealthChanged >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::N_HealthChanged >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_MaxHealthChanged*
+Arena::CreateMaybeMessage< ::se::game::N_MaxHealthChanged >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_MaxHealthChanged >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::game::N_EntityDied*
 Arena::CreateMaybeMessage< ::se::game::N_EntityDied >(Arena* arena) {

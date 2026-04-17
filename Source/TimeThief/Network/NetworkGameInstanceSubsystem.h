@@ -111,7 +111,6 @@ public:
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
 	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
 	void HandleEntityHit(const se::game::N_EntityHit& pkt);
-	void HandleProjectileMove(const se::game::N_ProjectileMove& pkt);
 	void HandleUseItem(const se::game::N_UseItem& Pkt);
 	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
 	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);

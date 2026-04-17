@@ -111,15 +111,15 @@ inline bool ErrorCode_Parse(
 enum ObjectType : int {
   OBJ_NONE = 0,
   OBJ_PLAYER = 1,
-  OBJ_NPC = 2,
+  OBJ_MONSTER = 2,
   OBJ_ITEM = 3,
-  OJB_PROJECTILE = 4,
+  OBJ_PROJECTILE = 4,
   ObjectType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
   ObjectType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
 };
 PROTOCOLSHAREDUE_API bool ObjectType_IsValid(int value);
 constexpr ObjectType ObjectType_MIN = OBJ_NONE;
-constexpr ObjectType ObjectType_MAX = OJB_PROJECTILE;
+constexpr ObjectType ObjectType_MAX = OBJ_PROJECTILE;
 constexpr int ObjectType_ARRAYSIZE = ObjectType_MAX + 1;
 
 PROTOCOLSHAREDUE_API const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* ObjectType_descriptor();

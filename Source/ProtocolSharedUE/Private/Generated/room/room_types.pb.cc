@@ -51,13 +51,69 @@ struct RoomSnapshotDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RoomSnapshotDefaultTypeInternal _RoomSnapshot_default_instance_;
+PROTOBUF_CONSTEXPR PlayerSpawnInfo::PlayerSpawnInfo(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.movement_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct PlayerSpawnInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR PlayerSpawnInfoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~PlayerSpawnInfoDefaultTypeInternal() {}
+  union {
+    PlayerSpawnInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PlayerSpawnInfoDefaultTypeInternal _PlayerSpawnInfo_default_instance_;
+PROTOBUF_CONSTEXPR MonsterSpawnInfo::MonsterSpawnInfo(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.movement_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct MonsterSpawnInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR MonsterSpawnInfoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~MonsterSpawnInfoDefaultTypeInternal() {}
+  union {
+    MonsterSpawnInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MonsterSpawnInfoDefaultTypeInternal _MonsterSpawnInfo_default_instance_;
+PROTOBUF_CONSTEXPR ItemSpawnInfo::ItemSpawnInfo(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.velocity_)*/nullptr
+  , /*decltype(_impl_.amount_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct ItemSpawnInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ItemSpawnInfoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ItemSpawnInfoDefaultTypeInternal() {}
+  union {
+    ItemSpawnInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemSpawnInfoDefaultTypeInternal _ItemSpawnInfo_default_instance_;
+PROTOBUF_CONSTEXPR ProjectileSpawnInfo::ProjectileSpawnInfo(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.velocity_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct ProjectileSpawnInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ProjectileSpawnInfoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ProjectileSpawnInfoDefaultTypeInternal() {}
+  union {
+    ProjectileSpawnInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProjectileSpawnInfoDefaultTypeInternal _ProjectileSpawnInfo_default_instance_;
 PROTOBUF_CONSTEXPR SpawnInfo::SpawnInfo(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
-  , /*decltype(_impl_.movement_)*/nullptr
   , /*decltype(_impl_.type_)*/0
   , /*decltype(_impl_.template_id_)*/0u
-  , /*decltype(_impl_._cached_size_)*/{}} {}
+  , /*decltype(_impl_.detail_)*/{}
+  , /*decltype(_impl_._cached_size_)*/{}
+  , /*decltype(_impl_._oneof_case_)*/{}} {}
 struct SpawnInfoDefaultTypeInternal {
   PROTOBUF_CONSTEXPR SpawnInfoDefaultTypeInternal()
       : _instance(::_pbi::ConstantInitialized{}) {}
@@ -69,7 +125,7 @@ struct SpawnInfoDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpawnInfoDefaultTypeInternal _SpawnInfo_default_instance_;
 }  // namespace room
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_room_2froom_5ftypes_2eproto[3];
+static ::_pb::Metadata file_level_metadata_room_2froom_5ftypes_2eproto[7];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_room_2froom_5ftypes_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_room_2froom_5ftypes_2eproto = nullptr;
 
@@ -92,25 +148,68 @@ const uint32_t TableStruct_room_2froom_5ftypes_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::se::room::RoomSnapshot, _impl_.room_id_),
   PROTOBUF_FIELD_OFFSET(::se::room::RoomSnapshot, _impl_.players_),
   ~0u,  // no _has_bits_
-  PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _internal_metadata_),
+  PROTOBUF_FIELD_OFFSET(::se::room::PlayerSpawnInfo, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::room::PlayerSpawnInfo, _impl_.movement_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::room::MonsterSpawnInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::room::MonsterSpawnInfo, _impl_.movement_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::room::ItemSpawnInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::room::ItemSpawnInfo, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::room::ItemSpawnInfo, _impl_.velocity_),
+  PROTOBUF_FIELD_OFFSET(::se::room::ItemSpawnInfo, _impl_.amount_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::room::ProjectileSpawnInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::room::ProjectileSpawnInfo, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::room::ProjectileSpawnInfo, _impl_.velocity_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_._oneof_case_[0]),
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.type_),
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.template_id_),
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.entity_id_),
-  PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.movement_),
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.detail_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::se::room::RoomPlayer)},
   { 9, -1, -1, sizeof(::se::room::RoomSnapshot)},
-  { 17, -1, -1, sizeof(::se::room::SpawnInfo)},
+  { 17, -1, -1, sizeof(::se::room::PlayerSpawnInfo)},
+  { 24, -1, -1, sizeof(::se::room::MonsterSpawnInfo)},
+  { 31, -1, -1, sizeof(::se::room::ItemSpawnInfo)},
+  { 40, -1, -1, sizeof(::se::room::ProjectileSpawnInfo)},
+  { 48, -1, -1, sizeof(::se::room::SpawnInfo)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
   &::se::room::_RoomPlayer_default_instance_._instance,
   &::se::room::_RoomSnapshot_default_instance_._instance,
+  &::se::room::_PlayerSpawnInfo_default_instance_._instance,
+  &::se::room::_MonsterSpawnInfo_default_instance_._instance,
+  &::se::room::_ItemSpawnInfo_default_instance_._instance,
+  &::se::room::_ProjectileSpawnInfo_default_instance_._instance,
   &::se::room::_SpawnInfo_default_instance_._instance,
 };
 
@@ -121,11 +220,24 @@ const char descriptor_table_protodef_room_2froom_5ftypes_2eproto[] PROTOBUF_SECT
   "\023.se.common.PlayerId\022&\n\tentity_id\030\002 \001(\0132"
   "\023.se.common.ObjectId\022\020\n\010nickname\030\003 \001(\t\"E"
   "\n\014RoomSnapshot\022\017\n\007room_id\030\001 \001(\r\022$\n\007playe"
-  "rs\030\002 \003(\0132\023.se.room.RoomPlayer\"\231\001\n\tSpawnI"
-  "nfo\022#\n\004type\030\001 \001(\0162\025.se.common.ObjectType"
-  "\022\023\n\013template_id\030\002 \001(\r\022&\n\tentity_id\030\003 \001(\013"
-  "2\023.se.common.ObjectId\022*\n\010movement\030\004 \001(\0132"
-  "\030.se.common.MovementStateb\006proto3"
+  "rs\030\002 \003(\0132\023.se.room.RoomPlayer\"=\n\017PlayerS"
+  "pawnInfo\022*\n\010movement\030\001 \001(\0132\030.se.common.M"
+  "ovementState\">\n\020MonsterSpawnInfo\022*\n\010move"
+  "ment\030\001 \001(\0132\030.se.common.MovementState\"k\n\r"
+  "ItemSpawnInfo\022$\n\010position\030\001 \001(\0132\022.se.com"
+  "mon.Vector3\022$\n\010velocity\030\002 \001(\0132\022.se.commo"
+  "n.Vector3\022\016\n\006amount\030\003 \001(\r\"a\n\023ProjectileS"
+  "pawnInfo\022$\n\010position\030\001 \001(\0132\022.se.common.V"
+  "ector3\022$\n\010velocity\030\002 \001(\0132\022.se.common.Vec"
+  "tor3\"\301\002\n\tSpawnInfo\022#\n\004type\030\001 \001(\0162\025.se.co"
+  "mmon.ObjectType\022\023\n\013template_id\030\002 \001(\r\022&\n\t"
+  "entity_id\030\003 \001(\0132\023.se.common.ObjectId\022/\n\013"
+  "player_info\030\n \001(\0132\030.se.room.PlayerSpawnI"
+  "nfoH\000\0221\n\014monster_info\030\013 \001(\0132\031.se.room.Mo"
+  "nsterSpawnInfoH\000\022+\n\titem_info\030\014 \001(\0132\026.se"
+  ".room.ItemSpawnInfoH\000\0227\n\017projectile_info"
+  "\030\r \001(\0132\034.se.room.ProjectileSpawnInfoH\000B\010"
+  "\n\006detailb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_room_2froom_5ftypes_2eproto_deps[2] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -133,9 +245,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_room_2froom_5ftypes
 };
 static ::_pbi::once_flag descriptor_table_room_2froom_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_room_2froom_5ftypes_2eproto = {
-    false, false, 433, descriptor_table_protodef_room_2froom_5ftypes_2eproto,
+    false, false, 936, descriptor_table_protodef_room_2froom_5ftypes_2eproto,
     "room/room_types.proto",
-    &descriptor_table_room_2froom_5ftypes_2eproto_once, descriptor_table_room_2froom_5ftypes_2eproto_deps, 2, 3,
+    &descriptor_table_room_2froom_5ftypes_2eproto_once, descriptor_table_room_2froom_5ftypes_2eproto_deps, 2, 7,
     schemas, file_default_instances, TableStruct_room_2froom_5ftypes_2eproto::offsets,
     file_level_metadata_room_2froom_5ftypes_2eproto, file_level_enum_descriptors_room_2froom_5ftypes_2eproto,
     file_level_service_descriptors_room_2froom_5ftypes_2eproto,
@@ -666,19 +778,960 @@ void RoomSnapshot::InternalSwap(RoomSnapshot* other) {
 
 // ===================================================================
 
+class PlayerSpawnInfo::_Internal {
+ public:
+  static const ::se::common::MovementState& movement(const PlayerSpawnInfo* msg);
+};
+
+const ::se::common::MovementState&
+PlayerSpawnInfo::_Internal::movement(const PlayerSpawnInfo* msg) {
+  return *msg->_impl_.movement_;
+}
+void PlayerSpawnInfo::clear_movement() {
+  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
+    delete _impl_.movement_;
+  }
+  _impl_.movement_ = nullptr;
+}
+PlayerSpawnInfo::PlayerSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.room.PlayerSpawnInfo)
+}
+PlayerSpawnInfo::PlayerSpawnInfo(const PlayerSpawnInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  PlayerSpawnInfo* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.movement_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_movement()) {
+    _this->_impl_.movement_ = new ::se::common::MovementState(*from._impl_.movement_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.room.PlayerSpawnInfo)
+}
+
+inline void PlayerSpawnInfo::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.movement_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+PlayerSpawnInfo::~PlayerSpawnInfo() {
+  // @@protoc_insertion_point(destructor:se.room.PlayerSpawnInfo)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void PlayerSpawnInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.movement_;
+}
+
+void PlayerSpawnInfo::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void PlayerSpawnInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.room.PlayerSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
+    delete _impl_.movement_;
+  }
+  _impl_.movement_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* PlayerSpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.MovementState movement = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_movement(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* PlayerSpawnInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.room.PlayerSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.MovementState movement = 1;
+  if (this->_internal_has_movement()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::movement(this),
+        _Internal::movement(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.room.PlayerSpawnInfo)
+  return target;
+}
+
+size_t PlayerSpawnInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.room.PlayerSpawnInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.MovementState movement = 1;
+  if (this->_internal_has_movement()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.movement_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData PlayerSpawnInfo::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    PlayerSpawnInfo::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*PlayerSpawnInfo::GetClassData() const { return &_class_data_; }
+
+
+void PlayerSpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<PlayerSpawnInfo*>(&to_msg);
+  auto& from = static_cast<const PlayerSpawnInfo&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.room.PlayerSpawnInfo)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_movement()) {
+    _this->_internal_mutable_movement()->::se::common::MovementState::MergeFrom(
+        from._internal_movement());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void PlayerSpawnInfo::CopyFrom(const PlayerSpawnInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.room.PlayerSpawnInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool PlayerSpawnInfo::IsInitialized() const {
+  return true;
+}
+
+void PlayerSpawnInfo::InternalSwap(PlayerSpawnInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.movement_, other->_impl_.movement_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata PlayerSpawnInfo::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
+      file_level_metadata_room_2froom_5ftypes_2eproto[2]);
+}
+
+// ===================================================================
+
+class MonsterSpawnInfo::_Internal {
+ public:
+  static const ::se::common::MovementState& movement(const MonsterSpawnInfo* msg);
+};
+
+const ::se::common::MovementState&
+MonsterSpawnInfo::_Internal::movement(const MonsterSpawnInfo* msg) {
+  return *msg->_impl_.movement_;
+}
+void MonsterSpawnInfo::clear_movement() {
+  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
+    delete _impl_.movement_;
+  }
+  _impl_.movement_ = nullptr;
+}
+MonsterSpawnInfo::MonsterSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.room.MonsterSpawnInfo)
+}
+MonsterSpawnInfo::MonsterSpawnInfo(const MonsterSpawnInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  MonsterSpawnInfo* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.movement_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_movement()) {
+    _this->_impl_.movement_ = new ::se::common::MovementState(*from._impl_.movement_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.room.MonsterSpawnInfo)
+}
+
+inline void MonsterSpawnInfo::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.movement_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+MonsterSpawnInfo::~MonsterSpawnInfo() {
+  // @@protoc_insertion_point(destructor:se.room.MonsterSpawnInfo)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void MonsterSpawnInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.movement_;
+}
+
+void MonsterSpawnInfo::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void MonsterSpawnInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.room.MonsterSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
+    delete _impl_.movement_;
+  }
+  _impl_.movement_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* MonsterSpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.MovementState movement = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_movement(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* MonsterSpawnInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.room.MonsterSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.MovementState movement = 1;
+  if (this->_internal_has_movement()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::movement(this),
+        _Internal::movement(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.room.MonsterSpawnInfo)
+  return target;
+}
+
+size_t MonsterSpawnInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.room.MonsterSpawnInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.MovementState movement = 1;
+  if (this->_internal_has_movement()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.movement_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData MonsterSpawnInfo::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    MonsterSpawnInfo::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*MonsterSpawnInfo::GetClassData() const { return &_class_data_; }
+
+
+void MonsterSpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<MonsterSpawnInfo*>(&to_msg);
+  auto& from = static_cast<const MonsterSpawnInfo&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.room.MonsterSpawnInfo)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_movement()) {
+    _this->_internal_mutable_movement()->::se::common::MovementState::MergeFrom(
+        from._internal_movement());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void MonsterSpawnInfo::CopyFrom(const MonsterSpawnInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.room.MonsterSpawnInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool MonsterSpawnInfo::IsInitialized() const {
+  return true;
+}
+
+void MonsterSpawnInfo::InternalSwap(MonsterSpawnInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.movement_, other->_impl_.movement_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata MonsterSpawnInfo::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
+      file_level_metadata_room_2froom_5ftypes_2eproto[3]);
+}
+
+// ===================================================================
+
+class ItemSpawnInfo::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const ItemSpawnInfo* msg);
+  static const ::se::common::Vector3& velocity(const ItemSpawnInfo* msg);
+};
+
+const ::se::common::Vector3&
+ItemSpawnInfo::_Internal::position(const ItemSpawnInfo* msg) {
+  return *msg->_impl_.position_;
+}
+const ::se::common::Vector3&
+ItemSpawnInfo::_Internal::velocity(const ItemSpawnInfo* msg) {
+  return *msg->_impl_.velocity_;
+}
+void ItemSpawnInfo::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+void ItemSpawnInfo::clear_velocity() {
+  if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
+    delete _impl_.velocity_;
+  }
+  _impl_.velocity_ = nullptr;
+}
+ItemSpawnInfo::ItemSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.room.ItemSpawnInfo)
+}
+ItemSpawnInfo::ItemSpawnInfo(const ItemSpawnInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  ItemSpawnInfo* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.velocity_){nullptr}
+    , decltype(_impl_.amount_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  if (from._internal_has_velocity()) {
+    _this->_impl_.velocity_ = new ::se::common::Vector3(*from._impl_.velocity_);
+  }
+  _this->_impl_.amount_ = from._impl_.amount_;
+  // @@protoc_insertion_point(copy_constructor:se.room.ItemSpawnInfo)
+}
+
+inline void ItemSpawnInfo::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.velocity_){nullptr}
+    , decltype(_impl_.amount_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+ItemSpawnInfo::~ItemSpawnInfo() {
+  // @@protoc_insertion_point(destructor:se.room.ItemSpawnInfo)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void ItemSpawnInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+  if (this != internal_default_instance()) delete _impl_.velocity_;
+}
+
+void ItemSpawnInfo::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void ItemSpawnInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.room.ItemSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
+    delete _impl_.velocity_;
+  }
+  _impl_.velocity_ = nullptr;
+  _impl_.amount_ = 0u;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ItemSpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 velocity = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_velocity(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 amount = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _impl_.amount_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ItemSpawnInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.room.ItemSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 velocity = 2;
+  if (this->_internal_has_velocity()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::velocity(this),
+        _Internal::velocity(this).GetCachedSize(), target, stream);
+  }
+
+  // uint32 amount = 3;
+  if (this->_internal_amount() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(3, this->_internal_amount(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.room.ItemSpawnInfo)
+  return target;
+}
+
+size_t ItemSpawnInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.room.ItemSpawnInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  // .se.common.Vector3 velocity = 2;
+  if (this->_internal_has_velocity()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.velocity_);
+  }
+
+  // uint32 amount = 3;
+  if (this->_internal_amount() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_amount());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData ItemSpawnInfo::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    ItemSpawnInfo::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ItemSpawnInfo::GetClassData() const { return &_class_data_; }
+
+
+void ItemSpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<ItemSpawnInfo*>(&to_msg);
+  auto& from = static_cast<const ItemSpawnInfo&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.room.ItemSpawnInfo)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  if (from._internal_has_velocity()) {
+    _this->_internal_mutable_velocity()->::se::common::Vector3::MergeFrom(
+        from._internal_velocity());
+  }
+  if (from._internal_amount() != 0) {
+    _this->_internal_set_amount(from._internal_amount());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ItemSpawnInfo::CopyFrom(const ItemSpawnInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.room.ItemSpawnInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ItemSpawnInfo::IsInitialized() const {
+  return true;
+}
+
+void ItemSpawnInfo::InternalSwap(ItemSpawnInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ItemSpawnInfo, _impl_.amount_)
+      + sizeof(ItemSpawnInfo::_impl_.amount_)
+      - PROTOBUF_FIELD_OFFSET(ItemSpawnInfo, _impl_.position_)>(
+          reinterpret_cast<char*>(&_impl_.position_),
+          reinterpret_cast<char*>(&other->_impl_.position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ItemSpawnInfo::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
+      file_level_metadata_room_2froom_5ftypes_2eproto[4]);
+}
+
+// ===================================================================
+
+class ProjectileSpawnInfo::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const ProjectileSpawnInfo* msg);
+  static const ::se::common::Vector3& velocity(const ProjectileSpawnInfo* msg);
+};
+
+const ::se::common::Vector3&
+ProjectileSpawnInfo::_Internal::position(const ProjectileSpawnInfo* msg) {
+  return *msg->_impl_.position_;
+}
+const ::se::common::Vector3&
+ProjectileSpawnInfo::_Internal::velocity(const ProjectileSpawnInfo* msg) {
+  return *msg->_impl_.velocity_;
+}
+void ProjectileSpawnInfo::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+void ProjectileSpawnInfo::clear_velocity() {
+  if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
+    delete _impl_.velocity_;
+  }
+  _impl_.velocity_ = nullptr;
+}
+ProjectileSpawnInfo::ProjectileSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.room.ProjectileSpawnInfo)
+}
+ProjectileSpawnInfo::ProjectileSpawnInfo(const ProjectileSpawnInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  ProjectileSpawnInfo* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.velocity_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  if (from._internal_has_velocity()) {
+    _this->_impl_.velocity_ = new ::se::common::Vector3(*from._impl_.velocity_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.room.ProjectileSpawnInfo)
+}
+
+inline void ProjectileSpawnInfo::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.velocity_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+ProjectileSpawnInfo::~ProjectileSpawnInfo() {
+  // @@protoc_insertion_point(destructor:se.room.ProjectileSpawnInfo)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void ProjectileSpawnInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+  if (this != internal_default_instance()) delete _impl_.velocity_;
+}
+
+void ProjectileSpawnInfo::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void ProjectileSpawnInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.room.ProjectileSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
+    delete _impl_.velocity_;
+  }
+  _impl_.velocity_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ProjectileSpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 velocity = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_velocity(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ProjectileSpawnInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.room.ProjectileSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 velocity = 2;
+  if (this->_internal_has_velocity()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::velocity(this),
+        _Internal::velocity(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.room.ProjectileSpawnInfo)
+  return target;
+}
+
+size_t ProjectileSpawnInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.room.ProjectileSpawnInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  // .se.common.Vector3 velocity = 2;
+  if (this->_internal_has_velocity()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.velocity_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData ProjectileSpawnInfo::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    ProjectileSpawnInfo::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ProjectileSpawnInfo::GetClassData() const { return &_class_data_; }
+
+
+void ProjectileSpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<ProjectileSpawnInfo*>(&to_msg);
+  auto& from = static_cast<const ProjectileSpawnInfo&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.room.ProjectileSpawnInfo)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  if (from._internal_has_velocity()) {
+    _this->_internal_mutable_velocity()->::se::common::Vector3::MergeFrom(
+        from._internal_velocity());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ProjectileSpawnInfo::CopyFrom(const ProjectileSpawnInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.room.ProjectileSpawnInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ProjectileSpawnInfo::IsInitialized() const {
+  return true;
+}
+
+void ProjectileSpawnInfo::InternalSwap(ProjectileSpawnInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ProjectileSpawnInfo, _impl_.velocity_)
+      + sizeof(ProjectileSpawnInfo::_impl_.velocity_)
+      - PROTOBUF_FIELD_OFFSET(ProjectileSpawnInfo, _impl_.position_)>(
+          reinterpret_cast<char*>(&_impl_.position_),
+          reinterpret_cast<char*>(&other->_impl_.position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ProjectileSpawnInfo::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
+      file_level_metadata_room_2froom_5ftypes_2eproto[5]);
+}
+
+// ===================================================================
+
 class SpawnInfo::_Internal {
  public:
   static const ::se::common::ObjectId& entity_id(const SpawnInfo* msg);
-  static const ::se::common::MovementState& movement(const SpawnInfo* msg);
+  static const ::se::room::PlayerSpawnInfo& player_info(const SpawnInfo* msg);
+  static const ::se::room::MonsterSpawnInfo& monster_info(const SpawnInfo* msg);
+  static const ::se::room::ItemSpawnInfo& item_info(const SpawnInfo* msg);
+  static const ::se::room::ProjectileSpawnInfo& projectile_info(const SpawnInfo* msg);
 };
 
 const ::se::common::ObjectId&
 SpawnInfo::_Internal::entity_id(const SpawnInfo* msg) {
   return *msg->_impl_.entity_id_;
 }
-const ::se::common::MovementState&
-SpawnInfo::_Internal::movement(const SpawnInfo* msg) {
-  return *msg->_impl_.movement_;
+const ::se::room::PlayerSpawnInfo&
+SpawnInfo::_Internal::player_info(const SpawnInfo* msg) {
+  return *msg->_impl_.detail_.player_info_;
+}
+const ::se::room::MonsterSpawnInfo&
+SpawnInfo::_Internal::monster_info(const SpawnInfo* msg) {
+  return *msg->_impl_.detail_.monster_info_;
+}
+const ::se::room::ItemSpawnInfo&
+SpawnInfo::_Internal::item_info(const SpawnInfo* msg) {
+  return *msg->_impl_.detail_.item_info_;
+}
+const ::se::room::ProjectileSpawnInfo&
+SpawnInfo::_Internal::projectile_info(const SpawnInfo* msg) {
+  return *msg->_impl_.detail_.projectile_info_;
 }
 void SpawnInfo::clear_entity_id() {
   if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
@@ -686,11 +1739,65 @@ void SpawnInfo::clear_entity_id() {
   }
   _impl_.entity_id_ = nullptr;
 }
-void SpawnInfo::clear_movement() {
-  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
-    delete _impl_.movement_;
+void SpawnInfo::set_allocated_player_info(::se::room::PlayerSpawnInfo* player_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (player_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(player_info);
+    if (message_arena != submessage_arena) {
+      player_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, player_info, submessage_arena);
+    }
+    set_has_player_info();
+    _impl_.detail_.player_info_ = player_info;
   }
-  _impl_.movement_ = nullptr;
+  // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.player_info)
+}
+void SpawnInfo::set_allocated_monster_info(::se::room::MonsterSpawnInfo* monster_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (monster_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(monster_info);
+    if (message_arena != submessage_arena) {
+      monster_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, monster_info, submessage_arena);
+    }
+    set_has_monster_info();
+    _impl_.detail_.monster_info_ = monster_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.monster_info)
+}
+void SpawnInfo::set_allocated_item_info(::se::room::ItemSpawnInfo* item_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (item_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(item_info);
+    if (message_arena != submessage_arena) {
+      item_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, item_info, submessage_arena);
+    }
+    set_has_item_info();
+    _impl_.detail_.item_info_ = item_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.item_info)
+}
+void SpawnInfo::set_allocated_projectile_info(::se::room::ProjectileSpawnInfo* projectile_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (projectile_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(projectile_info);
+    if (message_arena != submessage_arena) {
+      projectile_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, projectile_info, submessage_arena);
+    }
+    set_has_projectile_info();
+    _impl_.detail_.projectile_info_ = projectile_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.projectile_info)
 }
 SpawnInfo::SpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
@@ -703,21 +1810,45 @@ SpawnInfo::SpawnInfo(const SpawnInfo& from)
   SpawnInfo* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
-    , decltype(_impl_.movement_){nullptr}
     , decltype(_impl_.type_){}
     , decltype(_impl_.template_id_){}
-    , /*decltype(_impl_._cached_size_)*/{}};
+    , decltype(_impl_.detail_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+    , /*decltype(_impl_._oneof_case_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   if (from._internal_has_entity_id()) {
     _this->_impl_.entity_id_ = new ::se::common::ObjectId(*from._impl_.entity_id_);
   }
-  if (from._internal_has_movement()) {
-    _this->_impl_.movement_ = new ::se::common::MovementState(*from._impl_.movement_);
-  }
   ::memcpy(&_impl_.type_, &from._impl_.type_,
     static_cast<size_t>(reinterpret_cast<char*>(&_impl_.template_id_) -
     reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.template_id_));
+  clear_has_detail();
+  switch (from.detail_case()) {
+    case kPlayerInfo: {
+      _this->_internal_mutable_player_info()->::se::room::PlayerSpawnInfo::MergeFrom(
+          from._internal_player_info());
+      break;
+    }
+    case kMonsterInfo: {
+      _this->_internal_mutable_monster_info()->::se::room::MonsterSpawnInfo::MergeFrom(
+          from._internal_monster_info());
+      break;
+    }
+    case kItemInfo: {
+      _this->_internal_mutable_item_info()->::se::room::ItemSpawnInfo::MergeFrom(
+          from._internal_item_info());
+      break;
+    }
+    case kProjectileInfo: {
+      _this->_internal_mutable_projectile_info()->::se::room::ProjectileSpawnInfo::MergeFrom(
+          from._internal_projectile_info());
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
+  }
   // @@protoc_insertion_point(copy_constructor:se.room.SpawnInfo)
 }
 
@@ -727,11 +1858,13 @@ inline void SpawnInfo::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
-    , decltype(_impl_.movement_){nullptr}
     , decltype(_impl_.type_){0}
     , decltype(_impl_.template_id_){0u}
+    , decltype(_impl_.detail_){}
     , /*decltype(_impl_._cached_size_)*/{}
+    , /*decltype(_impl_._oneof_case_)*/{}
   };
+  clear_has_detail();
 }
 
 SpawnInfo::~SpawnInfo() {
@@ -746,12 +1879,49 @@ SpawnInfo::~SpawnInfo() {
 inline void SpawnInfo::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete _impl_.entity_id_;
-  if (this != internal_default_instance()) delete _impl_.movement_;
+  if (has_detail()) {
+    clear_detail();
+  }
 }
 
 void SpawnInfo::SetCachedSize(int size) const {
   _impl_._cached_size_.Set(size);
 }
+
+void SpawnInfo::clear_detail() {
+// @@protoc_insertion_point(one_of_clear_start:se.room.SpawnInfo)
+  switch (detail_case()) {
+    case kPlayerInfo: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.player_info_;
+      }
+      break;
+    }
+    case kMonsterInfo: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.monster_info_;
+      }
+      break;
+    }
+    case kItemInfo: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.item_info_;
+      }
+      break;
+    }
+    case kProjectileInfo: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.projectile_info_;
+      }
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = DETAIL_NOT_SET;
+}
+
 
 void SpawnInfo::Clear() {
 // @@protoc_insertion_point(message_clear_start:se.room.SpawnInfo)
@@ -763,13 +1933,10 @@ void SpawnInfo::Clear() {
     delete _impl_.entity_id_;
   }
   _impl_.entity_id_ = nullptr;
-  if (GetArenaForAllocation() == nullptr && _impl_.movement_ != nullptr) {
-    delete _impl_.movement_;
-  }
-  _impl_.movement_ = nullptr;
   ::memset(&_impl_.type_, 0, static_cast<size_t>(
       reinterpret_cast<char*>(&_impl_.template_id_) -
       reinterpret_cast<char*>(&_impl_.type_)) + sizeof(_impl_.template_id_));
+  clear_detail();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -804,10 +1971,34 @@ const char* SpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
-      // .se.common.MovementState movement = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
-          ptr = ctx->ParseMessage(_internal_mutable_movement(), ptr);
+      // .se.room.PlayerSpawnInfo player_info = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 82)) {
+          ptr = ctx->ParseMessage(_internal_mutable_player_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.room.MonsterSpawnInfo monster_info = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 90)) {
+          ptr = ctx->ParseMessage(_internal_mutable_monster_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.room.ItemSpawnInfo item_info = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 98)) {
+          ptr = ctx->ParseMessage(_internal_mutable_item_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.room.ProjectileSpawnInfo projectile_info = 13;
+      case 13:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 106)) {
+          ptr = ctx->ParseMessage(_internal_mutable_projectile_info(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
@@ -861,11 +2052,32 @@ uint8_t* SpawnInfo::_InternalSerialize(
         _Internal::entity_id(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.MovementState movement = 4;
-  if (this->_internal_has_movement()) {
+  // .se.room.PlayerSpawnInfo player_info = 10;
+  if (_internal_has_player_info()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(4, _Internal::movement(this),
-        _Internal::movement(this).GetCachedSize(), target, stream);
+      InternalWriteMessage(10, _Internal::player_info(this),
+        _Internal::player_info(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.room.MonsterSpawnInfo monster_info = 11;
+  if (_internal_has_monster_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(11, _Internal::monster_info(this),
+        _Internal::monster_info(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.room.ItemSpawnInfo item_info = 12;
+  if (_internal_has_item_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(12, _Internal::item_info(this),
+        _Internal::item_info(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.room.ProjectileSpawnInfo projectile_info = 13;
+  if (_internal_has_projectile_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(13, _Internal::projectile_info(this),
+        _Internal::projectile_info(this).GetCachedSize(), target, stream);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -891,13 +2103,6 @@ size_t SpawnInfo::ByteSizeLong() const {
         *_impl_.entity_id_);
   }
 
-  // .se.common.MovementState movement = 4;
-  if (this->_internal_has_movement()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
-        *_impl_.movement_);
-  }
-
   // .se.common.ObjectType type = 1;
   if (this->_internal_type() != 0) {
     total_size += 1 +
@@ -909,6 +2114,39 @@ size_t SpawnInfo::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_template_id());
   }
 
+  switch (detail_case()) {
+    // .se.room.PlayerSpawnInfo player_info = 10;
+    case kPlayerInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.player_info_);
+      break;
+    }
+    // .se.room.MonsterSpawnInfo monster_info = 11;
+    case kMonsterInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.monster_info_);
+      break;
+    }
+    // .se.room.ItemSpawnInfo item_info = 12;
+    case kItemInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.item_info_);
+      break;
+    }
+    // .se.room.ProjectileSpawnInfo projectile_info = 13;
+    case kProjectileInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.projectile_info_);
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
+  }
   return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
@@ -931,15 +2169,36 @@ void SpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
     _this->_internal_mutable_entity_id()->::se::common::ObjectId::MergeFrom(
         from._internal_entity_id());
   }
-  if (from._internal_has_movement()) {
-    _this->_internal_mutable_movement()->::se::common::MovementState::MergeFrom(
-        from._internal_movement());
-  }
   if (from._internal_type() != 0) {
     _this->_internal_set_type(from._internal_type());
   }
   if (from._internal_template_id() != 0) {
     _this->_internal_set_template_id(from._internal_template_id());
+  }
+  switch (from.detail_case()) {
+    case kPlayerInfo: {
+      _this->_internal_mutable_player_info()->::se::room::PlayerSpawnInfo::MergeFrom(
+          from._internal_player_info());
+      break;
+    }
+    case kMonsterInfo: {
+      _this->_internal_mutable_monster_info()->::se::room::MonsterSpawnInfo::MergeFrom(
+          from._internal_monster_info());
+      break;
+    }
+    case kItemInfo: {
+      _this->_internal_mutable_item_info()->::se::room::ItemSpawnInfo::MergeFrom(
+          from._internal_item_info());
+      break;
+    }
+    case kProjectileInfo: {
+      _this->_internal_mutable_projectile_info()->::se::room::ProjectileSpawnInfo::MergeFrom(
+          from._internal_projectile_info());
+      break;
+    }
+    case DETAIL_NOT_SET: {
+      break;
+    }
   }
   _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -964,12 +2223,14 @@ void SpawnInfo::InternalSwap(SpawnInfo* other) {
       - PROTOBUF_FIELD_OFFSET(SpawnInfo, _impl_.entity_id_)>(
           reinterpret_cast<char*>(&_impl_.entity_id_),
           reinterpret_cast<char*>(&other->_impl_.entity_id_));
+  swap(_impl_.detail_, other->_impl_.detail_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata SpawnInfo::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
-      file_level_metadata_room_2froom_5ftypes_2eproto[2]);
+      file_level_metadata_room_2froom_5ftypes_2eproto[6]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -983,6 +2244,22 @@ Arena::CreateMaybeMessage< ::se::room::RoomPlayer >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::room::RoomSnapshot*
 Arena::CreateMaybeMessage< ::se::room::RoomSnapshot >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::room::RoomSnapshot >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::room::PlayerSpawnInfo*
+Arena::CreateMaybeMessage< ::se::room::PlayerSpawnInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::room::PlayerSpawnInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::room::MonsterSpawnInfo*
+Arena::CreateMaybeMessage< ::se::room::MonsterSpawnInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::room::MonsterSpawnInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::room::ItemSpawnInfo*
+Arena::CreateMaybeMessage< ::se::room::ItemSpawnInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::room::ItemSpawnInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::room::ProjectileSpawnInfo*
+Arena::CreateMaybeMessage< ::se::room::ProjectileSpawnInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::room::ProjectileSpawnInfo >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::room::SpawnInfo*
 Arena::CreateMaybeMessage< ::se::room::SpawnInfo >(Arena* arena) {
