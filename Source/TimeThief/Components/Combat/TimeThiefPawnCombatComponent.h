@@ -23,9 +23,12 @@ class TIMETHIEF_API UTimeThiefPawnCombatComponent : public UTimeThiefPawnExtensi
 
 public:
 	UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	virtual void OnRegister() override;
+	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual void EquipWeapon(FGameplayTag WeaponTag);
 
@@ -77,9 +80,6 @@ protected:
 	void ApplyCombatStateTag(FGameplayTag WeaponTag);
 	void RemoveCombatStateTag(FGameplayTag WeaponTag);
 
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat")
-	TSubclassOf<ATimeThiefMasterWeapon> MasterWeaponClass;
-
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "TimeThief|Combat")
 	TObjectPtr<ATimeThiefMasterWeapon> MasterWeaponPtr;
 
@@ -105,6 +105,4 @@ protected:
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<UNetworkCombatSyncComponent> CachedCombatSyncComponent = nullptr;
-
-	void SpawnMasterWeapon();
 };

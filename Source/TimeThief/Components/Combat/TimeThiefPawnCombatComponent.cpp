@@ -24,7 +24,6 @@ UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitia
 void UTimeThiefPawnCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	SpawnMasterWeapon();
 	
 	if (AActor* Owner = GetOwner())
 	{
@@ -34,7 +33,6 @@ void UTimeThiefPawnCombatComponent::BeginPlay()
 			CachedCombatSyncComponent->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
 		}
 	}
-	
 }
 
 void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -51,27 +49,22 @@ void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 	}
 
 	Super::EndPlay(EndPlayReason);
+	
+	
 }
 
-void UTimeThiefPawnCombatComponent::SpawnMasterWeapon()
+void UTimeThiefPawnCombatComponent::OnRegister()
 {
-	if (!MasterWeaponClass || MasterWeaponPtr) return;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = GetOwner();
-	SpawnParams.Instigator = GetPawn<APawn>();
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	MasterWeaponPtr = GetWorld()->SpawnActor<ATimeThiefMasterWeapon>(MasterWeaponClass, SpawnParams);
-	if (MasterWeaponPtr)
+	Super::OnRegister();
+	
+	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 	{
-		AttachMasterWeaponToCharacter(FName("HandGrip_R"));
+		MasterWeaponPtr = Cast<ATimeThiefMasterWeapon>(Character->GetWeaponActorComponent()->GetChildActor());
 	}
 }
 
 void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 {
-	if (!MasterWeaponPtr) SpawnMasterWeapon();
 	if (!MasterWeaponPtr) return;
 
 	if (CurrentEquippedWeaponTag == WeaponTag) return;
