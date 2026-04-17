@@ -25,6 +25,17 @@ void UTimeThiefRocketLauncherComponent::ExecuteFireShot()
 	}
 }
 
+void UTimeThiefRocketLauncherComponent::ExecuteRemoteFireShot()
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		ExecuteFireShot();
+		return;
+	}
+
+	PlayFireEffects();
+}
+
 bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 {
 	if (!RocketProjectileClass)
@@ -66,11 +77,21 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	APawn* ShooterPawn = Cast<APawn>(ShooterActor);
 
 	ATimeThiefRocketProjectile* Projectile = nullptr;
-	for (ATimeThiefRocketProjectile* PooledProj : ProjectilePool)
+	const int32 PoolCount = ProjectilePool.Num();
+	if (PoolCount > 0)
 	{
-		if (PooledProj && !PooledProj->IsActive())
+		const int32 StartIndex = FMath::Clamp(NextPoolIndex, 0, PoolCount - 1);
+		for (int32 Offset = 0; Offset < PoolCount; ++Offset)
 		{
-			Projectile = PooledProj;
+			const int32 CandidateIndex = (StartIndex + Offset) % PoolCount;
+			ATimeThiefRocketProjectile* Candidate = ProjectilePool[CandidateIndex];
+			if (!IsValid(Candidate) || Candidate->IsActorBeingDestroyed() || Candidate->IsActive())
+			{
+				continue;
+			}
+
+			Projectile = Candidate;
+			NextPoolIndex = (CandidateIndex + 1) % PoolCount;
 			break;
 		}
 	}
@@ -86,6 +107,7 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 		if (Projectile)
 		{
 			ProjectilePool.Add(Projectile);
+			NextPoolIndex = 0;
 		}
 	}
 

@@ -61,6 +61,9 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	SpawnFX->bAutoActivate = false;
 	
 	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
+	
+	WeaponActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("WeaponActorComponent"));
+	WeaponActorComponent->SetupAttachment(GetMesh(), FName{TEXT("HandGrip_R")});
 }
 
 void ATimeThiefCharacterBase::OnDeath()

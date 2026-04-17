@@ -13,12 +13,14 @@
 ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	bExploded = true;
+	bIsActivated = false;
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	SetRootComponent(CollisionComponent);
 	CollisionComponent->InitSphereRadius(CollisionRadius);
 	CollisionComponent->SetCollisionObjectType(ECC_WorldDynamic);
-	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CollisionComponent->SetCollisionResponseToAllChannels(ECR_Block);
 	CollisionComponent->SetNotifyRigidBodyCollision(true);
 
@@ -27,6 +29,7 @@ ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 	ProjectileMovementComponent->MaxSpeed = MaxSpeed;
 	ProjectileMovementComponent->ProjectileGravityScale = GravityScale;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
+	ProjectileMovementComponent->bAutoActivate = false;
 
 	ProjectileMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
 	ProjectileMeshComponent->SetupAttachment(CollisionComponent);
@@ -50,6 +53,8 @@ void ATimeThiefRocketProjectile::InitializeProjectile(AActor* InOwnerActor, APaw
 
 	if (CollisionComponent)
 	{
+		CollisionComponent->ClearMoveIgnoreActors();
+
 		if (InOwnerActor)
 		{
 			CollisionComponent->IgnoreActorWhenMoving(InOwnerActor, true);
@@ -65,6 +70,7 @@ void ATimeThiefRocketProjectile::InitializeProjectile(AActor* InOwnerActor, APaw
 void ATimeThiefRocketProjectile::ActivateProjectile(const FTransform& SpawnTransform)
 {
 	SetActorTransform(SpawnTransform, false, nullptr, ETeleportType::ResetPhysics);
+	bIsActivated = true;
 	bExploded = false;
 	SetActorHiddenInGame(false);
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -88,6 +94,7 @@ void ATimeThiefRocketProjectile::ActivateProjectile(const FTransform& SpawnTrans
 
 void ATimeThiefRocketProjectile::DeactivateProjectile()
 {
+	bIsActivated = false;
 	bExploded = true;
 	SetActorHiddenInGame(true);
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -108,6 +115,7 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 void ATimeThiefRocketProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+	SetActorHiddenInGame(true);
 
 	if (CollisionComponent)
 	{
@@ -140,19 +148,22 @@ void ATimeThiefRocketProjectile::HandleLifeTimeExpired()
 
 void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 {
-	if (bExploded)
+	if (!bIsActivated || bExploded)
 	{
 		return;
 	}
+
+	// OnHit and OnProjectileStop may fire close together; lock immediately.
+	bExploded = true;
+	const FVector ExplosionLocation = Hit.bBlockingHit ? FVector(Hit.ImpactPoint) : GetActorLocation();
+	const FVector ExplosionNormal = Hit.bBlockingHit ? FVector(Hit.ImpactNormal) : FVector::UpVector;
 
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(LifeTimeTimerHandle);
 	}
 
-	ApplyExplosionDamage();
-	const FVector ExplosionLocation = Hit.bBlockingHit ? FVector(Hit.ImpactPoint) : GetActorLocation();
-	const FVector ExplosionNormal = Hit.bBlockingHit ? FVector(Hit.ImpactNormal) : FVector::UpVector;
+	ApplyExplosionDamage(ExplosionLocation);
 	PlayExplosionEffects(ExplosionLocation, ExplosionNormal);
 
 	if (UWorld* World = GetWorld())
@@ -165,8 +176,13 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 	DeactivateProjectile();
 }
 
-void ATimeThiefRocketProjectile::ApplyExplosionDamage()
+void ATimeThiefRocketProjectile::ApplyExplosionDamage(const FVector& ExplosionLocation)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	const float FinalMaxDamage = MaxDamage + DamageBonus;
 	const float FinalMinDamage = MinDamage + DamageBonus;
 
@@ -188,7 +204,7 @@ void ATimeThiefRocketProjectile::ApplyExplosionDamage()
 		this,
 		FinalMaxDamage,
 		FinalMinDamage,
-		GetActorLocation(),
+		ExplosionLocation,
 		DamageInnerRadius,
 		ExplosionRadius,
 		1.0f,
@@ -202,7 +218,7 @@ void ATimeThiefRocketProjectile::ApplyExplosionDamage()
 	if (OwnerActor)
 	{
 		const float SafeInnerRadius = FMath::Min(DamageInnerRadius, ExplosionRadius);
-		const float DistanceToOwner = FVector::Distance(GetActorLocation(), OwnerActor->GetActorLocation());
+		const float DistanceToOwner = FVector::Distance(ExplosionLocation, OwnerActor->GetActorLocation());
 		if (DistanceToOwner <= ExplosionRadius)
 		{
 			float OwnerDamage = FinalMaxDamage;

@@ -104,6 +104,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Skill")
 	TObjectPtr<USavePointSkillComponent> SavePointSkillComponent;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UChildActorComponent> WeaponActorComponent;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
 
@@ -148,4 +151,6 @@ public:
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
 	
 	USavePointSkillComponent* GetSavePointSkillComponent() const { return SavePointSkillComponent; }
+	
+	UChildActorComponent* GetWeaponActorComponent() const { return WeaponActorComponent; }
 };
