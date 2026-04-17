@@ -256,6 +256,14 @@ void UTimeThiefPawnCombatComponent::RemoveCombatStateTag(FGameplayTag WeaponTag)
 
 void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNotify& AttackRequest)
 {
+	if (const APawn* OwningPawn = GetPawn<APawn>())
+	{
+		if (OwningPawn->IsLocallyControlled())
+		{
+			return;
+		}
+	}
+
 	switch (AttackRequest.NotifyType)
 	{
 	case ECombatNotifyType::Aiming:

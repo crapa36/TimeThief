@@ -14,18 +14,23 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "State/NetworkActionTypes.h"
 
-
-class FTimeThiefMovementAccessor : public UCharacterMovementComponent
+namespace
 {
-public:
-	static void SetAcceleration(UCharacterMovementComponent* TargetCMC, const FVector& NewAccel)
+	static constexpr float MinSyntheticDeltaTime = 1.0f / 120.0f;
+
+	static void ApplyMovementModeIfNeeded(UCharacterMovementComponent* CMC, EMovementMode DesiredMode)
 	{
-		if (TargetCMC)
+		if (!CMC || DesiredMode == MOVE_None)
 		{
-			static_cast<FTimeThiefMovementAccessor*>(TargetCMC)->Acceleration = NewAccel;
+			return;
+		}
+
+		if (CMC->MovementMode != DesiredMode)
+		{
+			CMC->SetMovementMode(DesiredMode);
 		}
 	}
-};
+}
 
 // Sets default values for this component's properties
 UNetworkMoveComponent::UNetworkMoveComponent()
@@ -121,32 +126,20 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	
 	const FVector CurrentPosition = Movable->GetNetworkLocation();
 	const float CurrentYaw = Movable->GetNetworkYaw();
-	const float CurrentPitch = Movable->GetNetworkPitch();
-	const FVector2D CurrentVelocity = Movable->GetNetworkVelocity2D();
 	
 	InterpStartPosition = CurrentPosition;
 	InterpTargetPosition = EntityState.Position;
 	
 	StartYaw = CurrentYaw;
 	TargetYaw = EntityState.Yaw;
-	
-	StartPitch = CurrentPitch;
 	TargetPitch = EntityState.Pitch;
 	
-	StartVelocity = CurrentVelocity;
 	TargetVelocity = EntityState.Velocity;
 	
 	RecentMovementMode = EntityState.MovementMode;
 	Movable->SetNetworkMovementMode(RecentMovementMode);
 
 	InterpElapsed = 0.0f;
-}
-
-void UNetworkMoveComponent::SetYaw(float NewYaw)
-// TODO: Fire와 같은 액션이 발생 했을 때 Remote Player의 Yaw Interpolation이 더 이상 필요하지 않을 경우 호출하기
-{
-	StartYaw = NewYaw;
-	TargetYaw = NewYaw;
 }
 
 void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
@@ -205,14 +198,7 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 	switch (Phase)
 	{
 	case ENetworkActionPhase::Start:
-		if (!CMC->IsFalling())
-		{
-			CMC->SetMovementMode(MOVE_Falling);
-		}
-		break;
-		
-	case ENetworkActionPhase::Double:
-		// TODO: 더블 점프
+		ApplyMovementModeIfNeeded(CMC, MOVE_Falling);
 		break;
 
 	case ENetworkActionPhase::Land:
@@ -222,7 +208,7 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 			{
 				DesiredMode = MOVE_Walking;
 			}
-			CMC->SetMovementMode(DesiredMode);
+			ApplyMovementModeIfNeeded(CMC, DesiredMode);
 			break;
 		}
 
@@ -287,11 +273,6 @@ bool UNetworkMoveComponent::IsCloseEnoughPosition(const FVector& CurrentPosition
 bool UNetworkMoveComponent::IsCloseEnoughYaw(float CurrentYaw) const
 {
 	return FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw)) <= RotationTolerance;
-}
-
-bool UNetworkMoveComponent::IsCloseEnoughPitch(float CurrentPitch) const
-{
-	return FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentPitch, TargetPitch)) <= PitchTolerance;
 }
 
 void UNetworkMoveComponent::TickLocal(float DeltaTime)
@@ -380,13 +361,11 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	
 	const FVector CurrentPosition = Movable->GetNetworkLocation();
 	const float CurrentYaw = Movable->GetNetworkYaw();
-	const float CurrentPitch = Movable->GetNetworkPitch();
 	
 	const bool bCloseEnoughPosition = IsCloseEnoughPosition(CurrentPosition);
 	const bool bCloseEnoughYaw = IsCloseEnoughYaw(CurrentYaw);
-	const bool bCloseEnoughPitch = IsCloseEnoughPitch(CurrentPitch);
 	
-	if (bCloseEnoughPosition && bCloseEnoughYaw && bCloseEnoughPitch)
+	if (bCloseEnoughPosition && bCloseEnoughYaw)
 	{
 		SnapToTarget();
 		return;
@@ -411,16 +390,6 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 			NewVelocity.Z = 0.0f;
 		}
 		CMC->Velocity = NewVelocity;
-		
-		if (!MoveStep.IsNearlyZero())
-		{
-			const FVector PlanarDirection = FVector(MoveStep.X, MoveStep.Y, 0.0f).GetSafeNormal();
-			FTimeThiefMovementAccessor::SetAcceleration(CMC, PlanarDirection * CMC->GetMaxAcceleration());
-		}
-		else
-		{
-			FTimeThiefMovementAccessor::SetAcceleration(CMC, FVector::ZeroVector);
-		}
 
 		Movable->SetNetworkLocation(NewPosition);
 	}
@@ -429,11 +398,9 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	const float NewYaw = FRotator::NormalizeAxis(StartYaw + DeltaYaw * Alpha);
 	Movable->SetNetworkYaw(NewYaw);
 	
-	const float DeltaPitch = FMath::FindDeltaAngleDegrees(StartPitch, TargetPitch);
-	const float NewPitch = FRotator::NormalizeAxis(StartPitch + DeltaPitch * Alpha);
-	Movable->SetNetworkPitch(NewPitch);
+	Movable->SetNetworkPitch(TargetPitch);
 
-	const FVector2D NewVelocity = FMath::Lerp(StartVelocity, TargetVelocity, Alpha);
+	const FVector2D NewVelocity = BuildSyntheticVelocity2D(CurrentPosition, NewPosition, DeltaTime, TargetVelocity);
 	Movable->SetNetworkVelocity2D(NewVelocity);
 }
 
@@ -446,29 +413,43 @@ void UNetworkMoveComponent::SnapToTarget()
 	{
 		return;
 	}
+
+	const FVector CurrentPosition = Movable->GetNetworkLocation();
+	const float RemainingDeltaTime = FMath::Max(InterpDuration - InterpElapsed, MinSyntheticDeltaTime);
+	const FVector2D SnapVelocity2D = BuildSyntheticVelocity2D(CurrentPosition, InterpTargetPosition, RemainingDeltaTime, TargetVelocity);
 	
 	Movable->SetNetworkLocation(InterpTargetPosition);
 	Movable->SetNetworkYaw(TargetYaw);
 	Movable->SetNetworkPitch(TargetPitch);
-	Movable->SetNetworkVelocity2D(TargetVelocity);
-	MoveStep = FVector(TargetVelocity.X, TargetVelocity.Y, 0.0f);
+	Movable->SetNetworkVelocity2D(SnapVelocity2D);
+	MoveStep = FVector(SnapVelocity2D.X, SnapVelocity2D.Y, 0.0f);
 	
 	if (Character && Character->GetCharacterMovement())
 	{
 		UCharacterMovementComponent* CMC = Character->GetCharacterMovement();
-		if (RecentMovementMode != MOVE_None && CMC->MovementMode != RecentMovementMode)
-		{
-			CMC->SetMovementMode(RecentMovementMode);
-		}
+		ApplyMovementModeIfNeeded(CMC, RecentMovementMode);
 
-		FVector SnapVelocity(TargetVelocity.X, TargetVelocity.Y, 0.0f);
+		FVector SnapVelocity(SnapVelocity2D.X, SnapVelocity2D.Y, 0.0f);
 		if (CMC->MovementMode == MOVE_Falling)
 		{
 			SnapVelocity.Z = CMC->Velocity.Z;
 		}
 		CMC->Velocity = SnapVelocity;
-		FTimeThiefMovementAccessor::SetAcceleration(CMC, FVector::ZeroVector);
 	}
+}
+
+FVector2D UNetworkMoveComponent::BuildSyntheticVelocity2D(const FVector& FromPosition, const FVector& ToPosition, float DeltaSeconds, const FVector2D& FallbackVelocity) const
+{
+	const FVector Delta = ToPosition - FromPosition;
+	const FVector DeltaPlanar(Delta.X, Delta.Y, 0.0f);
+	if (DeltaPlanar.SizeSquared() < FMath::Square(MinSyntheticDisplacementCm))
+	{
+		return FallbackVelocity;
+	}
+
+	const float SafeDeltaSeconds = FMath::Max(DeltaSeconds, MinSyntheticDeltaTime);
+	const FVector SyntheticVelocity3D = DeltaPlanar / SafeDeltaSeconds;
+	return FVector2D(SyntheticVelocity3D.X, SyntheticVelocity3D.Y);
 }
 
 bool UNetworkMoveComponent::CanSendMovePacket() const

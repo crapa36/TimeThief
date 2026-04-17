@@ -324,12 +324,22 @@ UTimeThiefPawnCombatComponent* ATimeThiefPlayerCharacter::GetCombatComponent() c
 
 USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetWeaponAttachMesh() const
 {
+  if (IsLocallyControlled() && bIsFirstPerson && FirstPersonMesh)
+  {
     return FirstPersonMesh;
+  }
+
+  return GetMesh();
 }
 
 USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetMontagePlaybackMesh() const
 {
+  if (IsLocallyControlled() && bIsFirstPerson && FirstPersonMesh)
+  {
     return FirstPersonMesh;
+  }
+
+  return GetMesh();
 }
 
 void ATimeThiefPlayerCharacter::ApplyPerspective()

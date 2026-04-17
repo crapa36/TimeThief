@@ -6,8 +6,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/TrajectoryTypes.h"
 
-static constexpr float StopVelocityThresholdSq = 16.0f;
-static constexpr int32 HistoryCleanupThreshold = 20;
+static constexpr int32 HistoryCleanupThreshold = 8;
 
 static FORCEINLINE FVector ConvertToTrajectoryLocalSpace(const FVector& V)
 {
@@ -138,19 +137,6 @@ bool FRemoteTrajectoryHistory::GetLastTwo(FRemoteNetSample& OutPrev, FRemoteNetS
 	return true;
 }
 
-bool FRemoteTrajectoryHistory::GetLastThree(FRemoteNetSample& OutPrev2, FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const
-{
-	if (Samples.Num() < 3)
-	{
-		return false;
-	}
-
-	OutPrev2 = Samples[Samples.Num() - 3];
-	OutPrev = Samples[Samples.Num() - 2];
-	OutCurr = Samples[Samples.Num() - 1];
-	return true;
-}
-
 UTimeThiefTrajectoryComponent::UTimeThiefTrajectoryComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, RemoteHistory(10.0)
@@ -161,7 +147,8 @@ UTimeThiefTrajectoryComponent::UTimeThiefTrajectoryComponent(const FObjectInitia
 void UTimeThiefTrajectoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	RemoteHistory.SetMaxHistorySeconds(HistoryLengthSeconds + 1.0);
+	const double MaxHistorySeconds = static_cast<double>(HistoryLengthSeconds + PredictionLengthSeconds + 1.0f);
+	RemoteHistory.SetMaxHistorySeconds(MaxHistorySeconds);
 }
 
 void UTimeThiefTrajectoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -213,16 +200,46 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 	const FVector2D NetworkVelocity2D = NetChar->GetNetworkVelocity2D();
 	const FVector NetworkPlanarVel(NetworkVelocity2D.X, NetworkVelocity2D.Y, 0.0f);
-	FVector WorldPlanarVel = NetworkPlanarVel;
-	const UCharacterMovementComponent* CMC = NetChar->GetCharacterMovement();
+	const float HistoryVelocityThresholdSq = FMath::Square(FMath::Max(0.0f, HistoryVelocityZeroThresholdCmPerSec));
+	const float PredictionVelocityThresholdSq = FMath::Square(FMath::Max(0.0f, PredictionVelocityZeroThresholdCmPerSec));
+	const float MinObservedDisplacementSq = FMath::Square(FMath::Max(0.0f, MinObservedDisplacementCm));
+	const float SmoothedVelocityZeroThresholdSq = FMath::Square(FMath::Max(0.0f, SmoothedVelocityZeroThresholdCmPerSec));
 
-	if (NetworkPlanarVel.SizeSquared() < FMath::Square(4.0f))
-	{
-		WorldPlanarVel = FVector::ZeroVector;
-	}
+	FVector HistoryPlanarVel = NetworkPlanarVel;
+	const UCharacterMovementComponent* CMC = NetChar->GetCharacterMovement();
 
 	FRemoteNetSample LastSample;
 	const bool bHasLastSample = RemoteHistory.GetLast(LastSample);
+	FVector ObservedVelocity = FVector::ZeroVector;
+	bool bHasObservedVelocity = false;
+
+	if (bHasLastSample)
+	{
+		const double DtFromLast = SimulatedTime - LastSample.TimeSeconds;
+		if (DtFromLast > KINDA_SMALL_NUMBER)
+		{
+			const FVector DeltaPos = CurrentPos - LastSample.Position;
+			const FVector DeltaPlanar(DeltaPos.X, DeltaPos.Y, 0.0f);
+			if (DeltaPlanar.SizeSquared() >= MinObservedDisplacementSq)
+			{
+				ObservedVelocity = DeltaPlanar / static_cast<float>(DtFromLast);
+				bHasObservedVelocity = true;
+			}
+		}
+	}
+
+	if (HistoryPlanarVel.SizeSquared() < HistoryVelocityThresholdSq)
+	{
+		if (bHasObservedVelocity && ObservedVelocity.SizeSquared() >= HistoryVelocityThresholdSq)
+		{
+			HistoryPlanarVel = ObservedVelocity;
+		}
+		else
+		{
+			HistoryPlanarVel = FVector::ZeroVector;
+		}
+	}
+
 	if (bHasLastSample)
 	{
 		const float PositionErrorCm = FVector::Dist(CurrentPos, LastSample.Position);
@@ -231,39 +248,61 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 		if (bSnapCooldownReady && (PositionErrorCm >= HardSnapDistanceCm || YawErrorDeg >= HardSnapYawDeg))
 		{
-			RemoteHistory.ResetToSample(SimulatedTime, CurrentPos, CurrentYaw, WorldPlanarVel);
-			LastSmoothedVelocity = WorldPlanarVel;
+			const bool bForceHardReset = PositionErrorCm >= ForceHardSnapDistanceCm;
+			if (bForceHardReset)
+			{
+				RemoteHistory.ResetToSample(SimulatedTime, CurrentPos, CurrentYaw, HistoryPlanarVel);
+				LastSmoothedVelocity = HistoryPlanarVel;
+			}
+			else
+			{
+				const float SnapBlendAlpha = FMath::Clamp(HardSnapBlendAlpha, 0.0f, 1.0f);
+				const FVector BlendedPos = FMath::Lerp(LastSample.Position, CurrentPos, SnapBlendAlpha);
+				const float YawDeltaToCurrent = FMath::FindDeltaAngleDegrees(LastSample.YawDeg, CurrentYaw);
+				const float BlendedYaw = FRotator::NormalizeAxis(LastSample.YawDeg + (YawDeltaToCurrent * SnapBlendAlpha));
+
+				FVector BlendedVelocity = HistoryPlanarVel;
+				const double Dt = SimulatedTime - LastSample.TimeSeconds;
+				if (Dt > KINDA_SMALL_NUMBER)
+				{
+					FVector BlendedObservedVelocity = (BlendedPos - LastSample.Position) / static_cast<float>(Dt);
+					BlendedObservedVelocity.Z = 0.0f;
+					BlendedVelocity = FMath::Lerp(HistoryPlanarVel, BlendedObservedVelocity, 0.5f);
+				}
+
+				RemoteHistory.AddSample(SimulatedTime, BlendedPos, BlendedYaw, BlendedVelocity);
+				LastSmoothedVelocity = FMath::Lerp(LastSmoothedVelocity, BlendedVelocity, 0.5f);
+			}
+
 			LastSnapTimeSeconds = SimulatedTime;
 			++HardSnapCount;
 
 			UE_LOG(LogTemp, Verbose,
-				TEXT("[Trajectory] HardSnap count=%d error=%.1fcm yaw=%.1fdeg owner=%s"),
+				TEXT("[Trajectory] HardSnap count=%d error=%.1fcm yaw=%.1fdeg force=%d owner=%s"),
 				HardSnapCount,
 				PositionErrorCm,
 				YawErrorDeg,
+				bForceHardReset ? 1 : 0,
 				*GetNameSafe(NetChar));
 		}
 		else
 		{
 			if (PositionErrorCm >= SoftSnapDistanceCm)
 			{
-				const double Dt = SimulatedTime - LastSample.TimeSeconds;
-				if (Dt > KINDA_SMALL_NUMBER)
+				if (bHasObservedVelocity)
 				{
-					FVector ObservedVelocity = (CurrentPos - LastSample.Position) / static_cast<float>(Dt);
-					ObservedVelocity.Z = 0.0f;
-					WorldPlanarVel = FMath::Lerp(WorldPlanarVel, ObservedVelocity, 0.65f);
+					HistoryPlanarVel = FMath::Lerp(HistoryPlanarVel, ObservedVelocity, 0.65f);
 				}
 
 				++SoftSnapCount;
 			}
 
-			RemoteHistory.AddSample(SimulatedTime, CurrentPos, CurrentYaw, WorldPlanarVel);
+			RemoteHistory.AddSample(SimulatedTime, CurrentPos, CurrentYaw, HistoryPlanarVel);
 		}
 	}
 	else
 	{
-		RemoteHistory.AddSample(SimulatedTime, CurrentPos, CurrentYaw, WorldPlanarVel);
+		RemoteHistory.AddSample(SimulatedTime, CurrentPos, CurrentYaw, HistoryPlanarVel);
 	}
 	
 	const FQuat CurrentQuat = FRotator(0.f, CurrentYaw, 0.f).Quaternion();
@@ -309,51 +348,68 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 	const float DtPred = 1.0f / FMath::Max(1, PredictionSamplesPerSecond);
 
-	if (WorldPlanarVel.SizeSquared() < StopVelocityThresholdSq)
+	FVector PredictionInputVelocity = HistoryPlanarVel;
+	if (PredictionInputVelocity.SizeSquared() < PredictionVelocityThresholdSq)
 	{
-		WorldPlanarVel = FVector::ZeroVector;
+		PredictionInputVelocity = FVector::ZeroVector;
+	}
+
+	const float SmoothingResponse = FMath::Max(0.0f, VelocitySmoothingResponse);
+	const float SmoothFactor = (SmoothingResponse > KINDA_SMALL_NUMBER)
+		? (1.f - FMath::Exp(-SmoothingResponse * DeltaTime))
+		: 1.f;
+	LastSmoothedVelocity = FMath::Lerp(LastSmoothedVelocity, PredictionInputVelocity, SmoothFactor);
+
+	if (LastSmoothedVelocity.SizeSquared() < SmoothedVelocityZeroThresholdSq)
+	{
 		LastSmoothedVelocity = FVector::ZeroVector;
 	}
-	else
-	{
-		const float SmoothFactor = 1.f - FMath::Exp(-5.f * DeltaTime);
-		LastSmoothedVelocity = FMath::Lerp(LastSmoothedVelocity, WorldPlanarVel, SmoothFactor);
-	}
 
-	if (LastSmoothedVelocity.SizeSquared() < 1.0f)
-	{
-		LastSmoothedVelocity = FVector::ZeroVector;
-	}
-
-	float MaxYawRateDeg = 360.0f;
-	if (CMC)
-	{
-		MaxYawRateDeg = CMC->RotationRate.Yaw;
-	}
-
-	float YawRate = 0.0f;
+	float RawYawRate = 0.0f;
 	FRemoteNetSample PrevYawSample, CurrYawSample;
 	if (RemoteHistory.GetLastTwo(PrevYawSample, CurrYawSample))
 	{
 		const double Dt = CurrYawSample.TimeSeconds - PrevYawSample.TimeSeconds;
 		if (Dt > KINDA_SMALL_NUMBER)
 		{
-			YawRate = FMath::FindDeltaAngleDegrees(PrevYawSample.YawDeg, CurrYawSample.YawDeg) / static_cast<float>(Dt);
+			RawYawRate = FMath::FindDeltaAngleDegrees(PrevYawSample.YawDeg, CurrYawSample.YawDeg) / static_cast<float>(Dt);
 		}
 	}
 
-	if (FMath::Abs(YawRate) < 1.0f)
+	float YawRate = 0.0f;
+	float MaxYawRateDeg = FMath::Abs(PredictionYawRateClampDegPerSec);
+	if (CMC && FMath::Abs(CMC->RotationRate.Yaw) > KINDA_SMALL_NUMBER)
+	{
+		MaxYawRateDeg = FMath::Min(MaxYawRateDeg, FMath::Abs(CMC->RotationRate.Yaw));
+	}
+	if (FMath::Abs(RawYawRate) >= HighTurnYawRateThresholdDegPerSec)
+	{
+		MaxYawRateDeg = FMath::Min(MaxYawRateDeg, FMath::Abs(HighTurnYawRateClampDegPerSec));
+	}
+
+	if (FMath::Abs(RawYawRate) < YawRateDeadZoneDegPerSec)
 	{
 		YawRate = 0.0f;
 	}
-	else if (FMath::Abs(MaxYawRateDeg) > KINDA_SMALL_NUMBER)
+	else if (MaxYawRateDeg > KINDA_SMALL_NUMBER)
 	{
-		YawRate = FMath::Clamp(YawRate, -FMath::Abs(MaxYawRateDeg), FMath::Abs(MaxYawRateDeg));
+		YawRate = FMath::Clamp(RawYawRate, -MaxYawRateDeg, MaxYawRateDeg);
+	}
+	else
+	{
+		YawRate = RawYawRate;
 	}
 
 	FVector PredictedWorldPos = CurrentPos;
 	FVector PredictedWorldVel = LastSmoothedVelocity;
 	float PredictedYaw = CurrentYaw;
+
+	if (PredictedWorldVel.Size2D() < LowSpeedPredictionThresholdCmPerSec)
+	{
+		PredictedWorldVel *= FMath::Clamp(LowSpeedPredictionVelocityScale, 0.0f, 1.0f);
+	}
+
+	const float VelocityDampingPerStep = FMath::Exp(-FMath::Max(0.0f, PredictionVelocityDamping) * DtPred);
 
 	for (int32 j = 1; j <= PredictionCount; ++j)
 	{
@@ -361,6 +417,7 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 
 		PredictedWorldPos += PredictedWorldVel * DtPred;
 		PredictedWorldVel = PredictedWorldVel.RotateAngleAxis(YawRate * DtPred, FVector::UpVector);
+		PredictedWorldVel *= VelocityDampingPerStep;
 		PredictedYaw = FRotator::NormalizeAxis(PredictedYaw + YawRate * DtPred);
 		
 		FTransformTrajectorySample Sample;

@@ -118,11 +118,6 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 	{
 		Movable->SetNetworkPitch(AimRotation.Pitch);
 		Movable->SetNetworkYaw(AimRotation.Yaw);
-		// 여기서 NetworkMovementComp에 SetYaw도 호출해야 하지 않을까?
-		if (UNetworkMoveComponent* MovementComp = OwningCharacter->FindComponentByClass<UNetworkMoveComponent>())
-		{
-			MovementComp->SetYaw(AimRotation.Yaw);
-		}
 	}
 }
 

@@ -62,6 +62,9 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	const FVector SpawnLocation = MuzzleLocation + ShootDirection;
 	const FTransform SpawnTransform(ShootDirection.Rotation(), SpawnLocation);
 
+	AActor* ShooterActor = GetOwner() ? GetOwner()->GetOwner() : nullptr;
+	APawn* ShooterPawn = Cast<APawn>(ShooterActor);
+
 	ATimeThiefRocketProjectile* Projectile = nullptr;
 	for (ATimeThiefRocketProjectile* PooledProj : ProjectilePool)
 	{
@@ -75,8 +78,8 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	if (!Projectile)
 	{
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = GetOwner() ? GetOwner()->GetOwner() : nullptr;
-		SpawnParams.Instigator = Cast<APawn>(SpawnParams.Owner);
+		SpawnParams.Owner = ShooterActor;
+		SpawnParams.Instigator = ShooterPawn;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		Projectile = World->SpawnActor<ATimeThiefRocketProjectile>(RocketProjectileClass, SpawnTransform, SpawnParams);
@@ -94,8 +97,9 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 		UE_LOG(LogTemp, Log, TEXT("[RocketLauncher][Fire] DamageBonus=%.2f RecoilReduction=%.3f"), GetDamageBonus(), GetRecoilReduction());
 #endif
 
+		// Ensure ownership/ignore setup is valid before collision and movement start.
+		Projectile->InitializeProjectile(ShooterActor, ShooterPawn);
 		Projectile->ActivateProjectile(SpawnTransform);
-		Projectile->InitializeProjectile(GetOwner() ? GetOwner()->GetOwner() : nullptr, Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr));
 		return true;
 	}
 

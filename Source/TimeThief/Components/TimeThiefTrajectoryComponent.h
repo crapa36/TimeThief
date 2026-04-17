@@ -23,7 +23,6 @@ public:
 	bool SampleAt(double QueryTime, FVector& OutPos, float& OutYawDeg, FVector& OutVelocity2D) const;
 	bool GetLast(FRemoteNetSample& OutLast) const;
 	bool GetLastTwo(FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const;
-	bool GetLastThree(FRemoteNetSample& OutPrev2, FRemoteNetSample& OutPrev, FRemoteNetSample& OutCurr) const;
 
 private:
 	TArray<FRemoteNetSample> Samples;
@@ -45,28 +44,70 @@ protected:
 	void UpdateRemoteTrajectory(float DeltaTime);
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory")
-	float HistoryLengthSeconds = 1.0f;
+	float HistoryLengthSeconds = 0.7f;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory")
-	int32 HistorySamplesPerSecond = 10;
+	int32 HistorySamplesPerSecond = 20;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory")
-	float PredictionLengthSeconds = 1.0f;
+	float PredictionLengthSeconds = 0.22f;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory")
-	int32 PredictionSamplesPerSecond = 10;
+	int32 PredictionSamplesPerSecond = 20;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
-	float HardSnapDistanceCm = 250.0f;
+	float HardSnapDistanceCm = 120.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
-	float SoftSnapDistanceCm = 90.0f;
+	float SoftSnapDistanceCm = 35.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
-	float HardSnapYawDeg = 55.0f;
+	float HardSnapYawDeg = 25.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
-	float SnapCooldownSeconds = 0.08f;
+	float SnapCooldownSeconds = 0.05f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping")
+	float ForceHardSnapDistanceCm = 350.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Snapping", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float HardSnapBlendAlpha = 0.75f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction")
+	float PredictionYawRateClampDegPerSec = 540.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction")
+	float HighTurnYawRateThresholdDegPerSec = 180.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction")
+	float HighTurnYawRateClampDegPerSec = 140.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction")
+	float LowSpeedPredictionThresholdCmPerSec = 220.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float LowSpeedPredictionVelocityScale = 0.05f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction", meta = (ClampMin = "0.0"))
+	float PredictionVelocityDamping = 4.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Velocity", meta = (ClampMin = "0.0"))
+	float HistoryVelocityZeroThresholdCmPerSec = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Velocity", meta = (ClampMin = "0.0"))
+	float PredictionVelocityZeroThresholdCmPerSec = 4.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Velocity", meta = (ClampMin = "0.0"))
+	float MinObservedDisplacementCm = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Velocity", meta = (ClampMin = "0.0"))
+	float VelocitySmoothingResponse = 15.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Velocity", meta = (ClampMin = "0.0"))
+	float SmoothedVelocityZeroThresholdCmPerSec = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category = "Remote Trajectory|Prediction", meta = (ClampMin = "0.0"))
+	float YawRateDeadZoneDegPerSec = 0.1f;
 
 private:
 	FRemoteTrajectoryHistory RemoteHistory;

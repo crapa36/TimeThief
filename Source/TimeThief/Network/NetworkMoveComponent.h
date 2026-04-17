@@ -25,8 +25,6 @@ public:
 	
 public:
 	FOnRemoteAcitonNotify OnRemoteActionNotify;
-
-protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
@@ -37,7 +35,6 @@ public:
 	
 public:
 	void ApplyNetworkState(const FNetworkEntityState& EntityState);
-	void SetYaw(float NewYaw);
 	
 	void SetMovementUpdateInterval(float InInterval);
 	
@@ -57,7 +54,6 @@ public:
 public:
 	bool IsCloseEnoughPosition(const FVector& CurrentPosition) const;
 	bool IsCloseEnoughYaw(float CurrentYaw) const;
-	bool IsCloseEnoughPitch(float CurrentPitch) const;
 	
 private:
 	void TickLocal(float DeltaTime);
@@ -66,6 +62,7 @@ private:
 	
 	void ApplyRemoteInterpolation(float DeltaTime);
 	void SnapToTarget();
+	FVector2D BuildSyntheticVelocity2D(const FVector& FromPosition, const FVector& ToPosition, float DeltaSeconds, const FVector2D& FallbackVelocity) const;
 	
 private:
 	bool CanSendMovePacket() const;
@@ -86,11 +83,8 @@ private:
 private:
 	float StartYaw = 0.0f;
 	float TargetYaw = 0.0f;
-	
-	float StartPitch = 0.0f;
 	float TargetPitch = 0.0f;
 	
-	FVector2D StartVelocity = FVector2D::ZeroVector;
 	FVector2D TargetVelocity = FVector2D::ZeroVector;
 	
 	EMovementMode RecentMovementMode = EMovementMode::MOVE_None;
@@ -106,8 +100,8 @@ private:
 	float SendMoveInterval = 0.1f;	// TODO: 패킷 간격과 네트워크 지연을 고려해서 적절한 이동 패킷 전송 간격 설정 필요 (임시로 0.1초로 설정)
 	
 	// TEMP
-	float PositionTolerance = 5.0f;
+	float PositionTolerance = 3.0f;
 	float RotationTolerance = 2.0f;
-	float PitchTolerance = 2.0f;
+	float MinSyntheticDisplacementCm = 1.0f;
 	
 };

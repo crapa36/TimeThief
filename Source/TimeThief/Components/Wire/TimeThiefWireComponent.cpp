@@ -45,7 +45,7 @@ void UTimeThiefWireComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CachedCharacter = Cast<ACharacter>(GetOwner());
+	CachedCharacter = GetPawn<ACharacter>();
 	if (IsValid(CachedCharacter))
 	{
 		CachedMovementComponent = CachedCharacter->GetCharacterMovement();
@@ -59,46 +59,40 @@ void UTimeThiefWireComponent::BeginPlay()
 			WireTargeting->Initialize(CachedCharacter);
 		}
 
-		if (WireMeshComponent)
+		USkeletalMeshComponent* SkeletalMesh = CachedCharacter->GetMesh();
+		if (SkeletalMesh && SkeletalMesh->DoesSocketExist(WireStartSocketName))
 		{
-			USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh();
-			if (Mesh && Mesh->DoesSocketExist(WireStartSocketName))
-			{
-				WireMeshComponent->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
-			}
-			else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
-			{
-				WireMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-			}
-			
-			if (WireMeshTemplate)
-			{
-				WireMeshComponent->SetStaticMesh(WireMeshTemplate);
-			}
-			
-			if (WireMaterial)
-			{
-				WireMeshComponent->SetMaterial(0, WireMaterial);
-			}
+			WireMeshComponent->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
+		}
+		else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
+		{
+			WireMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
 
-		if (AnchorMeshComponent)
+		if (WireMeshTemplate)
 		{
-			if (USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh())
-			{
-				AnchorMeshComponent->AttachToComponent(Mesh, FAttachmentTransformRules::KeepWorldTransform);
-			}
-			else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
-			{
-				AnchorMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-			}
-			
-			if (AnchorMeshTemplate)
-			{
-				AnchorMeshComponent->SetStaticMesh(AnchorMeshTemplate);
-			}
-			AnchorMeshComponent->SetWorldScale3D(AnchorMeshScale);
+			WireMeshComponent->SetStaticMesh(WireMeshTemplate);
 		}
+
+		if (WireMaterial)
+		{
+			WireMeshComponent->SetMaterial(0, WireMaterial);
+		}
+
+		if (SkeletalMesh)
+		{
+			AnchorMeshComponent->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::KeepWorldTransform);
+		}
+		else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
+		{
+			AnchorMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+		}
+
+		if (AnchorMeshTemplate)
+		{
+			AnchorMeshComponent->SetStaticMesh(AnchorMeshTemplate);
+		}
+		AnchorMeshComponent->SetWorldScale3D(AnchorMeshScale);
 
 		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
 		{
@@ -123,8 +117,6 @@ void UTimeThiefWireComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
 	const bool bIsLocallyControlled = IsValid(CachedCharacter) && CachedCharacter->IsLocallyControlled();
 	if (!bIsLocallyControlled)
 	{
@@ -138,6 +130,8 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 		}
 		return;
 	}
+
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	UpdateCooldown(DeltaTime);
 
@@ -162,7 +156,7 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		SetComponentTickEnabled(false);
 	}
-}
+	}
 
 void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
 {
