@@ -82,7 +82,7 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 
 	if (!Direction.IsNearlyZero())
 	{
-		CachedWorldAimLocation = Origin + Direction.GetSafeNormal() * 50000.0f;
+		CachedWorldAimLocation = Origin + Direction.GetSafeNormal() * AimTraceRange;
 	}
 	else
 	{
@@ -91,7 +91,7 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 		{
 			StartLoc = MasterWeaponPtr->GetActorLocation();
 		}
-		CachedWorldAimLocation = StartLoc + OwningCharacter->GetBaseAimRotation().Vector() * 50000.0f;
+		CachedWorldAimLocation = StartLoc + OwningCharacter->GetBaseAimRotation().Vector() * AimTraceRange;
 	}
 
 	FVector StartLoc = OwningCharacter->GetActorLocation();
@@ -330,26 +330,7 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 		{
 			if (!BaseChar->IsFirstPerson())
 			{
-				FVector StartLoc = OwningCharacter->GetActorLocation();
-				if (MasterWeaponPtr)
-				{
-					StartLoc = MasterWeaponPtr->GetActorLocation();
-				}
-				FVector AimDirection = CachedWorldAimLocation - StartLoc;
-				AimDirection.Z = 0.0f;
-				
-				if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
-				{
-					FRotator TargetRotation = AimDirection.Rotation();
-					const float ClampedTargetYaw = GetClampedYawFromCamera(OwningCharacter, TargetRotation.Yaw);
-					FRotator CurrentRotation = OwningCharacter->GetActorRotation();
-					FRotator NewRotation = FMath::RInterpTo(CurrentRotation, FRotator(0.0f, ClampedTargetYaw, 0.0f), DeltaTime, 20.0f);
-
-					if (OwningCharacter->IsLocallyControlled())
-					{
-						OwningCharacter->SetActorRotation(NewRotation);
-					}
-				}
+				ApplyThirdPersonAimRotation(OwningCharacter, DeltaTime, false);
 			}
 		}
 	}
@@ -370,11 +351,12 @@ void UTimeThiefPlayerCombatComponent::UpdateWorldAimLocation()
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	FVector TraceStart = CameraLocation;
-	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * 50000.0f);
+	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * AimTraceRange);
 
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(OwningCharacter);
+	QueryParams.bTraceComplex = true;
 	if (MasterWeaponPtr)
 	{
 		QueryParams.AddIgnoredActor(MasterWeaponPtr);
@@ -430,26 +412,7 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 	if (IsRotationManagedExternally()) return;
 
 	UpdateWorldAimLocation();
-
-	FVector StartLoc = OwningCharacter->GetActorLocation();
-	if (MasterWeaponPtr)
-	{
-		StartLoc = MasterWeaponPtr->GetActorLocation();
-	}
-	
-	FVector AimDirection = CachedWorldAimLocation - StartLoc;
-	AimDirection.Z = 0.0f;
-	
-	if (AimDirection.SizeSquared() > KINDA_SMALL_NUMBER)
-	{
-		FRotator TargetRotation = AimDirection.Rotation();
-		const float ClampedTargetYaw = GetClampedYawFromCamera(OwningCharacter, TargetRotation.Yaw);
-		
-		if (OwningCharacter->IsLocallyControlled())
-		{
-			OwningCharacter->SetActorRotation(FRotator(0.0f, ClampedTargetYaw, 0.0f));
-		}
-	}
+	ApplyThirdPersonAimRotation(OwningCharacter, 0.0f, true);
 }
 
 float UTimeThiefPlayerCombatComponent::GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const
@@ -463,6 +426,46 @@ float UTimeThiefPlayerCombatComponent::GetClampedYawFromCamera(const ACharacter*
 	}
 
 	return TargetYaw;
+}
+
+bool UTimeThiefPlayerCombatComponent::TryGetFlatAimDirection(const ACharacter* OwningCharacter, FVector& OutFlatAimDirection) const
+{
+	if (!OwningCharacter)
+	{
+		return false;
+	}
+
+	FVector StartLoc = OwningCharacter->GetActorLocation();
+	if (MasterWeaponPtr)
+	{
+		StartLoc = MasterWeaponPtr->GetActorLocation();
+	}
+
+	OutFlatAimDirection = CachedWorldAimLocation - StartLoc;
+	OutFlatAimDirection.Z = 0.0f;
+	return OutFlatAimDirection.SizeSquared() > KINDA_SMALL_NUMBER;
+}
+
+void UTimeThiefPlayerCombatComponent::ApplyThirdPersonAimRotation(ACharacter* OwningCharacter, float DeltaTime, bool bSnapRotation)
+{
+	if (!OwningCharacter || !OwningCharacter->IsLocallyControlled())
+	{
+		return;
+	}
+
+	FVector FlatAimDirection = FVector::ZeroVector;
+	if (!TryGetFlatAimDirection(OwningCharacter, FlatAimDirection))
+	{
+		return;
+	}
+
+	const FRotator TargetRotation = FlatAimDirection.Rotation();
+	const float ClampedTargetYaw = GetClampedYawFromCamera(OwningCharacter, TargetRotation.Yaw);
+	const FRotator FinalRotation = bSnapRotation
+		? FRotator(0.0f, ClampedTargetYaw, 0.0f)
+		: FMath::RInterpTo(OwningCharacter->GetActorRotation(), FRotator(0.0f, ClampedTargetYaw, 0.0f), DeltaTime, 20.0f);
+
+	OwningCharacter->SetActorRotation(FinalRotation);
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()

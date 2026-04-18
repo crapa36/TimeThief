@@ -59,6 +59,11 @@ void UTimeThiefShotgunComponent::ExecuteFireShot()
 	PlayImpactEffects(HitResults);
 }
 
+uint32 UTimeThiefShotgunComponent::GetCombatAttackShotSeed() const
+{
+	return LastShotSeed;
+}
+
 TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 {
 	TArray<FShotgunHitResult> Results;
@@ -73,7 +78,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	QueryParams.AddIgnoredActor(GetOwner());
 	if (GetOwner())
 	{
-		QueryParams.AddIgnoredActor(GetOwner()->GetOwner());
+		QueryParams.AddIgnoredActor(GetOwner()->GetParentActor());
 	}
 	QueryParams.bTraceComplex = true;
 	QueryParams.bReturnPhysicalMaterial = true;
@@ -87,7 +92,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
 	const uint32 RandomSeed = FMath::Rand();
-	// TODO: 이 Seed 값을 패킷에 담아야 함!
+	LastShotSeed = RandomSeed;
 	FRandom32 SeededRandom(RandomSeed);
 
 	for (int32 PelletIndex = 0; PelletIndex < PelletCount; ++PelletIndex)
@@ -223,14 +228,8 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 	{
 		return;
 	}
-
-	APawn* OwnerPawn = Cast<APawn>(GetOwner()->GetOwner());
-	if (!OwnerPawn)
-	{
-		return;
-	}
-
-	if (ACharacter* OwnerChar = Cast<ACharacter>(OwnerPawn))
+	
+	if (ACharacter* OwnerChar = Cast<ACharacter>(GetOwner()->GetParentActor()))
 	{
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
@@ -245,7 +244,7 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 
 			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(FinalVerticalRecoil, FinalHorizontalRecoil, 0.0f, 0.0f);
 
-			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+			if (APlayerController* PC = Cast<APlayerController>(OwnerChar->GetController()))
 			{
 				PC->AddPitchInput(-RecoilDelta.Y);
 				PC->AddYawInput(RecoilDelta.X);

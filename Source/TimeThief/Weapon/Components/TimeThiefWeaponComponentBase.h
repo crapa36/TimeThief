@@ -117,6 +117,7 @@ protected:
 	virtual void OnReloadStarted();
 	virtual void OnReloadFinished();
 	virtual void ApplyRecoilAndSpread();
+	virtual uint32 GetCombatAttackShotSeed() const;
 	void BroadcastCombatAttackRequest(ECombatNotifyType NotifyType) const;
 	FVector GetLocalAttackOrigin() const;
 	FVector GetLocalAttackDirection() const;

@@ -60,7 +60,7 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	QueryParams.AddIgnoredActor(GetOwner());
 	if (GetOwner())
 	{
-		QueryParams.AddIgnoredActor(GetOwner()->GetOwner());
+		QueryParams.AddIgnoredActor(GetOwner()->GetParentActor());
 	}
 	QueryParams.bTraceComplex = true;
 
@@ -73,7 +73,7 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	const FVector SpawnLocation = MuzzleLocation + ShootDirection;
 	const FTransform SpawnTransform(ShootDirection.Rotation(), SpawnLocation);
 
-	AActor* ShooterActor = GetOwner() ? GetOwner()->GetOwner() : nullptr;
+	AActor* ShooterActor = GetOwner() ? GetOwner()->GetParentActor() : nullptr;
 	APawn* ShooterPawn = Cast<APawn>(ShooterActor);
 
 	ATimeThiefRocketProjectile* Projectile = nullptr;
