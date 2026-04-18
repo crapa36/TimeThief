@@ -153,6 +153,11 @@ void UTimeThiefWeaponComponentBase::OnReloadFinished() {}
 
 void UTimeThiefWeaponComponentBase::ApplyRecoilAndSpread() {}
 
+uint32 UTimeThiefWeaponComponentBase::GetCombatAttackShotSeed() const
+{
+	return 0;
+}
+
 void UTimeThiefWeaponComponentBase::NotifyAmmoChanged() {
 	OnAmmoChanged_Delegate.Broadcast(CurrentAmmo, MaxAmmo);
 }
@@ -243,6 +248,7 @@ void UTimeThiefWeaponComponentBase::BroadcastCombatAttackRequest(ECombatNotifyTy
 			Request.Origin = GetLocalAttackOrigin();
 			Request.Direction = GetLocalAttackDirection();
 		}
+		Request.ShotSeed = GetCombatAttackShotSeed();
 	}
 	else if (NotifyType == ECombatNotifyType::Throw)
 	{

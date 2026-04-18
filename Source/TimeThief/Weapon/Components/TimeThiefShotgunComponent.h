@@ -42,6 +42,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void ExecuteFireShot() override;
+	virtual uint32 GetCombatAttackShotSeed() const override;
 	TArray<FShotgunHitResult> PerformPelletHitScan();
 	void ApplyDamage(const TArray<FShotgunHitResult>& HitResults);
 	void PlayFireEffects();
@@ -74,4 +75,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float HorizontalRecoil = 3.0f;
+
+	uint32 LastShotSeed = 0;
 };

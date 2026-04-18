@@ -59,6 +59,11 @@ void UTimeThiefShotgunComponent::ExecuteFireShot()
 	PlayImpactEffects(HitResults);
 }
 
+uint32 UTimeThiefShotgunComponent::GetCombatAttackShotSeed() const
+{
+	return LastShotSeed;
+}
+
 TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 {
 	TArray<FShotgunHitResult> Results;
@@ -87,7 +92,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
 	const uint32 RandomSeed = FMath::Rand();
-	// TODO: 이 Seed 값을 패킷에 담아야 함!
+	LastShotSeed = RandomSeed;
 	FRandom32 SeededRandom(RandomSeed);
 
 	for (int32 PelletIndex = 0; PelletIndex < PelletCount; ++PelletIndex)
