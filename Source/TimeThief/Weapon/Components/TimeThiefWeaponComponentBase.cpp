@@ -140,7 +140,7 @@ void UTimeThiefWeaponComponentBase::SetRemoteShotSyncData(const FVector& InOrigi
 
 void UTimeThiefWeaponComponentBase::OnReloadStarted() {
 	if (ReloadAnimation) {
-		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()->GetOwner())) {
+		if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor())) {
 			BaseChar->PlayAnimationOnAllMeshes(ReloadAnimation, WeaponAnimSlot);
 		}
 	}
@@ -225,7 +225,7 @@ void UTimeThiefWeaponComponentBase::FinishReload() {
 
 void UTimeThiefWeaponComponentBase::BroadcastCombatAttackRequest(ECombatNotifyType NotifyType) const
 {
-	const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr);
+	const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetParentActor() : nullptr);
 	if (!OwnerPawn)
 	{
 		return;
@@ -266,7 +266,7 @@ FVector UTimeThiefWeaponComponentBase::GetLocalAttackOrigin() const
 
 FVector UTimeThiefWeaponComponentBase::GetLocalAttackDirection() const
 {
-	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr))
+	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetParentActor() : nullptr))
 	{
 		if (const APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
 		{
@@ -291,7 +291,7 @@ bool UTimeThiefWeaponComponentBase::ResolveFireAimView(FVector& OutViewLocation,
 		return true;
 	}
 
-	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetOwner() : nullptr))
+	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetParentActor() : nullptr))
 	{
 		if (const APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
 		{

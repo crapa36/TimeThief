@@ -78,7 +78,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	QueryParams.AddIgnoredActor(GetOwner());
 	if (GetOwner())
 	{
-		QueryParams.AddIgnoredActor(GetOwner()->GetOwner());
+		QueryParams.AddIgnoredActor(GetOwner()->GetParentActor());
 	}
 	QueryParams.bTraceComplex = true;
 	QueryParams.bReturnPhysicalMaterial = true;
@@ -228,14 +228,8 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 	{
 		return;
 	}
-
-	APawn* OwnerPawn = Cast<APawn>(GetOwner()->GetOwner());
-	if (!OwnerPawn)
-	{
-		return;
-	}
-
-	if (ACharacter* OwnerChar = Cast<ACharacter>(OwnerPawn))
+	
+	if (ACharacter* OwnerChar = Cast<ACharacter>(GetOwner()->GetParentActor()))
 	{
 		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
 		{
@@ -250,7 +244,7 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 
 			const FVector2D RecoilDelta = AnimInst->ApplyFireSpread(FinalVerticalRecoil, FinalHorizontalRecoil, 0.0f, 0.0f);
 
-			if (APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+			if (APlayerController* PC = Cast<APlayerController>(OwnerChar->GetController()))
 			{
 				PC->AddPitchInput(-RecoilDelta.Y);
 				PC->AddYawInput(RecoilDelta.X);
