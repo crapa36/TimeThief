@@ -632,11 +632,53 @@ void UNetworkGameInstanceSubsystem::HandleEntitySpawn(const se::room::N_EntitySp
 	
 	EntityState.ObjectType = Info.type();
 	EntityState.TemplateId = Info.template_id();
-	const auto& Movement = Info.movement();
-	const auto& Pos = Movement.position();
-	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-	EntityState.Yaw = Movement.yaw();
-	EntityState.Pitch = Movement.pitch();
+
+	switch (Info.type())
+	{
+	case se::common::ObjectType::OBJ_PLAYER:
+		{
+			if (!Info.has_player_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing player_info for player entity"));
+				return;
+			}
+			
+			const auto& PlayerInfo = Info.player_info();
+			
+			const auto& Movement = PlayerInfo.movement();
+			const auto& Pos = Movement.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			EntityState.Yaw = Movement.yaw();
+			EntityState.Pitch = Movement.pitch();
+		}
+		break;
+	case se::common::ObjectType::OBJ_MONSTER:
+		{
+			
+		}
+		break;
+	case se::common::ObjectType::OBJ_ITEM:
+		{
+			
+		}
+		break;
+	case se::common::ObjectType::OBJ_PROJECTILE:
+		{
+			if (!Info.has_projectile_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing projectile_info for projectile entity"));
+				return;
+			}
+			
+			const auto& ProjectileInfo = Info.projectile_info();
+			const auto& Pos = ProjectileInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const auto& Velocity = ProjectileInfo.velocity();
+			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
+			EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+		}
+		break;
+	}
 	
 	ApplyEntityStateToActor(EntityId);
 	
@@ -696,14 +738,54 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	}
 	
 	FNetworkEntityState& EntityState = EntityEntry->State;
-	const auto& Movement = Pkt.movement();
-	const auto& Pos = Movement.position();
-	EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-	EntityState.Yaw = Movement.yaw();
-	EntityState.Pitch = Movement.pitch();
-	const auto& Velocity = Movement.velocity();
-	EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
-	EntityState.MovementMode = static_cast<EMovementMode>(Movement.movement_mode());
+	const auto& Transform = Pkt.transform();
+	const auto& Position = Transform.position();
+	EntityState.Position = FVector(Position.x(), Position.y(), Position.z());
+	const float Yaw = Transform.yaw();
+	EntityState.Yaw = Yaw;
+	
+	switch (Pkt.object_type())
+	{
+	case se::common::ObjectType::OBJ_PLAYER:
+		{
+			if (!Pkt.has_player_movement())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMove: Missing player_movement for player entity"));
+				return;
+			}
+			
+			const auto& PlayerMovement = Pkt.player_movement();
+			EntityState.Pitch = PlayerMovement.pitch();
+			const auto& Velocity = PlayerMovement.velocity();
+			EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+			EntityState.MovementMode = static_cast<EMovementMode>(PlayerMovement.movement_mode());
+		}
+		break;
+	case se::common::ObjectType::OBJ_MONSTER:
+		{
+			
+		}
+		break;
+	case se::common::ObjectType::OBJ_ITEM:
+		{
+			// NONE
+		}
+		break;
+	case se::common::ObjectType::OBJ_PROJECTILE:
+		{
+			if (!Pkt.has_projectile_movement())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMove: Missing projectile_movement for projectile entity"));
+				return;
+			}
+			
+			const auto& ProjectileInfo = Pkt.projectile_movement();
+			const auto& Velocity = ProjectileInfo.velocity();
+			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
+			EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+		}
+		break;
+	}
 	
 	ApplyEntityStateToActor(EntityId);
 }
@@ -1068,10 +1150,6 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 {
 }
 
-void UNetworkGameInstanceSubsystem::HandleProjectileMove(const se::game::N_ProjectileMove& pkt)
-{
-}
-
 void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt)
 {
 }
@@ -1312,7 +1390,7 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 			return SpawnData->LocalPlayerClass;
 		}
 	}
-	else if (EntityState.ObjectType == se::common::OJB_PROJECTILE)
+	else if (EntityState.ObjectType == se::common::OBJ_PROJECTILE)
 	{
 		if (SpawnData->RocketProjectileClass)
 		{

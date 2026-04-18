@@ -58,6 +58,9 @@ PROTOCOLSHAREDUE_API extern C_RoomEnterReqDefaultTypeInternal _C_RoomEnterReq_de
 class C_RoomLeaveReq;
 struct C_RoomLeaveReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_RoomLeaveReqDefaultTypeInternal _C_RoomLeaveReq_default_instance_;
+class N_EntitiesSpawn;
+struct N_EntitiesSpawnDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_EntitiesSpawnDefaultTypeInternal _N_EntitiesSpawn_default_instance_;
 class N_EntityDespawn;
 struct N_EntityDespawnDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_EntityDespawnDefaultTypeInternal _N_EntityDespawn_default_instance_;
@@ -81,6 +84,7 @@ PROTOCOLSHAREDUE_API extern S_RoomSetupEndDefaultTypeInternal _S_RoomSetupEnd_de
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOCOLSHAREDUE_API ::se::room::C_RoomEnterReq* Arena::CreateMaybeMessage<::se::room::C_RoomEnterReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::C_RoomLeaveReq* Arena::CreateMaybeMessage<::se::room::C_RoomLeaveReq>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::room::N_EntitiesSpawn* Arena::CreateMaybeMessage<::se::room::N_EntitiesSpawn>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::N_EntityDespawn* Arena::CreateMaybeMessage<::se::room::N_EntityDespawn>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::N_EntitySpawn* Arena::CreateMaybeMessage<::se::room::N_EntitySpawn>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::N_RoomClosed* Arena::CreateMaybeMessage<::se::room::N_RoomClosed>(Arena*);
@@ -892,6 +896,163 @@ class PROTOCOLSHAREDUE_API N_EntitySpawn final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API N_EntitiesSpawn final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.N_EntitiesSpawn) */ {
+ public:
+  inline N_EntitiesSpawn() : N_EntitiesSpawn(nullptr) {}
+  ~N_EntitiesSpawn() override;
+  explicit PROTOBUF_CONSTEXPR N_EntitiesSpawn(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_EntitiesSpawn(const N_EntitiesSpawn& from);
+  N_EntitiesSpawn(N_EntitiesSpawn&& from) noexcept
+    : N_EntitiesSpawn() {
+    *this = ::std::move(from);
+  }
+
+  inline N_EntitiesSpawn& operator=(const N_EntitiesSpawn& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_EntitiesSpawn& operator=(N_EntitiesSpawn&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_EntitiesSpawn& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_EntitiesSpawn* internal_default_instance() {
+    return reinterpret_cast<const N_EntitiesSpawn*>(
+               &_N_EntitiesSpawn_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  friend void swap(N_EntitiesSpawn& a, N_EntitiesSpawn& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_EntitiesSpawn* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_EntitiesSpawn* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_EntitiesSpawn* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_EntitiesSpawn>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_EntitiesSpawn& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_EntitiesSpawn& from) {
+    N_EntitiesSpawn::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_EntitiesSpawn* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.room.N_EntitiesSpawn";
+  }
+  protected:
+  explicit N_EntitiesSpawn(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kInfosFieldNumber = 1,
+  };
+  // repeated .se.room.SpawnInfo infos = 1;
+  int infos_size() const;
+  private:
+  int _internal_infos_size() const;
+  public:
+  void clear_infos();
+  ::se::room::SpawnInfo* mutable_infos(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::room::SpawnInfo >*
+      mutable_infos();
+  private:
+  const ::se::room::SpawnInfo& _internal_infos(int index) const;
+  ::se::room::SpawnInfo* _internal_add_infos();
+  public:
+  const ::se::room::SpawnInfo& infos(int index) const;
+  ::se::room::SpawnInfo* add_infos();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::room::SpawnInfo >&
+      infos() const;
+
+  // @@protoc_insertion_point(class_scope:se.room.N_EntitiesSpawn)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::room::SpawnInfo > infos_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_room_2froom_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API N_EntityDespawn final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.N_EntityDespawn) */ {
  public:
@@ -940,7 +1101,7 @@ class PROTOCOLSHAREDUE_API N_EntityDespawn final :
                &_N_EntityDespawn_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    6;
 
   friend void swap(N_EntityDespawn& a, N_EntityDespawn& b) {
     a.Swap(&b);
@@ -1096,7 +1257,7 @@ class PROTOCOLSHAREDUE_API S_RoomSetupEnd final :
                &_S_RoomSetupEnd_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   friend void swap(S_RoomSetupEnd& a, S_RoomSetupEnd& b) {
     a.Swap(&b);
@@ -1215,7 +1376,7 @@ class PROTOCOLSHAREDUE_API N_RoomClosed final :
                &_N_RoomClosed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    8;
 
   friend void swap(N_RoomClosed& a, N_RoomClosed& b) {
     a.Swap(&b);
@@ -1838,6 +1999,47 @@ inline void N_EntitySpawn::set_allocated_info(::se::room::SpawnInfo* info) {
 
 // -------------------------------------------------------------------
 
+// N_EntitiesSpawn
+
+// repeated .se.room.SpawnInfo infos = 1;
+inline int N_EntitiesSpawn::_internal_infos_size() const {
+  return _impl_.infos_.size();
+}
+inline int N_EntitiesSpawn::infos_size() const {
+  return _internal_infos_size();
+}
+inline ::se::room::SpawnInfo* N_EntitiesSpawn::mutable_infos(int index) {
+  // @@protoc_insertion_point(field_mutable:se.room.N_EntitiesSpawn.infos)
+  return _impl_.infos_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::room::SpawnInfo >*
+N_EntitiesSpawn::mutable_infos() {
+  // @@protoc_insertion_point(field_mutable_list:se.room.N_EntitiesSpawn.infos)
+  return &_impl_.infos_;
+}
+inline const ::se::room::SpawnInfo& N_EntitiesSpawn::_internal_infos(int index) const {
+  return _impl_.infos_.Get(index);
+}
+inline const ::se::room::SpawnInfo& N_EntitiesSpawn::infos(int index) const {
+  // @@protoc_insertion_point(field_get:se.room.N_EntitiesSpawn.infos)
+  return _internal_infos(index);
+}
+inline ::se::room::SpawnInfo* N_EntitiesSpawn::_internal_add_infos() {
+  return _impl_.infos_.Add();
+}
+inline ::se::room::SpawnInfo* N_EntitiesSpawn::add_infos() {
+  ::se::room::SpawnInfo* _add = _internal_add_infos();
+  // @@protoc_insertion_point(field_add:se.room.N_EntitiesSpawn.infos)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::room::SpawnInfo >&
+N_EntitiesSpawn::infos() const {
+  // @@protoc_insertion_point(field_list:se.room.N_EntitiesSpawn.infos)
+  return _impl_.infos_;
+}
+
+// -------------------------------------------------------------------
+
 // N_EntityDespawn
 
 // .se.common.ObjectId entity_id = 1;
@@ -1976,6 +2178,8 @@ inline void N_RoomClosed::set_reason(::se::room::RoomClosedReason value) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

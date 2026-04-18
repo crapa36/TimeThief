@@ -57,13 +57,14 @@ const char descriptor_table_protodef_common_2fcommon_5fenums_2eproto[] PROTOBUF_
   "\233\003\022\036\n\031ERR_ABILITY_NOT_AVAILABLE\020\234\003\022#\n\036ER"
   "R_STORE_PURCHASE_NOT_ALLOWED\020\235\003\022!\n\034ERR_I"
   "NSUFFICIENT_TIME_POINTS\020\236\003\022\037\n\032ERR_SAVE_P"
-  "OINT_NOT_ALLOWED\020\237\003*Y\n\nObjectType\022\014\n\010OBJ"
-  "_NONE\020\000\022\016\n\nOBJ_PLAYER\020\001\022\013\n\007OBJ_NPC\020\002\022\014\n\010"
-  "OBJ_ITEM\020\003\022\022\n\016OJB_PROJECTILE\020\004b\006proto3"
+  "OINT_NOT_ALLOWED\020\237\003*]\n\nObjectType\022\014\n\010OBJ"
+  "_NONE\020\000\022\016\n\nOBJ_PLAYER\020\001\022\017\n\013OBJ_MONSTER\020\002"
+  "\022\014\n\010OBJ_ITEM\020\003\022\022\n\016OBJ_PROJECTILE\020\004b\006prot"
+  "o3"
   ;
 static ::_pbi::once_flag descriptor_table_common_2fcommon_5fenums_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_common_2fcommon_5fenums_2eproto = {
-    false, false, 1158, descriptor_table_protodef_common_2fcommon_5fenums_2eproto,
+    false, false, 1162, descriptor_table_protodef_common_2fcommon_5fenums_2eproto,
     "common/common_enums.proto",
     &descriptor_table_common_2fcommon_5fenums_2eproto_once, nullptr, 0, 0,
     schemas, file_default_instances, TableStruct_common_2fcommon_5fenums_2eproto::offsets,

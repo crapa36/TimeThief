@@ -178,12 +178,6 @@ bool Handle_N_EntitySpawn(PacketSessionRef& session, const se::room::N_EntitySpa
 		return false;
 	}
 	
-	if (!Info.has_movement())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntitySpawn: entity has no movement info"));
-		return false;
-	}
-	
 	if (Info.entity_id().value() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntitySpawn: entity_id is 0"));
@@ -237,6 +231,11 @@ bool Handle_S_RoomSetupEnd(PacketSessionRef& session, const se::room::S_RoomSetu
 {
 	return false;
 }
+
+bool Handle_N_EntitiesSpawn(PacketSessionRef& session, const se::room::N_EntitiesSpawn& pkt)
+{
+	return false;
+}
 	
 bool Handle_N_RoomClosed(PacketSessionRef& session, const se::room::N_RoomClosed& pkt)
 {
@@ -262,9 +261,6 @@ bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 		return false;
 	
 	if (pkt.entity_id().value() == 0)
-		return false;
-	
-	if (!pkt.has_movement())
 		return false;
 	
 	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
@@ -658,11 +654,6 @@ bool Handle_N_EntityHit(PacketSessionRef& session, const se::game::N_EntityHit& 
 	return false;
 }
 
-bool Handle_N_ProjectileMove(PacketSessionRef& session, const se::game::N_ProjectileMove& pkt)
-{
-	return false;
-}
-	
 bool Handle_N_UseItem(PacketSessionRef& session, const se::game::N_UseItem& pkt)
 {
 	return false;	
@@ -681,6 +672,21 @@ bool Handle_S_UseStoreRes(PacketSessionRef& session, const se::game::S_UseStoreR
 bool Handle_N_ItemGained(PacketSessionRef& session, const se::game::N_ItemGained& pkt)
 {
 	return false;	
+}
+
+bool Handle_N_ChestInteracted(PacketSessionRef& session, const se::game::N_ChestInteracted& pkt)
+{
+	return false;	
+}
+
+bool Handle_S_UseItemRes(PacketSessionRef& session, const se::game::S_UseItemRes& pkt)
+{
+	return false;
+}
+
+bool Handle_S_SetSavePointRes(PacketSessionRef& session, const se::game::S_SetSavePointRes& pkt)
+{
+	return false;
 }
 	
 bool Handle_N_HealthChanged(PacketSessionRef& session, const se::game::N_HealthChanged& pkt)
@@ -789,6 +795,11 @@ bool Handle_N_EntityDestroyed(PacketSessionRef& session, const se::game::N_Entit
 bool Handle_N_TimePointChanged(PacketSessionRef& session, const se::game::N_TimePointChanged& pkt)
 {
 	return false;	
+}
+
+bool Handle_N_MaxHealthChanged(PacketSessionRef& session, const se::game::N_MaxHealthChanged& pkt)
+{
+	return false;
 }
 	
 bool Handle_N_TimeStormChange(PacketSessionRef& session, const se::game::N_TimeStormChange& pkt)
