@@ -13,6 +13,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Skill/SavePointSkillComponent.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
@@ -223,7 +224,12 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 		{
 			if (SaveSkill->CanActivate())
 			{
-				SaveSkill->ActivateSkill();
+				if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+				{
+					NGIS->SendSavePointSet(Player->GetActorLocation());
+				}
+				
+				// SaveSkill->ActivateSkill();
 			}
 		}
 	}

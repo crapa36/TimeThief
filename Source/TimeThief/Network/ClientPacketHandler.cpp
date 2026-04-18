@@ -647,6 +647,18 @@ bool Handle_S_UseItemRes(PacketSessionRef& session, const se::game::S_UseItemRes
 
 bool Handle_S_SetSavePointRes(PacketSessionRef& session, const se::game::S_SetSavePointRes& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleSetSavePointRes(pkt);
+			return true;
+		}
+	}
+	
 	return false;
 }
 	

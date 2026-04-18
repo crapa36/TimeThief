@@ -23,6 +23,7 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+class ATimeThiefPlayerCharacter;
 struct FRemoteAttackNotify;
 struct FEntityRuntimeEntry;
 struct FMoveSyncData;
@@ -58,6 +59,7 @@ public:
 	void SendJumpLand();
 	void SendWireAction(const FVector& AnchorPoint);
 	void SendWireActionEnd();
+	void SendSavePointSet(FVector Location);
 	
 private:
 	void ConnectToServer();
@@ -112,6 +114,7 @@ public:
 	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
 	void HandleEntityHit(const se::game::N_EntityHit& pkt);
 	void HandleUseItem(const se::game::N_UseItem& Pkt);
+	void HandleSetSavePointRes(const se::game::S_SetSavePointRes& pkt);
 	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
 	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);
 	void HandleItemGained(const se::game::N_ItemGained& Pkt);
@@ -148,6 +151,8 @@ private:
 	
 private:
 	bool LoadClientConfig();
+	
+	ATimeThiefPlayerCharacter* GetLocalPlayerPawn();
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")
