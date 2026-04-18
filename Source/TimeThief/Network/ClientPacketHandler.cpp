@@ -417,6 +417,45 @@ bool Handle_N_WireActionEnd(PacketSessionRef& session, const se::game::N_WireAct
 
 bool Handle_N_WireLaunch(PacketSessionRef& session, const se::game::N_WireLaunch& pkt)
 {
+	if (!session)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireLaunch] session is null"));
+		return false;
+	}
+
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireLaunch] invalid entity_id"));
+		return false;
+	}
+
+	if (!pkt.has_start_position() || !pkt.has_direction())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Recv][N_WireLaunch] missing start_position or direction entity=%u"), pkt.entity_id().value());
+		return false;
+	}
+
+	const auto& Start = pkt.start_position();
+	const auto& Direction = pkt.direction();
+	UE_LOG(LogTemp, Log,
+		TEXT("[WirePkt][Stage=Recv][N_WireLaunch] EntityId=%u Start=(%.1f, %.1f, %.1f) Dir=(%.2f, %.2f, %.2f)"),
+		pkt.entity_id().value(),
+		Start.x(),
+		Start.y(),
+		Start.z(),
+		Direction.x(),
+		Direction.y(),
+		Direction.z());
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleWireLaunch(pkt);
+			return true;
+		}
+	}
+
 	return false;	
 }
 	

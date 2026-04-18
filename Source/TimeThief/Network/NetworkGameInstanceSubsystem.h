@@ -58,6 +58,7 @@ public:
 	void SendJumpLand();
 	void SendWireAction(const FVector& AnchorPoint);
 	void SendWireActionEnd();
+	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
 	
 private:
 	void ConnectToServer();

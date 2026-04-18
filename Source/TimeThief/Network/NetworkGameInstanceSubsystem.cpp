@@ -167,6 +167,31 @@ void UNetworkGameInstanceSubsystem::SendWireActionEnd()
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendWireLaunch(const FVector& StartPosition, const FVector& Direction)
+{
+	se::game::C_WireLaunchReq Request;
+	auto* Start = Request.mutable_start_position();
+	Start->set_x(StartPosition.X);
+	Start->set_y(StartPosition.Y);
+	Start->set_z(StartPosition.Z);
+
+	auto* Dir = Request.mutable_direction();
+	Dir->set_x(Direction.X);
+	Dir->set_y(Direction.Y);
+	Dir->set_z(Direction.Z);
+
+	UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Send][C_WireLaunchReq] Start=(%.1f, %.1f, %.1f) Dir=(%.2f, %.2f, %.2f)"),
+		StartPosition.X,
+		StartPosition.Y,
+		StartPosition.Z,
+		Direction.X,
+		Direction.Y,
+		Direction.Z);
+
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::ConnectToServer()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));
@@ -860,6 +885,54 @@ void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireAc
 
 void UNetworkGameInstanceSubsystem::HandleWireLaunch(const se::game::N_WireLaunch& pkt)
 {
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	if (!pkt.has_entity_id() || !pkt.has_start_position() || !pkt.has_direction())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireLaunch] missing required fields"));
+		return;
+	}
+
+	const uint32 EntityId = pkt.entity_id().value();
+	const auto& Start = pkt.start_position();
+	const auto& Direction = pkt.direction();
+	UE_LOG(LogTemp, Log,
+		TEXT("[WirePkt][Stage=Apply][N_WireLaunch] EntityId=%u Start=(%.1f, %.1f, %.1f) Dir=(%.2f, %.2f, %.2f)"),
+		EntityId,
+		Start.x(),
+		Start.y(),
+		Start.z(),
+		Direction.x(),
+		Direction.y(),
+		Direction.z());
+
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireLaunch] skipped local entity=%u"), EntityId);
+		return;
+	}
+
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireLaunch] actor missing for entity=%u"), EntityId);
+		return;
+	}
+
+	if (UTimeThiefWireComponent* WireComponent = EntityEntry->Actor->GetComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComponent->SimulateLaunch(FVector(Start.x(), Start.y(), Start.z()), FVector(Direction.x(), Direction.y(), Direction.z()));
+		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Apply][N_WireLaunch] simulate launch entity=%u actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireLaunch] wire component missing entity=%u actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& Pkt)
