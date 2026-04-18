@@ -80,6 +80,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
 	float MaxYawOffsetFromCamera = 45.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float AimTraceRange = 50000.0f;
+
 	bool bIsFireInputHeld = false;
 
 private:
@@ -94,6 +97,8 @@ private:
 	void UpdateWorldAimLocation();
 	void SnapRotationToAim();
 	float GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const;
+	bool TryGetFlatAimDirection(const ACharacter* OwningCharacter, FVector& OutFlatAimDirection) const;
+	void ApplyThirdPersonAimRotation(ACharacter* OwningCharacter, float DeltaTime, bool bSnapRotation);
 
 	float DefaultMaxWalkSpeed = 0.0f;
 	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
