@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "Network/NetworkGameInstanceSubsystem.h"
 
+#include <Components/Skill/SavePointSkillComponent.h>
 #include <Generated/ClientPacketHandler.h>
 
 #include "SocketSubsystem.h"
@@ -163,6 +164,18 @@ void UNetworkGameInstanceSubsystem::SendWireActionEnd()
 {
 	se::game::C_WireActionEnd Request;
 	UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=Send][C_WireActionEnd]"));
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendSavePointSet(FVector Location)
+{
+	se::game::C_SetSavePointReq Request;
+	auto* Position = Request.mutable_position();
+	Position->set_x(Location.X);
+	Position->set_y(Location.Y);
+	Position->set_z(Location.Z);
+	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -1154,6 +1167,40 @@ void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt
 {
 }
 
+void UNetworkGameInstanceSubsystem::HandleSetSavePointRes(const se::game::S_SetSavePointRes& pkt)
+{
+	if (!pkt.success())
+	{
+		const auto& Result = pkt.result();
+		
+		UE_LOG(LogTemp, Warning, TEXT("Failed to set save point: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
+		return;
+	}
+	
+	const auto& Pos = pkt.position();
+	FVector SavePoint(Pos.x(), Pos.y(), Pos.z());
+	
+	auto LocalPlayerPawn = GetLocalPlayerPawn();
+	if (LocalPlayerPawn == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to set save point: Local player pawn not found"));
+		return;
+	}
+	
+	if (auto SaveSkill = LocalPlayerPawn->GetSavePointSkillComponent())
+	{
+		if (SaveSkill->CanActivate())
+		{
+			SaveSkill->ActivateSkill();
+			UE_LOG(LogTemp, Log, TEXT("Save point set successfully"));
+			
+			return;
+		}
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("Save Skill not ready(or not found), can't set save point"));
+}
+
 void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupItem& Pkt)
 {
 }
@@ -1415,6 +1462,31 @@ bool UNetworkGameInstanceSubsystem::LoadClientConfig()
 	UE_LOG(LogTemp, Log, TEXT("[Config] Loading client config from %s"), *FilePath);
 	
 	return FClientConfigLoader::LoadClientConfigFromFile(FilePath, ClientConfig);
+}
+
+ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
+{
+	if (GEngine == nullptr || GetWorld() == nullptr)
+	{
+		return nullptr;
+	}
+	
+	if (LocalPlayerEntityId == 0)
+		return nullptr;
+	
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(LocalPlayerEntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		return nullptr;
+	}
+	
+	auto Actor = EntityEntry->Actor.Get();
+	if (Actor == nullptr)
+	{
+		return nullptr;
+	}
+	
+	return Cast<ATimeThiefPlayerCharacter>(Actor);
 }
 
 void UNetworkGameInstanceSubsystem::RequestSetNickname(const FString& Nickname)
