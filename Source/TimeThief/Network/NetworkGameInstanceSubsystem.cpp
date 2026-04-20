@@ -663,7 +663,7 @@ void UNetworkGameInstanceSubsystem::HandleEntitySpawn(const se::room::N_EntitySp
 			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 			const auto& Velocity = ProjectileInfo.velocity();
 			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
-			EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
 		}
 		break;
 	}
@@ -745,7 +745,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 			const auto& PlayerMovement = Pkt.player_movement();
 			EntityState.Pitch = PlayerMovement.pitch();
 			const auto& Velocity = PlayerMovement.velocity();
-			EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), 0.0f);
 			EntityState.MovementMode = static_cast<EMovementMode>(PlayerMovement.movement_mode());
 		}
 		break;
@@ -769,8 +769,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 			
 			const auto& ProjectileInfo = Pkt.projectile_movement();
 			const auto& Velocity = ProjectileInfo.velocity();
-			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
-			EntityState.Velocity = FVector2D(Velocity.x(), Velocity.y());
+			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
 		}
 		break;
 	}

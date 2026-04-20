@@ -134,7 +134,7 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	TargetYaw = EntityState.Yaw;
 	TargetPitch = EntityState.Pitch;
 	
-	TargetVelocity = EntityState.Velocity;
+	TargetVelocity = FVector2D(EntityState.Velocity.X, EntityState.Velocity.Y);
 	
 	RecentMovementMode = EntityState.MovementMode;
 	Movable->SetNetworkMovementMode(RecentMovementMode);
@@ -259,7 +259,8 @@ bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 	OutSyncData.Position = Movable->GetNetworkLocation();
 	OutSyncData.Yaw = Movable->GetNetworkYaw();
 	OutSyncData.Pitch = Movable->GetNetworkPitch();
-	OutSyncData.Velocity = Movable->GetLocalControlVelocity2D();
+	const FVector2D& Velo2D = Movable->GetLocalControlVelocity2D();
+	OutSyncData.Velocity = FVector(Velo2D.X, Velo2D.Y, 0.0f);
 	OutSyncData.MovementMode = Movable->GetLocalControlMovementMode();
 	
 	return true;

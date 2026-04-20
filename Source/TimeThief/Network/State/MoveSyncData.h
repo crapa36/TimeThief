@@ -18,7 +18,7 @@ struct FMoveSyncData
 	float Pitch = 0.0f;
 	
 	UPROPERTY()
-	FVector2D Velocity = FVector2D::ZeroVector;
+	FVector Velocity = FVector::ZeroVector;
 	
 	EMovementMode MovementMode = EMovementMode::MOVE_None;
 	
