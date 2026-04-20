@@ -15,6 +15,7 @@
 #include "Network/MovableNetworkEntityInterface.h"
 #include "Network/NetworkMoveComponent.h"
 #include "Network/State/CombatNotifyType.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefPlayerCombatComponent::UTimeThiefPlayerCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -45,6 +46,11 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 
 	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
+		if (AActor* Owner = GetOwner())
+		{
+			CachedWireComponent = Owner->FindComponentByClass<UTimeThiefWireComponent>();
+		}
+
 		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
 		{
 			DefaultMaxWalkSpeed = MovementComp->MaxWalkSpeed;
@@ -91,19 +97,10 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 	}
 	else
 	{
-		FVector StartLoc = OwningCharacter->GetActorLocation();
-		if (MasterWeaponPtr)
-		{
-			StartLoc = MasterWeaponPtr->GetActorLocation();
-		}
-		CachedWorldAimLocation = StartLoc + OwningCharacter->GetBaseAimRotation().Vector() * AimTraceRange;
+		CachedWorldAimLocation = GetEffectiveShotOrigin() + OwningCharacter->GetBaseAimRotation().Vector() * AimTraceRange;
 	}
 
-	FVector StartLoc = OwningCharacter->GetActorLocation();
-	if (MasterWeaponPtr)
-	{
-		StartLoc = MasterWeaponPtr->GetActorLocation();
-	}
+	const FVector StartLoc = GetEffectiveShotOrigin();
 
 	const FVector AimVector = CachedWorldAimLocation - StartLoc;
 	if (AimVector.IsNearlyZero())
@@ -157,7 +154,6 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		{
 			SnapRotationToAim();
 			MasterWeaponPtr->StartFire();
-			UpdateCombatRotation();
 		}
 		return;
 	}
@@ -258,7 +254,6 @@ void UTimeThiefPlayerCombatComponent::OnEquipFinished()
 	{
 		SnapRotationToAim();
 		MasterWeaponPtr->StartFire();
-		UpdateCombatRotation();
 	}
 }
 
@@ -276,8 +271,6 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 			MovementComp->MaxWalkSpeed = DefaultMaxWalkSpeed * AimMovementSpeedMultiplier;
 		}
 	}
-
-	UpdateCombatRotation();
 
 	FCombatAttackRequest Request{};
 	Request.NotifyType = ECombatNotifyType::Aiming;
@@ -352,26 +345,29 @@ void UTimeThiefPlayerCombatComponent::UpdateWorldAimLocation()
 	FRotator CameraRotation;
 	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-	FVector TraceStart = CameraLocation;
-	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * AimTraceRange);
-
-	FHitResult HitResult;
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(OwningCharacter);
-	QueryParams.bTraceComplex = true;
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Reserve(2);
+	ActorsToIgnore.Add(OwningCharacter);
 	if (MasterWeaponPtr)
 	{
-		QueryParams.AddIgnoredActor(MasterWeaponPtr);
+		ActorsToIgnore.Add(MasterWeaponPtr);
 	}
 
-	if (GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams))
-	{
-		CachedWorldAimLocation = HitResult.ImpactPoint;
-	}
-	else
-	{
-		CachedWorldAimLocation = TraceEnd;
-	}
+	FHitResult HitResult;
+	FVector TraceEnd = CameraLocation;
+	const bool bHit = UTimeThiefAimStatics::TraceFromView(
+		GetWorld(),
+		CameraLocation,
+		CameraRotation.Vector(),
+		AimTraceRange,
+		ActorsToIgnore,
+		HitResult,
+		TraceEnd,
+		ECC_Visibility,
+		true,
+		false);
+
+	CachedWorldAimLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
 }
 
 bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
@@ -413,7 +409,11 @@ void UTimeThiefPlayerCombatComponent::SnapRotationToAim()
 
 	if (IsRotationManagedExternally()) return;
 
-	UpdateWorldAimLocation();
+	if (CachedWorldAimLocation.IsNearlyZero())
+	{
+		UpdateWorldAimLocation();
+	}
+
 	ApplyThirdPersonAimRotation(OwningCharacter, 0.0f, true);
 }
 
@@ -437,13 +437,7 @@ bool UTimeThiefPlayerCombatComponent::TryGetFlatAimDirection(const ACharacter* O
 		return false;
 	}
 
-	FVector StartLoc = OwningCharacter->GetActorLocation();
-	if (MasterWeaponPtr)
-	{
-		StartLoc = MasterWeaponPtr->GetActorLocation();
-	}
-
-	OutFlatAimDirection = CachedWorldAimLocation - StartLoc;
+	OutFlatAimDirection = CachedWorldAimLocation - GetEffectiveShotOrigin();
 	OutFlatAimDirection.Z = 0.0f;
 	return OutFlatAimDirection.SizeSquared() > KINDA_SMALL_NUMBER;
 }
@@ -547,22 +541,20 @@ void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 {
 	const float TargetFOV = bIsAiming ? AimFOV : DefaultFOV;
 
-	if (CachedThirdPersonCamera.IsValid())
+	for (UCameraComponent* Camera : { CachedThirdPersonCamera.Get(), CachedFirstPersonCamera.Get() })
 	{
-		if (!FMath::IsNearlyEqual(CachedThirdPersonCamera->FieldOfView, TargetFOV, 0.1f))
+		if (!Camera)
 		{
-			const float NewFOV = FMath::FInterpTo(CachedThirdPersonCamera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
-			CachedThirdPersonCamera->SetFieldOfView(NewFOV);
+			continue;
 		}
-	}
 
-	if (CachedFirstPersonCamera.IsValid())
-	{
-		if (!FMath::IsNearlyEqual(CachedFirstPersonCamera->FieldOfView, TargetFOV, 0.1f))
+		if (FMath::IsNearlyEqual(Camera->FieldOfView, TargetFOV, 0.1f))
 		{
-			const float NewFOV = FMath::FInterpTo(CachedFirstPersonCamera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
-			CachedFirstPersonCamera->SetFieldOfView(NewFOV);
+			continue;
 		}
+
+		const float NewFOV = FMath::FInterpTo(Camera->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+		Camera->SetFieldOfView(NewFOV);
 	}
 }
 

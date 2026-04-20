@@ -12,7 +12,6 @@
 #include "Actors/InteractionActorBase.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "ChannelCommons.h"
-#include "Components/TimeThiefPawnExtensionComponent.h"
 #include "TimeThiefPlayerState.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
@@ -479,9 +478,9 @@ void ATimeThiefPlayerCharacter::PawnClientRestart()
 {
     Super::PawnClientRestart();
 
-    if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+    if (HeroComponent)
     {
-       PawnExtComp->CheckDefaultInitialization();
+       HeroComponent->CheckDefaultInitialization();
     }
 }
 
@@ -489,9 +488,9 @@ void ATimeThiefPlayerCharacter::NotifyControllerChanged()
 {
     Super::NotifyControllerChanged();
 
-    if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+    if (HeroComponent)
     {
-       PawnExtComp->NotifyControllerChanged();
+       HeroComponent->RebuildCachedComponents();
     }
 
     if (PawnData)
@@ -504,9 +503,10 @@ void ATimeThiefPlayerCharacter::PossessedBy(AController* NewController)
 {
     Super::PossessedBy(NewController);
     
-    if (UTimeThiefPawnExtensionComponent* PawnExtComp = FindComponentByClass<UTimeThiefPawnExtensionComponent>())
+    if (HeroComponent)
     {
-       PawnExtComp->NotifyControllerChanged();
+       HeroComponent->NotifyControllerChanged();
+       HeroComponent->RebuildCachedComponents();
     }
 }
 
@@ -528,6 +528,11 @@ void ATimeThiefPlayerCharacter::OnBeginRespawn()
 void ATimeThiefPlayerCharacter::OnEndRespawn()
 {
 	Super::OnEndRespawn();
+
+  if (HeroComponent)
+  {
+    HeroComponent->RebuildCachedComponents();
+  }
 	
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{

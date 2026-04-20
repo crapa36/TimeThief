@@ -13,6 +13,7 @@
 #include "Network/State/CombatAttackRequest.h"
 #include "Network/State/CombatNotifyType.h"
 #include "TimeThiefGameplayTags.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefWeaponComponentBase::UTimeThiefWeaponComponentBase() {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -268,15 +269,12 @@ FVector UTimeThiefWeaponComponentBase::GetLocalAttackDirection() const
 {
 	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetParentActor() : nullptr))
 	{
-		if (const APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
+		FVector ViewLocation = FVector::ZeroVector;
+		FVector ViewDirection = FVector::ForwardVector;
+		if (UTimeThiefAimStatics::ResolveAimView(OwnerPawn, ViewLocation, ViewDirection))
 		{
-			FVector CameraLocation;
-			FRotator CameraRotation;
-			PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-			return CameraRotation.Vector().GetSafeNormal();
+			return ViewDirection;
 		}
-
-		return OwnerPawn->GetBaseAimRotation().Vector().GetSafeNormal();
 	}
 
 	return FVector::ForwardVector;
@@ -293,17 +291,7 @@ bool UTimeThiefWeaponComponentBase::ResolveFireAimView(FVector& OutViewLocation,
 
 	if (const APawn* OwnerPawn = Cast<APawn>(GetOwner() ? GetOwner()->GetParentActor() : nullptr))
 	{
-		if (const APlayerController* PC = Cast<APlayerController>(OwnerPawn->GetController()))
-		{
-			FRotator CameraRotation;
-			PC->GetPlayerViewPoint(OutViewLocation, CameraRotation);
-			OutViewDirection = CameraRotation.Vector().GetSafeNormal();
-			return true;
-		}
-
-		OutViewLocation = OwnerPawn->GetPawnViewLocation();
-		OutViewDirection = OwnerPawn->GetBaseAimRotation().Vector().GetSafeNormal();
-		return true;
+		return UTimeThiefAimStatics::ResolveAimView(OwnerPawn, OutViewLocation, OutViewDirection);
 	}
 
 	OutViewLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;

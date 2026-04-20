@@ -46,12 +46,21 @@ void UTimeThiefHeroComponent::BeginPlay()
 	Super::BeginPlay();
 	BindOnActorInitStateChanged(NAME_None, FGameplayTag(), false);
 	CheckDefaultInitialization();
+	RebuildCachedComponents();
+}
 
+
+void UTimeThiefHeroComponent::RebuildCachedComponents()
+{
 	if (APawn* Pawn = GetPawn<APawn>())
 	{
 		CachedWireComponent = Pawn->FindComponentByClass<UTimeThiefWireComponent>();
 		CachedCombatComponent = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>();
+		return;
 	}
+
+	CachedWireComponent = nullptr;
+	CachedCombatComponent = nullptr;
 }
 
 void UTimeThiefHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -114,7 +123,7 @@ void UTimeThiefHeroComponent::AddInputMappingContext(const UInputMappingContext*
 {
 	if (APawn* Pawn = GetPawn<APawn>())
 	{
-		if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+		if (APlayerController* PC = Pawn->GetController<APlayerController>())
 		{
 			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 			{
@@ -128,7 +137,7 @@ void UTimeThiefHeroComponent::RemoveInputMappingContext(const UInputMappingConte
 {
 	if (APawn* Pawn = GetPawn<APawn>())
 	{
-		if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+		if (APlayerController* PC = Pawn->GetController<APlayerController>())
 		{
 			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 			{
@@ -162,7 +171,7 @@ void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value)
 	APawn* Pawn = GetPawn<APawn>();
 	if (!Pawn) return;
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	if (APlayerController* PC = Cast<APlayerController>(Pawn->GetController()))
+	if (APlayerController* PC = Pawn->GetController<APlayerController>())
 	{
 		PC->AddYawInput(LookAxisVector.X);
 		PC->AddPitchInput(LookAxisVector.Y);
