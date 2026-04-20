@@ -68,6 +68,11 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 			CachedFirstPersonCamera = BaseChar->GetFirstPersonCamera();
 		}
 	}
+
+	if (const APawn* OwningPawn = GetPawn<APawn>(); OwningPawn && OwningPawn->IsLocallyControlled())
+	{
+		EquipWeapon(Tags.Weapon_Rifle);
+	}
 }
 
 void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction)
@@ -129,21 +134,18 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 	{
 		if (CurrentEquippedWeaponTag == *WeaponTag)
 		{
-			StopAiming();
-			UnequipCurrentWeapon();
+			return;
 		}
-		else
-		{
-			const FGameplayTag PreviousWeaponTag = CurrentEquippedWeaponTag;
-			EquipWeapon(*WeaponTag);
 
-			if (CurrentEquippedWeaponTag.IsValid() && CurrentEquippedWeaponTag != PreviousWeaponTag)
-			{
-				FCombatAttackRequest Request{};
-				Request.NotifyType = ECombatNotifyType::WeaponChange;
-				Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(CurrentEquippedWeaponTag);
-				BroadcastCombatAttackRequest(Request);
-			}
+		const FGameplayTag PreviousWeaponTag = CurrentEquippedWeaponTag;
+		EquipWeapon(*WeaponTag);
+
+		if (CurrentEquippedWeaponTag.IsValid() && CurrentEquippedWeaponTag != PreviousWeaponTag)
+		{
+			FCombatAttackRequest Request{};
+			Request.NotifyType = ECombatNotifyType::WeaponChange;
+			Request.WeaponId = FTimeThiefGameplayTags::ResolveWeaponIdFromTag(CurrentEquippedWeaponTag);
+			BroadcastCombatAttackRequest(Request);
 		}
 		return;
 	}
