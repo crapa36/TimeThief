@@ -120,7 +120,22 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	const bool bIsLocallyControlled = IsValid(CachedCharacter) && CachedCharacter->IsLocallyControlled();
 	if (!bIsLocallyControlled)
 	{
-		if (CurrentState == EWireState::Attached)
+		if (CurrentState == EWireState::Firing)
+		{
+			const float MoveDistance = WireFireSpeed * DeltaTime;
+			CurrentFireDistance += MoveDistance;
+			AnchorPoint += FireDirection * MoveDistance;
+
+			if (CurrentFireDistance >= MaxWireLength)
+			{
+				ReleaseWire();
+			}
+			else
+			{
+				UpdateWireVisuals();
+			}
+		}
+		else if (CurrentState == EWireState::Attached)
 		{
 			UpdateWireVisuals();
 		}
@@ -195,6 +210,19 @@ void UTimeThiefWireComponent::SimulateDetach()
 	SetComponentTickEnabled(false);
 }
 
+void UTimeThiefWireComponent::SimulateLaunch(const FVector& RemoteStartPosition, const FVector& RemoteDirection)
+{
+	AnchorPoint = RemoteStartPosition;
+	FireDirection = RemoteDirection.GetSafeNormal();
+	CurrentFireDistance = 0.0f;
+	StuckCheckTimer = 0.0f;
+	GroundCheckTimer = 0.0f;
+
+	SetWireState(EWireState::Firing);
+	SetComponentTickEnabled(true);
+	UpdateWireVisuals();
+}
+
 bool UTimeThiefWireComponent::ShouldTickComponent() const
 {
 	return CurrentState != EWireState::Idle || CooldownRemaining > 0.0f;
@@ -260,6 +288,8 @@ void UTimeThiefWireComponent::FireWire()
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, FireSound, WireStartLocation);
 	}
+
+	OnWireLaunched.Broadcast(WireStartLocation, FireDirection);
 
 	SetComponentTickEnabled(true);
 	SetWireState(EWireState::Firing);

@@ -60,6 +60,7 @@ public:
 	void SendWireAction(const FVector& AnchorPoint);
 	void SendWireActionEnd();
 	void SendSavePointSet(FVector Location);
+	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
 	
 private:
 	void ConnectToServer();

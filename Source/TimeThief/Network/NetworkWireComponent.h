@@ -27,6 +27,9 @@ private:
 	UFUNCTION()
 	void HandleLocalWireStateChanged(EWireState OldState, EWireState NewState);
 
+	UFUNCTION()
+	void HandleLocalWireLaunched(const FVector& StartPosition, const FVector& Direction);
+
 	bool IsLocalControlledOwner() const;
 	UNetworkGameInstanceSubsystem* GetNetworkGameInstanceSubsystem();
 

@@ -21,6 +21,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogWire, Log, All);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWireStateChanged, EWireState, OldState, EWireState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWireAttached, const FVector&, AnchorPoint);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWireLaunched, const FVector&, StartPosition, const FVector&, Direction);
 
 UCLASS(BlueprintType, meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeThiefWireComponent : public UTimeThiefPawnExtensionComponent
@@ -44,6 +45,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire|Network")
 	void SimulateDetach();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire|Network")
+	void SimulateLaunch(const FVector& RemoteStartPosition, const FVector& RemoteDirection);
 
 	void HandleInputPressed(FGameplayTag InputTag);
 	void SetMoveInput(const FVector2D& Input) { MoveInput = Input; }
@@ -112,6 +116,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
 	FOnWireAttached OnWireAttached;
+
+	UPROPERTY(BlueprintAssignable, Category = "TimeThief|Wire")
+	FOnWireLaunched OnWireLaunched;
 
 protected:
 	UPROPERTY(EditAnywhere, Instanced, BlueprintReadWrite, Category = "Wire|Modules")

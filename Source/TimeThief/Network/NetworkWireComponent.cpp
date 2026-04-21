@@ -22,6 +22,7 @@ void UNetworkWireComponent::BeginPlay()
 	{
 		WireComponent->OnWireAttached.AddDynamic(this, &UNetworkWireComponent::HandleLocalWireAttached);
 		WireComponent->OnWireStateChanged.AddDynamic(this, &UNetworkWireComponent::HandleLocalWireStateChanged);
+		WireComponent->OnWireLaunched.AddDynamic(this, &UNetworkWireComponent::HandleLocalWireLaunched);
 	}
 
 	if (GetNetworkGameInstanceSubsystem() == nullptr)
@@ -36,6 +37,7 @@ void UNetworkWireComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		WireComponent->OnWireAttached.RemoveDynamic(this, &UNetworkWireComponent::HandleLocalWireAttached);
 		WireComponent->OnWireStateChanged.RemoveDynamic(this, &UNetworkWireComponent::HandleLocalWireStateChanged);
+		WireComponent->OnWireLaunched.RemoveDynamic(this, &UNetworkWireComponent::HandleLocalWireLaunched);
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -71,6 +73,28 @@ void UNetworkWireComponent::HandleLocalWireStateChanged(EWireState OldState, EWi
 		{
 			NetworkSubsystem->SendWireActionEnd();
 		}
+	}
+}
+
+void UNetworkWireComponent::HandleLocalWireLaunched(const FVector& StartPosition, const FVector& Direction)
+{
+	if (!IsLocalControlledOwner())
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=SendLocal][OnWireLaunched] Owner=%s Start=(%.1f, %.1f, %.1f) Dir=(%.2f, %.2f, %.2f)"),
+		*GetNameSafe(GetOwner()),
+		StartPosition.X,
+		StartPosition.Y,
+		StartPosition.Z,
+		Direction.X,
+		Direction.Y,
+		Direction.Z);
+
+	if (UNetworkGameInstanceSubsystem* NetworkSubsystem = GetNetworkGameInstanceSubsystem())
+	{
+		NetworkSubsystem->SendWireLaunch(StartPosition, Direction);
 	}
 }
 
