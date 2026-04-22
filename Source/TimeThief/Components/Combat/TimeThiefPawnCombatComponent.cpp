@@ -210,6 +210,21 @@ float UTimeThiefPawnCombatComponent::PlayEquipMontage(UTimeThiefWeaponComponentB
 	return 0.0f;
 }
 
+FVector UTimeThiefPawnCombatComponent::GetEffectiveShotOrigin() const
+{
+	if (MasterWeaponPtr)
+	{
+		return MasterWeaponPtr->GetActorLocation();
+	}
+
+	if (const ACharacter* OwningCharacter = GetPawn<ACharacter>())
+	{
+		return OwningCharacter->GetActorLocation();
+	}
+
+	return FVector::ZeroVector;
+}
+
 void UTimeThiefPawnCombatComponent::OnEquipFinished()
 {
 	bIsEquippingWeapon = false;
@@ -359,19 +374,17 @@ void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 		FVector AimDirection = CachedRemoteAimDirection;
 		if (AimDirection.IsNearlyZero() && !CachedRemoteAimLocation.IsNearlyZero())
 		{
-			FVector BaseLocation = OwningCharacter->GetActorLocation();
-			if (MasterWeaponPtr)
-			{
-				BaseLocation = MasterWeaponPtr->GetActorLocation();
-			}
-
-			AimDirection = (CachedRemoteAimLocation - BaseLocation).GetSafeNormal();
+			AimDirection = (CachedRemoteAimLocation - GetEffectiveShotOrigin()).GetSafeNormal();
 		}
 
 		if (!AimDirection.IsNearlyZero())
 		{
 			const FRotator AimRotation = AimDirection.Rotation();
-			OwningCharacter->SetActorRotation(FRotator(0.0f, AimRotation.Yaw, 0.0f));
+
+			if (ShouldApplyRemoteFireYawRotation())
+			{
+				OwningCharacter->SetActorRotation(FRotator(0.0f, AimRotation.Yaw, 0.0f));
+			}
 
 			if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
 			{

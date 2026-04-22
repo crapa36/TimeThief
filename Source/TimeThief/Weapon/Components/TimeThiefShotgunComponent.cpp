@@ -7,6 +7,7 @@
 #include "Sound/SoundBase.h"
 #include "DrawDebugHelpers.h"
 #include "Utils/Random32.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 namespace 
 {
@@ -74,18 +75,27 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	FVector CameraAimDir = FVector::ForwardVector;
 	ResolveFireAimView(CameraLocation, CameraAimDir);
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Reserve(2);
+	ActorsToIgnore.Add(GetOwner());
 	if (GetOwner())
 	{
-		QueryParams.AddIgnoredActor(GetOwner()->GetParentActor());
+		ActorsToIgnore.Add(GetOwner()->GetParentActor());
 	}
-	QueryParams.bTraceComplex = true;
-	QueryParams.bReturnPhysicalMaterial = true;
 
-	const FVector CenterTraceEnd = CameraLocation + CameraAimDir * MaxRange;
+	FVector CenterTraceEnd = CameraLocation + CameraAimDir * MaxRange;
 	FHitResult CenterHitResult;
-	GetWorld()->LineTraceSingleByChannel(CenterHitResult, CameraLocation, CenterTraceEnd, ECC_Visibility, QueryParams);
+	UTimeThiefAimStatics::TraceFromView(
+		GetWorld(),
+		CameraLocation,
+		CameraAimDir,
+		MaxRange,
+		ActorsToIgnore,
+		CenterHitResult,
+		CenterTraceEnd,
+		ECC_Visibility,
+		true,
+		true);
 	const FVector CenterTargetLocation = CenterHitResult.bBlockingHit ? CenterHitResult.ImpactPoint : CenterTraceEnd;
 	CacheLastShotSyncData(MuzzleLocation, (CenterTargetLocation - MuzzleLocation).GetSafeNormal());
 
@@ -103,14 +113,32 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 		const float r1 = SeededRandom.NextFloat01();
 		const float r2 = SeededRandom.NextFloat01();
 		const FVector PelletAimDir = MyRandomCone(CameraAimDir, HalfSpreadRad, r1, r2);
-		const FVector CameraTraceEnd = CameraLocation + PelletAimDir * MaxRange;
+		FVector CameraTraceEnd = CameraLocation + PelletAimDir * MaxRange;
 
 		FHitResult CameraHitResult;
-		GetWorld()->LineTraceSingleByChannel(CameraHitResult, CameraLocation, CameraTraceEnd, ECC_Visibility, QueryParams);
+		UTimeThiefAimStatics::TraceFromView(
+			GetWorld(),
+			CameraLocation,
+			PelletAimDir,
+			MaxRange,
+			ActorsToIgnore,
+			CameraHitResult,
+			CameraTraceEnd,
+			ECC_Visibility,
+			true,
+			true);
 
 		const FVector TargetLocation = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : CameraTraceEnd;
 		FHitResult WeaponHitResult;
-		const bool bWeaponHit = GetWorld()->LineTraceSingleByChannel(WeaponHitResult, MuzzleLocation, TargetLocation, ECC_Visibility, QueryParams);
+		const bool bWeaponHit = UTimeThiefAimStatics::TraceLine(
+			GetWorld(),
+			MuzzleLocation,
+			TargetLocation,
+			ActorsToIgnore,
+			WeaponHitResult,
+			ECC_Visibility,
+			true,
+			true);
 
 		const FVector DebugEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
 		DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Orange, false, 2.0f, 0, 1.0f);

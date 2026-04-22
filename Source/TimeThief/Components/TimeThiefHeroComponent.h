@@ -27,6 +27,7 @@ public:
 
 	void SetPawnData(const UTimeThiefPawnData* InPawnData);
 	void InitializePlayerInput(UInputComponent* PlayerInputComponent);
+	void RebuildCachedComponents();
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Hero")
 	void InitializeAbilitySystem();

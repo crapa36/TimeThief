@@ -4,6 +4,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefRocketLauncherComponent::UTimeThiefRocketLauncherComponent()
 {
@@ -54,18 +55,28 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	ResolveFireAimView(CameraLocation, CameraAimDirection);
 
 	const FVector MuzzleLocation = GetMuzzleLocation();
-	const FVector CameraTraceEnd = CameraLocation + (CameraAimDirection * AimTraceRange);
+	FVector CameraTraceEnd = CameraLocation + (CameraAimDirection * AimTraceRange);
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Reserve(2);
+	ActorsToIgnore.Add(GetOwner());
 	if (GetOwner())
 	{
-		QueryParams.AddIgnoredActor(GetOwner()->GetParentActor());
+		ActorsToIgnore.Add(GetOwner()->GetParentActor());
 	}
-	QueryParams.bTraceComplex = true;
 
 	FHitResult CameraHitResult;
-	World->LineTraceSingleByChannel(CameraHitResult, CameraLocation, CameraTraceEnd, ECC_Visibility, QueryParams);
+	UTimeThiefAimStatics::TraceFromView(
+		World,
+		CameraLocation,
+		CameraAimDirection,
+		AimTraceRange,
+		ActorsToIgnore,
+		CameraHitResult,
+		CameraTraceEnd,
+		ECC_Visibility,
+		true,
+		false);
 	const FVector TargetLocation = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : CameraTraceEnd;
 
 	const FVector ShootDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();

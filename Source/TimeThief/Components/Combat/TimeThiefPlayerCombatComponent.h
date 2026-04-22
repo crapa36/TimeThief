@@ -19,6 +19,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction) override;
+	virtual bool ShouldApplyRemoteFireYawRotation() const override { return false; }
 	virtual void EquipWeapon(FGameplayTag WeaponTag) override;
 
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;

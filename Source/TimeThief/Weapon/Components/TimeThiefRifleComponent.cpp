@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefRifleComponent::UTimeThiefRifleComponent()
 {
@@ -45,25 +46,42 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 		CameraAimDir = FMath::VRandCone(CameraAimDir, HalfSpread);
 	}
 
-	const FVector TraceEnd = CameraLocation + CameraAimDir * MaxRange;
+	FVector TraceEnd = CameraLocation + CameraAimDir * MaxRange;
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(GetOwner());
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Reserve(2);
+	ActorsToIgnore.Add(GetOwner());
 	if (GetOwner())
 	{
-		QueryParams.AddIgnoredActor(GetOwner()->GetParentActor());
+		ActorsToIgnore.Add(GetOwner()->GetParentActor());
 	}
-	QueryParams.bTraceComplex = true;
-	QueryParams.bReturnPhysicalMaterial = true;
 
 	FHitResult CameraHitResult;
-	GetWorld()->LineTraceSingleByChannel(CameraHitResult, CameraLocation, TraceEnd, ECC_Visibility, QueryParams);
+	UTimeThiefAimStatics::TraceFromView(
+		GetWorld(),
+		CameraLocation,
+		CameraAimDir,
+		MaxRange,
+		ActorsToIgnore,
+		CameraHitResult,
+		TraceEnd,
+		ECC_Visibility,
+		true,
+		true);
 
 	const FVector TargetLocation = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : TraceEnd;
 	const FVector MuzzleLocation = GetMuzzleLocation();
 
 	FHitResult WeaponHitResult;
-	const bool bWeaponHit = GetWorld()->LineTraceSingleByChannel(WeaponHitResult, MuzzleLocation, TargetLocation, ECC_Visibility, QueryParams);
+	const bool bWeaponHit = UTimeThiefAimStatics::TraceLine(
+		GetWorld(),
+		MuzzleLocation,
+		TargetLocation,
+		ActorsToIgnore,
+		WeaponHitResult,
+		ECC_Visibility,
+		true,
+		true);
 
 	const FVector DebugEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
 	DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Red, false, 2.0f, 0, 1.0f);

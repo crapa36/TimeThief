@@ -68,6 +68,7 @@ public:
 	virtual void Remote_SyncAimingState(bool bNewAiming);
 	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction);
 	virtual void Remote_SyncFireAction();
+	virtual bool ShouldApplyRemoteFireYawRotation() const { return true; }
 
 	virtual void OnEquipAnimFinished();
 	virtual void OnUnequipAnimFinished();
@@ -77,6 +78,7 @@ protected:
 
 	void PlayFireMontage();
 	float PlayEquipMontage(UTimeThiefWeaponComponentBase* Weapon);
+	FVector GetEffectiveShotOrigin() const;
 	void ApplyCombatStateTag(FGameplayTag WeaponTag);
 	void RemoveCombatStateTag(FGameplayTag WeaponTag);
 

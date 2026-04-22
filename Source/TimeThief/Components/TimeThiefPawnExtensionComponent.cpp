@@ -54,6 +54,9 @@ void UTimeThiefPawnExtensionComponent::HandleChangeInitState(UGameFrameworkCompo
 }
 
 void UTimeThiefPawnExtensionComponent::OnActorInitStateChanged(const FActorInitStateChangedParams& Params) {
+	if (Params.FeatureName != NAME_ActorFeatureName) {
+		CheckDefaultInitialization();
+	}
 }
 
 void UTimeThiefPawnExtensionComponent::CheckDefaultInitialization() {
