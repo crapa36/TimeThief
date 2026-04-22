@@ -18,6 +18,7 @@
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
+#include "Components/System/TimePointSystemComponent.h"
 #include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameStateBase.h"
@@ -1342,6 +1343,30 @@ void UNetworkGameInstanceSubsystem::HandleEntityDestroyed(const se::game::N_Enti
 
 void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_TimePointChanged& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	UTimePointSystemComponent* TimePointComp = LocalPlayer ? LocalPlayer->FindComponentByClass<UTimePointSystemComponent>() : nullptr;
+	if (TimePointComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Local player has no UTimePointSystemComponent"));
+		return;
+	}
+	
+	// TODO: Setter가 필요하다 (아니면 New, Delta 모두 받는 함수 파기)
+	// TimePointComp->SetTimePoints(Pkt.new_time_points());		// Setter 없다
+	TimePointComp->ModifyTimePoints(Pkt.delta());
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)

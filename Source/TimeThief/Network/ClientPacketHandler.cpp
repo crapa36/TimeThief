@@ -831,6 +831,19 @@ bool Handle_N_EntityDestroyed(PacketSessionRef& session, const se::game::N_Entit
 	
 bool Handle_N_TimePointChanged(PacketSessionRef& session, const se::game::N_TimePointChanged& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleTimePointChanged(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_TimePointChanged: Received pkt"));
 	return false;	
 }
 

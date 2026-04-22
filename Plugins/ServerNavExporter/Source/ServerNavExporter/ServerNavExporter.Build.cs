@@ -30,7 +30,7 @@ public class ServerNavExporter : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"NavigationSystem",
-				"NavMesh",
+				"Navmesh",
 				"AIModule",
 				"Json",
 				"JsonUtilities",
