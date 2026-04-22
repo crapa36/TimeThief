@@ -18,6 +18,7 @@
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
+#include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -1217,6 +1218,32 @@ void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlaye
 
 void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes& pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const bool bSuccess = pkt.success();
+	if (!bSuccess)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to reload (From Server)"));
+		return;
+	}
+	
+	const uint32 WeaponId = pkt.weapon_id();
+	const uint32 ReloadedAmmo = pkt.reloaded_ammo();	// Delta Ammo
+	const uint32 RemainingAmmo = pkt.remaining_ammo();	// 현재 장전된 탄약
+	
+	// TODO: Player Combat Comp에서 특정 Weapon에 대한 탄창을 제어할 수 있어야 함
+	if (auto LocalPlayerPawn = GetLocalPlayerPawn())
+	{
+		if (auto CombatComp = LocalPlayerPawn->FindComponentByClass<UTimeThiefPlayerCombatComponent>())
+		{
+			// TODO: WeaponId로 어떤 무기인지 구분해서 해당 무기의 탄약을 갱신해야 함
+		}
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit& pkt)
