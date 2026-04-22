@@ -1480,6 +1480,37 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 
 void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	if (EntityId == LocalPlayerEntityId)
+	{
+		// 로컬 플레이어의 체력 변동만 유효함
+		auto Entry = EntityEntries.Find(EntityId);
+		if (Entry == nullptr)
+		{
+			return;
+		}
+		
+		auto Actor = Entry->Actor.Get();
+		if (Actor == nullptr)
+		{
+			return;
+		}
+		
+		auto HealthComp = Actor->FindComponentByClass<UTimeThiefHealthComponent>();
+		if (HealthComp == nullptr)
+		{
+			return;
+		}
+		
+		HealthComp->SetHealth(Pkt.new_max_health(), Pkt.new_current_health());
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
