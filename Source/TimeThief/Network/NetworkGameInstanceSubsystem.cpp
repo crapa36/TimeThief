@@ -14,6 +14,7 @@
 #include "ClientConfigLoader.h"
 #include "NetworkEntityComponent.h"
 #include "NetworkMoveComponent.h"
+#include "TimeThiefGameplayTags.h"
 #include "TimeThiefNetworkSettings.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
@@ -32,6 +33,8 @@
 #include "Network/NetworkCombatSyncComponent.h"
 #include "State/NetworkActionTypes.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 namespace
 {
@@ -1236,12 +1239,24 @@ void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes&
 	const uint32 ReloadedAmmo = pkt.reloaded_ammo();	// Delta Ammo
 	const uint32 RemainingAmmo = pkt.remaining_ammo();	// 현재 장전된 탄약
 	
-	// TODO: Player Combat Comp에서 특정 Weapon에 대한 탄창을 제어할 수 있어야 함
 	if (auto LocalPlayerPawn = GetLocalPlayerPawn())
 	{
 		if (auto CombatComp = LocalPlayerPawn->FindComponentByClass<UTimeThiefPlayerCombatComponent>())
 		{
-			// TODO: WeaponId로 어떤 무기인지 구분해서 해당 무기의 탄약을 갱신해야 함
+			if (auto MasterWeapon = CombatComp->GetMasterWeapon())
+			{
+				if (auto EquipWeapon = MasterWeapon->GetActiveWeaponComponent())
+				{
+					if (EquipWeapon->GetWeaponTag() != FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId))
+					{
+						// 재장전 완료 패킷이 왔지만 다른 무기로 장착이 바뀐 경우, 재장전 결과를 무시한다. <- 재장전 실패 한 것
+						UE_LOG(LogTemp, Warning, TEXT("Received ReloadRes for WeaponId=%u, but currently equipped weapon is different. Ignoring reload result."), WeaponId);
+						return;
+					}
+					
+					EquipWeapon->HandleReloadResult(ReloadedAmmo, RemainingAmmo);
+				}
+			}
 		}
 	}
 }

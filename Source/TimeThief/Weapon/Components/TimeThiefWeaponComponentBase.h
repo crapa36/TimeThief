@@ -225,6 +225,8 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> UnequipMontage;
+	
+	void HandleReloadResult(uint32 DeltaAmmo, uint32 NewAmmo);
 
 private:
 	float GetFireInterval() const;

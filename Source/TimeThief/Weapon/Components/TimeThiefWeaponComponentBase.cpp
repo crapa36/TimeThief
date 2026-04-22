@@ -212,6 +212,24 @@ void UTimeThiefWeaponComponentBase::StopFiringLoop() {
 	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
 }
 
+void UTimeThiefWeaponComponentBase::HandleReloadResult(uint32 DeltaAmmo, uint32 NewAmmo)
+{
+	if ((MaxAmmo - CurrentAmmo) != DeltaAmmo)
+	{
+		// 이건 경고
+		UE_LOG(LogTemp, Warning, TEXT("HandleReloadResult: DeltaAmmo does not match the expected value. Expected: %d, Actual: %d"), MaxAmmo - CurrentAmmo, DeltaAmmo);
+	}
+	
+	if (NewAmmo != MaxAmmo)
+	{
+		// 이건 오류
+		UE_LOG(LogTemp, Error, TEXT("HandleReloadResult: NewAmmo does not match MaxAmmo. Expected: %d, Actual: %d"), MaxAmmo, NewAmmo);
+		return;
+	}
+	
+	FinishReload();
+}
+
 float UTimeThiefWeaponComponentBase::GetFireInterval() const {
 	return RoundsPerSecond > 0.0f ? 1.0f / RoundsPerSecond : (FireRate > 0.0f ? 60.0f / FireRate : 0.1f);
 }
