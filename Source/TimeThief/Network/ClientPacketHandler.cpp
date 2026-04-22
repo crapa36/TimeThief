@@ -679,6 +679,11 @@ bool Handle_N_ChestInteracted(PacketSessionRef& session, const se::game::N_Chest
 	return false;	
 }
 
+bool Handle_N_ItemLost(PacketSessionRef& session, const se::game::N_ItemLost& pkt)
+{
+	return false;
+}
+
 bool Handle_S_UseItemRes(PacketSessionRef& session, const se::game::S_UseItemRes& pkt)
 {
 	return false;

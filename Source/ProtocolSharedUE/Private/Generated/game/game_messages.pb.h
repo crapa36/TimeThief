@@ -154,6 +154,9 @@ PROTOCOLSHAREDUE_API extern N_HealthChangedDefaultTypeInternal _N_HealthChanged_
 class N_ItemGained;
 struct N_ItemGainedDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_ItemGainedDefaultTypeInternal _N_ItemGained_default_instance_;
+class N_ItemLost;
+struct N_ItemLostDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_ItemLostDefaultTypeInternal _N_ItemLost_default_instance_;
 class N_Jump;
 struct N_JumpDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_JumpDefaultTypeInternal _N_Jump_default_instance_;
@@ -251,6 +254,7 @@ template<> PROTOCOLSHAREDUE_API ::se::game::N_GameEnd* Arena::CreateMaybeMessage
 template<> PROTOCOLSHAREDUE_API ::se::game::N_GameStart* Arena::CreateMaybeMessage<::se::game::N_GameStart>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_HealthChanged* Arena::CreateMaybeMessage<::se::game::N_HealthChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_ItemGained* Arena::CreateMaybeMessage<::se::game::N_ItemGained>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_ItemLost* Arena::CreateMaybeMessage<::se::game::N_ItemLost>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_Jump* Arena::CreateMaybeMessage<::se::game::N_Jump>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_JumpLand* Arena::CreateMaybeMessage<::se::game::N_JumpLand>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_KillPlayer* Arena::CreateMaybeMessage<::se::game::N_KillPlayer>(Arena*);
@@ -7642,6 +7646,176 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API N_ItemLost final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_ItemLost) */ {
+ public:
+  inline N_ItemLost() : N_ItemLost(nullptr) {}
+  ~N_ItemLost() override;
+  explicit PROTOBUF_CONSTEXPR N_ItemLost(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_ItemLost(const N_ItemLost& from);
+  N_ItemLost(N_ItemLost&& from) noexcept
+    : N_ItemLost() {
+    *this = ::std::move(from);
+  }
+
+  inline N_ItemLost& operator=(const N_ItemLost& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_ItemLost& operator=(N_ItemLost&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_ItemLost& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_ItemLost* internal_default_instance() {
+    return reinterpret_cast<const N_ItemLost*>(
+               &_N_ItemLost_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    45;
+
+  friend void swap(N_ItemLost& a, N_ItemLost& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_ItemLost* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_ItemLost* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_ItemLost* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_ItemLost>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_ItemLost& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_ItemLost& from) {
+    N_ItemLost::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_ItemLost* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_ItemLost";
+  }
+  protected:
+  explicit N_ItemLost(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kItemIdFieldNumber = 1,
+    kNewQuantityFieldNumber = 2,
+    kQuantityFieldNumber = 3,
+  };
+  // uint32 item_id = 1;
+  void clear_item_id();
+  uint32_t item_id() const;
+  void set_item_id(uint32_t value);
+  private:
+  uint32_t _internal_item_id() const;
+  void _internal_set_item_id(uint32_t value);
+  public:
+
+  // uint32 new_quantity = 2;
+  void clear_new_quantity();
+  uint32_t new_quantity() const;
+  void set_new_quantity(uint32_t value);
+  private:
+  uint32_t _internal_new_quantity() const;
+  void _internal_set_new_quantity(uint32_t value);
+  public:
+
+  // uint32 quantity = 3;
+  void clear_quantity();
+  uint32_t quantity() const;
+  void set_quantity(uint32_t value);
+  private:
+  uint32_t _internal_quantity() const;
+  void _internal_set_quantity(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.N_ItemLost)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint32_t item_id_;
+    uint32_t new_quantity_;
+    uint32_t quantity_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API C_SetSavePointReq final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.C_SetSavePointReq) */ {
  public:
@@ -7690,7 +7864,7 @@ class PROTOCOLSHAREDUE_API C_SetSavePointReq final :
                &_C_SetSavePointReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    45;
+    46;
 
   friend void swap(C_SetSavePointReq& a, C_SetSavePointReq& b) {
     a.Swap(&b);
@@ -7847,7 +8021,7 @@ class PROTOCOLSHAREDUE_API S_SetSavePointRes final :
                &_S_SetSavePointRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    46;
+    47;
 
   friend void swap(S_SetSavePointRes& a, S_SetSavePointRes& b) {
     a.Swap(&b);
@@ -8035,7 +8209,7 @@ class PROTOCOLSHAREDUE_API N_HealthChanged final :
                &_N_HealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    47;
+    48;
 
   friend void swap(N_HealthChanged& a, N_HealthChanged& b) {
     a.Swap(&b);
@@ -8214,7 +8388,7 @@ class PROTOCOLSHAREDUE_API N_MaxHealthChanged final :
                &_N_MaxHealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    48;
+    49;
 
   friend void swap(N_MaxHealthChanged& a, N_MaxHealthChanged& b) {
     a.Swap(&b);
@@ -8393,7 +8567,7 @@ class PROTOCOLSHAREDUE_API N_EntityDied final :
                &_N_EntityDied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    49;
+    50;
 
   friend void swap(N_EntityDied& a, N_EntityDied& b) {
     a.Swap(&b);
@@ -8550,7 +8724,7 @@ class PROTOCOLSHAREDUE_API N_EntityRespawned final :
                &_N_EntityRespawned_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    50;
+    51;
 
   friend void swap(N_EntityRespawned& a, N_EntityRespawned& b) {
     a.Swap(&b);
@@ -8727,7 +8901,7 @@ class PROTOCOLSHAREDUE_API N_EntityDestroyed final :
                &_N_EntityDestroyed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    51;
+    52;
 
   friend void swap(N_EntityDestroyed& a, N_EntityDestroyed& b) {
     a.Swap(&b);
@@ -8884,7 +9058,7 @@ class PROTOCOLSHAREDUE_API N_TimePointChanged final :
                &_N_TimePointChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    52;
+    53;
 
   friend void swap(N_TimePointChanged& a, N_TimePointChanged& b) {
     a.Swap(&b);
@@ -9043,7 +9217,7 @@ class PROTOCOLSHAREDUE_API N_TimeStormChange final :
                &_N_TimeStormChange_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    53;
+    54;
 
   friend void swap(N_TimeStormChange& a, N_TimeStormChange& b) {
     a.Swap(&b);
@@ -14044,6 +14218,70 @@ inline void N_ItemGained::set_quantity(uint32_t value) {
 
 // -------------------------------------------------------------------
 
+// N_ItemLost
+
+// uint32 item_id = 1;
+inline void N_ItemLost::clear_item_id() {
+  _impl_.item_id_ = 0u;
+}
+inline uint32_t N_ItemLost::_internal_item_id() const {
+  return _impl_.item_id_;
+}
+inline uint32_t N_ItemLost::item_id() const {
+  // @@protoc_insertion_point(field_get:se.game.N_ItemLost.item_id)
+  return _internal_item_id();
+}
+inline void N_ItemLost::_internal_set_item_id(uint32_t value) {
+  
+  _impl_.item_id_ = value;
+}
+inline void N_ItemLost::set_item_id(uint32_t value) {
+  _internal_set_item_id(value);
+  // @@protoc_insertion_point(field_set:se.game.N_ItemLost.item_id)
+}
+
+// uint32 new_quantity = 2;
+inline void N_ItemLost::clear_new_quantity() {
+  _impl_.new_quantity_ = 0u;
+}
+inline uint32_t N_ItemLost::_internal_new_quantity() const {
+  return _impl_.new_quantity_;
+}
+inline uint32_t N_ItemLost::new_quantity() const {
+  // @@protoc_insertion_point(field_get:se.game.N_ItemLost.new_quantity)
+  return _internal_new_quantity();
+}
+inline void N_ItemLost::_internal_set_new_quantity(uint32_t value) {
+  
+  _impl_.new_quantity_ = value;
+}
+inline void N_ItemLost::set_new_quantity(uint32_t value) {
+  _internal_set_new_quantity(value);
+  // @@protoc_insertion_point(field_set:se.game.N_ItemLost.new_quantity)
+}
+
+// uint32 quantity = 3;
+inline void N_ItemLost::clear_quantity() {
+  _impl_.quantity_ = 0u;
+}
+inline uint32_t N_ItemLost::_internal_quantity() const {
+  return _impl_.quantity_;
+}
+inline uint32_t N_ItemLost::quantity() const {
+  // @@protoc_insertion_point(field_get:se.game.N_ItemLost.quantity)
+  return _internal_quantity();
+}
+inline void N_ItemLost::_internal_set_quantity(uint32_t value) {
+  
+  _impl_.quantity_ = value;
+}
+inline void N_ItemLost::set_quantity(uint32_t value) {
+  _internal_set_quantity(value);
+  // @@protoc_insertion_point(field_set:se.game.N_ItemLost.quantity)
+}
+
+// -------------------------------------------------------------------
+
 // C_SetSavePointReq
 
 // .se.common.Vector3 position = 1;
@@ -15131,6 +15369,8 @@ inline void N_TimeStormChange::set_shrinking_time(float value) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
