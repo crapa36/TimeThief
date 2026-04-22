@@ -96,6 +96,7 @@ public:
 	void HandleRoomClosed(const se::room::N_RoomClosed& Pkt);
 	void HandleGameStart(const se::game::N_GameStart& Pkt);
 	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
+	void HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt);
 	void HandleMove(const se::game::N_Move& Pkt);
 	void HandleJump(const se::game::N_Jump& pkt);
 	void HandleJumpLand(const se::game::N_JumpLand& pkt);

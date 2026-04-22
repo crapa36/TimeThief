@@ -88,6 +88,14 @@ void UTimeThiefHealthComponent::Heal(float HealAmount, AActor* HealInstigator)
 	OnHealthChanged_Delegate.Broadcast(this, OldHealth, CurrentHealth, HealInstigator);
 }
 
+void UTimeThiefHealthComponent::SetHealth(float MaxHP, float NewHP)
+{
+	MaxHealth = MaxHP;
+	CurrentHealth = FMath::Clamp(NewHP, 0.0f, MaxHealth);
+	
+	OnHealthChanged_Delegate.Broadcast(this, CurrentHealth, CurrentHealth, nullptr);
+}
+
 void UTimeThiefHealthComponent::HandleHealthChanged(float NewHealth, float DeltaHealth)
 {
 	if (bIsDead || FMath::IsNearlyEqual(DeltaHealth, 0.0f))

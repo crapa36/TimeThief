@@ -730,6 +730,39 @@ void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt
 {
 }
 
+void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const int MaxHealth = Pkt.max_health();
+	const int CurrentHealth = Pkt.current_health();
+	const int TimePoints = Pkt.time_points();
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+	
+	if (auto* HealthComp = LocalPlayer->FindComponentByClass<UTimeThiefHealthComponent>())
+	{
+		HealthComp->SetHealth(MaxHealth, CurrentHealth);
+	}
+	
+	if (auto* TimePointComp = LocalPlayer->FindComponentByClass<UTimePointSystemComponent>())
+	{
+		TimePointComp->SetTimePoints(TimePoints);
+	}
+	
+	// TODO: 초기 Weapon Setting은 여기서 진행 할 것
+	
+}
+
 void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 {
 	check(IsInGameThread());

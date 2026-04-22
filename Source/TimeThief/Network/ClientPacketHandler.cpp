@@ -254,6 +254,19 @@ bool Handle_N_GameEnd(PacketSessionRef& session, const se::game::N_GameEnd& pkt)
 
 bool Handle_N_PlayerInitSetup(PacketSessionRef& session, const se::game::N_PlayerInitSetup& pkt)
 {
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandlePlayerInitSetup(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_PlayerInitSetup: Failed to get NGIS"));
 	return false;
 }
 	

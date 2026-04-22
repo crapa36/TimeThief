@@ -40,6 +40,9 @@ public:
 	void Heal(float HealAmount, AActor* HealInstigator);
 	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
+	void SetHealth(float MaxHP, float NewHP);
+	
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	void HandleHealthChanged(float NewHealth, float DeltaHealth);
 	
 	void Upgrade();
