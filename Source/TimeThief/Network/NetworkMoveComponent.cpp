@@ -200,6 +200,9 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 	case ENetworkActionPhase::Start:
 		ApplyMovementModeIfNeeded(CMC, MOVE_Falling);
 		break;
+		
+	case ENetworkActionPhase::Double:
+		break;
 
 	case ENetworkActionPhase::Land:
 		{

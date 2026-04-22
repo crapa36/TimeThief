@@ -896,6 +896,29 @@ void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& P
 
 void UNetworkGameInstanceSubsystem::HandleDoubleJump(const se::game::N_DoubleJump& pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		return;
+	}
+	
+	if (IsLocalPlayerEntity(EntityId))
+	{
+		return;
+	}
+	
+	if (auto* NMC = EntityEntry->Actor->GetComponentByClass<UNetworkMoveComponent>())
+	{
+		NMC->HandleActionEvent(FNetworkActionEvent{ ENetworkActionType::Jump, ENetworkActionPhase::Double });
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleCrouch(const se::game::N_Crouch& Pkt)
