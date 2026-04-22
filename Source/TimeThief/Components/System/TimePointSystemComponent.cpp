@@ -36,6 +36,7 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	// 이거 여기서 깎으면 안될듯? Tickable 끄죠?
 	if (const ATimeThiefGameState* GameState = GetWorld()->GetGameState<ATimeThiefGameState>())
 	{
 		if (const UTimeStormComponent* TimeStormComponent= GameState->TimeStormComponent)
@@ -101,6 +102,24 @@ bool UTimePointSystemComponent::ModifyTimePoints(int Value)
 		return true;
 	}
 	return false;
+}
+
+void UTimePointSystemComponent::SetTimePoints(int Value)
+{
+	TimePoints = Value;
+	OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
+}
+
+bool UTimePointSystemComponent::UpdateTimePoints(int NewValue, int Delta)
+{
+	if (NewValue != GetTimePoints() + Delta) {
+		UE_LOG(LogTemp, Warning, TEXT("[Invalid] Time points update mismatch: NewValue=%d, Expected=%d"), NewValue, GetTimePoints() + Delta);
+		return false;
+	}
+	
+	TimePoints = NewValue;
+	OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
+	return true;
 }
 
 void UTimePointSystemComponent::HandleTimePointsChanged(int InTimePoints)

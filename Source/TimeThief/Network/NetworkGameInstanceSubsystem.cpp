@@ -1364,9 +1364,7 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 		return;
 	}
 	
-	// TODO: Setter가 필요하다 (아니면 New, Delta 모두 받는 함수 파기)
-	// TimePointComp->SetTimePoints(Pkt.new_time_points());		// Setter 없다
-	TimePointComp->ModifyTimePoints(Pkt.delta());
+	TimePointComp->UpdateTimePoints(Pkt.new_time_points(), Pkt.delta());
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)

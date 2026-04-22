@@ -33,6 +33,8 @@ public:
 	virtual void OnDeath() override;
 	
 	bool ModifyTimePoints(int Value);
+	void SetTimePoints(int Value);
+	bool UpdateTimePoints(int NewValue, int Delta);
 	
 	int GetTimePoints() const { return static_cast<int>(TimePoints); }
 	
