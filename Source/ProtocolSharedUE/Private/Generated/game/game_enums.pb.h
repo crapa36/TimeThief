@@ -28,6 +28,7 @@
 #include <google/protobuf/generated_message_reflection.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
+#include <google/protobuf/generated_enum_reflection.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_game_2fgame_5fenums_2eproto PROTOCOLSHAREDUE_API
@@ -47,6 +48,37 @@ PROTOBUF_NAMESPACE_CLOSE
 namespace se {
 namespace game {
 
+enum WeaponStatType : int {
+  WEAPON_STAT_NONE = 0,
+  WEAPON_STAT_MAGAZINE_SIZE = 1,
+  WEAPON_STAT_FIRE_INTERVAL = 2,
+  WEAPON_STAT_RELOAD = 3,
+  WEAPON_STAT_PALLET = 4,
+  WEAPON_STAT_CONE = 5,
+  WEAPON_STAT_PROJECTILE_SPEED = 6,
+  WEAPON_STAT_EXPLOSION_RADIUS = 7,
+  WeaponStatType_INT_MIN_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::min(),
+  WeaponStatType_INT_MAX_SENTINEL_DO_NOT_USE_ = std::numeric_limits<int32_t>::max()
+};
+PROTOCOLSHAREDUE_API bool WeaponStatType_IsValid(int value);
+constexpr WeaponStatType WeaponStatType_MIN = WEAPON_STAT_NONE;
+constexpr WeaponStatType WeaponStatType_MAX = WEAPON_STAT_EXPLOSION_RADIUS;
+constexpr int WeaponStatType_ARRAYSIZE = WeaponStatType_MAX + 1;
+
+PROTOCOLSHAREDUE_API const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* WeaponStatType_descriptor();
+template<typename T>
+inline const std::string& WeaponStatType_Name(T enum_t_value) {
+  static_assert(::std::is_same<T, WeaponStatType>::value ||
+    ::std::is_integral<T>::value,
+    "Incorrect type passed to function WeaponStatType_Name.");
+  return ::PROTOBUF_NAMESPACE_ID::internal::NameOfEnum(
+    WeaponStatType_descriptor(), enum_t_value);
+}
+inline bool WeaponStatType_Parse(
+    ::PROTOBUF_NAMESPACE_ID::ConstStringParam name, WeaponStatType* value) {
+  return ::PROTOBUF_NAMESPACE_ID::internal::ParseNamedEnum<WeaponStatType>(
+    WeaponStatType_descriptor(), name, value);
+}
 // ===================================================================
 
 
@@ -67,6 +99,16 @@ namespace game {
 
 }  // namespace game
 }  // namespace se
+
+PROTOBUF_NAMESPACE_OPEN
+
+template <> struct is_proto_enum< ::se::game::WeaponStatType> : ::std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::se::game::WeaponStatType>() {
+  return ::se::game::WeaponStatType_descriptor();
+}
+
+PROTOBUF_NAMESPACE_CLOSE
 
 // @@protoc_insertion_point(global_scope)
 

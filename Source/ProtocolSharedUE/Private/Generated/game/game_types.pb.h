@@ -33,6 +33,7 @@
 #include <google/protobuf/unknown_field_set.h>
 #include "common/common_types.pb.h"
 #include "common/common_enums.pb.h"
+#include "game/game_enums.pb.h"
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_game_2fgame_5ftypes_2eproto PROTOCOLSHAREDUE_API
@@ -58,12 +59,24 @@ PROTOCOLSHAREDUE_API extern PlayerMovementDefaultTypeInternal _PlayerMovement_de
 class ProjectileMovement;
 struct ProjectileMovementDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern ProjectileMovementDefaultTypeInternal _ProjectileMovement_default_instance_;
+class WeaponSlotSnapshot;
+struct WeaponSlotSnapshotDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern WeaponSlotSnapshotDefaultTypeInternal _WeaponSlotSnapshot_default_instance_;
+class WeaponStatSnapshot;
+struct WeaponStatSnapshotDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern WeaponStatSnapshotDefaultTypeInternal _WeaponStatSnapshot_default_instance_;
+class WeaponStatValue;
+struct WeaponStatValueDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern WeaponStatValueDefaultTypeInternal _WeaponStatValue_default_instance_;
 }  // namespace game
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOCOLSHAREDUE_API ::se::game::MonsterMovement* Arena::CreateMaybeMessage<::se::game::MonsterMovement>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::PlayerMovement* Arena::CreateMaybeMessage<::se::game::PlayerMovement>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::ProjectileMovement* Arena::CreateMaybeMessage<::se::game::ProjectileMovement>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::WeaponSlotSnapshot* Arena::CreateMaybeMessage<::se::game::WeaponSlotSnapshot>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::WeaponStatSnapshot* Arena::CreateMaybeMessage<::se::game::WeaponStatSnapshot>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::WeaponStatValue* Arena::CreateMaybeMessage<::se::game::WeaponStatValue>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
 namespace game {
@@ -522,6 +535,585 @@ class PROTOCOLSHAREDUE_API ProjectileMovement final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
 };
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API WeaponStatSnapshot final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.WeaponStatSnapshot) */ {
+ public:
+  inline WeaponStatSnapshot() : WeaponStatSnapshot(nullptr) {}
+  ~WeaponStatSnapshot() override;
+  explicit PROTOBUF_CONSTEXPR WeaponStatSnapshot(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  WeaponStatSnapshot(const WeaponStatSnapshot& from);
+  WeaponStatSnapshot(WeaponStatSnapshot&& from) noexcept
+    : WeaponStatSnapshot() {
+    *this = ::std::move(from);
+  }
+
+  inline WeaponStatSnapshot& operator=(const WeaponStatSnapshot& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WeaponStatSnapshot& operator=(WeaponStatSnapshot&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WeaponStatSnapshot& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const WeaponStatSnapshot* internal_default_instance() {
+    return reinterpret_cast<const WeaponStatSnapshot*>(
+               &_WeaponStatSnapshot_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(WeaponStatSnapshot& a, WeaponStatSnapshot& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(WeaponStatSnapshot* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WeaponStatSnapshot* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WeaponStatSnapshot* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<WeaponStatSnapshot>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const WeaponStatSnapshot& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const WeaponStatSnapshot& from) {
+    WeaponStatSnapshot::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(WeaponStatSnapshot* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.WeaponStatSnapshot";
+  }
+  protected:
+  explicit WeaponStatSnapshot(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMagCapacityFieldNumber = 1,
+    kFireIntervalFieldNumber = 2,
+    kReloadTimeFieldNumber = 3,
+    kPelletCountFieldNumber = 4,
+    kConeAngleFieldNumber = 5,
+    kProjectileSpeedFieldNumber = 6,
+    kExplosionRadiusFieldNumber = 7,
+  };
+  // int32 mag_capacity = 1;
+  void clear_mag_capacity();
+  int32_t mag_capacity() const;
+  void set_mag_capacity(int32_t value);
+  private:
+  int32_t _internal_mag_capacity() const;
+  void _internal_set_mag_capacity(int32_t value);
+  public:
+
+  // float fire_interval = 2;
+  void clear_fire_interval();
+  float fire_interval() const;
+  void set_fire_interval(float value);
+  private:
+  float _internal_fire_interval() const;
+  void _internal_set_fire_interval(float value);
+  public:
+
+  // float reload_time = 3;
+  void clear_reload_time();
+  float reload_time() const;
+  void set_reload_time(float value);
+  private:
+  float _internal_reload_time() const;
+  void _internal_set_reload_time(float value);
+  public:
+
+  // int32 pellet_count = 4;
+  void clear_pellet_count();
+  int32_t pellet_count() const;
+  void set_pellet_count(int32_t value);
+  private:
+  int32_t _internal_pellet_count() const;
+  void _internal_set_pellet_count(int32_t value);
+  public:
+
+  // float cone_angle = 5;
+  void clear_cone_angle();
+  float cone_angle() const;
+  void set_cone_angle(float value);
+  private:
+  float _internal_cone_angle() const;
+  void _internal_set_cone_angle(float value);
+  public:
+
+  // float projectile_speed = 6;
+  void clear_projectile_speed();
+  float projectile_speed() const;
+  void set_projectile_speed(float value);
+  private:
+  float _internal_projectile_speed() const;
+  void _internal_set_projectile_speed(float value);
+  public:
+
+  // float explosion_radius = 7;
+  void clear_explosion_radius();
+  float explosion_radius() const;
+  void set_explosion_radius(float value);
+  private:
+  float _internal_explosion_radius() const;
+  void _internal_set_explosion_radius(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.WeaponStatSnapshot)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    int32_t mag_capacity_;
+    float fire_interval_;
+    float reload_time_;
+    int32_t pellet_count_;
+    float cone_angle_;
+    float projectile_speed_;
+    float explosion_radius_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API WeaponSlotSnapshot final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.WeaponSlotSnapshot) */ {
+ public:
+  inline WeaponSlotSnapshot() : WeaponSlotSnapshot(nullptr) {}
+  ~WeaponSlotSnapshot() override;
+  explicit PROTOBUF_CONSTEXPR WeaponSlotSnapshot(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  WeaponSlotSnapshot(const WeaponSlotSnapshot& from);
+  WeaponSlotSnapshot(WeaponSlotSnapshot&& from) noexcept
+    : WeaponSlotSnapshot() {
+    *this = ::std::move(from);
+  }
+
+  inline WeaponSlotSnapshot& operator=(const WeaponSlotSnapshot& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WeaponSlotSnapshot& operator=(WeaponSlotSnapshot&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WeaponSlotSnapshot& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const WeaponSlotSnapshot* internal_default_instance() {
+    return reinterpret_cast<const WeaponSlotSnapshot*>(
+               &_WeaponSlotSnapshot_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    4;
+
+  friend void swap(WeaponSlotSnapshot& a, WeaponSlotSnapshot& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(WeaponSlotSnapshot* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WeaponSlotSnapshot* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WeaponSlotSnapshot* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<WeaponSlotSnapshot>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const WeaponSlotSnapshot& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const WeaponSlotSnapshot& from) {
+    WeaponSlotSnapshot::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(WeaponSlotSnapshot* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.WeaponSlotSnapshot";
+  }
+  protected:
+  explicit WeaponSlotSnapshot(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStatFieldNumber = 2,
+    kWeaponIdFieldNumber = 1,
+  };
+  // .se.game.WeaponStatSnapshot stat = 2;
+  bool has_stat() const;
+  private:
+  bool _internal_has_stat() const;
+  public:
+  void clear_stat();
+  const ::se::game::WeaponStatSnapshot& stat() const;
+  PROTOBUF_NODISCARD ::se::game::WeaponStatSnapshot* release_stat();
+  ::se::game::WeaponStatSnapshot* mutable_stat();
+  void set_allocated_stat(::se::game::WeaponStatSnapshot* stat);
+  private:
+  const ::se::game::WeaponStatSnapshot& _internal_stat() const;
+  ::se::game::WeaponStatSnapshot* _internal_mutable_stat();
+  public:
+  void unsafe_arena_set_allocated_stat(
+      ::se::game::WeaponStatSnapshot* stat);
+  ::se::game::WeaponStatSnapshot* unsafe_arena_release_stat();
+
+  // uint32 weapon_id = 1;
+  void clear_weapon_id();
+  uint32_t weapon_id() const;
+  void set_weapon_id(uint32_t value);
+  private:
+  uint32_t _internal_weapon_id() const;
+  void _internal_set_weapon_id(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.WeaponSlotSnapshot)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::se::game::WeaponStatSnapshot* stat_;
+    uint32_t weapon_id_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API WeaponStatValue final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.WeaponStatValue) */ {
+ public:
+  inline WeaponStatValue() : WeaponStatValue(nullptr) {}
+  ~WeaponStatValue() override;
+  explicit PROTOBUF_CONSTEXPR WeaponStatValue(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  WeaponStatValue(const WeaponStatValue& from);
+  WeaponStatValue(WeaponStatValue&& from) noexcept
+    : WeaponStatValue() {
+    *this = ::std::move(from);
+  }
+
+  inline WeaponStatValue& operator=(const WeaponStatValue& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline WeaponStatValue& operator=(WeaponStatValue&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const WeaponStatValue& default_instance() {
+    return *internal_default_instance();
+  }
+  enum ValueCase {
+    kIntValue = 2,
+    kFloatValue = 3,
+    VALUE_NOT_SET = 0,
+  };
+
+  static inline const WeaponStatValue* internal_default_instance() {
+    return reinterpret_cast<const WeaponStatValue*>(
+               &_WeaponStatValue_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  friend void swap(WeaponStatValue& a, WeaponStatValue& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(WeaponStatValue* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(WeaponStatValue* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  WeaponStatValue* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<WeaponStatValue>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const WeaponStatValue& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const WeaponStatValue& from) {
+    WeaponStatValue::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(WeaponStatValue* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.WeaponStatValue";
+  }
+  protected:
+  explicit WeaponStatValue(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStatTypeFieldNumber = 1,
+    kIntValueFieldNumber = 2,
+    kFloatValueFieldNumber = 3,
+  };
+  // .se.game.WeaponStatType stat_type = 1;
+  void clear_stat_type();
+  ::se::game::WeaponStatType stat_type() const;
+  void set_stat_type(::se::game::WeaponStatType value);
+  private:
+  ::se::game::WeaponStatType _internal_stat_type() const;
+  void _internal_set_stat_type(::se::game::WeaponStatType value);
+  public:
+
+  // int32 int_value = 2;
+  bool has_int_value() const;
+  private:
+  bool _internal_has_int_value() const;
+  public:
+  void clear_int_value();
+  int32_t int_value() const;
+  void set_int_value(int32_t value);
+  private:
+  int32_t _internal_int_value() const;
+  void _internal_set_int_value(int32_t value);
+  public:
+
+  // float float_value = 3;
+  bool has_float_value() const;
+  private:
+  bool _internal_has_float_value() const;
+  public:
+  void clear_float_value();
+  float float_value() const;
+  void set_float_value(float value);
+  private:
+  float _internal_float_value() const;
+  void _internal_set_float_value(float value);
+  public:
+
+  void clear_value();
+  ValueCase value_case() const;
+  // @@protoc_insertion_point(class_scope:se.game.WeaponStatValue)
+ private:
+  class _Internal;
+  void set_has_int_value();
+  void set_has_float_value();
+
+  inline bool has_value() const;
+  inline void clear_has_value();
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    int stat_type_;
+    union ValueUnion {
+      constexpr ValueUnion() : _constinit_{} {}
+        ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+      int32_t int_value_;
+      float float_value_;
+    } value_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+    uint32_t _oneof_case_[1];
+
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
+};
 // ===================================================================
 
 
@@ -751,9 +1343,382 @@ inline void ProjectileMovement::set_allocated_velocity(::se::common::Vector3* ve
   // @@protoc_insertion_point(field_set_allocated:se.game.ProjectileMovement.velocity)
 }
 
+// -------------------------------------------------------------------
+
+// WeaponStatSnapshot
+
+// int32 mag_capacity = 1;
+inline void WeaponStatSnapshot::clear_mag_capacity() {
+  _impl_.mag_capacity_ = 0;
+}
+inline int32_t WeaponStatSnapshot::_internal_mag_capacity() const {
+  return _impl_.mag_capacity_;
+}
+inline int32_t WeaponStatSnapshot::mag_capacity() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.mag_capacity)
+  return _internal_mag_capacity();
+}
+inline void WeaponStatSnapshot::_internal_set_mag_capacity(int32_t value) {
+  
+  _impl_.mag_capacity_ = value;
+}
+inline void WeaponStatSnapshot::set_mag_capacity(int32_t value) {
+  _internal_set_mag_capacity(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.mag_capacity)
+}
+
+// float fire_interval = 2;
+inline void WeaponStatSnapshot::clear_fire_interval() {
+  _impl_.fire_interval_ = 0;
+}
+inline float WeaponStatSnapshot::_internal_fire_interval() const {
+  return _impl_.fire_interval_;
+}
+inline float WeaponStatSnapshot::fire_interval() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.fire_interval)
+  return _internal_fire_interval();
+}
+inline void WeaponStatSnapshot::_internal_set_fire_interval(float value) {
+  
+  _impl_.fire_interval_ = value;
+}
+inline void WeaponStatSnapshot::set_fire_interval(float value) {
+  _internal_set_fire_interval(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.fire_interval)
+}
+
+// float reload_time = 3;
+inline void WeaponStatSnapshot::clear_reload_time() {
+  _impl_.reload_time_ = 0;
+}
+inline float WeaponStatSnapshot::_internal_reload_time() const {
+  return _impl_.reload_time_;
+}
+inline float WeaponStatSnapshot::reload_time() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.reload_time)
+  return _internal_reload_time();
+}
+inline void WeaponStatSnapshot::_internal_set_reload_time(float value) {
+  
+  _impl_.reload_time_ = value;
+}
+inline void WeaponStatSnapshot::set_reload_time(float value) {
+  _internal_set_reload_time(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.reload_time)
+}
+
+// int32 pellet_count = 4;
+inline void WeaponStatSnapshot::clear_pellet_count() {
+  _impl_.pellet_count_ = 0;
+}
+inline int32_t WeaponStatSnapshot::_internal_pellet_count() const {
+  return _impl_.pellet_count_;
+}
+inline int32_t WeaponStatSnapshot::pellet_count() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.pellet_count)
+  return _internal_pellet_count();
+}
+inline void WeaponStatSnapshot::_internal_set_pellet_count(int32_t value) {
+  
+  _impl_.pellet_count_ = value;
+}
+inline void WeaponStatSnapshot::set_pellet_count(int32_t value) {
+  _internal_set_pellet_count(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.pellet_count)
+}
+
+// float cone_angle = 5;
+inline void WeaponStatSnapshot::clear_cone_angle() {
+  _impl_.cone_angle_ = 0;
+}
+inline float WeaponStatSnapshot::_internal_cone_angle() const {
+  return _impl_.cone_angle_;
+}
+inline float WeaponStatSnapshot::cone_angle() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.cone_angle)
+  return _internal_cone_angle();
+}
+inline void WeaponStatSnapshot::_internal_set_cone_angle(float value) {
+  
+  _impl_.cone_angle_ = value;
+}
+inline void WeaponStatSnapshot::set_cone_angle(float value) {
+  _internal_set_cone_angle(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.cone_angle)
+}
+
+// float projectile_speed = 6;
+inline void WeaponStatSnapshot::clear_projectile_speed() {
+  _impl_.projectile_speed_ = 0;
+}
+inline float WeaponStatSnapshot::_internal_projectile_speed() const {
+  return _impl_.projectile_speed_;
+}
+inline float WeaponStatSnapshot::projectile_speed() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.projectile_speed)
+  return _internal_projectile_speed();
+}
+inline void WeaponStatSnapshot::_internal_set_projectile_speed(float value) {
+  
+  _impl_.projectile_speed_ = value;
+}
+inline void WeaponStatSnapshot::set_projectile_speed(float value) {
+  _internal_set_projectile_speed(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.projectile_speed)
+}
+
+// float explosion_radius = 7;
+inline void WeaponStatSnapshot::clear_explosion_radius() {
+  _impl_.explosion_radius_ = 0;
+}
+inline float WeaponStatSnapshot::_internal_explosion_radius() const {
+  return _impl_.explosion_radius_;
+}
+inline float WeaponStatSnapshot::explosion_radius() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatSnapshot.explosion_radius)
+  return _internal_explosion_radius();
+}
+inline void WeaponStatSnapshot::_internal_set_explosion_radius(float value) {
+  
+  _impl_.explosion_radius_ = value;
+}
+inline void WeaponStatSnapshot::set_explosion_radius(float value) {
+  _internal_set_explosion_radius(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatSnapshot.explosion_radius)
+}
+
+// -------------------------------------------------------------------
+
+// WeaponSlotSnapshot
+
+// uint32 weapon_id = 1;
+inline void WeaponSlotSnapshot::clear_weapon_id() {
+  _impl_.weapon_id_ = 0u;
+}
+inline uint32_t WeaponSlotSnapshot::_internal_weapon_id() const {
+  return _impl_.weapon_id_;
+}
+inline uint32_t WeaponSlotSnapshot::weapon_id() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponSlotSnapshot.weapon_id)
+  return _internal_weapon_id();
+}
+inline void WeaponSlotSnapshot::_internal_set_weapon_id(uint32_t value) {
+  
+  _impl_.weapon_id_ = value;
+}
+inline void WeaponSlotSnapshot::set_weapon_id(uint32_t value) {
+  _internal_set_weapon_id(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponSlotSnapshot.weapon_id)
+}
+
+// .se.game.WeaponStatSnapshot stat = 2;
+inline bool WeaponSlotSnapshot::_internal_has_stat() const {
+  return this != internal_default_instance() && _impl_.stat_ != nullptr;
+}
+inline bool WeaponSlotSnapshot::has_stat() const {
+  return _internal_has_stat();
+}
+inline void WeaponSlotSnapshot::clear_stat() {
+  if (GetArenaForAllocation() == nullptr && _impl_.stat_ != nullptr) {
+    delete _impl_.stat_;
+  }
+  _impl_.stat_ = nullptr;
+}
+inline const ::se::game::WeaponStatSnapshot& WeaponSlotSnapshot::_internal_stat() const {
+  const ::se::game::WeaponStatSnapshot* p = _impl_.stat_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::game::WeaponStatSnapshot&>(
+      ::se::game::_WeaponStatSnapshot_default_instance_);
+}
+inline const ::se::game::WeaponStatSnapshot& WeaponSlotSnapshot::stat() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponSlotSnapshot.stat)
+  return _internal_stat();
+}
+inline void WeaponSlotSnapshot::unsafe_arena_set_allocated_stat(
+    ::se::game::WeaponStatSnapshot* stat) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.stat_);
+  }
+  _impl_.stat_ = stat;
+  if (stat) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.WeaponSlotSnapshot.stat)
+}
+inline ::se::game::WeaponStatSnapshot* WeaponSlotSnapshot::release_stat() {
+  
+  ::se::game::WeaponStatSnapshot* temp = _impl_.stat_;
+  _impl_.stat_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::game::WeaponStatSnapshot* WeaponSlotSnapshot::unsafe_arena_release_stat() {
+  // @@protoc_insertion_point(field_release:se.game.WeaponSlotSnapshot.stat)
+  
+  ::se::game::WeaponStatSnapshot* temp = _impl_.stat_;
+  _impl_.stat_ = nullptr;
+  return temp;
+}
+inline ::se::game::WeaponStatSnapshot* WeaponSlotSnapshot::_internal_mutable_stat() {
+  
+  if (_impl_.stat_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::game::WeaponStatSnapshot>(GetArenaForAllocation());
+    _impl_.stat_ = p;
+  }
+  return _impl_.stat_;
+}
+inline ::se::game::WeaponStatSnapshot* WeaponSlotSnapshot::mutable_stat() {
+  ::se::game::WeaponStatSnapshot* _msg = _internal_mutable_stat();
+  // @@protoc_insertion_point(field_mutable:se.game.WeaponSlotSnapshot.stat)
+  return _msg;
+}
+inline void WeaponSlotSnapshot::set_allocated_stat(::se::game::WeaponStatSnapshot* stat) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete _impl_.stat_;
+  }
+  if (stat) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(stat);
+    if (message_arena != submessage_arena) {
+      stat = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, stat, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.stat_ = stat;
+  // @@protoc_insertion_point(field_set_allocated:se.game.WeaponSlotSnapshot.stat)
+}
+
+// -------------------------------------------------------------------
+
+// WeaponStatValue
+
+// .se.game.WeaponStatType stat_type = 1;
+inline void WeaponStatValue::clear_stat_type() {
+  _impl_.stat_type_ = 0;
+}
+inline ::se::game::WeaponStatType WeaponStatValue::_internal_stat_type() const {
+  return static_cast< ::se::game::WeaponStatType >(_impl_.stat_type_);
+}
+inline ::se::game::WeaponStatType WeaponStatValue::stat_type() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatValue.stat_type)
+  return _internal_stat_type();
+}
+inline void WeaponStatValue::_internal_set_stat_type(::se::game::WeaponStatType value) {
+  
+  _impl_.stat_type_ = value;
+}
+inline void WeaponStatValue::set_stat_type(::se::game::WeaponStatType value) {
+  _internal_set_stat_type(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatValue.stat_type)
+}
+
+// int32 int_value = 2;
+inline bool WeaponStatValue::_internal_has_int_value() const {
+  return value_case() == kIntValue;
+}
+inline bool WeaponStatValue::has_int_value() const {
+  return _internal_has_int_value();
+}
+inline void WeaponStatValue::set_has_int_value() {
+  _impl_._oneof_case_[0] = kIntValue;
+}
+inline void WeaponStatValue::clear_int_value() {
+  if (_internal_has_int_value()) {
+    _impl_.value_.int_value_ = 0;
+    clear_has_value();
+  }
+}
+inline int32_t WeaponStatValue::_internal_int_value() const {
+  if (_internal_has_int_value()) {
+    return _impl_.value_.int_value_;
+  }
+  return 0;
+}
+inline void WeaponStatValue::_internal_set_int_value(int32_t value) {
+  if (!_internal_has_int_value()) {
+    clear_value();
+    set_has_int_value();
+  }
+  _impl_.value_.int_value_ = value;
+}
+inline int32_t WeaponStatValue::int_value() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatValue.int_value)
+  return _internal_int_value();
+}
+inline void WeaponStatValue::set_int_value(int32_t value) {
+  _internal_set_int_value(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatValue.int_value)
+}
+
+// float float_value = 3;
+inline bool WeaponStatValue::_internal_has_float_value() const {
+  return value_case() == kFloatValue;
+}
+inline bool WeaponStatValue::has_float_value() const {
+  return _internal_has_float_value();
+}
+inline void WeaponStatValue::set_has_float_value() {
+  _impl_._oneof_case_[0] = kFloatValue;
+}
+inline void WeaponStatValue::clear_float_value() {
+  if (_internal_has_float_value()) {
+    _impl_.value_.float_value_ = 0;
+    clear_has_value();
+  }
+}
+inline float WeaponStatValue::_internal_float_value() const {
+  if (_internal_has_float_value()) {
+    return _impl_.value_.float_value_;
+  }
+  return 0;
+}
+inline void WeaponStatValue::_internal_set_float_value(float value) {
+  if (!_internal_has_float_value()) {
+    clear_value();
+    set_has_float_value();
+  }
+  _impl_.value_.float_value_ = value;
+}
+inline float WeaponStatValue::float_value() const {
+  // @@protoc_insertion_point(field_get:se.game.WeaponStatValue.float_value)
+  return _internal_float_value();
+}
+inline void WeaponStatValue::set_float_value(float value) {
+  _internal_set_float_value(value);
+  // @@protoc_insertion_point(field_set:se.game.WeaponStatValue.float_value)
+}
+
+inline bool WeaponStatValue::has_value() const {
+  return value_case() != VALUE_NOT_SET;
+}
+inline void WeaponStatValue::clear_has_value() {
+  _impl_._oneof_case_[0] = VALUE_NOT_SET;
+}
+inline WeaponStatValue::ValueCase WeaponStatValue::value_case() const {
+  return WeaponStatValue::ValueCase(_impl_._oneof_case_[0]);
+}
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

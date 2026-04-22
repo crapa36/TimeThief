@@ -251,6 +251,11 @@ bool Handle_N_GameEnd(PacketSessionRef& session, const se::game::N_GameEnd& pkt)
 {
 	return false;	
 }
+
+bool Handle_N_PlayerInitSetup(PacketSessionRef& session, const se::game::N_PlayerInitSetup& pkt)
+{
+	return false;
+}
 	
 bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 {
@@ -654,6 +659,11 @@ bool Handle_N_EntityHit(PacketSessionRef& session, const se::game::N_EntityHit& 
 	return false;
 }
 
+bool Handle_N_WeaponStatChanged(PacketSessionRef& session, const se::game::N_WeaponStatChanged& pkt)
+{
+	return false;
+}
+
 bool Handle_N_UseItem(PacketSessionRef& session, const se::game::N_UseItem& pkt)
 {
 	return false;	
@@ -680,6 +690,16 @@ bool Handle_N_ChestInteracted(PacketSessionRef& session, const se::game::N_Chest
 }
 
 bool Handle_N_ItemLost(PacketSessionRef& session, const se::game::N_ItemLost& pkt)
+{
+	return false;
+}
+
+bool Handle_N_EquipItem(PacketSessionRef& session, const se::game::N_EquipItem& pkt)
+{
+	return false;
+}
+
+bool Handle_S_EquipItemRes(PacketSessionRef& session, const se::game::S_EquipItemRes& pkt)
 {
 	return false;
 }

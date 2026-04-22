@@ -24,18 +24,25 @@ namespace se {
 namespace game {
 }  // namespace game
 }  // namespace se
-static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5fenums_2eproto = nullptr;
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_game_2fgame_5fenums_2eproto[1];
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5fenums_2eproto = nullptr;
 const uint32_t TableStruct_game_2fgame_5fenums_2eproto::offsets[1] = {};
 static constexpr ::_pbi::MigrationSchema* schemas = nullptr;
 static constexpr ::_pb::Message* const* file_default_instances = nullptr;
 
 const char descriptor_table_protodef_game_2fgame_5fenums_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
-  "\n\025game/game_enums.proto\022\007se.gameb\006proto3"
+  "\n\025game/game_enums.proto\022\007se.game*\356\001\n\016Wea"
+  "ponStatType\022\024\n\020WEAPON_STAT_NONE\020\000\022\035\n\031WEA"
+  "PON_STAT_MAGAZINE_SIZE\020\001\022\035\n\031WEAPON_STAT_"
+  "FIRE_INTERVAL\020\002\022\026\n\022WEAPON_STAT_RELOAD\020\003\022"
+  "\026\n\022WEAPON_STAT_PALLET\020\004\022\024\n\020WEAPON_STAT_C"
+  "ONE\020\005\022 \n\034WEAPON_STAT_PROJECTILE_SPEED\020\006\022"
+  " \n\034WEAPON_STAT_EXPLOSION_RADIUS\020\007b\006proto"
+  "3"
   ;
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fenums_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fenums_2eproto = {
-    false, false, 40, descriptor_table_protodef_game_2fgame_5fenums_2eproto,
+    false, false, 281, descriptor_table_protodef_game_2fgame_5fenums_2eproto,
     "game/game_enums.proto",
     &descriptor_table_game_2fgame_5fenums_2eproto_once, nullptr, 0, 0,
     schemas, file_default_instances, TableStruct_game_2fgame_5fenums_2eproto::offsets,
@@ -50,6 +57,26 @@ PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_game_2fg
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2 static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_game_2fgame_5fenums_2eproto(&descriptor_table_game_2fgame_5fenums_2eproto);
 namespace se {
 namespace game {
+const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* WeaponStatType_descriptor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&descriptor_table_game_2fgame_5fenums_2eproto);
+  return file_level_enum_descriptors_game_2fgame_5fenums_2eproto[0];
+}
+bool WeaponStatType_IsValid(int value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      return true;
+    default:
+      return false;
+  }
+}
+
 
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace game
