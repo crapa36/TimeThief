@@ -93,6 +93,7 @@ public:
 	void HandleEntitySpawn(const se::room::N_EntitySpawn& Pkt);
 	void HandleEntityDespawn(const se::room::N_EntityDespawn& Pkt);
 	void HandleRoomSetupEnd(const se::room::S_RoomSetupEnd& pkt);
+	void HandleEntitiesSpawn(const se::room::N_EntitiesSpawn& Pkt);
 	void HandleRoomClosed(const se::room::N_RoomClosed& Pkt);
 	void HandleGameStart(const se::game::N_GameStart& Pkt);
 	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
@@ -115,16 +116,23 @@ public:
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
 	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
 	void HandleEntityHit(const se::game::N_EntityHit& pkt);
+	void HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& pkt);
 	void HandleUseItem(const se::game::N_UseItem& Pkt);
 	void HandleSetSavePointRes(const se::game::S_SetSavePointRes& pkt);
 	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
 	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);
 	void HandleItemGained(const se::game::N_ItemGained& Pkt);
+	void HandleChestInteracted(const se::game::N_ChestInteracted& Pkt);
+	void HandleItemLost(const se::game::N_ItemLost& Pkt);
+	void HandleEquipItem(const se::game::N_EquipItem& Pkt);
+	void HandleEquipItemRes(const se::game::S_EquipItemRes& Pkt);
+	void HandleUseItemRes(const se::game::S_UseItemRes& Pkt);
 	void HandleHealthChanged(const se::game::N_HealthChanged& Pkt);
 	void HandleEntityDied(const se::game::N_EntityDied& Pkt);
 	void HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt);
 	void HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt);
 	void HandleTimePointChanged(const se::game::N_TimePointChanged& Pkt);
+	void HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt);
 	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
 	
 private:

@@ -718,6 +718,10 @@ void UNetworkGameInstanceSubsystem::HandleRoomSetupEnd(const se::room::S_RoomSet
 {
 }
 
+void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_EntitiesSpawn& Pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
 {
 }
@@ -1196,6 +1200,10 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 {
 }
 
+void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt)
 {
 }
@@ -1243,6 +1251,26 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleChestInteracted(const se::game::N_ChestInteracted& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleEquipItem(const se::game::N_EquipItem& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleEquipItemRes(const se::game::S_EquipItemRes& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleUseItemRes(const se::game::S_UseItemRes& Pkt)
 {
 }
 
@@ -1398,6 +1426,10 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 	}
 	
 	TimePointComp->UpdateTimePoints(Pkt.new_time_points(), Pkt.delta());
+}
+
+void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt)
+{
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
