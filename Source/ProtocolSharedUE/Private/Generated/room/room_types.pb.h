@@ -48,6 +48,9 @@ struct PROTOCOLSHAREDUE_API TableStruct_room_2froom_5ftypes_2eproto {
 PROTOCOLSHAREDUE_API extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_room_2froom_5ftypes_2eproto;
 namespace se {
 namespace room {
+class ChestSpawnInfo;
+struct ChestSpawnInfoDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern ChestSpawnInfoDefaultTypeInternal _ChestSpawnInfo_default_instance_;
 class ItemSpawnInfo;
 struct ItemSpawnInfoDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern ItemSpawnInfoDefaultTypeInternal _ItemSpawnInfo_default_instance_;
@@ -69,9 +72,13 @@ PROTOCOLSHAREDUE_API extern RoomSnapshotDefaultTypeInternal _RoomSnapshot_defaul
 class SpawnInfo;
 struct SpawnInfoDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern SpawnInfoDefaultTypeInternal _SpawnInfo_default_instance_;
+class StoreSpawnInfo;
+struct StoreSpawnInfoDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern StoreSpawnInfoDefaultTypeInternal _StoreSpawnInfo_default_instance_;
 }  // namespace room
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
+template<> PROTOCOLSHAREDUE_API ::se::room::ChestSpawnInfo* Arena::CreateMaybeMessage<::se::room::ChestSpawnInfo>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::ItemSpawnInfo* Arena::CreateMaybeMessage<::se::room::ItemSpawnInfo>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::MonsterSpawnInfo* Arena::CreateMaybeMessage<::se::room::MonsterSpawnInfo>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::PlayerSpawnInfo* Arena::CreateMaybeMessage<::se::room::PlayerSpawnInfo>(Arena*);
@@ -79,6 +86,7 @@ template<> PROTOCOLSHAREDUE_API ::se::room::ProjectileSpawnInfo* Arena::CreateMa
 template<> PROTOCOLSHAREDUE_API ::se::room::RoomPlayer* Arena::CreateMaybeMessage<::se::room::RoomPlayer>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::RoomSnapshot* Arena::CreateMaybeMessage<::se::room::RoomSnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::room::SpawnInfo* Arena::CreateMaybeMessage<::se::room::SpawnInfo>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::room::StoreSpawnInfo* Arena::CreateMaybeMessage<::se::room::StoreSpawnInfo>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
 namespace room {
@@ -1125,6 +1133,342 @@ class PROTOCOLSHAREDUE_API ProjectileSpawnInfo final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API ChestSpawnInfo final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.ChestSpawnInfo) */ {
+ public:
+  inline ChestSpawnInfo() : ChestSpawnInfo(nullptr) {}
+  ~ChestSpawnInfo() override;
+  explicit PROTOBUF_CONSTEXPR ChestSpawnInfo(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ChestSpawnInfo(const ChestSpawnInfo& from);
+  ChestSpawnInfo(ChestSpawnInfo&& from) noexcept
+    : ChestSpawnInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline ChestSpawnInfo& operator=(const ChestSpawnInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ChestSpawnInfo& operator=(ChestSpawnInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ChestSpawnInfo& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ChestSpawnInfo* internal_default_instance() {
+    return reinterpret_cast<const ChestSpawnInfo*>(
+               &_ChestSpawnInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  friend void swap(ChestSpawnInfo& a, ChestSpawnInfo& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ChestSpawnInfo* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ChestSpawnInfo* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ChestSpawnInfo* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ChestSpawnInfo>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const ChestSpawnInfo& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const ChestSpawnInfo& from) {
+    ChestSpawnInfo::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(ChestSpawnInfo* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.room.ChestSpawnInfo";
+  }
+  protected:
+  explicit ChestSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kPositionFieldNumber = 1,
+    kYawFieldNumber = 2,
+  };
+  // .se.common.Vector3 position = 1;
+  bool has_position() const;
+  private:
+  bool _internal_has_position() const;
+  public:
+  void clear_position();
+  const ::se::common::Vector3& position() const;
+  PROTOBUF_NODISCARD ::se::common::Vector3* release_position();
+  ::se::common::Vector3* mutable_position();
+  void set_allocated_position(::se::common::Vector3* position);
+  private:
+  const ::se::common::Vector3& _internal_position() const;
+  ::se::common::Vector3* _internal_mutable_position();
+  public:
+  void unsafe_arena_set_allocated_position(
+      ::se::common::Vector3* position);
+  ::se::common::Vector3* unsafe_arena_release_position();
+
+  // float yaw = 2;
+  void clear_yaw();
+  float yaw() const;
+  void set_yaw(float value);
+  private:
+  float _internal_yaw() const;
+  void _internal_set_yaw(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.room.ChestSpawnInfo)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::se::common::Vector3* position_;
+    float yaw_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_room_2froom_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API StoreSpawnInfo final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.StoreSpawnInfo) */ {
+ public:
+  inline StoreSpawnInfo() : StoreSpawnInfo(nullptr) {}
+  ~StoreSpawnInfo() override;
+  explicit PROTOBUF_CONSTEXPR StoreSpawnInfo(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  StoreSpawnInfo(const StoreSpawnInfo& from);
+  StoreSpawnInfo(StoreSpawnInfo&& from) noexcept
+    : StoreSpawnInfo() {
+    *this = ::std::move(from);
+  }
+
+  inline StoreSpawnInfo& operator=(const StoreSpawnInfo& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline StoreSpawnInfo& operator=(StoreSpawnInfo&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const StoreSpawnInfo& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const StoreSpawnInfo* internal_default_instance() {
+    return reinterpret_cast<const StoreSpawnInfo*>(
+               &_StoreSpawnInfo_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    7;
+
+  friend void swap(StoreSpawnInfo& a, StoreSpawnInfo& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(StoreSpawnInfo* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(StoreSpawnInfo* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  StoreSpawnInfo* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<StoreSpawnInfo>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const StoreSpawnInfo& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const StoreSpawnInfo& from) {
+    StoreSpawnInfo::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(StoreSpawnInfo* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.room.StoreSpawnInfo";
+  }
+  protected:
+  explicit StoreSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kPositionFieldNumber = 1,
+    kYawFieldNumber = 2,
+  };
+  // .se.common.Vector3 position = 1;
+  bool has_position() const;
+  private:
+  bool _internal_has_position() const;
+  public:
+  void clear_position();
+  const ::se::common::Vector3& position() const;
+  PROTOBUF_NODISCARD ::se::common::Vector3* release_position();
+  ::se::common::Vector3* mutable_position();
+  void set_allocated_position(::se::common::Vector3* position);
+  private:
+  const ::se::common::Vector3& _internal_position() const;
+  ::se::common::Vector3* _internal_mutable_position();
+  public:
+  void unsafe_arena_set_allocated_position(
+      ::se::common::Vector3* position);
+  ::se::common::Vector3* unsafe_arena_release_position();
+
+  // float yaw = 2;
+  void clear_yaw();
+  float yaw() const;
+  void set_yaw(float value);
+  private:
+  float _internal_yaw() const;
+  void _internal_set_yaw(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.room.StoreSpawnInfo)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::se::common::Vector3* position_;
+    float yaw_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_room_2froom_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API SpawnInfo final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.room.SpawnInfo) */ {
  public:
@@ -1173,6 +1517,8 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
     kMonsterInfo = 11,
     kItemInfo = 12,
     kProjectileInfo = 13,
+    kChestInfo = 14,
+    kStoreInfo = 15,
     DETAIL_NOT_SET = 0,
   };
 
@@ -1181,7 +1527,7 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
                &_SpawnInfo_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    8;
 
   friend void swap(SpawnInfo& a, SpawnInfo& b) {
     a.Swap(&b);
@@ -1261,6 +1607,8 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
     kMonsterInfoFieldNumber = 11,
     kItemInfoFieldNumber = 12,
     kProjectileInfoFieldNumber = 13,
+    kChestInfoFieldNumber = 14,
+    kStoreInfoFieldNumber = 15,
   };
   // .se.common.ObjectId entity_id = 3;
   bool has_entity_id() const;
@@ -1370,6 +1718,42 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
       ::se::room::ProjectileSpawnInfo* projectile_info);
   ::se::room::ProjectileSpawnInfo* unsafe_arena_release_projectile_info();
 
+  // .se.room.ChestSpawnInfo chest_info = 14;
+  bool has_chest_info() const;
+  private:
+  bool _internal_has_chest_info() const;
+  public:
+  void clear_chest_info();
+  const ::se::room::ChestSpawnInfo& chest_info() const;
+  PROTOBUF_NODISCARD ::se::room::ChestSpawnInfo* release_chest_info();
+  ::se::room::ChestSpawnInfo* mutable_chest_info();
+  void set_allocated_chest_info(::se::room::ChestSpawnInfo* chest_info);
+  private:
+  const ::se::room::ChestSpawnInfo& _internal_chest_info() const;
+  ::se::room::ChestSpawnInfo* _internal_mutable_chest_info();
+  public:
+  void unsafe_arena_set_allocated_chest_info(
+      ::se::room::ChestSpawnInfo* chest_info);
+  ::se::room::ChestSpawnInfo* unsafe_arena_release_chest_info();
+
+  // .se.room.StoreSpawnInfo store_info = 15;
+  bool has_store_info() const;
+  private:
+  bool _internal_has_store_info() const;
+  public:
+  void clear_store_info();
+  const ::se::room::StoreSpawnInfo& store_info() const;
+  PROTOBUF_NODISCARD ::se::room::StoreSpawnInfo* release_store_info();
+  ::se::room::StoreSpawnInfo* mutable_store_info();
+  void set_allocated_store_info(::se::room::StoreSpawnInfo* store_info);
+  private:
+  const ::se::room::StoreSpawnInfo& _internal_store_info() const;
+  ::se::room::StoreSpawnInfo* _internal_mutable_store_info();
+  public:
+  void unsafe_arena_set_allocated_store_info(
+      ::se::room::StoreSpawnInfo* store_info);
+  ::se::room::StoreSpawnInfo* unsafe_arena_release_store_info();
+
   void clear_detail();
   DetailCase detail_case() const;
   // @@protoc_insertion_point(class_scope:se.room.SpawnInfo)
@@ -1379,6 +1763,8 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
   void set_has_monster_info();
   void set_has_item_info();
   void set_has_projectile_info();
+  void set_has_chest_info();
+  void set_has_store_info();
 
   inline bool has_detail() const;
   inline void clear_has_detail();
@@ -1397,6 +1783,8 @@ class PROTOCOLSHAREDUE_API SpawnInfo final :
       ::se::room::MonsterSpawnInfo* monster_info_;
       ::se::room::ItemSpawnInfo* item_info_;
       ::se::room::ProjectileSpawnInfo* projectile_info_;
+      ::se::room::ChestSpawnInfo* chest_info_;
+      ::se::room::StoreSpawnInfo* store_info_;
     } detail_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
     uint32_t _oneof_case_[1];
@@ -2248,6 +2636,224 @@ inline void ProjectileSpawnInfo::set_allocated_velocity(::se::common::Vector3* v
 
 // -------------------------------------------------------------------
 
+// ChestSpawnInfo
+
+// .se.common.Vector3 position = 1;
+inline bool ChestSpawnInfo::_internal_has_position() const {
+  return this != internal_default_instance() && _impl_.position_ != nullptr;
+}
+inline bool ChestSpawnInfo::has_position() const {
+  return _internal_has_position();
+}
+inline const ::se::common::Vector3& ChestSpawnInfo::_internal_position() const {
+  const ::se::common::Vector3* p = _impl_.position_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::Vector3&>(
+      ::se::common::_Vector3_default_instance_);
+}
+inline const ::se::common::Vector3& ChestSpawnInfo::position() const {
+  // @@protoc_insertion_point(field_get:se.room.ChestSpawnInfo.position)
+  return _internal_position();
+}
+inline void ChestSpawnInfo::unsafe_arena_set_allocated_position(
+    ::se::common::Vector3* position) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.position_);
+  }
+  _impl_.position_ = position;
+  if (position) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.room.ChestSpawnInfo.position)
+}
+inline ::se::common::Vector3* ChestSpawnInfo::release_position() {
+  
+  ::se::common::Vector3* temp = _impl_.position_;
+  _impl_.position_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::common::Vector3* ChestSpawnInfo::unsafe_arena_release_position() {
+  // @@protoc_insertion_point(field_release:se.room.ChestSpawnInfo.position)
+  
+  ::se::common::Vector3* temp = _impl_.position_;
+  _impl_.position_ = nullptr;
+  return temp;
+}
+inline ::se::common::Vector3* ChestSpawnInfo::_internal_mutable_position() {
+  
+  if (_impl_.position_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::Vector3>(GetArenaForAllocation());
+    _impl_.position_ = p;
+  }
+  return _impl_.position_;
+}
+inline ::se::common::Vector3* ChestSpawnInfo::mutable_position() {
+  ::se::common::Vector3* _msg = _internal_mutable_position();
+  // @@protoc_insertion_point(field_mutable:se.room.ChestSpawnInfo.position)
+  return _msg;
+}
+inline void ChestSpawnInfo::set_allocated_position(::se::common::Vector3* position) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.position_);
+  }
+  if (position) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(position));
+    if (message_arena != submessage_arena) {
+      position = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, position, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.position_ = position;
+  // @@protoc_insertion_point(field_set_allocated:se.room.ChestSpawnInfo.position)
+}
+
+// float yaw = 2;
+inline void ChestSpawnInfo::clear_yaw() {
+  _impl_.yaw_ = 0;
+}
+inline float ChestSpawnInfo::_internal_yaw() const {
+  return _impl_.yaw_;
+}
+inline float ChestSpawnInfo::yaw() const {
+  // @@protoc_insertion_point(field_get:se.room.ChestSpawnInfo.yaw)
+  return _internal_yaw();
+}
+inline void ChestSpawnInfo::_internal_set_yaw(float value) {
+  
+  _impl_.yaw_ = value;
+}
+inline void ChestSpawnInfo::set_yaw(float value) {
+  _internal_set_yaw(value);
+  // @@protoc_insertion_point(field_set:se.room.ChestSpawnInfo.yaw)
+}
+
+// -------------------------------------------------------------------
+
+// StoreSpawnInfo
+
+// .se.common.Vector3 position = 1;
+inline bool StoreSpawnInfo::_internal_has_position() const {
+  return this != internal_default_instance() && _impl_.position_ != nullptr;
+}
+inline bool StoreSpawnInfo::has_position() const {
+  return _internal_has_position();
+}
+inline const ::se::common::Vector3& StoreSpawnInfo::_internal_position() const {
+  const ::se::common::Vector3* p = _impl_.position_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::Vector3&>(
+      ::se::common::_Vector3_default_instance_);
+}
+inline const ::se::common::Vector3& StoreSpawnInfo::position() const {
+  // @@protoc_insertion_point(field_get:se.room.StoreSpawnInfo.position)
+  return _internal_position();
+}
+inline void StoreSpawnInfo::unsafe_arena_set_allocated_position(
+    ::se::common::Vector3* position) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.position_);
+  }
+  _impl_.position_ = position;
+  if (position) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.room.StoreSpawnInfo.position)
+}
+inline ::se::common::Vector3* StoreSpawnInfo::release_position() {
+  
+  ::se::common::Vector3* temp = _impl_.position_;
+  _impl_.position_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::common::Vector3* StoreSpawnInfo::unsafe_arena_release_position() {
+  // @@protoc_insertion_point(field_release:se.room.StoreSpawnInfo.position)
+  
+  ::se::common::Vector3* temp = _impl_.position_;
+  _impl_.position_ = nullptr;
+  return temp;
+}
+inline ::se::common::Vector3* StoreSpawnInfo::_internal_mutable_position() {
+  
+  if (_impl_.position_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::Vector3>(GetArenaForAllocation());
+    _impl_.position_ = p;
+  }
+  return _impl_.position_;
+}
+inline ::se::common::Vector3* StoreSpawnInfo::mutable_position() {
+  ::se::common::Vector3* _msg = _internal_mutable_position();
+  // @@protoc_insertion_point(field_mutable:se.room.StoreSpawnInfo.position)
+  return _msg;
+}
+inline void StoreSpawnInfo::set_allocated_position(::se::common::Vector3* position) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.position_);
+  }
+  if (position) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(position));
+    if (message_arena != submessage_arena) {
+      position = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, position, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.position_ = position;
+  // @@protoc_insertion_point(field_set_allocated:se.room.StoreSpawnInfo.position)
+}
+
+// float yaw = 2;
+inline void StoreSpawnInfo::clear_yaw() {
+  _impl_.yaw_ = 0;
+}
+inline float StoreSpawnInfo::_internal_yaw() const {
+  return _impl_.yaw_;
+}
+inline float StoreSpawnInfo::yaw() const {
+  // @@protoc_insertion_point(field_get:se.room.StoreSpawnInfo.yaw)
+  return _internal_yaw();
+}
+inline void StoreSpawnInfo::_internal_set_yaw(float value) {
+  
+  _impl_.yaw_ = value;
+}
+inline void StoreSpawnInfo::set_yaw(float value) {
+  _internal_set_yaw(value);
+  // @@protoc_insertion_point(field_set:se.room.StoreSpawnInfo.yaw)
+}
+
+// -------------------------------------------------------------------
+
 // SpawnInfo
 
 // .se.common.ObjectType type = 1;
@@ -2671,6 +3277,154 @@ inline ::se::room::ProjectileSpawnInfo* SpawnInfo::mutable_projectile_info() {
   return _msg;
 }
 
+// .se.room.ChestSpawnInfo chest_info = 14;
+inline bool SpawnInfo::_internal_has_chest_info() const {
+  return detail_case() == kChestInfo;
+}
+inline bool SpawnInfo::has_chest_info() const {
+  return _internal_has_chest_info();
+}
+inline void SpawnInfo::set_has_chest_info() {
+  _impl_._oneof_case_[0] = kChestInfo;
+}
+inline void SpawnInfo::clear_chest_info() {
+  if (_internal_has_chest_info()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.detail_.chest_info_;
+    }
+    clear_has_detail();
+  }
+}
+inline ::se::room::ChestSpawnInfo* SpawnInfo::release_chest_info() {
+  // @@protoc_insertion_point(field_release:se.room.SpawnInfo.chest_info)
+  if (_internal_has_chest_info()) {
+    clear_has_detail();
+    ::se::room::ChestSpawnInfo* temp = _impl_.detail_.chest_info_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.chest_info_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::room::ChestSpawnInfo& SpawnInfo::_internal_chest_info() const {
+  return _internal_has_chest_info()
+      ? *_impl_.detail_.chest_info_
+      : reinterpret_cast< ::se::room::ChestSpawnInfo&>(::se::room::_ChestSpawnInfo_default_instance_);
+}
+inline const ::se::room::ChestSpawnInfo& SpawnInfo::chest_info() const {
+  // @@protoc_insertion_point(field_get:se.room.SpawnInfo.chest_info)
+  return _internal_chest_info();
+}
+inline ::se::room::ChestSpawnInfo* SpawnInfo::unsafe_arena_release_chest_info() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.room.SpawnInfo.chest_info)
+  if (_internal_has_chest_info()) {
+    clear_has_detail();
+    ::se::room::ChestSpawnInfo* temp = _impl_.detail_.chest_info_;
+    _impl_.detail_.chest_info_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void SpawnInfo::unsafe_arena_set_allocated_chest_info(::se::room::ChestSpawnInfo* chest_info) {
+  clear_detail();
+  if (chest_info) {
+    set_has_chest_info();
+    _impl_.detail_.chest_info_ = chest_info;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.room.SpawnInfo.chest_info)
+}
+inline ::se::room::ChestSpawnInfo* SpawnInfo::_internal_mutable_chest_info() {
+  if (!_internal_has_chest_info()) {
+    clear_detail();
+    set_has_chest_info();
+    _impl_.detail_.chest_info_ = CreateMaybeMessage< ::se::room::ChestSpawnInfo >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.chest_info_;
+}
+inline ::se::room::ChestSpawnInfo* SpawnInfo::mutable_chest_info() {
+  ::se::room::ChestSpawnInfo* _msg = _internal_mutable_chest_info();
+  // @@protoc_insertion_point(field_mutable:se.room.SpawnInfo.chest_info)
+  return _msg;
+}
+
+// .se.room.StoreSpawnInfo store_info = 15;
+inline bool SpawnInfo::_internal_has_store_info() const {
+  return detail_case() == kStoreInfo;
+}
+inline bool SpawnInfo::has_store_info() const {
+  return _internal_has_store_info();
+}
+inline void SpawnInfo::set_has_store_info() {
+  _impl_._oneof_case_[0] = kStoreInfo;
+}
+inline void SpawnInfo::clear_store_info() {
+  if (_internal_has_store_info()) {
+    if (GetArenaForAllocation() == nullptr) {
+      delete _impl_.detail_.store_info_;
+    }
+    clear_has_detail();
+  }
+}
+inline ::se::room::StoreSpawnInfo* SpawnInfo::release_store_info() {
+  // @@protoc_insertion_point(field_release:se.room.SpawnInfo.store_info)
+  if (_internal_has_store_info()) {
+    clear_has_detail();
+    ::se::room::StoreSpawnInfo* temp = _impl_.detail_.store_info_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.store_info_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::room::StoreSpawnInfo& SpawnInfo::_internal_store_info() const {
+  return _internal_has_store_info()
+      ? *_impl_.detail_.store_info_
+      : reinterpret_cast< ::se::room::StoreSpawnInfo&>(::se::room::_StoreSpawnInfo_default_instance_);
+}
+inline const ::se::room::StoreSpawnInfo& SpawnInfo::store_info() const {
+  // @@protoc_insertion_point(field_get:se.room.SpawnInfo.store_info)
+  return _internal_store_info();
+}
+inline ::se::room::StoreSpawnInfo* SpawnInfo::unsafe_arena_release_store_info() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.room.SpawnInfo.store_info)
+  if (_internal_has_store_info()) {
+    clear_has_detail();
+    ::se::room::StoreSpawnInfo* temp = _impl_.detail_.store_info_;
+    _impl_.detail_.store_info_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void SpawnInfo::unsafe_arena_set_allocated_store_info(::se::room::StoreSpawnInfo* store_info) {
+  clear_detail();
+  if (store_info) {
+    set_has_store_info();
+    _impl_.detail_.store_info_ = store_info;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.room.SpawnInfo.store_info)
+}
+inline ::se::room::StoreSpawnInfo* SpawnInfo::_internal_mutable_store_info() {
+  if (!_internal_has_store_info()) {
+    clear_detail();
+    set_has_store_info();
+    _impl_.detail_.store_info_ = CreateMaybeMessage< ::se::room::StoreSpawnInfo >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.store_info_;
+}
+inline ::se::room::StoreSpawnInfo* SpawnInfo::mutable_store_info() {
+  ::se::room::StoreSpawnInfo* _msg = _internal_mutable_store_info();
+  // @@protoc_insertion_point(field_mutable:se.room.SpawnInfo.store_info)
+  return _msg;
+}
+
 inline bool SpawnInfo::has_detail() const {
   return detail_case() != DETAIL_NOT_SET;
 }
@@ -2683,6 +3437,10 @@ inline SpawnInfo::DetailCase SpawnInfo::detail_case() const {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

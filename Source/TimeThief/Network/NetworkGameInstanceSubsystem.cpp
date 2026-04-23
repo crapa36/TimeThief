@@ -707,6 +707,36 @@ void UNetworkGameInstanceSubsystem::HandleEntitySpawn(const se::room::N_EntitySp
 			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
 		}
 		break;
+	case se::common::ObjectType::OBJ_CHEST:
+		{
+			if (!Info.has_chest_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing chest_info for chest entity"));
+				return;
+			}
+			
+			const auto& ChestInfo = Info.chest_info();
+			const auto& Pos = ChestInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const float Yaw = ChestInfo.yaw();
+			EntityState.Yaw = Yaw;
+		}
+		break;
+	case se::common::ObjectType::OBJ_STORE:
+		{
+			if (!Info.has_store_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing store_info for store entity"));
+				return;
+			}
+			
+			const auto& StoreInfo = Info.store_info();
+			const auto& Pos = StoreInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const float Yaw = StoreInfo.yaw();
+			EntityState.Yaw = Yaw;
+		}
+		break;
 	}
 	
 	ApplyEntityStateToActor(EntityId);

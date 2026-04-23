@@ -106,6 +106,34 @@ struct ProjectileSpawnInfoDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ProjectileSpawnInfoDefaultTypeInternal _ProjectileSpawnInfo_default_instance_;
+PROTOBUF_CONSTEXPR ChestSpawnInfo::ChestSpawnInfo(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.yaw_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct ChestSpawnInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ChestSpawnInfoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ChestSpawnInfoDefaultTypeInternal() {}
+  union {
+    ChestSpawnInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ChestSpawnInfoDefaultTypeInternal _ChestSpawnInfo_default_instance_;
+PROTOBUF_CONSTEXPR StoreSpawnInfo::StoreSpawnInfo(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.yaw_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct StoreSpawnInfoDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR StoreSpawnInfoDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~StoreSpawnInfoDefaultTypeInternal() {}
+  union {
+    StoreSpawnInfo _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StoreSpawnInfoDefaultTypeInternal _StoreSpawnInfo_default_instance_;
 PROTOBUF_CONSTEXPR SpawnInfo::SpawnInfo(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
@@ -125,7 +153,7 @@ struct SpawnInfoDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SpawnInfoDefaultTypeInternal _SpawnInfo_default_instance_;
 }  // namespace room
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_room_2froom_5ftypes_2eproto[7];
+static ::_pb::Metadata file_level_metadata_room_2froom_5ftypes_2eproto[9];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_room_2froom_5ftypes_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_room_2froom_5ftypes_2eproto = nullptr;
 
@@ -179,6 +207,22 @@ const uint32_t TableStruct_room_2froom_5ftypes_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::se::room::ProjectileSpawnInfo, _impl_.position_),
   PROTOBUF_FIELD_OFFSET(::se::room::ProjectileSpawnInfo, _impl_.velocity_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::room::ChestSpawnInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::room::ChestSpawnInfo, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::room::ChestSpawnInfo, _impl_.yaw_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::room::StoreSpawnInfo, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::room::StoreSpawnInfo, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::room::StoreSpawnInfo, _impl_.yaw_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _internal_metadata_),
   ~0u,  // no _extensions_
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_._oneof_case_[0]),
@@ -187,6 +231,8 @@ const uint32_t TableStruct_room_2froom_5ftypes_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.type_),
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.template_id_),
   PROTOBUF_FIELD_OFFSET(::se::room::SpawnInfo, _impl_.entity_id_),
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
   ::_pbi::kInvalidFieldOffsetTag,
   ::_pbi::kInvalidFieldOffsetTag,
   ::_pbi::kInvalidFieldOffsetTag,
@@ -200,7 +246,9 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 24, -1, -1, sizeof(::se::room::MonsterSpawnInfo)},
   { 31, -1, -1, sizeof(::se::room::ItemSpawnInfo)},
   { 40, -1, -1, sizeof(::se::room::ProjectileSpawnInfo)},
-  { 48, -1, -1, sizeof(::se::room::SpawnInfo)},
+  { 48, -1, -1, sizeof(::se::room::ChestSpawnInfo)},
+  { 56, -1, -1, sizeof(::se::room::StoreSpawnInfo)},
+  { 64, -1, -1, sizeof(::se::room::SpawnInfo)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -210,6 +258,8 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::room::_MonsterSpawnInfo_default_instance_._instance,
   &::se::room::_ItemSpawnInfo_default_instance_._instance,
   &::se::room::_ProjectileSpawnInfo_default_instance_._instance,
+  &::se::room::_ChestSpawnInfo_default_instance_._instance,
+  &::se::room::_StoreSpawnInfo_default_instance_._instance,
   &::se::room::_SpawnInfo_default_instance_._instance,
 };
 
@@ -229,15 +279,21 @@ const char descriptor_table_protodef_room_2froom_5ftypes_2eproto[] PROTOBUF_SECT
   "n.Vector3\022\016\n\006amount\030\003 \001(\r\"a\n\023ProjectileS"
   "pawnInfo\022$\n\010position\030\001 \001(\0132\022.se.common.V"
   "ector3\022$\n\010velocity\030\002 \001(\0132\022.se.common.Vec"
-  "tor3\"\301\002\n\tSpawnInfo\022#\n\004type\030\001 \001(\0162\025.se.co"
-  "mmon.ObjectType\022\023\n\013template_id\030\002 \001(\r\022&\n\t"
-  "entity_id\030\003 \001(\0132\023.se.common.ObjectId\022/\n\013"
-  "player_info\030\n \001(\0132\030.se.room.PlayerSpawnI"
-  "nfoH\000\0221\n\014monster_info\030\013 \001(\0132\031.se.room.Mo"
-  "nsterSpawnInfoH\000\022+\n\titem_info\030\014 \001(\0132\026.se"
-  ".room.ItemSpawnInfoH\000\0227\n\017projectile_info"
-  "\030\r \001(\0132\034.se.room.ProjectileSpawnInfoH\000B\010"
-  "\n\006detailb\006proto3"
+  "tor3\"C\n\016ChestSpawnInfo\022$\n\010position\030\001 \001(\013"
+  "2\022.se.common.Vector3\022\013\n\003yaw\030\002 \001(\002\"C\n\016Sto"
+  "reSpawnInfo\022$\n\010position\030\001 \001(\0132\022.se.commo"
+  "n.Vector3\022\013\n\003yaw\030\002 \001(\002\"\237\003\n\tSpawnInfo\022#\n\004"
+  "type\030\001 \001(\0162\025.se.common.ObjectType\022\023\n\013tem"
+  "plate_id\030\002 \001(\r\022&\n\tentity_id\030\003 \001(\0132\023.se.c"
+  "ommon.ObjectId\022/\n\013player_info\030\n \001(\0132\030.se"
+  ".room.PlayerSpawnInfoH\000\0221\n\014monster_info\030"
+  "\013 \001(\0132\031.se.room.MonsterSpawnInfoH\000\022+\n\tit"
+  "em_info\030\014 \001(\0132\026.se.room.ItemSpawnInfoH\000\022"
+  "7\n\017projectile_info\030\r \001(\0132\034.se.room.Proje"
+  "ctileSpawnInfoH\000\022-\n\nchest_info\030\016 \001(\0132\027.s"
+  "e.room.ChestSpawnInfoH\000\022-\n\nstore_info\030\017 "
+  "\001(\0132\027.se.room.StoreSpawnInfoH\000B\010\n\006detail"
+  "b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_room_2froom_5ftypes_2eproto_deps[2] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -245,9 +301,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_room_2froom_5ftypes
 };
 static ::_pbi::once_flag descriptor_table_room_2froom_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_room_2froom_5ftypes_2eproto = {
-    false, false, 936, descriptor_table_protodef_room_2froom_5ftypes_2eproto,
+    false, false, 1168, descriptor_table_protodef_room_2froom_5ftypes_2eproto,
     "room/room_types.proto",
-    &descriptor_table_room_2froom_5ftypes_2eproto_once, descriptor_table_room_2froom_5ftypes_2eproto_deps, 2, 7,
+    &descriptor_table_room_2froom_5ftypes_2eproto_once, descriptor_table_room_2froom_5ftypes_2eproto_deps, 2, 9,
     schemas, file_default_instances, TableStruct_room_2froom_5ftypes_2eproto::offsets,
     file_level_metadata_room_2froom_5ftypes_2eproto, file_level_enum_descriptors_room_2froom_5ftypes_2eproto,
     file_level_service_descriptors_room_2froom_5ftypes_2eproto,
@@ -1704,6 +1760,490 @@ void ProjectileSpawnInfo::InternalSwap(ProjectileSpawnInfo* other) {
 
 // ===================================================================
 
+class ChestSpawnInfo::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const ChestSpawnInfo* msg);
+};
+
+const ::se::common::Vector3&
+ChestSpawnInfo::_Internal::position(const ChestSpawnInfo* msg) {
+  return *msg->_impl_.position_;
+}
+void ChestSpawnInfo::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+ChestSpawnInfo::ChestSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.room.ChestSpawnInfo)
+}
+ChestSpawnInfo::ChestSpawnInfo(const ChestSpawnInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  ChestSpawnInfo* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.yaw_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  _this->_impl_.yaw_ = from._impl_.yaw_;
+  // @@protoc_insertion_point(copy_constructor:se.room.ChestSpawnInfo)
+}
+
+inline void ChestSpawnInfo::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.yaw_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+ChestSpawnInfo::~ChestSpawnInfo() {
+  // @@protoc_insertion_point(destructor:se.room.ChestSpawnInfo)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void ChestSpawnInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+}
+
+void ChestSpawnInfo::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void ChestSpawnInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.room.ChestSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  _impl_.yaw_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ChestSpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float yaw = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
+          _impl_.yaw_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ChestSpawnInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.room.ChestSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  // float yaw = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = this->_internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_yaw(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.room.ChestSpawnInfo)
+  return target;
+}
+
+size_t ChestSpawnInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.room.ChestSpawnInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  // float yaw = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = this->_internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData ChestSpawnInfo::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    ChestSpawnInfo::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ChestSpawnInfo::GetClassData() const { return &_class_data_; }
+
+
+void ChestSpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<ChestSpawnInfo*>(&to_msg);
+  auto& from = static_cast<const ChestSpawnInfo&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.room.ChestSpawnInfo)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = from._internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    _this->_internal_set_yaw(from._internal_yaw());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ChestSpawnInfo::CopyFrom(const ChestSpawnInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.room.ChestSpawnInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ChestSpawnInfo::IsInitialized() const {
+  return true;
+}
+
+void ChestSpawnInfo::InternalSwap(ChestSpawnInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ChestSpawnInfo, _impl_.yaw_)
+      + sizeof(ChestSpawnInfo::_impl_.yaw_)
+      - PROTOBUF_FIELD_OFFSET(ChestSpawnInfo, _impl_.position_)>(
+          reinterpret_cast<char*>(&_impl_.position_),
+          reinterpret_cast<char*>(&other->_impl_.position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ChestSpawnInfo::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
+      file_level_metadata_room_2froom_5ftypes_2eproto[6]);
+}
+
+// ===================================================================
+
+class StoreSpawnInfo::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const StoreSpawnInfo* msg);
+};
+
+const ::se::common::Vector3&
+StoreSpawnInfo::_Internal::position(const StoreSpawnInfo* msg) {
+  return *msg->_impl_.position_;
+}
+void StoreSpawnInfo::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+StoreSpawnInfo::StoreSpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.room.StoreSpawnInfo)
+}
+StoreSpawnInfo::StoreSpawnInfo(const StoreSpawnInfo& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  StoreSpawnInfo* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.yaw_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  _this->_impl_.yaw_ = from._impl_.yaw_;
+  // @@protoc_insertion_point(copy_constructor:se.room.StoreSpawnInfo)
+}
+
+inline void StoreSpawnInfo::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.yaw_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+StoreSpawnInfo::~StoreSpawnInfo() {
+  // @@protoc_insertion_point(destructor:se.room.StoreSpawnInfo)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void StoreSpawnInfo::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+}
+
+void StoreSpawnInfo::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void StoreSpawnInfo::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.room.StoreSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  _impl_.yaw_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* StoreSpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float yaw = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
+          _impl_.yaw_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* StoreSpawnInfo::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.room.StoreSpawnInfo)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  // float yaw = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = this->_internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_yaw(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.room.StoreSpawnInfo)
+  return target;
+}
+
+size_t StoreSpawnInfo::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.room.StoreSpawnInfo)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  // float yaw = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = this->_internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData StoreSpawnInfo::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    StoreSpawnInfo::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*StoreSpawnInfo::GetClassData() const { return &_class_data_; }
+
+
+void StoreSpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<StoreSpawnInfo*>(&to_msg);
+  auto& from = static_cast<const StoreSpawnInfo&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.room.StoreSpawnInfo)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = from._internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    _this->_internal_set_yaw(from._internal_yaw());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void StoreSpawnInfo::CopyFrom(const StoreSpawnInfo& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.room.StoreSpawnInfo)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool StoreSpawnInfo::IsInitialized() const {
+  return true;
+}
+
+void StoreSpawnInfo::InternalSwap(StoreSpawnInfo* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(StoreSpawnInfo, _impl_.yaw_)
+      + sizeof(StoreSpawnInfo::_impl_.yaw_)
+      - PROTOBUF_FIELD_OFFSET(StoreSpawnInfo, _impl_.position_)>(
+          reinterpret_cast<char*>(&_impl_.position_),
+          reinterpret_cast<char*>(&other->_impl_.position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata StoreSpawnInfo::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
+      file_level_metadata_room_2froom_5ftypes_2eproto[7]);
+}
+
+// ===================================================================
+
 class SpawnInfo::_Internal {
  public:
   static const ::se::common::ObjectId& entity_id(const SpawnInfo* msg);
@@ -1711,6 +2251,8 @@ class SpawnInfo::_Internal {
   static const ::se::room::MonsterSpawnInfo& monster_info(const SpawnInfo* msg);
   static const ::se::room::ItemSpawnInfo& item_info(const SpawnInfo* msg);
   static const ::se::room::ProjectileSpawnInfo& projectile_info(const SpawnInfo* msg);
+  static const ::se::room::ChestSpawnInfo& chest_info(const SpawnInfo* msg);
+  static const ::se::room::StoreSpawnInfo& store_info(const SpawnInfo* msg);
 };
 
 const ::se::common::ObjectId&
@@ -1732,6 +2274,14 @@ SpawnInfo::_Internal::item_info(const SpawnInfo* msg) {
 const ::se::room::ProjectileSpawnInfo&
 SpawnInfo::_Internal::projectile_info(const SpawnInfo* msg) {
   return *msg->_impl_.detail_.projectile_info_;
+}
+const ::se::room::ChestSpawnInfo&
+SpawnInfo::_Internal::chest_info(const SpawnInfo* msg) {
+  return *msg->_impl_.detail_.chest_info_;
+}
+const ::se::room::StoreSpawnInfo&
+SpawnInfo::_Internal::store_info(const SpawnInfo* msg) {
+  return *msg->_impl_.detail_.store_info_;
 }
 void SpawnInfo::clear_entity_id() {
   if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
@@ -1799,6 +2349,36 @@ void SpawnInfo::set_allocated_projectile_info(::se::room::ProjectileSpawnInfo* p
   }
   // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.projectile_info)
 }
+void SpawnInfo::set_allocated_chest_info(::se::room::ChestSpawnInfo* chest_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (chest_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(chest_info);
+    if (message_arena != submessage_arena) {
+      chest_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, chest_info, submessage_arena);
+    }
+    set_has_chest_info();
+    _impl_.detail_.chest_info_ = chest_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.chest_info)
+}
+void SpawnInfo::set_allocated_store_info(::se::room::StoreSpawnInfo* store_info) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_detail();
+  if (store_info) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(store_info);
+    if (message_arena != submessage_arena) {
+      store_info = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, store_info, submessage_arena);
+    }
+    set_has_store_info();
+    _impl_.detail_.store_info_ = store_info;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.room.SpawnInfo.store_info)
+}
 SpawnInfo::SpawnInfo(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                          bool is_message_owned)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
@@ -1843,6 +2423,16 @@ SpawnInfo::SpawnInfo(const SpawnInfo& from)
     case kProjectileInfo: {
       _this->_internal_mutable_projectile_info()->::se::room::ProjectileSpawnInfo::MergeFrom(
           from._internal_projectile_info());
+      break;
+    }
+    case kChestInfo: {
+      _this->_internal_mutable_chest_info()->::se::room::ChestSpawnInfo::MergeFrom(
+          from._internal_chest_info());
+      break;
+    }
+    case kStoreInfo: {
+      _this->_internal_mutable_store_info()->::se::room::StoreSpawnInfo::MergeFrom(
+          from._internal_store_info());
       break;
     }
     case DETAIL_NOT_SET: {
@@ -1912,6 +2502,18 @@ void SpawnInfo::clear_detail() {
     case kProjectileInfo: {
       if (GetArenaForAllocation() == nullptr) {
         delete _impl_.detail_.projectile_info_;
+      }
+      break;
+    }
+    case kChestInfo: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.chest_info_;
+      }
+      break;
+    }
+    case kStoreInfo: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.detail_.store_info_;
       }
       break;
     }
@@ -2003,6 +2605,22 @@ const char* SpawnInfo::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx
         } else
           goto handle_unusual;
         continue;
+      // .se.room.ChestSpawnInfo chest_info = 14;
+      case 14:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 114)) {
+          ptr = ctx->ParseMessage(_internal_mutable_chest_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.room.StoreSpawnInfo store_info = 15;
+      case 15:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 122)) {
+          ptr = ctx->ParseMessage(_internal_mutable_store_info(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
       default:
         goto handle_unusual;
     }  // switch
@@ -2080,6 +2698,20 @@ uint8_t* SpawnInfo::_InternalSerialize(
         _Internal::projectile_info(this).GetCachedSize(), target, stream);
   }
 
+  // .se.room.ChestSpawnInfo chest_info = 14;
+  if (_internal_has_chest_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(14, _Internal::chest_info(this),
+        _Internal::chest_info(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.room.StoreSpawnInfo store_info = 15;
+  if (_internal_has_store_info()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(15, _Internal::store_info(this),
+        _Internal::store_info(this).GetCachedSize(), target, stream);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -2143,6 +2775,20 @@ size_t SpawnInfo::ByteSizeLong() const {
           *_impl_.detail_.projectile_info_);
       break;
     }
+    // .se.room.ChestSpawnInfo chest_info = 14;
+    case kChestInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.chest_info_);
+      break;
+    }
+    // .se.room.StoreSpawnInfo store_info = 15;
+    case kStoreInfo: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.detail_.store_info_);
+      break;
+    }
     case DETAIL_NOT_SET: {
       break;
     }
@@ -2196,6 +2842,16 @@ void SpawnInfo::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROT
           from._internal_projectile_info());
       break;
     }
+    case kChestInfo: {
+      _this->_internal_mutable_chest_info()->::se::room::ChestSpawnInfo::MergeFrom(
+          from._internal_chest_info());
+      break;
+    }
+    case kStoreInfo: {
+      _this->_internal_mutable_store_info()->::se::room::StoreSpawnInfo::MergeFrom(
+          from._internal_store_info());
+      break;
+    }
     case DETAIL_NOT_SET: {
       break;
     }
@@ -2230,7 +2886,7 @@ void SpawnInfo::InternalSwap(SpawnInfo* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata SpawnInfo::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_room_2froom_5ftypes_2eproto_getter, &descriptor_table_room_2froom_5ftypes_2eproto_once,
-      file_level_metadata_room_2froom_5ftypes_2eproto[6]);
+      file_level_metadata_room_2froom_5ftypes_2eproto[8]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -2260,6 +2916,14 @@ Arena::CreateMaybeMessage< ::se::room::ItemSpawnInfo >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::room::ProjectileSpawnInfo*
 Arena::CreateMaybeMessage< ::se::room::ProjectileSpawnInfo >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::room::ProjectileSpawnInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::room::ChestSpawnInfo*
+Arena::CreateMaybeMessage< ::se::room::ChestSpawnInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::room::ChestSpawnInfo >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::room::StoreSpawnInfo*
+Arena::CreateMaybeMessage< ::se::room::StoreSpawnInfo >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::room::StoreSpawnInfo >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::room::SpawnInfo*
 Arena::CreateMaybeMessage< ::se::room::SpawnInfo >(Arena* arena) {
