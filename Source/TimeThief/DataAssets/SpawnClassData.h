@@ -28,4 +28,8 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> RocketProjectileClass;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> ChestClass;
+	
 };
