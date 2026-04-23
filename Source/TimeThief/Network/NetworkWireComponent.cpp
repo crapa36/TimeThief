@@ -65,7 +65,7 @@ void UNetworkWireComponent::HandleLocalWireStateChanged(EWireState OldState, EWi
 		return;
 	}
 
-	if (OldState == EWireState::Attached && NewState != EWireState::Attached)
+	if (OldState != EWireState::Idle && NewState == EWireState::Idle)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[WirePkt][Stage=SendLocal][OnWireStateChanged] Owner=%s Old=%d New=%d"), *GetNameSafe(GetOwner()), static_cast<int32>(OldState), static_cast<int32>(NewState));
 
@@ -125,6 +125,5 @@ UNetworkGameInstanceSubsystem* UNetworkWireComponent::GetNetworkGameInstanceSubs
 
 	return NGIS;
 }
-
 
 
