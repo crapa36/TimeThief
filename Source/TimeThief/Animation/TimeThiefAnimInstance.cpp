@@ -26,7 +26,6 @@ void UTimeThiefAnimInstance::TriggerDoubleJump()
 void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-	bIsDoubleJumping = false;
 
 	if (!CharacterOwner)
 	{
@@ -73,6 +72,11 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bHasVelocity = GroundSpeed > MoveSpeedThreshold;
 	
 	bIsFalling = CharacterMovement->IsFalling();
+
+	if (!bIsFalling)
+	{
+		bIsDoubleJumping = false;
+	}
 	
 	const bool bHasAcceleration = !CharacterMovement->GetCurrentAcceleration().IsNearlyZero();
 	bShouldMove = bIsRemoteCharacter ? bHasVelocity : ((GroundSpeed > 0.01f) && bHasAcceleration);
