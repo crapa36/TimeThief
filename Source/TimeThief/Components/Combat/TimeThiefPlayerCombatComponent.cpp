@@ -449,17 +449,38 @@ void UTimeThiefPlayerCombatComponent::ApplyThirdPersonAimRotation(ACharacter* Ow
 		return;
 	}
 
-	FVector FlatAimDirection = FVector::ZeroVector;
-	if (!TryGetFlatAimDirection(OwningCharacter, FlatAimDirection))
+	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
+	const bool bHasMovementIntent = HasMovementIntent(MovementComp);
+
+	float TargetYaw = OwningCharacter->GetActorRotation().Yaw;
+	if (bHasMovementIntent)
 	{
-		return;
+		if (const AController* OwnerController = OwningCharacter->GetController())
+		{
+			// 이동 입력 중에는 에임 타점이 아니라 카메라 방향(Yaw)을 따른다.
+			TargetYaw = OwnerController->GetControlRotation().Yaw;
+		}
+		else
+		{
+			return;
+		}
+	}
+	else
+	{
+		FVector FlatAimDirection = FVector::ZeroVector;
+		if (!TryGetFlatAimDirection(OwningCharacter, FlatAimDirection))
+		{
+			return;
+		}
+
+		const FRotator AimTargetRotation = FlatAimDirection.Rotation();
+		TargetYaw = GetClampedYawFromCamera(OwningCharacter, AimTargetRotation.Yaw);
 	}
 
-	const FRotator TargetRotation = FlatAimDirection.Rotation();
-	const float ClampedTargetYaw = GetClampedYawFromCamera(OwningCharacter, TargetRotation.Yaw);
+	const FRotator DesiredRotation(0.0f, FRotator::NormalizeAxis(TargetYaw), 0.0f);
 	const FRotator FinalRotation = bSnapRotation
-		? FRotator(0.0f, ClampedTargetYaw, 0.0f)
-		: FMath::RInterpTo(OwningCharacter->GetActorRotation(), FRotator(0.0f, ClampedTargetYaw, 0.0f), DeltaTime, 20.0f);
+		? DesiredRotation
+		: FMath::RInterpTo(OwningCharacter->GetActorRotation(), DesiredRotation, DeltaTime, 20.0f);
 
 	OwningCharacter->SetActorRotation(FinalRotation);
 }
