@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NetworkActor.h"
 #include "InteractionActorBase.generated.h"
 
 class UWidgetComponent;
@@ -10,7 +11,7 @@ class ATimeThiefPlayerCharacter;
 class USphereComponent;
 
 UCLASS()
-class TIMETHIEF_API AInteractionActorBase : public AActor
+class TIMETHIEF_API AInteractionActorBase : public ANetworkActor
 {
 	GENERATED_BODY()
 	

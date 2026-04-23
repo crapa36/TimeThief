@@ -1985,6 +1985,7 @@ void UNetworkGameInstanceSubsystem::InitializeNetworkEntityActor(AActor* Spawned
 		}
 		break;
 	default:
+		NetworkEntityComp->SetControlType(ENetworkControlType::ServerAuth);
 		break;
 	}
 }
