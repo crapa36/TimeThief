@@ -91,6 +91,14 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 		return;
 	}
 
+	if (const APawn* OwningPawn = Cast<APawn>(OwningCharacter))
+	{
+		if (OwningPawn->IsLocallyControlled())
+		{
+			return;
+		}
+	}
+
 	if (!Direction.IsNearlyZero())
 	{
 		CachedWorldAimLocation = Origin + Direction.GetSafeNormal() * AimTraceRange;
@@ -100,27 +108,70 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 		CachedWorldAimLocation = GetEffectiveShotOrigin() + OwningCharacter->GetBaseAimRotation().Vector() * AimTraceRange;
 	}
 
-	const FVector StartLoc = GetEffectiveShotOrigin();
+	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
+	{
+		if (BaseChar->IsFirstPerson())
+		{
+			return;
+		}
+	}
 
-	const FVector AimVector = CachedWorldAimLocation - StartLoc;
-	if (AimVector.IsNearlyZero())
+	if (IsRotationManagedExternally())
 	{
 		return;
 	}
 
-	const FRotator AimRotation = AimVector.GetSafeNormal().Rotation();
-	OwningCharacter->SetActorRotation(FRotator(0.0f, AimRotation.Yaw, 0.0f));
-
-	if (AController* OwnerController = OwningCharacter->GetController())
+	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
+	if (HasMovementIntent(MovementComp) && !ShouldUseWeaponControlRigRotation())
 	{
-		OwnerController->SetControlRotation(AimRotation);
+		return;
 	}
 
+	FVector FlatAimDirection = CachedWorldAimLocation - GetEffectiveShotOrigin();
+	FlatAimDirection.Z = 0.0f;
+	if (FlatAimDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FRotator AimYawRotation = FlatAimDirection.GetSafeNormal().Rotation();
+	float TargetYaw = GetClampedYawFromCamera(OwningCharacter, AimYawRotation.Yaw);
+
+	if (!OwningCharacter->GetController())
+	{
+		const float CurrentYaw = OwningCharacter->GetActorRotation().Yaw;
+		const float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentYaw, AimYawRotation.Yaw);
+		const float ClampedDeltaYaw = FMath::Clamp(DeltaYaw, -MaxYawOffsetFromCamera, MaxYawOffsetFromCamera);
+		TargetYaw = FRotator::NormalizeAxis(CurrentYaw + ClampedDeltaYaw);
+	}
+
+	const FRotator NewRotation(0.0f, FRotator::NormalizeAxis(TargetYaw), 0.0f);
+	const FVector FullAimDirection = (CachedWorldAimLocation - GetEffectiveShotOrigin()).GetSafeNormal();
 	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
 	{
-		Movable->SetNetworkPitch(AimRotation.Pitch);
-		Movable->SetNetworkYaw(AimRotation.Yaw);
+		Movable->SetNetworkYaw(NewRotation.Yaw);
+
+		if (!FullAimDirection.IsNearlyZero())
+		{
+			Movable->SetNetworkPitch(FullAimDirection.Rotation().Pitch);
+		}
 	}
+	else
+	{
+		OwningCharacter->SetActorRotation(NewRotation);
+	}
+}
+
+void UTimeThiefPlayerCombatComponent::Remote_SyncFireAction()
+{
+	Super::Remote_SyncFireAction();
+
+	if (UWorld* World = GetWorld())
+	{
+		LastFireTime = World->GetTimeSeconds();
+	}
+
+	UpdateCombatRotation();
 }
 
 void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
