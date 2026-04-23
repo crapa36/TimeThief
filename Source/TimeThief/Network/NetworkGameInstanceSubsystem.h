@@ -138,6 +138,9 @@ public:
 	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
 	
 private:
+	uint32 HandleSpawnInfo(const se::room::SpawnInfo& Info);
+	
+private:
 	void RemoveEntity(uint32 EntityId);
 	
 private:

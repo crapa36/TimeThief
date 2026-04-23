@@ -652,94 +652,7 @@ void UNetworkGameInstanceSubsystem::HandleEntitySpawn(const se::room::N_EntitySp
 	}
 	
 	const auto& Info = Pkt.info();
-	const uint32 EntityId = Info.entity_id().value();
-	
-	FEntityRuntimeEntry& EntityEntry = EntityEntries.FindOrAdd(EntityId);
-	EntityEntry.EntityId = EntityId;
-	FNetworkEntityState& EntityState = EntityEntry.State;
-	EntityState.EntityId = EntityId;
-	
-	EntityState.ObjectType = Info.type();
-	EntityState.TemplateId = Info.template_id();
-
-	switch (Info.type())
-	{
-	case se::common::ObjectType::OBJ_PLAYER:
-		{
-			if (!Info.has_player_info())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing player_info for player entity"));
-				return;
-			}
-			
-			const auto& PlayerInfo = Info.player_info();
-			
-			const auto& Movement = PlayerInfo.movement();
-			const auto& Pos = Movement.position();
-			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-			EntityState.Yaw = Movement.yaw();
-			EntityState.Pitch = Movement.pitch();
-		}
-		break;
-	case se::common::ObjectType::OBJ_MONSTER:
-		{
-			
-		}
-		break;
-	case se::common::ObjectType::OBJ_ITEM:
-		{
-			
-		}
-		break;
-	case se::common::ObjectType::OBJ_PROJECTILE:
-		{
-			if (!Info.has_projectile_info())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing projectile_info for projectile entity"));
-				return;
-			}
-			
-			const auto& ProjectileInfo = Info.projectile_info();
-			const auto& Pos = ProjectileInfo.position();
-			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-			const auto& Velocity = ProjectileInfo.velocity();
-			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
-			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
-		}
-		break;
-	case se::common::ObjectType::OBJ_CHEST:
-		{
-			if (!Info.has_chest_info())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing chest_info for chest entity"));
-				return;
-			}
-			
-			const auto& ChestInfo = Info.chest_info();
-			const auto& Pos = ChestInfo.position();
-			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-			const float Yaw = ChestInfo.yaw();
-			EntityState.Yaw = Yaw;
-		}
-		break;
-	case se::common::ObjectType::OBJ_STORE:
-		{
-			if (!Info.has_store_info())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing store_info for store entity"));
-				return;
-			}
-			
-			const auto& StoreInfo = Info.store_info();
-			const auto& Pos = StoreInfo.position();
-			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-			const float Yaw = StoreInfo.yaw();
-			EntityState.Yaw = Yaw;
-		}
-		break;
-	}
-	
-	ApplyEntityStateToActor(EntityId);
+	uint32 EntityId = HandleSpawnInfo(Info);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawned: EntityId=%u"), EntityId);
 }
@@ -765,6 +678,24 @@ void UNetworkGameInstanceSubsystem::HandleRoomSetupEnd(const se::room::S_RoomSet
 
 void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_EntitiesSpawn& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	if (Pkt.infos_size() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] No room infos in room objects"));
+		return;
+	}
+	
+	for (const auto& Info : Pkt.infos())
+	{
+		uint32 EntityId = HandleSpawnInfo(Info);
+		UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawned (batch): EntityId=%u"), EntityId);
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
@@ -1606,6 +1537,99 @@ void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_Time
 	TimeStormComp->SetStormPhase(DestCenter, DestRadius, Pkt.waiting_time(), Pkt.shrinking_time());
 }
 
+uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo& Info)
+{
+	const uint32 EntityId = Info.entity_id().value();
+	
+	FEntityRuntimeEntry& EntityEntry = EntityEntries.FindOrAdd(EntityId);
+	EntityEntry.EntityId = EntityId;
+	FNetworkEntityState& EntityState = EntityEntry.State;
+	EntityState.EntityId = EntityId;
+	
+	EntityState.ObjectType = Info.type();
+	EntityState.TemplateId = Info.template_id();
+
+	switch (Info.type())
+	{
+	case se::common::ObjectType::OBJ_PLAYER:
+		{
+			if (!Info.has_player_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing player_info for player entity"));
+				return 0;
+			}
+			
+			const auto& PlayerInfo = Info.player_info();
+			
+			const auto& Movement = PlayerInfo.movement();
+			const auto& Pos = Movement.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			EntityState.Yaw = Movement.yaw();
+			EntityState.Pitch = Movement.pitch();
+		}
+		break;
+	case se::common::ObjectType::OBJ_MONSTER:
+		{
+			
+		}
+		break;
+	case se::common::ObjectType::OBJ_ITEM:
+		{
+			
+		}
+		break;
+	case se::common::ObjectType::OBJ_PROJECTILE:
+		{
+			if (!Info.has_projectile_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing projectile_info for projectile entity"));
+				return 0;
+			}
+			
+			const auto& ProjectileInfo = Info.projectile_info();
+			const auto& Pos = ProjectileInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const auto& Velocity = ProjectileInfo.velocity();
+			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
+			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
+		}
+		break;
+	case se::common::ObjectType::OBJ_CHEST:
+		{
+			if (!Info.has_chest_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing chest_info for chest entity"));
+				return 0;
+			}
+			
+			const auto& ChestInfo = Info.chest_info();
+			const auto& Pos = ChestInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const float Yaw = ChestInfo.yaw();
+			EntityState.Yaw = Yaw;
+		}
+		break;
+	case se::common::ObjectType::OBJ_STORE:
+		{
+			if (!Info.has_store_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing store_info for store entity"));
+				return 0;
+			}
+			
+			const auto& StoreInfo = Info.store_info();
+			const auto& Pos = StoreInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const float Yaw = StoreInfo.yaw();
+			EntityState.Yaw = Yaw;
+		}
+		break;
+	}
+	
+	ApplyEntityStateToActor(EntityId);
+	return EntityId;
+}
+
 void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)
 {
 	if (EntityId == 0)
@@ -1940,8 +1964,11 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	const FRotator SpawnRotation(0.0f, EntityState.Yaw, 0.0f);
 	const FTransform SpawnTransform(SpawnRotation, EntityState.Position);
 	
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	
 	// TODO: World가 GameWorld가 아니면 안된다 (문제가 생긴 것)
-	AActor* SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform);
+	AActor* SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform, SpawnParams);
 	if (SpawnedActor == nullptr) return nullptr;
 	
 	EntityEntry->Actor = SpawnedActor;
