@@ -32,4 +32,7 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> ChestClass;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> ItemClass;
+	
 };

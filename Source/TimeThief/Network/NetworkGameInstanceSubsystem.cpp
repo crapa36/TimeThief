@@ -1575,7 +1575,18 @@ uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo&
 		break;
 	case se::common::ObjectType::OBJ_ITEM:
 		{
+			if (!Info.has_item_info())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleEntitySpawn: Missing item_info for item entity"));
+				return 0;
+			}
 			
+			const auto& ItemInfo = Info.item_info();
+			const auto& Pos = ItemInfo.position();
+			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
+			const auto& Velocity = ItemInfo.velocity();
+			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
+			int32 ItemCount = ItemInfo.amount();
 		}
 		break;
 	case se::common::ObjectType::OBJ_PROJECTILE:
@@ -1697,6 +1708,13 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 		if (SpawnData->ChestClass)
 		{
 			return SpawnData->ChestClass;
+		}
+	}
+	else if (EntityState.ObjectType == se::common::OBJ_ITEM)
+	{
+		if (SpawnData->ItemClass)
+		{
+			return SpawnData->ItemClass;
 		}
 	}
 	
