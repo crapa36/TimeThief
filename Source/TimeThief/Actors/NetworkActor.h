@@ -27,7 +27,7 @@ public:
 	virtual UNetworkEntityComponent* GetNetworkEntityComponent() const override;
 	uint32 GetEntityId() const;
 	
-private:
+protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UNetworkEntityComponent> NetworkEntityComponent = nullptr;
 	
