@@ -210,6 +210,17 @@ void UNetworkGameInstanceSubsystem::SendWireLaunch(const FVector& StartPosition,
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendChestInteract(uint32 ChestEntityId)
+{
+	se::game::C_ChestInteractReq Request;
+	auto* ChestId = Request.mutable_chest_entity_id();
+	ChestId->set_value(ChestEntityId);
+	
+	UE_LOG(LogTemp, Log, TEXT("[ChestPkt] Chest Entity Id=%u"), ChestEntityId);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::ConnectToServer()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));

@@ -62,6 +62,8 @@ public:
 	void SendSavePointSet(FVector Location);
 	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
 	
+	void SendChestInteract(uint32 ChestEntityId);
+	
 private:
 	void ConnectToServer();
 	void DisconnectFromServer();
