@@ -114,6 +114,7 @@ public:
 	void HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt);
 	void HandleReload(const se::game::N_Reload& Pkt);
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
+	void HandleWeaponStatSnapshot(const se::game::N_WeaponStatSnapshot& Pkt);
 	void HandleUseAbility(const se::game::N_UseAbility& Pkt);
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
 	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
@@ -126,15 +127,21 @@ public:
 	void HandleItemGained(const se::game::N_ItemGained& Pkt);
 	void HandleChestInteracted(const se::game::N_ChestInteracted& Pkt);
 	void HandleItemLost(const se::game::N_ItemLost& Pkt);
+	void HandleItemSnapshot(const se::game::N_ItemSnapshot& Pkt);
 	void HandleEquipItem(const se::game::N_EquipItem& Pkt);
 	void HandleEquipItemRes(const se::game::S_EquipItemRes& Pkt);
 	void HandleUseItemRes(const se::game::S_UseItemRes& Pkt);
 	void HandleHealthChanged(const se::game::N_HealthChanged& Pkt);
+	void HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt);
+	void HandleHealthSnapshot(const se::game::N_HealthSnapshot& Pkt);
 	void HandleEntityDied(const se::game::N_EntityDied& Pkt);
 	void HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt);
 	void HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt);
 	void HandleTimePointChanged(const se::game::N_TimePointChanged& Pkt);
-	void HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt);
+	void HandleTimePointSnapshot(const se::game::N_TimePointSnapshot& Pkt);
+	void HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt);
+	void HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt);
+	void HandleSkillUnlockSnapshot(const se::game::N_SkillUnlockSnapshot& Pkt);
 	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
 	
 private:

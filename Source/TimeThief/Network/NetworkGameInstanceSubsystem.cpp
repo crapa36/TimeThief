@@ -1183,6 +1183,10 @@ void UNetworkGameInstanceSubsystem::HandleWeaponChanged(const se::game::N_Weapon
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
+void UNetworkGameInstanceSubsystem::HandleWeaponStatSnapshot(const se::game::N_WeaponStatSnapshot& Pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleUseAbility(const se::game::N_UseAbility& Pkt)
 {
 }
@@ -1296,6 +1300,10 @@ void UNetworkGameInstanceSubsystem::HandleChestInteracted(const se::game::N_Ches
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleItemSnapshot(const se::game::N_ItemSnapshot& Pkt)
 {
 }
 
@@ -1465,6 +1473,22 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 	TimePointComp->UpdateTimePoints(Pkt.new_time_points(), Pkt.delta());
 }
 
+void UNetworkGameInstanceSubsystem::HandleTimePointSnapshot(const se::game::N_TimePointSnapshot& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleSkillUnlockSnapshot(const se::game::N_SkillUnlockSnapshot& Pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt)
 {
 	check(IsInGameThread());
@@ -1498,6 +1522,10 @@ void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_Max
 		
 		HealthComp->SetHealth(Pkt.new_max_health(), Pkt.new_current_health());
 	}
+}
+
+void UNetworkGameInstanceSubsystem::HandleHealthSnapshot(const se::game::N_HealthSnapshot& Pkt)
+{
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)

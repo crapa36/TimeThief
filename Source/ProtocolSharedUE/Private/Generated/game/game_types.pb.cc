@@ -109,9 +109,23 @@ struct WeaponStatValueDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 WeaponStatValueDefaultTypeInternal _WeaponStatValue_default_instance_;
+PROTOBUF_CONSTEXPR ItemStack::ItemStack(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.item_id_)*/0u
+  , /*decltype(_impl_.amount_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct ItemStackDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ItemStackDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ItemStackDefaultTypeInternal() {}
+  union {
+    ItemStack _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemStackDefaultTypeInternal _ItemStack_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5ftypes_2eproto[6];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5ftypes_2eproto[7];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5ftypes_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5ftypes_2eproto = nullptr;
 
@@ -169,6 +183,14 @@ const uint32_t TableStruct_game_2fgame_5ftypes_2eproto::offsets[] PROTOBUF_SECTI
   ::_pbi::kInvalidFieldOffsetTag,
   ::_pbi::kInvalidFieldOffsetTag,
   PROTOBUF_FIELD_OFFSET(::se::game::WeaponStatValue, _impl_.value_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::ItemStack, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::ItemStack, _impl_.item_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::ItemStack, _impl_.amount_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::se::game::PlayerMovement)},
@@ -177,6 +199,7 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 22, -1, -1, sizeof(::se::game::WeaponStatSnapshot)},
   { 35, -1, -1, sizeof(::se::game::WeaponSlotSnapshot)},
   { 43, -1, -1, sizeof(::se::game::WeaponStatValue)},
+  { 53, -1, -1, sizeof(::se::game::ItemStack)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -186,6 +209,7 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_WeaponStatSnapshot_default_instance_._instance,
   &::se::game::_WeaponSlotSnapshot_default_instance_._instance,
   &::se::game::_WeaponStatValue_default_instance_._instance,
+  &::se::game::_ItemStack_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_game_2fgame_5ftypes_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
@@ -205,7 +229,8 @@ const char descriptor_table_protodef_game_2fgame_5ftypes_2eproto[] PROTOBUF_SECT
   "2\033.se.game.WeaponStatSnapshot\"r\n\017WeaponS"
   "tatValue\022*\n\tstat_type\030\001 \001(\0162\027.se.game.We"
   "aponStatType\022\023\n\tint_value\030\002 \001(\005H\000\022\025\n\013flo"
-  "at_value\030\003 \001(\002H\000B\007\n\005valueb\006proto3"
+  "at_value\030\003 \001(\002H\000B\007\n\005value\",\n\tItemStack\022\017"
+  "\n\007item_id\030\001 \001(\r\022\016\n\006amount\030\002 \001(\rb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5ftypes_2eproto_deps[3] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -214,9 +239,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5ftypes
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5ftypes_2eproto = {
-    false, false, 673, descriptor_table_protodef_game_2fgame_5ftypes_2eproto,
+    false, false, 719, descriptor_table_protodef_game_2fgame_5ftypes_2eproto,
     "game/game_types.proto",
-    &descriptor_table_game_2fgame_5ftypes_2eproto_once, descriptor_table_game_2fgame_5ftypes_2eproto_deps, 3, 6,
+    &descriptor_table_game_2fgame_5ftypes_2eproto_once, descriptor_table_game_2fgame_5ftypes_2eproto_deps, 3, 7,
     schemas, file_default_instances, TableStruct_game_2fgame_5ftypes_2eproto::offsets,
     file_level_metadata_game_2fgame_5ftypes_2eproto, file_level_enum_descriptors_game_2fgame_5ftypes_2eproto,
     file_level_service_descriptors_game_2fgame_5ftypes_2eproto,
@@ -1635,6 +1660,217 @@ void WeaponStatValue::InternalSwap(WeaponStatValue* other) {
       file_level_metadata_game_2fgame_5ftypes_2eproto[5]);
 }
 
+// ===================================================================
+
+class ItemStack::_Internal {
+ public:
+};
+
+ItemStack::ItemStack(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.ItemStack)
+}
+ItemStack::ItemStack(const ItemStack& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  ItemStack* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.item_id_){}
+    , decltype(_impl_.amount_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.item_id_, &from._impl_.item_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.amount_) -
+    reinterpret_cast<char*>(&_impl_.item_id_)) + sizeof(_impl_.amount_));
+  // @@protoc_insertion_point(copy_constructor:se.game.ItemStack)
+}
+
+inline void ItemStack::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.item_id_){0u}
+    , decltype(_impl_.amount_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+ItemStack::~ItemStack() {
+  // @@protoc_insertion_point(destructor:se.game.ItemStack)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void ItemStack::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void ItemStack::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void ItemStack::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.ItemStack)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.item_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.amount_) -
+      reinterpret_cast<char*>(&_impl_.item_id_)) + sizeof(_impl_.amount_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ItemStack::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 item_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.item_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 amount = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.amount_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* ItemStack::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.ItemStack)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 item_id = 1;
+  if (this->_internal_item_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_item_id(), target);
+  }
+
+  // uint32 amount = 2;
+  if (this->_internal_amount() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_amount(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.ItemStack)
+  return target;
+}
+
+size_t ItemStack::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.ItemStack)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 item_id = 1;
+  if (this->_internal_item_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_item_id());
+  }
+
+  // uint32 amount = 2;
+  if (this->_internal_amount() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_amount());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData ItemStack::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    ItemStack::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*ItemStack::GetClassData() const { return &_class_data_; }
+
+
+void ItemStack::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<ItemStack*>(&to_msg);
+  auto& from = static_cast<const ItemStack&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.ItemStack)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_item_id() != 0) {
+    _this->_internal_set_item_id(from._internal_item_id());
+  }
+  if (from._internal_amount() != 0) {
+    _this->_internal_set_amount(from._internal_amount());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ItemStack::CopyFrom(const ItemStack& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.ItemStack)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ItemStack::IsInitialized() const {
+  return true;
+}
+
+void ItemStack::InternalSwap(ItemStack* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ItemStack, _impl_.amount_)
+      + sizeof(ItemStack::_impl_.amount_)
+      - PROTOBUF_FIELD_OFFSET(ItemStack, _impl_.item_id_)>(
+          reinterpret_cast<char*>(&_impl_.item_id_),
+          reinterpret_cast<char*>(&other->_impl_.item_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ItemStack::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
+      file_level_metadata_game_2fgame_5ftypes_2eproto[6]);
+}
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace game
 }  // namespace se
@@ -1662,6 +1898,10 @@ Arena::CreateMaybeMessage< ::se::game::WeaponSlotSnapshot >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::WeaponStatValue*
 Arena::CreateMaybeMessage< ::se::game::WeaponStatValue >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::WeaponStatValue >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::ItemStack*
+Arena::CreateMaybeMessage< ::se::game::ItemStack >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::ItemStack >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 

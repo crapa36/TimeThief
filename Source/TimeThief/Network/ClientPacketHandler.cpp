@@ -378,26 +378,6 @@ bool Handle_N_Jump(PacketSessionRef& session, const se::game::N_Jump& pkt)
 
 	return false;
 }
-	
-bool Handle_N_JumpLand(PacketSessionRef& session, const se::game::N_JumpLand& pkt)
-{
-	if (!session)
-		return false;
-
-	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
-		return false;
-
-	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
-	{
-		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
-		{
-			NGIS->HandleJumpLand(pkt);
-			return true;
-		}
-	}
-
-	return false;
-}
 
 bool Handle_N_DoubleJump(PacketSessionRef& session, const se::game::N_DoubleJump& pkt)
 {
@@ -418,7 +398,27 @@ bool Handle_N_DoubleJump(PacketSessionRef& session, const se::game::N_DoubleJump
 	
 	return false;
 }
-	
+		
+bool Handle_N_JumpLand(PacketSessionRef& session, const se::game::N_JumpLand& pkt)
+{
+	if (!session)
+		return false;
+
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+		return false;
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleJumpLand(pkt);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool Handle_N_Crouch(PacketSessionRef& session, const se::game::N_Crouch& pkt)
 {
 	if (!session)
@@ -870,6 +870,24 @@ bool Handle_N_WeaponStatChanged(PacketSessionRef& session, const se::game::N_Wea
 	return false;
 }
 
+bool Handle_N_WeaponStatSnapshot(PacketSessionRef& session, const se::game::N_WeaponStatSnapshot& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleWeaponStatSnapshot(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_WeaponStatSnapshot: Failed to get NGIS"));
+	return false;	
+}
+
 bool Handle_N_UseItem(PacketSessionRef& session, const se::game::N_UseItem& pkt)
 {
 	if (!session)
@@ -1008,6 +1026,24 @@ bool Handle_N_ItemLost(PacketSessionRef& session, const se::game::N_ItemLost& pk
 	return false;
 }
 
+bool Handle_N_ItemSnapshot(PacketSessionRef& session, const se::game::N_ItemSnapshot& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleItemSnapshot(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_ItemSnapshot: Failed to get NGIS"));
+	return false;
+}
+
 bool Handle_N_EquipItem(PacketSessionRef& session, const se::game::N_EquipItem& pkt)
 {
 	if (!session)
@@ -1114,6 +1150,48 @@ bool Handle_N_HealthChanged(PacketSessionRef& session, const se::game::N_HealthC
 	
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthChanged: Failed to get NGIS"));
 	return false;	
+}
+
+bool Handle_N_MaxHealthChanged(PacketSessionRef& session, const se::game::N_MaxHealthChanged& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MaxHealthChanged: pkt has no valid entity_id"));
+		return false;
+	}
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleMaxHealthChanged(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_MaxHealthChanged: Failed to get NGIS"));
+	return false;
+}
+
+bool Handle_N_HealthSnapshot(PacketSessionRef& session, const se::game::N_HealthSnapshot& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleHealthSnapshot(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthSnapshot: Failed to get NGIS"));
+	return false;
 }
 	
 bool Handle_N_EntityDied(PacketSessionRef& session, const se::game::N_EntityDied& pkt)
@@ -1226,30 +1304,78 @@ bool Handle_N_TimePointChanged(PacketSessionRef& session, const se::game::N_Time
 	return false;	
 }
 
-bool Handle_N_MaxHealthChanged(PacketSessionRef& session, const se::game::N_MaxHealthChanged& pkt)
+bool Handle_N_TimePointSnapshot(PacketSessionRef& session, const se::game::N_TimePointSnapshot& pkt)
 {
 	if (!session)
 		return false;
 	
-	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MaxHealthChanged: pkt has no valid entity_id"));
-		return false;
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleTimePointSnapshot(pkt);
+			return true;
+		}
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_TimePointSnapshot: Failed to get NGIS"));
+	return false;
+}
+
+bool Handle_N_SkillUnlock(PacketSessionRef& session, const se::game::N_SkillUnlock& pkt)
+{
+	if (!session)
+		return false;
 	
 	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
 	{
 		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
 		{
-			NGIS->HandleMaxHealthChanged(pkt);
+			NGIS->HandleSkillUnlock(pkt);
 			return true;
 		}
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("Handle_N_MaxHealthChanged: Failed to get NGIS"));
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_SkillUnlock: Failed to get NGIS"));
 	return false;
 }
+
+bool Handle_S_SkillEquipRes(PacketSessionRef& session, const se::game::S_SkillEquipRes& pkt)
+{
+	if (!session)
+		return false;
 	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleSkillEquipRes(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_S_SkillEquipRes: Failed to get NGIS"));
+	return false;
+}
+
+bool Handle_N_SkillUnlockSnapshot(PacketSessionRef& session, const se::game::N_SkillUnlockSnapshot& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleSkillUnlockSnapshot(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_SkillUnlockSnapshot: Failed to get NGIS"));
+	return false;
+}
+
 bool Handle_N_TimeStormChange(PacketSessionRef& session, const se::game::N_TimeStormChange& pkt)
 {
 	if (!session)

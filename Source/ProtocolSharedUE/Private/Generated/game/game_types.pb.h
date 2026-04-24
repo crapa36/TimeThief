@@ -50,6 +50,9 @@ struct PROTOCOLSHAREDUE_API TableStruct_game_2fgame_5ftypes_2eproto {
 PROTOCOLSHAREDUE_API extern const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_game_2fgame_5ftypes_2eproto;
 namespace se {
 namespace game {
+class ItemStack;
+struct ItemStackDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern ItemStackDefaultTypeInternal _ItemStack_default_instance_;
 class MonsterMovement;
 struct MonsterMovementDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern MonsterMovementDefaultTypeInternal _MonsterMovement_default_instance_;
@@ -71,6 +74,7 @@ PROTOCOLSHAREDUE_API extern WeaponStatValueDefaultTypeInternal _WeaponStatValue_
 }  // namespace game
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
+template<> PROTOCOLSHAREDUE_API ::se::game::ItemStack* Arena::CreateMaybeMessage<::se::game::ItemStack>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::MonsterMovement* Arena::CreateMaybeMessage<::se::game::MonsterMovement>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::PlayerMovement* Arena::CreateMaybeMessage<::se::game::PlayerMovement>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::ProjectileMovement* Arena::CreateMaybeMessage<::se::game::ProjectileMovement>(Arena*);
@@ -1114,6 +1118,165 @@ class PROTOCOLSHAREDUE_API WeaponStatValue final :
   union { Impl_ _impl_; };
   friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
 };
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API ItemStack final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.ItemStack) */ {
+ public:
+  inline ItemStack() : ItemStack(nullptr) {}
+  ~ItemStack() override;
+  explicit PROTOBUF_CONSTEXPR ItemStack(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  ItemStack(const ItemStack& from);
+  ItemStack(ItemStack&& from) noexcept
+    : ItemStack() {
+    *this = ::std::move(from);
+  }
+
+  inline ItemStack& operator=(const ItemStack& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ItemStack& operator=(ItemStack&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ItemStack& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ItemStack* internal_default_instance() {
+    return reinterpret_cast<const ItemStack*>(
+               &_ItemStack_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  friend void swap(ItemStack& a, ItemStack& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ItemStack* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ItemStack* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ItemStack* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<ItemStack>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const ItemStack& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const ItemStack& from) {
+    ItemStack::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(ItemStack* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.ItemStack";
+  }
+  protected:
+  explicit ItemStack(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kItemIdFieldNumber = 1,
+    kAmountFieldNumber = 2,
+  };
+  // uint32 item_id = 1;
+  void clear_item_id();
+  uint32_t item_id() const;
+  void set_item_id(uint32_t value);
+  private:
+  uint32_t _internal_item_id() const;
+  void _internal_set_item_id(uint32_t value);
+  public:
+
+  // uint32 amount = 2;
+  void clear_amount();
+  uint32_t amount() const;
+  void set_amount(uint32_t value);
+  private:
+  uint32_t _internal_amount() const;
+  void _internal_set_amount(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.ItemStack)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint32_t item_id_;
+    uint32_t amount_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
+};
 // ===================================================================
 
 
@@ -1710,9 +1873,55 @@ inline void WeaponStatValue::clear_has_value() {
 inline WeaponStatValue::ValueCase WeaponStatValue::value_case() const {
   return WeaponStatValue::ValueCase(_impl_._oneof_case_[0]);
 }
+// -------------------------------------------------------------------
+
+// ItemStack
+
+// uint32 item_id = 1;
+inline void ItemStack::clear_item_id() {
+  _impl_.item_id_ = 0u;
+}
+inline uint32_t ItemStack::_internal_item_id() const {
+  return _impl_.item_id_;
+}
+inline uint32_t ItemStack::item_id() const {
+  // @@protoc_insertion_point(field_get:se.game.ItemStack.item_id)
+  return _internal_item_id();
+}
+inline void ItemStack::_internal_set_item_id(uint32_t value) {
+  
+  _impl_.item_id_ = value;
+}
+inline void ItemStack::set_item_id(uint32_t value) {
+  _internal_set_item_id(value);
+  // @@protoc_insertion_point(field_set:se.game.ItemStack.item_id)
+}
+
+// uint32 amount = 2;
+inline void ItemStack::clear_amount() {
+  _impl_.amount_ = 0u;
+}
+inline uint32_t ItemStack::_internal_amount() const {
+  return _impl_.amount_;
+}
+inline uint32_t ItemStack::amount() const {
+  // @@protoc_insertion_point(field_get:se.game.ItemStack.amount)
+  return _internal_amount();
+}
+inline void ItemStack::_internal_set_amount(uint32_t value) {
+  
+  _impl_.amount_ = value;
+}
+inline void ItemStack::set_amount(uint32_t value) {
+  _internal_set_amount(value);
+  // @@protoc_insertion_point(field_set:se.game.ItemStack.amount)
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------
