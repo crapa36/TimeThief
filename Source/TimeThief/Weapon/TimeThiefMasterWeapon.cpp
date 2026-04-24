@@ -12,17 +12,9 @@ ATimeThiefMasterWeapon::ATimeThiefMasterWeapon()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	WeaponMesh = CreateDefaultSubobject<UMorphingMeshComponent>(TEXT("WeaponMesh"));
+	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
 	SetRootComponent(WeaponMesh);
-	
-	WeaponMesh->BaseMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WeaponMesh->BaseMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	WeaponMesh->BaseMeshComponent->SetCastShadow(true);
-	WeaponMesh->BaseMeshComponent->SetupAttachment(RootComponent);
-	
-	WeaponMesh->LiquidMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WeaponMesh->LiquidMeshComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
-	WeaponMesh->LiquidMeshComponent->SetupAttachment(RootComponent);
+	WeaponMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	
 	const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
 
@@ -52,27 +44,9 @@ void ATimeThiefMasterWeapon::BeginPlay()
 	}
 }
 
-EMorphTargetType ATimeThiefMasterWeapon::GetMorphTargetTypeByTag(FGameplayTag WeaponTag) const
-{
-	const FTimeThiefGameplayTags& GameplayTags = FTimeThiefGameplayTags::Get();
-	if (WeaponTag == GameplayTags.Weapon_Rifle)
-	{
-		return EMorphTargetType::A;
-	}
-	if (WeaponTag == GameplayTags.Weapon_Shotgun)
-	{
-		return EMorphTargetType::B;
-	}
-	if (WeaponTag == GameplayTags.Weapon_RocketLauncher)
-	{
-		return EMorphTargetType::C;
-	}
-	return EMorphTargetType::None;
-}
-
 UStaticMesh* ATimeThiefMasterWeapon::GetActiveStaticMesh() const 
 {
-	return WeaponMesh->BaseMeshComponent->GetStaticMesh();
+	return WeaponMesh->GetStaticMesh();
 }
 
 void ATimeThiefMasterWeapon::SwitchWeapon(FGameplayTag WeaponTag) 
@@ -94,7 +68,7 @@ void ATimeThiefMasterWeapon::SwitchWeapon(FGameplayTag WeaponTag)
 		
 		if (WeaponMesh) 
 		{
-			WeaponMesh->SetType(GetMorphTargetTypeByTag(WeaponTag));
+			WeaponMesh->SetStaticMesh(ActiveWeaponComponent->WeaponMeshAsset);
 		}
 
 		ActiveWeaponComponent->OnEquipped();
@@ -104,7 +78,7 @@ void ATimeThiefMasterWeapon::SwitchWeapon(FGameplayTag WeaponTag)
 		ActiveWeaponComponent = nullptr;
 		if (WeaponMesh) 
 		{
-			WeaponMesh->SetType(EMorphTargetType::None);
+			WeaponMesh->SetStaticMesh(nullptr);
 		}
 	}
 }
@@ -135,7 +109,7 @@ void ATimeThiefMasterWeapon::Reload()
 
 UStaticMeshComponent* ATimeThiefMasterWeapon::GetWeaponMesh() const
 {
-	return WeaponMesh->BaseMeshComponent;
+	return WeaponMesh;
 }
 
 UTimeThiefWeaponComponentBase* ATimeThiefMasterWeapon::GetWeaponComponentByTag(FGameplayTag WeaponTag) const 

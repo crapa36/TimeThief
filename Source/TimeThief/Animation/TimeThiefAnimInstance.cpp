@@ -5,6 +5,10 @@
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Network/MovableNetworkEntityInterface.h"
 #include "CharacterTrajectoryComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -52,16 +56,12 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		if (!CharacterOwner->IsLocallyControlled())
 		{
 			const FVector2D NetworkVelocity2D = MovableNetworkInterface->GetNetworkVelocity2D();
-			if (Velocity.SizeSquared2D() < 0.25f && !NetworkVelocity2D.IsNearlyZero(0.5f))
-			{
-				Velocity = FVector(NetworkVelocity2D.X, NetworkVelocity2D.Y, Velocity.Z);
-			}
+			Velocity = FVector(NetworkVelocity2D.X, NetworkVelocity2D.Y, Velocity.Z);
 		}
-		Velocity = MovableNetworkInterface->GetMoveStep();
-	}
-	else
-	{
-		Velocity = CharacterOwner->GetVelocity();
+		else
+		{
+			Velocity = CharacterOwner->GetVelocity();
+		}
 	}
 
 	VerticalVelocity = Velocity.Z;
@@ -82,12 +82,36 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bShouldMove = bIsRemoteCharacter ? bHasVelocity : ((GroundSpeed > 0.01f) && bHasAcceleration);
 	
 	bIsMoving = bHasVelocity && !bIsFalling;
-
+	
+	if (bIsMoving)
+	{
+		auto Rotation = CharacterOwner->GetActorRotation();
+		auto RotFromX = UKismetMathLibrary::MakeRotFromX(Velocity);
+		
+		auto DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(RotFromX, Rotation);
+		Direction = DeltaRotation.Yaw;
+	}
+	else
+	{
+		Direction = 0;
+	}
+	
 	if (ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CharacterOwner))
 	{
 		if (UTimeThiefPawnCombatComponent* CombatComp = CharacterBase->GetCombatComponent())
 		{
 			bIsAiming = CombatComp->IsAiming();
+		}
+		if (auto Weapon = CharacterBase->GetWeaponActor())
+		{
+			if (auto Mesh = Weapon->GetWeaponMesh())
+			{
+				WeaponSocket = Mesh->GetSocketTransform(FName("LeftHandIK"));
+			}
+		}
+		if (auto MorphingComp = CharacterBase->GetMorphingMeshComponent())
+		{
+			MeshAlpha = MorphingComp->CurrAlpha;
 		}
 	}
 }

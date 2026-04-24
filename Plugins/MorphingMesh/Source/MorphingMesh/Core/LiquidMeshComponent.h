@@ -44,7 +44,7 @@ public:
 	virtual void DestroyRenderState_Concurrent() override;
 	
 	FBox GetBound() const;
-	FVector3f GetAlpha() const;
+	FVector GetAlpha() const;
 	TArray<TObjectPtr<UVolumeTexture>> GetDensityTextures() const;
 	TArray<TObjectPtr<UVolumeTexture>> GetUVMaps() const;
 	TObjectPtr<UVolumeTexture> GetBoneIndicesTexture() const;

@@ -52,9 +52,9 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UMorphingMeshComponent> WeaponMesh;
+	TObjectPtr<UStaticMeshComponent> WeaponMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
 	TObjectPtr<UTimeThiefRifleComponent> RifleComponent;
@@ -70,7 +70,4 @@ protected:
 
 	UPROPERTY(Transient)
 	TMap<FGameplayTag, TObjectPtr<UTimeThiefWeaponComponentBase>> WeaponComponents;
-	
-	private:
-	EMorphTargetType GetMorphTargetTypeByTag(FGameplayTag WeaponTag) const;
 };

@@ -15,7 +15,7 @@ class MORPHINGMESH_API FLiquidMeshProxy : public FPrimitiveSceneProxy
 	
 	mutable std::mutex CachingMutex;
 	FBox CachedBound;
-	FVector3f CachedAlpha;
+	FVector CachedAlpha;
 	TArray<TObjectPtr<UVolumeTexture>> CachedDensityTextures;
 	TArray<TObjectPtr<UVolumeTexture>> CachedUVMaps;
 	TObjectPtr<UVolumeTexture> CachedBoneIndicesTexture;

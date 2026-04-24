@@ -328,7 +328,7 @@ USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetWeaponAttachMesh() const
     return FirstPersonMesh;
   }
 
-  return GetMesh();
+  return GetThirdPersonMesh();
 }
 
 USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetMontagePlaybackMesh() const
@@ -338,7 +338,7 @@ USkeletalMeshComponent* ATimeThiefPlayerCharacter::GetMontagePlaybackMesh() cons
     return FirstPersonMesh;
   }
 
-  return GetMesh();
+  return GetThirdPersonMesh();
 }
 
 void ATimeThiefPlayerCharacter::ApplyPerspective()
