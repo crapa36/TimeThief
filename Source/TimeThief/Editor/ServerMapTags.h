@@ -15,5 +15,6 @@ namespace ServerTags
 	inline const FName AutoConvexFallback(TEXT("AutoConvexFallback"));
 	inline const FName AutoBoundsFallback(TEXT("AutoBoundsFallback"));
 
+	inline const FName FromPreset(TEXT("FromPreset"));
 	inline const FName ManualApproved(TEXT("ManualApproved"));
 }

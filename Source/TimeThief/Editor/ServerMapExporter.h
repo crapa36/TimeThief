@@ -36,6 +36,15 @@ public:
 	static int32 SaveGeneratedShapesToPresetsForActorsWithTag(UWorld* World, const FName& RequiredTag, const FString& PresetFolderPath, bool bOnlySaveGeneratedShapes);
 	static bool ValidateActorsWithTag(UWorld* World, const FName& RequiredTag, FServerMapValidationReport& OutReport);
 	
+	static bool SpawnPresetShapesForSelectedActor(bool bClearExistingPresetShapes = true);
+	static int32 SpawnPresetShapesForActor(AActor* Actor, bool bClearExistingPresetShapes);
+	static int32 SpawnPresetShapesForStaticMeshComponent(AActor* Actor, UStaticMeshComponent* StaticMeshComponent, const UServerCollisionPresetDataAsset* PresetAsset);
+	
+	static bool ApproveSelectedActorGeneratedShapes();
+	
+	static UShapeComponent* CreateShapeComponentFromPresetCollider(AActor* OwnerActor, USceneComponent* AttachParent, const FServerCollisionPresetCollider& PresetCollider);
+	static int32 SpawnPresetShapesForActorsWithTag(UWorld* World, const FName& RequiredTag, bool bClearExistingPresetShapes);
+	
 private:
 	static AActor* GetFirstSelectedActor();
 	static UStaticMeshComponent* FindFirstStaticMeshComponent(AActor* Actor);

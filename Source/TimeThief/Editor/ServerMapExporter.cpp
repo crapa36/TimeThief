@@ -26,6 +26,7 @@
 #include "Editor.h"
 #include "AssetToolsModule.h"
 #include "Factories/DataAssetFactory.h"
+#include "UObject/SavePackage.h"
 #endif
 
 namespace
@@ -403,11 +404,17 @@ int32 ServerMapExporter::SaveGeneratedShapesToPresetsForActorsWithTag(UWorld* Wo
 			continue;
 		}
 		
+		if (!Actor->ActorHasTag(ServerTags::ManualApproved))
+		{
+			continue;
+		}
+		
 		const int32 ActorSavedCount = SaveActorShapesToPresets(Actor, PresetFolderPath, bOnlySaveGeneratedShapes);
 		SavedCount += ActorSavedCount;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SaveGeneratedShapesToPresetsForActorsWithTag finished. Tag=%s SavedCount=%d"),
+	UE_LOG(LogTemp, Log,
+	TEXT("[ServerMapExporter] SaveGeneratedShapesToPresetsForActorsWithTag finished. Tag=%s ApprovedOnly=true SavedCount=%d"),
 		*RequiredTag.ToString(),
 		SavedCount);
 
@@ -440,6 +447,171 @@ bool ServerMapExporter::ValidateActorsWithTag(UWorld* World, const FName& Requir
 	}
 
 	LogValidationReport(RequiredTag, OutReport);
+	return true;
+}
+
+bool ServerMapExporter::SpawnPresetShapesForSelectedActor(bool bClearExistingPresetShapes)
+{
+	AActor* SelectedActor = GetFirstSelectedActor();
+	if (SelectedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No selected actor"));
+		return false;
+	}
+
+	const int32 SpawnedCount = SpawnPresetShapesForActor(
+		SelectedActor,
+		bClearExistingPresetShapes);
+
+	return SpawnedCount > 0;
+}
+
+int32 ServerMapExporter::SpawnPresetShapesForActor(AActor* Actor, bool bClearExistingPresetShapes)
+{
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+
+	if (bClearExistingPresetShapes)
+	{
+		RemoveGeneratedShapeComponents(Actor);
+	}
+
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	CollectStaticMeshComponents(Actor, StaticMeshComponents);
+
+	if (StaticMeshComponents.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Actor has no StaticMeshComponent: %s"),
+			*GetNameSafe(Actor));
+		return 0;
+	}
+
+	int32 SpawnedCount = 0;
+
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
+	{
+		if (StaticMeshComponent == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			continue;
+		}
+
+		const UServerCollisionPresetDataAsset* PresetAsset = FindPresetForStaticMesh(StaticMesh);
+		if (PresetAsset == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No preset found for mesh: Actor=%s Mesh=%s"),
+				*GetNameSafe(Actor),
+				*GetNameSafe(StaticMesh));
+			continue;
+		}
+
+		SpawnedCount += SpawnPresetShapesForStaticMeshComponent(
+			Actor,
+			StaticMeshComponent,
+			PresetAsset);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SpawnPresetShapesForActor finished. Actor=%s Spawned=%d"),
+		*GetNameSafe(Actor),
+		SpawnedCount);
+
+	return SpawnedCount;
+}
+
+int32 ServerMapExporter::SpawnPresetShapesForStaticMeshComponent(AActor* Actor,
+	UStaticMeshComponent* StaticMeshComponent, const UServerCollisionPresetDataAsset* PresetAsset)
+{
+	if (Actor == nullptr || StaticMeshComponent == nullptr || PresetAsset == nullptr)
+	{
+		return 0;
+	}
+
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+	if (StaticMesh == nullptr)
+	{
+		return 0;
+	}
+
+	if (PresetAsset->SourceStaticMesh != StaticMesh)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Preset mesh mismatch. Actor=%s Component=%s Preset=%s"),
+			*GetNameSafe(Actor),
+			*GetNameSafe(StaticMeshComponent),
+			*GetNameSafe(PresetAsset));
+		return 0;
+	}
+
+	int32 SpawnedCount = 0;
+
+#if WITH_EDITOR
+	Actor->Modify();
+#endif
+
+	for (const FServerCollisionPresetCollider& PresetCollider : PresetAsset->Colliders)
+	{
+		UShapeComponent* NewShape = CreateShapeComponentFromPresetCollider(
+			Actor,
+			StaticMeshComponent,
+			PresetCollider);
+
+		if (NewShape != nullptr)
+		{
+			++SpawnedCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Spawned %d preset shapes. Actor=%s Mesh=%s Preset=%s"),
+		SpawnedCount,
+		*GetNameSafe(Actor),
+		*GetNameSafe(StaticMesh),
+		*GetNameSafe(PresetAsset));
+
+	return SpawnedCount;
+}
+
+bool ServerMapExporter::ApproveSelectedActorGeneratedShapes()
+{
+	AActor* Actor = GetFirstSelectedActor();
+	if (!Actor)
+	{
+		return false;
+	}
+
+#if WITH_EDITOR
+	Actor->Modify();
+#endif
+
+	Actor->Tags.AddUnique(ServerTags::ManualApproved);
+
+	TArray<UShapeComponent*> ShapeComponents;
+	Actor->GetComponents<UShapeComponent>(ShapeComponents);
+
+	for (UShapeComponent* Shape : ShapeComponents)
+	{
+		if (!Shape)
+		{
+			continue;
+		}
+
+		if (!Shape->ComponentHasTag(ServerTags::Generated))
+		{
+			continue;
+		}
+
+#if WITH_EDITOR
+		Shape->Modify();
+#endif
+
+		Shape->ComponentTags.AddUnique(ServerTags::ManualApproved);
+	}
+
 	return true;
 }
 
@@ -551,6 +723,113 @@ bool ServerMapExporter::ExportSelectedActorResolvedToFile(const FString& OutputP
 
 	LogExportSummary(TEXT("SelectedActorResolved"), OutputPath, Summary);
 	return true;
+}
+
+UShapeComponent* ServerMapExporter::CreateShapeComponentFromPresetCollider(AActor* OwnerActor,
+	USceneComponent* AttachParent, const FServerCollisionPresetCollider& PresetCollider)
+{
+	if (OwnerActor == nullptr || AttachParent == nullptr)
+	{
+		return nullptr;
+	}
+
+	UShapeComponent* NewShape = nullptr;
+
+	switch (PresetCollider.ShapeType)
+	{
+	case EServerColliderShapeType::Box:
+		{
+			UBoxComponent* Box = NewObject<UBoxComponent>(OwnerActor);
+			if (Box == nullptr)
+			{
+				return nullptr;
+			}
+
+			Box->SetBoxExtent(PresetCollider.BoxExtent);
+			NewShape = Box;
+			break;
+		}
+
+	case EServerColliderShapeType::Sphere:
+		{
+			USphereComponent* Sphere = NewObject<USphereComponent>(OwnerActor);
+			if (Sphere == nullptr)
+			{
+				return nullptr;
+			}
+
+			Sphere->SetSphereRadius(PresetCollider.Radius);
+			NewShape = Sphere;
+			break;
+		}
+
+	case EServerColliderShapeType::Capsule:
+		{
+			UCapsuleComponent* Capsule = NewObject<UCapsuleComponent>(OwnerActor);
+			if (Capsule == nullptr)
+			{
+				return nullptr;
+			}
+
+			Capsule->SetCapsuleRadius(PresetCollider.Radius);
+			Capsule->SetCapsuleHalfHeight(PresetCollider.HalfHeight);
+			NewShape = Capsule;
+			break;
+		}
+
+	default:
+		return nullptr;
+	}
+
+	NewShape->SetupAttachment(AttachParent);
+	NewShape->SetRelativeLocation(PresetCollider.LocalPosition);
+	NewShape->SetRelativeRotation(PresetCollider.LocalRotation);
+
+	NewShape->ComponentTags.AddUnique(ServerTags::Generated);
+	NewShape->ComponentTags.AddUnique(ServerTags::FromPreset);
+
+	if (PresetCollider.bBlockMovement)
+	{
+		NewShape->ComponentTags.AddUnique(ServerTags::BlockMovement);
+	}
+
+	if (PresetCollider.bBlockProjectile)
+	{
+		NewShape->ComponentTags.AddUnique(ServerTags::BlockProjectile);
+	}
+
+	OwnerActor->AddInstanceComponent(NewShape);
+	NewShape->RegisterComponent();
+
+#if WITH_EDITOR
+	NewShape->Modify();
+#endif
+
+	return NewShape;
+}
+
+int32 ServerMapExporter::SpawnPresetShapesForActorsWithTag(UWorld* World, const FName& RequiredTag,
+	bool bClearExistingPresetShapes)
+{
+	if (!World)
+		return 0;
+
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+
+	int32 SpawnedActorCount = 0;
+
+	for (AActor* Actor : TaggedActors)
+	{
+		const int32 SpawnedCount = SpawnPresetShapesForActor(
+			Actor,
+			bClearExistingPresetShapes);
+
+		if (SpawnedCount > 0)
+			++SpawnedActorCount;
+	}
+
+	return SpawnedActorCount;
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()
@@ -1398,6 +1677,29 @@ bool ServerMapExporter::SaveActorShapesToPresetForStaticMeshComponent(AActor* Ac
 
 #if WITH_EDITOR
 	PresetAsset->MarkPackageDirty();
+	
+	UPackage* Package = PresetAsset->GetOutermost();
+	if (Package != nullptr)
+	{
+		const FString PackageFileName = FPackageName::LongPackageNameToFilename(
+			Package->GetName(),
+			FPackageName::GetAssetPackageExtension());
+
+		FSavePackageArgs SaveArgs;
+		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+		SaveArgs.SaveFlags = SAVE_NoError;
+		SaveArgs.Error = GError;
+
+		const bool bSaved = UPackage::SavePackage(
+			Package,
+			PresetAsset,
+			*PackageFileName,
+			SaveArgs);
+
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] SavePackage %s: %s"),
+			bSaved ? TEXT("succeeded") : TEXT("failed"),
+			*PackageFileName);
+	}
 #endif
 
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Saved %d colliders to preset: Actor=%s Component=%s Preset=%s Mesh=%s"),
@@ -2113,8 +2415,19 @@ bool ServerMapExporter::BuildPresetColliderFromBoxComponent(const UBoxComponent*
 	OutPresetCollider.BoxExtent = BoxComponent->GetUnscaledBoxExtent();
 	OutPresetCollider.Radius = 0.0f;
 	OutPresetCollider.HalfHeight = 0.0f;
-	OutPresetCollider.bBlockMovement = BoxComponent->ComponentHasTag(ServerTags::BlockMovement);
-	OutPresetCollider.bBlockProjectile = BoxComponent->ComponentHasTag(ServerTags::BlockProjectile);
+	const bool bHasMovementTag = BoxComponent->ComponentHasTag(ServerTags::BlockMovement);
+	const bool bHasProjectileTag = BoxComponent->ComponentHasTag(ServerTags::BlockProjectile);
+
+	if (!bHasMovementTag && !bHasProjectileTag)
+	{
+		OutPresetCollider.bBlockMovement = true;
+		OutPresetCollider.bBlockProjectile = true;
+	}
+	else
+	{
+		OutPresetCollider.bBlockMovement = bHasMovementTag;
+		OutPresetCollider.bBlockProjectile = bHasProjectileTag;
+	}
 	OutPresetCollider.DebugName = FName(GetNameSafe(BoxComponent));
 
 	return true;
@@ -2135,8 +2448,19 @@ bool ServerMapExporter::BuildPresetColliderFromSphereComponent(const USphereComp
 	OutPresetCollider.BoxExtent = FVector::ZeroVector;
 	OutPresetCollider.Radius = SphereComponent->GetUnscaledSphereRadius();
 	OutPresetCollider.HalfHeight = 0.0f;
-	OutPresetCollider.bBlockMovement = SphereComponent->ComponentHasTag(ServerTags::BlockMovement);
-	OutPresetCollider.bBlockProjectile = SphereComponent->ComponentHasTag(ServerTags::BlockProjectile);
+	const bool bHasMovementTag = SphereComponent->ComponentHasTag(ServerTags::BlockMovement);
+	const bool bHasProjectileTag = SphereComponent->ComponentHasTag(ServerTags::BlockProjectile);
+
+	if (!bHasMovementTag && !bHasProjectileTag)
+	{
+		OutPresetCollider.bBlockMovement = true;
+		OutPresetCollider.bBlockProjectile = true;
+	}
+	else
+	{
+		OutPresetCollider.bBlockMovement = bHasMovementTag;
+		OutPresetCollider.bBlockProjectile = bHasProjectileTag;
+	}
 	OutPresetCollider.DebugName = FName(GetNameSafe(SphereComponent));
 
 	return true;
@@ -2157,8 +2481,19 @@ bool ServerMapExporter::BuildPresetColliderFromCapsuleComponent(const UCapsuleCo
 	OutPresetCollider.BoxExtent = FVector::ZeroVector;
 	OutPresetCollider.Radius = CapsuleComponent->GetUnscaledCapsuleRadius();
 	OutPresetCollider.HalfHeight = CapsuleComponent->GetUnscaledCapsuleHalfHeight();
-	OutPresetCollider.bBlockMovement = CapsuleComponent->ComponentHasTag(ServerTags::BlockMovement);
-	OutPresetCollider.bBlockProjectile = CapsuleComponent->ComponentHasTag(ServerTags::BlockProjectile);
+	const bool bHasMovementTag = CapsuleComponent->ComponentHasTag(ServerTags::BlockMovement);
+	const bool bHasProjectileTag = CapsuleComponent->ComponentHasTag(ServerTags::BlockProjectile);
+
+	if (!bHasMovementTag && !bHasProjectileTag)
+	{
+		OutPresetCollider.bBlockMovement = true;
+		OutPresetCollider.bBlockProjectile = true;
+	}
+	else
+	{
+		OutPresetCollider.bBlockMovement = bHasMovementTag;
+		OutPresetCollider.bBlockProjectile = bHasProjectileTag;
+	}
 	OutPresetCollider.DebugName = FName(GetNameSafe(CapsuleComponent));
 
 	return true;

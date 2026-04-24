@@ -28,16 +28,6 @@ void AServerMapExportTestActor::ClearGeneratedShapesForSelectedActor()
 		bResult ? TEXT("true") : TEXT("false"));
 }
 
-void AServerMapExportTestActor::SaveSelectedActorShapesToPresets()
-{
-	const bool bResult = ServerMapExporter::SaveSelectedActorShapesToPresets(
-		PresetFolderPath,
-		bOnlySaveGeneratedShapes);
-
-	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] SaveSelectedActorShapesToPresets result: %s"),
-		bResult ? TEXT("true") : TEXT("false"));
-}
-
 void AServerMapExportTestActor::ValidateSelectedActor()
 {
 	FServerMapValidationReport Report;
@@ -55,6 +45,32 @@ void AServerMapExportTestActor::ExportSelectedActorResolved()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportSelectedActorResolved result: %s"),
 		bResult ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
+void AServerMapExportTestActor::LoadPresetShapesForSelectedActor()
+{
+	const bool bResult = ServerMapExporter::SpawnPresetShapesForSelectedActor(
+		bClearExistingGeneratedShapesBeforeRegenerate);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] LoadPresetShapesForSelectedActor result: %s"),
+		bResult ? TEXT("true") : TEXT("false"));
+}
+
+void AServerMapExportTestActor::SaveSelectedActorShapesToPresetAndClearWorldShapes()
+{
+	const bool bSaved = ServerMapExporter::SaveSelectedActorShapesToPresets(
+		PresetFolderPath,
+		false); // Generated + ManualApproved까지 저장하고 싶으면 false
+
+	if (bSaved)
+	{
+		ServerMapExporter::ClearGeneratedShapesFromSelectedActor();
+	}
+}
+
+void AServerMapExportTestActor::ApproveSelectedActorGeneratedShapes()
+{
+	ServerMapExporter::ApproveSelectedActorGeneratedShapes();
 }
 
 void AServerMapExportTestActor::GenerateShapesForTaggedActors()

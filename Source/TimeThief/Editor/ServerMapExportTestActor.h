@@ -38,14 +38,20 @@ public:
 	void GenerateShapesForSelectedActor();
 
 	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
-	void ClearGeneratedShapesForSelectedActor();
+	void LoadPresetShapesForSelectedActor();
 
 	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
-	void SaveSelectedActorShapesToPresets();
-
+	void ApproveSelectedActorGeneratedShapes();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void SaveSelectedActorShapesToPresetAndClearWorldShapes();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void ClearGeneratedShapesForSelectedActor();
+	
 	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
 	void ValidateSelectedActor();
-
+	
 	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
 	void ExportSelectedActorResolved();
 
