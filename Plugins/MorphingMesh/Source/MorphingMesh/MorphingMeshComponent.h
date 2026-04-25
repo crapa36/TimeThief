@@ -26,8 +26,7 @@ class MORPHINGMESH_API UMorphingMeshComponent : public USceneComponent
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphing | Settings")
-	TObjectPtr<USkeletalMeshComponent> BaseSkeletalMeshComponent;
+	USkeletalMeshComponent* BaseSkeletalMeshComponent{nullptr};
 	
 	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<UMorphingMeshData> MorphingMeshData;
@@ -57,6 +56,8 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
+	void SetSkeletalMeshComponent(USkeletalMeshComponent* NewSkeletalMeshComponent);
+	
 	int GetActiveSkeletalIndex() const;
 	
 	UFUNCTION(BlueprintCallable)
@@ -83,4 +84,7 @@ public:
 	bool bIsValid{false};
 	
 	int PrevIndex{-1};
+	
+private:
+	void Check();
 };

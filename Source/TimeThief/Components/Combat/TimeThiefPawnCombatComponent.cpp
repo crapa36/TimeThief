@@ -119,7 +119,7 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 	{
 		if (auto Player = GetPawn<ATimeThiefCharacterBase>())
 		{
-			if (Player->GetMesh() == Player->GetWeaponAttachMesh())
+			if (!Player->GetMorphingMeshComponent()->bIsSkeletalMesh)
 			{
 				MasterWeaponPtr->SetActorHiddenInGame(false);
 				AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());

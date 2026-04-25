@@ -67,9 +67,7 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	
 	MorphingCharacter = CreateDefaultSubobject<UMorphingMeshComponent>(TEXT("MorphingCharacter"));
 	MorphingCharacter->SetupAttachment(GetMesh());
-	MorphingCharacter->BaseMeshComponent->SetupAttachment(MorphingCharacter);
 	MorphingCharacter->LiquidMeshComponent->SetupAttachment(MorphingCharacter);
-	MorphingCharacter->BaseSkeletalMeshComponent->SetupAttachment(MorphingCharacter);
 	
 	WeaponActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("WeaponActorComponent"));
 	WeaponActorComponent->SetupAttachment(MorphingCharacter->BaseSkeletalMeshComponent, FName{TEXT("HandGrip_R")});
@@ -240,6 +238,13 @@ void ATimeThiefCharacterBase::NotifyControllerChanged()
 	{
 		Extension->NotifyControllerChanged();
 	}
+}
+
+void ATimeThiefCharacterBase::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	
+	MorphingCharacter->SetSkeletalMeshComponent(GetMesh());
 }
 
 void ATimeThiefCharacterBase::TogglePerspective()

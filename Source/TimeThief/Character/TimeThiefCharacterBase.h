@@ -64,6 +64,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void NotifyControllerChanged() override;
 	
+	virtual void OnConstruction(const FTransform& Transform) override;
+	
 	virtual void ApplyPerspective();
 	
 public:
