@@ -187,12 +187,6 @@ public:
 	void RequestMatchQueueCancel();
 	
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
-	void RequestEnterRoom();
-	
-	UFUNCTION(BlueprintCallable, Category = "Network|Room")
-	void RequestLeaveRoom();
-	
-	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
 	
 public:

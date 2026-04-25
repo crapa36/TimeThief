@@ -457,6 +457,12 @@ void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_Handsha
 	PlayState = ENetworkPlayState::InLobby;
 	
 	StartPingTimer();
+	
+	
+// TEMP (Test 용이를 위해 Connect 후 자동으로 Enter Match Queue 하도록)
+#if WITH_EDITOR
+	RequestMatchQueueEnter();
+#endif
 }
 
 void UNetworkGameInstanceSubsystem::HandleLoginRes(const se::auth::S_LoginRes& Pkt)
@@ -1859,55 +1865,6 @@ void UNetworkGameInstanceSubsystem::RequestMatchQueueCancel()
 	SendPacket(SendBuffer);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MatchQueueCancelReq to server"));	
-}
-
-void UNetworkGameInstanceSubsystem::RequestEnterRoom()
-{
-	if (bIsConnected == false || GameSession == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter room: Not connected to server"));
-		return;
-	}
-	
-	if (PlayState != ENetworkPlayState::InLobby)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to enter room: Invalid state"));
-		return;
-	}
-	
-	se::room::C_RoomEnterReq Request;
-	Request.set_room_id(1); // TEMP;
-	
-	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
-	SendPacket(SendBuffer);
-	
-	PlayState = ENetworkPlayState::EnteringRoom;
-	
-	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomEnterReq to server"));
-}
-
-void UNetworkGameInstanceSubsystem::RequestLeaveRoom()
-{
-	if (bIsConnected == false || GameSession == nullptr)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to leave room: Not connected to server"));
-		return;
-	}
-	
-	if (PlayState != ENetworkPlayState::InRoom)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to leave room: Invalid state"));
-		return;
-	}
-	
-	se::room::C_RoomLeaveReq Request;
-	
-	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
-	SendPacket(SendBuffer);
-	
-	PlayState = ENetworkPlayState::LeavingRoom;
-	
-	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomLeaveReq to server"));
 }
 
 void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
