@@ -40,6 +40,7 @@ public:
 	virtual EMovementMode GetNetworkMovementMode() const = 0;
 	virtual void SetNetworkMovementMode(EMovementMode NewMovementMode) = 0;
 	
+	virtual float GetLocalControlAimYaw() const = 0;
 	virtual float GetLocalControlPitch() const = 0;
 	virtual FVector2D GetLocalControlVelocity2D() const = 0;
 	virtual EMovementMode GetLocalControlMovementMode() const = 0;

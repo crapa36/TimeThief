@@ -115,6 +115,11 @@ void ATimeThiefNetworkCharacterBase::SetNetworkMovementMode(EMovementMode NewMov
 	CurrentNetworkMovementMode = NewMovementMode;
 }
 
+float ATimeThiefNetworkCharacterBase::GetLocalControlAimYaw() const
+{
+	return 0.0f;
+}
+
 float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
 {
 	const float ActorPitch = FRotator::NormalizeAxis(GetActorRotation().Pitch);

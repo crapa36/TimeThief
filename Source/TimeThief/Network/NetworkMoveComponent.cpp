@@ -308,6 +308,8 @@ void UNetworkMoveComponent::TickLocal(float DeltaTime)
 	}
 
 	MoveStep = Owner->GetVelocity();
+	float CurrentAimYaw = Movable->GetLocalControlAimYaw();
+	Movable->SetNetworkAimYaw(CurrentAimYaw);
 	float CurrentPitch = Movable->GetLocalControlPitch();
 	Movable->SetNetworkPitch(CurrentPitch);
 	FVector2D CurrentVelocity = Movable->GetLocalControlVelocity2D();

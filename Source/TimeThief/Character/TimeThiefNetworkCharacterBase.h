@@ -62,6 +62,7 @@ public:
 	virtual EMovementMode GetNetworkMovementMode() const override;
 	virtual void SetNetworkMovementMode(EMovementMode NewMovementMode) override;
 	
+	virtual float GetLocalControlAimYaw() const override;
 	virtual float GetLocalControlPitch() const override;
 	virtual FVector2D GetLocalControlVelocity2D() const override;
 	virtual EMovementMode GetLocalControlMovementMode() const override;
