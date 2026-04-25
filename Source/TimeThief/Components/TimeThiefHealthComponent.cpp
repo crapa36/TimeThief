@@ -98,28 +98,28 @@ void UTimeThiefHealthComponent::SetHealth(float MaxHP, float NewHP)
 
 void UTimeThiefHealthComponent::HandleHealthChanged(float NewHealth, float DeltaHealth)
 {
-	if (bIsDead || FMath::IsNearlyEqual(DeltaHealth, 0.0f))
+	float ExpectedHealth = GetCurrentHealth() + DeltaHealth;
+	if (!FMath::IsNearlyEqual(ExpectedHealth, NewHealth))
+	{
+		// 경고만 한다
+		UE_LOG(LogTemp, Warning, TEXT("Health desync detected: CurrentHealth=%f, DeltaHealth=%f, ExpectedHealth=%f, NewHealth=%f"), GetCurrentHealth(), DeltaHealth, ExpectedHealth, NewHealth);
+	}
+	
+	float CurrHp = GetCurrentHealth();
+	float Delta = NewHealth - CurrHp;
+	
+	if (FMath::IsNearlyEqual(Delta, 0.0f))
 	{
 		return;
 	}
 	
-	if (DeltaHealth < 0.0f)
+	if (Delta < 0.0f)
 	{
-		if (!FMath::IsNearlyEqual(GetCurrentHealth() + DeltaHealth, NewHealth))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("C/S Health desync detected: CurrentHealth=%f, DeltaHealth=%f, NewHealth=%f"), GetCurrentHealth(), DeltaHealth, NewHealth);
-		}
-		
-		TakeDamage(-DeltaHealth, nullptr);
+		TakeDamage(-Delta, nullptr);
 	}
 	else
 	{
-		if (!FMath::IsNearlyEqual(GetCurrentHealth() + DeltaHealth, NewHealth))
-		{
-			UE_LOG(LogTemp, Warning, TEXT("C/S Health desync detected: CurrentHealth=%f, DeltaHealth=%f, NewHealth=%f"), GetCurrentHealth(), DeltaHealth, NewHealth);
-		}
-		
-		Heal(DeltaHealth, nullptr);
+		Heal(Delta, nullptr);
 	}
 }
 

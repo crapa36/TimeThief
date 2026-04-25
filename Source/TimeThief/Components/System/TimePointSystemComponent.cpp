@@ -6,6 +6,7 @@
 #include "TimeStormComponent.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Game/TimeThiefGameState.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 
 // Sets default values for this component's properties
@@ -36,43 +37,49 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// 이거 여기서 깎으면 안될듯? Tickable 끄죠?
-	if (const ATimeThiefGameState* GameState = GetWorld()->GetGameState<ATimeThiefGameState>())
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
-		if (const UTimeStormComponent* TimeStormComponent= GameState->TimeStormComponent)
+		if (!NGIS->IsConnected())
 		{
-			FVector2D Center;
-			float Radius;
-		
-			TimeStormComponent->GetCurrStormZone(Center, Radius);
-		
-			if (FVector::DistSquaredXY(FVector{Center,0}, GetOwner()->GetActorLocation()) >= Radius * Radius)
+			// 이거 여기서 깎으면 안될듯? Tickable 끄죠?
+			if (const ATimeThiefGameState* GameState = GetWorld()->GetGameState<ATimeThiefGameState>())
 			{
-				TimePoints -= DeltaTime * TimePointsGainPerSecond * 2 * (static_cast<int>(DamagedElapsedTime) / 10 + 1);
-				DamagedElapsedTime += DeltaTime;
-				RecoveredElapsedTime = 0;
-				if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+				if (const UTimeStormComponent* TimeStormComponent= GameState->TimeStormComponent)
 				{
-					float Mask = 1 - DamagedElapsedTime / 50.0f * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold;
-					Character->SetMask(std::clamp(Mask, 0.2f, 1.f));
+					FVector2D Center;
+					float Radius;
+		
+					TimeStormComponent->GetCurrStormZone(Center, Radius);
+		
+					if (FVector::DistSquaredXY(FVector{Center,0}, GetOwner()->GetActorLocation()) >= Radius * Radius)
+					{
+						TimePoints -= DeltaTime * TimePointsGainPerSecond * 2 * (static_cast<int>(DamagedElapsedTime) / 10 + 1);
+						DamagedElapsedTime += DeltaTime;
+						RecoveredElapsedTime = 0;
+						if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+						{
+							float Mask = 1 - DamagedElapsedTime / 50.0f * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold;
+							Character->SetMask(std::clamp(Mask, 0.2f, 1.f));
+						}
+					}
+					else
+					{
+						DamagedElapsedTime = 0;
+						if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+						{
+							Character->AddMask(DeltaTime * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold / 5);
+						}
+					}
 				}
 			}
-			else
+	
+			TimePoints += DeltaTime * TimePointsGainPerSecond;
+	
+			if (LastDisplayTimePoints != GetTimePoints())
 			{
-				DamagedElapsedTime = 0;
-				if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
-				{
-					Character->AddMask(DeltaTime * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold / 5);
-				}
+				OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
 			}
 		}
-	}
-	
-	TimePoints += DeltaTime * TimePointsGainPerSecond;
-	
-	if (LastDisplayTimePoints != GetTimePoints())
-	{
-		OnTimePointsChanged_Delegate.Broadcast(GetTimePoints());
 	}
 }
 
