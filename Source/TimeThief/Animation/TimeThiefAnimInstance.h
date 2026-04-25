@@ -22,7 +22,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Jump")
 	void TriggerDoubleJump();
-
+	
+	UFUNCTION(BlueprintCallable, Category = "Jump", meta=(BlueprintThreadSafe))
+	void OnEnterDoubleJumpStart(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<ACharacter> CharacterOwner;

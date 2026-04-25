@@ -5,6 +5,7 @@
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Network/MovableNetworkEntityInterface.h"
 #include "CharacterTrajectoryComponent.h"
+#include "Character/TimeThiefNetworkCharacterBase.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
@@ -25,6 +26,11 @@ void UTimeThiefAnimInstance::NativeInitializeAnimation()
 void UTimeThiefAnimInstance::TriggerDoubleJump()
 {
 	bIsDoubleJumping = true;
+}
+
+void UTimeThiefAnimInstance::OnEnterDoubleJumpStart(const FAnimUpdateContext& Context, const FAnimNodeReference& Node)
+{
+	bIsDoubleJumping = false;
 }
 
 void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -50,17 +56,22 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		return;
 	}
-	
+
 	if (MovableNetworkInterface.GetInterface())
 	{
 		if (!CharacterOwner->IsLocallyControlled())
 		{
 			const FVector2D NetworkVelocity2D = MovableNetworkInterface->GetNetworkVelocity2D();
 			Velocity = FVector(NetworkVelocity2D.X, NetworkVelocity2D.Y, Velocity.Z);
+			if (auto NetPlayer = Cast<ATimeThiefNetworkCharacterBase>(CharacterOwner))
+			{
+				bIsFalling = NetPlayer->bIsJumping;
+			}
 		}
 		else
 		{
 			Velocity = CharacterOwner->GetVelocity();
+			bIsFalling = CharacterMovement->IsFalling();
 		}
 	}
 
@@ -70,24 +81,17 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	const bool bIsRemoteCharacter = MovableNetworkInterface.GetInterface() && !CharacterOwner->IsLocallyControlled();
 	const float MoveSpeedThreshold = bIsRemoteCharacter ? 0.5f : 1.0f;
 	bHasVelocity = GroundSpeed > MoveSpeedThreshold;
-	
-	bIsFalling = CharacterMovement->IsFalling();
 
-	if (!bIsFalling)
-	{
-		bIsDoubleJumping = false;
-	}
-	
 	const bool bHasAcceleration = !CharacterMovement->GetCurrentAcceleration().IsNearlyZero();
 	bShouldMove = bIsRemoteCharacter ? bHasVelocity : ((GroundSpeed > 0.01f) && bHasAcceleration);
-	
+
 	bIsMoving = bHasVelocity && !bIsFalling;
-	
+
 	if (bIsMoving)
 	{
 		auto Rotation = CharacterOwner->GetActorRotation();
 		auto RotFromX = UKismetMathLibrary::MakeRotFromX(Velocity);
-		
+
 		auto DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(RotFromX, Rotation);
 		Direction = DeltaRotation.Yaw;
 	}
@@ -95,7 +99,7 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		Direction = 0;
 	}
-	
+
 	if (ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CharacterOwner))
 	{
 		if (UTimeThiefPawnCombatComponent* CombatComp = CharacterBase->GetCombatComponent())
