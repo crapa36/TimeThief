@@ -1,6 +1,7 @@
 ﻿#include "NetworkMoveComponent.h"
 
 #include "NetworkGameInstanceSubsystem.h"
+#include "Character/TimeThiefNetworkCharacterBase.h"
 #include "Network/NetworkEntityComponent.h"
 #include "Network/MovableNetworkEntityInterface.h"
 #include "Network/State/NetworkControlType.h"
@@ -185,7 +186,7 @@ void UNetworkMoveComponent::ApplyActionEvent(const FNetworkActionEvent& ActionEv
 
 void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 {
-	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	auto Character = GetOwner<ATimeThiefNetworkCharacterBase>();
 	if (!Character)
 	{
 		return;
@@ -201,6 +202,7 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 	{
 	case ENetworkActionPhase::Start:
 		ApplyMovementModeIfNeeded(CMC, MOVE_Falling);
+		Character->bIsJumping = true;
 		break;
 		
 	case ENetworkActionPhase::Double:
@@ -214,6 +216,7 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 				DesiredMode = MOVE_Walking;
 			}
 			ApplyMovementModeIfNeeded(CMC, DesiredMode);
+			Character->bIsJumping = false;
 			break;
 		}
 

@@ -38,7 +38,7 @@ FMarchingCubesRenderResource::FMarchingCubesRenderResource(
 void FMarchingCubesRenderResource::RunComputeShader(
 	FRDGBuilder& GraphBuilder,
 	const FBox& InBound,
-	const FVector3f& Alpha,
+	const FVector& Alpha,
 	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
 	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps,
 	TObjectPtr<UVolumeTexture> BoneIndicesTexture,

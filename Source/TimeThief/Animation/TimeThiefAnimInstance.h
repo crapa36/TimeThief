@@ -22,7 +22,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Jump")
 	void TriggerDoubleJump();
-
+	
+	UFUNCTION(BlueprintCallable, Category = "Jump", meta=(BlueprintThreadSafe))
+	void OnEnterDoubleJumpStart(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<ACharacter> CharacterOwner;
@@ -34,13 +37,16 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<UCharacterTrajectoryComponent> TrajectoryComponent;
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	FVector Velocity;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	float GroundSpeed;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
+	float Direction;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	bool bHasVelocity;
 
@@ -61,4 +67,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bIsAiming;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	FTransform WeaponSocket;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	FVector MeshAlpha;
 };

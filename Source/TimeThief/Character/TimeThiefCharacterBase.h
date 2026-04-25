@@ -5,6 +5,8 @@
 #include "GameplayTagContainer.h"
 #include "TimeThiefCharacterBase.generated.h"
 
+class UMorphingMeshComponent;
+class ATimeThiefMasterWeapon;
 class USavePointSkillComponent;
 class UTimePointSystemComponent;
 class UTimeThiefPawnCombatComponent;
@@ -107,6 +109,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UChildActorComponent> WeaponActorComponent;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Morphing")
+	TObjectPtr<UMorphingMeshComponent> MorphingCharacter;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
 
@@ -130,10 +135,10 @@ public:
 	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const { return nullptr; }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	virtual USkeletalMeshComponent* GetWeaponAttachMesh() const { return GetMesh(); }
+	virtual USkeletalMeshComponent* GetWeaponAttachMesh() const;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
-	virtual USkeletalMeshComponent* GetMontagePlaybackMesh() const { return GetMesh(); }
+	virtual USkeletalMeshComponent* GetMontagePlaybackMesh() const;
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	UTimeThiefHealthComponent* GetHealthComponent() const { return HealthComponent; }
@@ -150,7 +155,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
 	
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
+	USkeletalMeshComponent* GetThirdPersonMesh() const;
+	
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
+	UMorphingMeshComponent* GetMorphingMeshComponent() const { return MorphingCharacter; }
+	
 	USavePointSkillComponent* GetSavePointSkillComponent() const { return SavePointSkillComponent; }
+	
+	ATimeThiefMasterWeapon* GetWeaponActor() const;
 	
 	UChildActorComponent* GetWeaponActorComponent() const { return WeaponActorComponent; }
 };

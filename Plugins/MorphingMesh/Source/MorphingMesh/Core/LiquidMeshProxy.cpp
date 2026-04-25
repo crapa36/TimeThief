@@ -75,7 +75,7 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 	if (RenderResource && RenderResource->IsReady())
 	{
 		FBox ParamBound;
-		FVector3f ParamAlpha;
+		FVector ParamAlpha;
 		TArray<TObjectPtr<UVolumeTexture>> ParamDensityTextures;
 		TArray<TObjectPtr<UVolumeTexture>> ParamUVMaps;
 		TObjectPtr<UVolumeTexture> ParamBoneIndicesTexture;

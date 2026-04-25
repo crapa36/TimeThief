@@ -19,12 +19,14 @@ enum class EMorphTargetType : uint8
 	None
 };
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMorphTargetTypeChangedSignature, EMorphTargetType);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class MORPHINGMESH_API UMorphingMeshComponent : public USceneComponent
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Morphing | Settings")
 	TObjectPtr<USkeletalMeshComponent> BaseSkeletalMeshComponent;
 	
 	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
@@ -39,6 +41,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<UMaterialInterface> LiquidMaterial;
 	
+	FOnMorphTargetTypeChangedSignature OnMorphTargetTypeChangedSignature;
 public:
 	// Sets default values for this component's properties
 	UMorphingMeshComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -48,6 +51,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	virtual void OnRegister() override;
+	
 public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
@@ -64,9 +68,10 @@ public:
 	float MorphingTime{MaxMorphingTime};
 	float ElapsedTime{0.0f};
 	
-	FVector3f PrevAlpha{0.0f, 1.0f, 0.0f};
-	FVector3f CurrAlpha{0.0f, 1.0f, 0.0f};
-	FVector3f DestAlpha{0.0f, 1.0f, 0.0f};
+	FVector PrevAlpha{0.0f, 1.0f, 0.0f};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings")
+	FVector CurrAlpha{0.0f, 1.0f, 0.0f};
+	FVector DestAlpha{0.0f, 1.0f, 0.0f};
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Morphing | Settings")
 	EMorphTargetType MeshType{EMorphTargetType::A};
@@ -76,4 +81,6 @@ public:
 	
 	bool bIsSkeletalMesh{false};
 	bool bIsValid{false};
+	
+	int PrevIndex{-1};
 };
