@@ -61,7 +61,6 @@ public:
 	FOnWeaponEquippedSignature OnWeaponEquipped_Delegate;
 	FOnWeaponUnequippedSignature OnWeaponUnequipped_Delegate;
 	FOnCombatAttackRequestSignature OnCombatAttackRequest_Delegate;
-	// TODO: 공격 및 재장전 등의 액션을 취해야 할 때 델리게이트를 Broadcast 할 것
 	
 	virtual void Remote_AttackRequest(const FRemoteAttackNotify& AttackRequest);
 

@@ -6,19 +6,11 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
+#include "Network/MovableNetworkEntityInterface.h"
 #include "Engine/Engine.h"
 
 UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
-	bHasWeapon = false;
-	LeftHandIKTransform = FTransform::Identity;
-	bIsWireAttached = false;
-	bIsWireActive = false;
-	AnchorDirection = FVector::ForwardVector;
-	SwingVelocity = FVector::ZeroVector;
-	WireLeftHandIKTransform = FTransform::Identity;
-	WireLeftHandIKAlpha = 0.0f;
-	WireAnchorDirectionWorld = FVector::ForwardVector;
 }
 
 void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
@@ -47,13 +39,6 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
-	if (!PlayerCharacter) {
-		bHasWeapon = false;
-		CurrentWeapon = nullptr;
-		EquippedWeaponTag = FGameplayTag();
-		return;
-	}
-
 	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetCombatComponent();
 	if (!CombatComp) {
 		bHasWeapon = false;
@@ -104,9 +89,7 @@ void UTimeThiefPlayerAnimInstance::UpdateWireData() {
 			AnchorDirection = Mesh->GetComponentTransform().InverseTransformVectorNoScale(AnchorDirection);
 		}
 
-		if (PlayerCharacter) {
-			SwingVelocity = Velocity;
-		}
+		SwingVelocity = Velocity;
 	} else {
 		WireAnchorDirectionWorld = FVector::ForwardVector;
 	}
@@ -182,18 +165,22 @@ void UTimeThiefPlayerAnimInstance::UpdateSpreadAndRecoil(float DeltaSeconds) {
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
-	if (!PlayerCharacter) {
-		return;
+	FRotator BaseAimRotation = PlayerCharacter->GetBaseAimRotation();
+
+	if (MovableNetworkInterface.GetInterface() && !PlayerCharacter->IsLocallyControlled()) {
+		BaseAimRotation = FRotator(MovableNetworkInterface->GetNetworkPitch(), MovableNetworkInterface->GetNetworkYaw(), 0.0f);
 	}
 
-	const FRotator BaseAimRotation = PlayerCharacter->GetBaseAimRotation();
-	AimPitch = FRotator::NormalizeAxis(BaseAimRotation.Pitch);
+	const FRotator ActorRotation = PlayerCharacter->GetActorRotation();
+	const FRotator DeltaRotation = (BaseAimRotation - ActorRotation).GetNormalized();
+
+	AimPitch = DeltaRotation.Pitch;
+	AimYaw = DeltaRotation.Yaw;
 
 	if (bIsAiming || bUseWeaponControlRigRotation) {
 		AimDirection = BaseAimRotation.Vector().GetSafeNormal();
 	} else {
-		const FVector FlatDirection = FVector(BaseAimRotation.Vector().X, BaseAimRotation.Vector().Y, 0.0f);
-		AimDirection = FlatDirection.GetSafeNormal();
+		AimDirection = BaseAimRotation.Vector().GetSafeNormal2D();
 	}
 
 	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
@@ -208,17 +195,9 @@ void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateAimingState() {
-	if (!PlayerCharacter) {
-		bIsAiming = false;
-		AimSpreadMultiplier = 1.0f;
-		bUseWeaponControlRigRotation = false;
-		return;
-	}
-
 	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
 		bIsAiming = PlayerCombat->IsAiming();
 		AimSpreadMultiplier = bIsAiming ? PlayerCombat->GetAimSpreadMultiplier() : 1.0f;
-		bUseWeaponControlRigRotation = PlayerCombat->ShouldUseWeaponControlRigRotation();
 	} else {
 		bIsAiming = false;
 		AimSpreadMultiplier = 1.0f;

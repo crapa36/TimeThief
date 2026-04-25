@@ -27,7 +27,7 @@ void UTimeThiefPawnCombatComponent::BeginPlay()
 	
 	if (AActor* Owner = GetOwner())
 	{
-		CachedCombatSyncComponent = Owner->FindComponentByClass<UNetworkCombatSyncComponent>();
+		CachedCombatSyncComponent = Owner->GetComponentByClass<UNetworkCombatSyncComponent>();
 		if (CachedCombatSyncComponent)
 		{
 			CachedCombatSyncComponent->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
@@ -39,7 +39,7 @@ void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 {
 	if (UWorld* World = GetWorld())
 	{
-		World->GetTimerManager().ClearTimer(EquipTimerHandle);
+		World->GetTimerManager().ClearAllTimersForObject(this);
 	}
 
 	if (CachedCombatSyncComponent)
@@ -49,8 +49,6 @@ void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 	}
 
 	Super::EndPlay(EndPlayReason);
-	
-	
 }
 
 void UTimeThiefPawnCombatComponent::OnRegister()
@@ -219,7 +217,7 @@ FVector UTimeThiefPawnCombatComponent::GetEffectiveShotOrigin() const
 
 	if (const ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
-		return OwningCharacter->GetActorLocation();
+		return OwningCharacter->GetPawnViewLocation();
 	}
 
 	return FVector::ZeroVector;
@@ -334,11 +332,11 @@ void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& Origin
 
 	if (const ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
-		const FVector FallbackDirection = OwningCharacter->GetBaseAimRotation().Vector().GetSafeNormal();
+		const FVector FallbackDirection = OwningCharacter->GetBaseAimRotation().Vector();
 		if (!FallbackDirection.IsNearlyZero())
 		{
 			CachedRemoteAimDirection = FallbackDirection;
-			const FVector FallbackOrigin = Origin.IsNearlyZero() ? OwningCharacter->GetActorLocation() : Origin;
+			const FVector FallbackOrigin = Origin.IsNearlyZero() ? OwningCharacter->GetPawnViewLocation() : Origin;
 			CachedRemoteAimLocation = FallbackOrigin + CachedRemoteAimDirection * 10000.0f;
 		}
 	}

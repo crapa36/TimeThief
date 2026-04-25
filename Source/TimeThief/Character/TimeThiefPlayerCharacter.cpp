@@ -41,7 +41,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
     HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
     PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
     WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
-      NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
+    NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
     InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
 
     CharacterTrajectoryComponent = CreateDefaultSubobject<UTimeThiefTrajectoryComponent>(TEXT("CharacterTrajectoryComponent"));
@@ -53,8 +53,8 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
     bUseControllerRotationYaw = false;
     bUseControllerRotationRoll = false;
 
-    GetCharacterMovement()->bOrientRotationToMovement = true;
-    GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+    GetCharacterMovement()->bOrientRotationToMovement = false;
+    GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
     GetCharacterMovement()->bUseControllerDesiredRotation = false;
     GetCharacterMovement()->MaxWalkSpeed = BaseMoveSpeed;
     GetCharacterMovement()->JumpZVelocity = BaseJumpVelocity;
@@ -65,7 +65,6 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
     FirstPersonMesh->SetOnlyOwnerSee(true);
     FirstPersonMesh->SetCastShadow(false);
-
 }
 
 bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
@@ -349,7 +348,6 @@ void ATimeThiefPlayerCharacter::ApplyPerspective()
     {
        FollowCamera->SetActive(!bIsFirstPerson);
     }
-    
 }
 
 void ATimeThiefPlayerCharacter::BeginPlay()

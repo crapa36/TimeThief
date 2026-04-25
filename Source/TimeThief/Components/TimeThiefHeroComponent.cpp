@@ -8,6 +8,7 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "Character/TimeThiefCharacterBase.h"
@@ -48,7 +49,6 @@ void UTimeThiefHeroComponent::BeginPlay()
 	CheckDefaultInitialization();
 	RebuildCachedComponents();
 }
-
 
 void UTimeThiefHeroComponent::RebuildCachedComponents()
 {
@@ -109,7 +109,6 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Completed, this, &ThisClass::Input_WheelMenu);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_SavePoint, ETriggerEvent::Started, this, &ThisClass::Input_SavePoint);
 	
-	
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 
@@ -159,11 +158,18 @@ void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
 	Character->AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X), MovementVector.Y);
 	Character->AddMovementInput(FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y), MovementVector.X);
 	if (CachedWireComponent) CachedWireComponent->SetMoveInput(MovementVector);
+
+	Character->GetCharacterMovement()->bUseControllerDesiredRotation = true;
 }
 
 void UTimeThiefHeroComponent::Input_MoveCompleted(const FInputActionValue& Value)
 {
 	if (CachedWireComponent) CachedWireComponent->SetMoveInput(FVector2D::ZeroVector);
+
+	if (ACharacter* Character = GetPawn<ACharacter>())
+	{
+		Character->GetCharacterMovement()->bUseControllerDesiredRotation = false;
+	}
 }
 
 void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value)
@@ -237,8 +243,6 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 				{
 					NGIS->SendSavePointSet(Player->GetActorLocation());
 				}
-				
-				// SaveSkill->ActivateSkill();
 			}
 		}
 	}

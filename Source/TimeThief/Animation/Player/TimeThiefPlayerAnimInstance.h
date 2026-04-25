@@ -51,7 +51,7 @@ protected:
 	FGameplayTag EquippedWeaponTag;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
-	FTransform LeftHandIKTransform;
+	FTransform LeftHandIKTransform = FTransform::Identity;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	FName LeftHandIKSocketName = FName("LeftHandIK");
@@ -61,6 +61,9 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	float AimPitch = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	float AimYaw = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	FVector AimDirection = FVector::ForwardVector;
@@ -81,19 +84,19 @@ protected:
 	bool bIsWireActive = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FVector AnchorDirection;
+	FVector AnchorDirection = FVector::ForwardVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FVector SwingVelocity;
+	FVector SwingVelocity = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FTransform WireLeftHandIKTransform;
+	FTransform WireLeftHandIKTransform = FTransform::Identity;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	float WireLeftHandIKAlpha = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FVector WireAnchorDirectionWorld;
+	FVector WireAnchorDirectionWorld = FVector::ForwardVector;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wire|Settings")
 	float WireHandIKInterpSpeed = 12.0f;

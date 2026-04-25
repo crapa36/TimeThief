@@ -229,7 +229,8 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 	}
 
 	bUseControllerRotationYaw = bIsFirstPerson;
-	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 }
 
 void ATimeThiefCharacterBase::Tick(float DeltaTime)
@@ -276,10 +277,6 @@ void ATimeThiefCharacterBase::HandleDeathFromServer()
 	bIsRespawn = false;
 	bPendingRespawn = false;
 	
-	// PlayDeathEffects();
-	// NotifyLifeObserversDeath();
-	
-	// 아마 아래 코드가 Death 연출 및 필요작업인듯
 	DeadFX->Activate(true);
 	DisappearFX->SetActive(false, true);
 	
@@ -305,7 +302,6 @@ void ATimeThiefCharacterBase::HandleRespawnFromServer(const FVector& RespawnLoca
 	
 	SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	
-	// 없애고 싶은 코드;
 	{
 		if (APlayerController* PC = Cast<APlayerController>(GetController()))
 		{
@@ -353,9 +349,6 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 	}
 	
 	bIsRespawn = false;
-	
-	// StopRespawnEffects();
-	// NotifyLifeObserversEndRespawn();
 	
 	SpawnFX->Deactivate();
 	DisappearFX->Activate();

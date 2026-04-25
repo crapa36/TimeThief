@@ -7,7 +7,6 @@
 class ATimeThiefMasterWeapon;
 class UCameraComponent;
 class UCharacterMovementComponent;
-class UTimeThiefWireComponent;
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefPlayerCombatComponent : public UTimeThiefPawnCombatComponent {
@@ -40,9 +39,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	bool IsFiringWeapon() const;
 
-	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Rotation")
-	bool ShouldUseWeaponControlRigRotation() const;
-
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
 	FVector GetWorldAimLocation() const { return CachedWorldAimLocation; }
 
@@ -74,13 +70,7 @@ protected:
 	float AimMovementSpeedMultiplier = 0.6f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
-	float CombatRotationRate = 720.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
 	float PostFireRotationDelay = 0.5f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
-	float MaxYawOffsetFromCamera = 45.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimTraceRange = 50000.0f;
@@ -88,25 +78,9 @@ protected:
 	bool bIsFireInputHeld = false;
 
 private:
-	void ApplyCombatRotationMode(bool bUseControllerFacing);
-	bool ShouldUseControllerFacing() const;
-	bool HasMovementIntent(const UCharacterMovementComponent* MovementComp) const;
-	bool IsRotationManagedExternally() const;
-
-	void UpdateCombatRotation();
 	void UpdateAimFOV(float DeltaTime);
 
-	void UpdateWorldAimLocation();
-	void SnapRotationToAim();
-	float GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const;
-	bool TryGetFlatAimDirection(const ACharacter* OwningCharacter, FVector& OutFlatAimDirection) const;
-	void ApplyThirdPersonAimRotation(ACharacter* OwningCharacter, float DeltaTime, bool bSnapRotation);
-
 	float DefaultMaxWalkSpeed = 0.0f;
-	FRotator DefaultRotationRate = FRotator(0.0f, 500.0f, 0.0f);
-	bool bDefaultOrientRotationToMovement = true;
-	bool bDefaultUseControllerDesiredRotation = false;
-	bool bDefaultUseControllerRotationYaw = false;
 	FVector CachedWorldAimLocation = FVector::ZeroVector;
 	float LastFireTime = 0.0f;
 
@@ -115,7 +89,4 @@ private:
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UCameraComponent> CachedFirstPersonCamera;
-
-	UPROPERTY(Transient)
-	mutable TWeakObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
 };

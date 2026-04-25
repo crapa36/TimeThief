@@ -5,7 +5,6 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerState.h"
-#include "Components/Wire/TimeThiefWireComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -13,7 +12,6 @@
 #include "Engine/World.h"
 #include "Network/State/CombatAttackRequest.h"
 #include "Network/MovableNetworkEntityInterface.h"
-#include "Network/NetworkMoveComponent.h"
 #include "Network/State/CombatNotifyType.h"
 #include "Utils/TimeThiefAimStatics.h"
 
@@ -46,19 +44,10 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 
 	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
-		if (AActor* Owner = GetOwner())
-		{
-			CachedWireComponent = Owner->FindComponentByClass<UTimeThiefWireComponent>();
-		}
-
 		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
 		{
 			DefaultMaxWalkSpeed = MovementComp->MaxWalkSpeed;
-			DefaultRotationRate = MovementComp->RotationRate;
-			bDefaultOrientRotationToMovement = MovementComp->bOrientRotationToMovement;
-			bDefaultUseControllerDesiredRotation = MovementComp->bUseControllerDesiredRotation;
 		}
-		bDefaultUseControllerRotationYaw = OwningCharacter->bUseControllerRotationYaw;
 
 		if (const ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(OwningCharacter))
 		{
@@ -108,57 +97,15 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Orig
 		CachedWorldAimLocation = GetEffectiveShotOrigin() + OwningCharacter->GetBaseAimRotation().Vector() * AimTraceRange;
 	}
 
-	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
-	{
-		if (BaseChar->IsFirstPerson())
-		{
-			return;
-		}
-	}
-
-	if (IsRotationManagedExternally())
-	{
-		return;
-	}
-
-	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	if (HasMovementIntent(MovementComp) && !ShouldUseWeaponControlRigRotation())
-	{
-		return;
-	}
-
-	FVector FlatAimDirection = CachedWorldAimLocation - GetEffectiveShotOrigin();
-	FlatAimDirection.Z = 0.0f;
-	if (FlatAimDirection.IsNearlyZero())
-	{
-		return;
-	}
-
-	const FRotator AimYawRotation = FlatAimDirection.GetSafeNormal().Rotation();
-	float TargetYaw = GetClampedYawFromCamera(OwningCharacter, AimYawRotation.Yaw);
-
-	if (!OwningCharacter->GetController())
-	{
-		const float CurrentYaw = OwningCharacter->GetActorRotation().Yaw;
-		const float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentYaw, AimYawRotation.Yaw);
-		const float ClampedDeltaYaw = FMath::Clamp(DeltaYaw, -MaxYawOffsetFromCamera, MaxYawOffsetFromCamera);
-		TargetYaw = FRotator::NormalizeAxis(CurrentYaw + ClampedDeltaYaw);
-	}
-
-	const FRotator NewRotation(0.0f, FRotator::NormalizeAxis(TargetYaw), 0.0f);
-	const FVector FullAimDirection = (CachedWorldAimLocation - GetEffectiveShotOrigin()).GetSafeNormal();
 	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
 	{
-		Movable->SetNetworkYaw(NewRotation.Yaw);
-
-		if (!FullAimDirection.IsNearlyZero())
+		FVector AimDirection = CachedWorldAimLocation - GetEffectiveShotOrigin();
+		if (!AimDirection.IsNearlyZero())
 		{
-			Movable->SetNetworkPitch(FullAimDirection.Rotation().Pitch);
+			const FRotator AimRotation = AimDirection.Rotation();
+			Movable->SetNetworkYaw(AimRotation.Yaw);
+			Movable->SetNetworkPitch(AimRotation.Pitch);
 		}
-	}
-	else
-	{
-		OwningCharacter->SetActorRotation(NewRotation);
 	}
 }
 
@@ -170,8 +117,6 @@ void UTimeThiefPlayerCombatComponent::Remote_SyncFireAction()
 	{
 		LastFireTime = World->GetTimeSeconds();
 	}
-
-	UpdateCombatRotation();
 }
 
 void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
@@ -203,7 +148,6 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 		bIsFireInputHeld = true;
 		if (MasterWeaponPtr && !bIsEquippingWeapon)
 		{
-			SnapRotationToAim();
 			MasterWeaponPtr->StartFire();
 		}
 		return;
@@ -237,7 +181,6 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 		if (MasterWeaponPtr)
 		{
 			MasterWeaponPtr->StopFire();
-			UpdateCombatRotation();
 		}
 		return;
 	}
@@ -303,7 +246,6 @@ void UTimeThiefPlayerCombatComponent::OnEquipFinished()
 
 	if (bIsFireInputHeld && MasterWeaponPtr)
 	{
-		SnapRotationToAim();
 		MasterWeaponPtr->StartFire();
 	}
 }
@@ -313,15 +255,6 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 	if (bIsAiming || !MasterWeaponPtr || !MasterWeaponPtr->GetActiveWeaponComponent()) return;
 
 	bIsAiming = true;
-	SnapRotationToAim();
-
-	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
-	{
-		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
-		{
-			MovementComp->MaxWalkSpeed = DefaultMaxWalkSpeed * AimMovementSpeedMultiplier;
-		}
-	}
 
 	FCombatAttackRequest Request{};
 	Request.NotifyType = ECombatNotifyType::Aiming;
@@ -333,16 +266,6 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 	if (!bIsAiming) return;
 
 	bIsAiming = false;
-
-	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
-	{
-		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
-		{
-			MovementComp->MaxWalkSpeed = DefaultMaxWalkSpeed;
-		}
-	}
-
-	UpdateCombatRotation();
 
 	FCombatAttackRequest Request{};
 	Request.NotifyType = ECombatNotifyType::Readying;
@@ -366,59 +289,7 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 		}
 	}
 
-	UpdateWorldAimLocation();
-	UpdateCombatRotation();
-	
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (OwningCharacter && ShouldUseControllerFacing() && !IsRotationManagedExternally())
-	{
-		if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
-		{
-			if (!BaseChar->IsFirstPerson())
-			{
-				ApplyThirdPersonAimRotation(OwningCharacter, DeltaTime, false);
-			}
-		}
-	}
-
 	UpdateAimFOV(DeltaTime);
-}
-
-void UTimeThiefPlayerCombatComponent::UpdateWorldAimLocation()
-{
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) return;
-
-	const APlayerController* PC = Cast<APlayerController>(OwningCharacter->GetController());
-	if (!PC) return;
-
-	FVector CameraLocation;
-	FRotator CameraRotation;
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Reserve(2);
-	ActorsToIgnore.Add(OwningCharacter);
-	if (MasterWeaponPtr)
-	{
-		ActorsToIgnore.Add(MasterWeaponPtr);
-	}
-
-	FHitResult HitResult;
-	FVector TraceEnd = CameraLocation;
-	const bool bHit = UTimeThiefAimStatics::TraceFromView(
-		GetWorld(),
-		CameraLocation,
-		CameraRotation.Vector(),
-		AimTraceRange,
-		ActorsToIgnore,
-		HitResult,
-		TraceEnd,
-		ECC_Visibility,
-		true,
-		false);
-
-	CachedWorldAimLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
 }
 
 bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
@@ -431,182 +302,6 @@ bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
 		}
 	}
 	return false;
-}
-
-bool UTimeThiefPlayerCombatComponent::ShouldUseWeaponControlRigRotation() const
-{
-	if (bIsAiming || IsFiringWeapon())
-	{
-		return true;
-	}
-
-	if (UWorld* World = GetWorld())
-	{
-		return (World->GetTimeSeconds() - LastFireTime) < PostFireRotationDelay;
-	}
-
-	return false;
-}
-
-void UTimeThiefPlayerCombatComponent::SnapRotationToAim() 
-{
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) return;
-
-	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
-	{
-		if (BaseChar->IsFirstPerson()) return;
-	}
-
-	if (IsRotationManagedExternally()) return;
-
-	if (CachedWorldAimLocation.IsNearlyZero())
-	{
-		UpdateWorldAimLocation();
-	}
-
-	ApplyThirdPersonAimRotation(OwningCharacter, 0.0f, true);
-}
-
-float UTimeThiefPlayerCombatComponent::GetClampedYawFromCamera(const ACharacter* OwningCharacter, float TargetYaw) const
-{
-	if (const AController* OwnerController = OwningCharacter->GetController())
-	{
-		const float CameraYaw = OwnerController->GetControlRotation().Yaw;
-		const float DeltaYaw = FMath::FindDeltaAngleDegrees(CameraYaw, TargetYaw);
-		const float ClampedDeltaYaw = FMath::Clamp(DeltaYaw, -MaxYawOffsetFromCamera, MaxYawOffsetFromCamera);
-		return FRotator::NormalizeAxis(CameraYaw + ClampedDeltaYaw);
-	}
-
-	return TargetYaw;
-}
-
-bool UTimeThiefPlayerCombatComponent::TryGetFlatAimDirection(const ACharacter* OwningCharacter, FVector& OutFlatAimDirection) const
-{
-	if (!OwningCharacter)
-	{
-		return false;
-	}
-
-	OutFlatAimDirection = CachedWorldAimLocation - GetEffectiveShotOrigin();
-	OutFlatAimDirection.Z = 0.0f;
-	return OutFlatAimDirection.SizeSquared() > KINDA_SMALL_NUMBER;
-}
-
-void UTimeThiefPlayerCombatComponent::ApplyThirdPersonAimRotation(ACharacter* OwningCharacter, float DeltaTime, bool bSnapRotation)
-{
-	if (!OwningCharacter || !OwningCharacter->IsLocallyControlled())
-	{
-		return;
-	}
-
-	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	const bool bHasMovementIntent = HasMovementIntent(MovementComp);
-
-	float TargetYaw = OwningCharacter->GetActorRotation().Yaw;
-	if (bHasMovementIntent)
-	{
-		if (const AController* OwnerController = OwningCharacter->GetController())
-		{
-			// 이동 입력 중에는 에임 타점이 아니라 카메라 방향(Yaw)을 따른다.
-			TargetYaw = OwnerController->GetControlRotation().Yaw;
-		}
-		else
-		{
-			return;
-		}
-	}
-	else
-	{
-		FVector FlatAimDirection = FVector::ZeroVector;
-		if (!TryGetFlatAimDirection(OwningCharacter, FlatAimDirection))
-		{
-			return;
-		}
-
-		const FRotator AimTargetRotation = FlatAimDirection.Rotation();
-		TargetYaw = GetClampedYawFromCamera(OwningCharacter, AimTargetRotation.Yaw);
-	}
-
-	const FRotator DesiredRotation(0.0f, FRotator::NormalizeAxis(TargetYaw), 0.0f);
-	const FRotator FinalRotation = bSnapRotation
-		? DesiredRotation
-		: FMath::RInterpTo(OwningCharacter->GetActorRotation(), DesiredRotation, DeltaTime, 20.0f);
-
-	OwningCharacter->SetActorRotation(FinalRotation);
-}
-
-void UTimeThiefPlayerCombatComponent::UpdateCombatRotation()
-{
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) return;
-
-	if (const ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
-	{
-		if (BaseChar->IsFirstPerson()) return;
-	}
-
-	if (IsRotationManagedExternally()) return;
-
-	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	if (!MovementComp) return;
-
-	ApplyCombatRotationMode(ShouldUseControllerFacing());
-}
-
-void UTimeThiefPlayerCombatComponent::ApplyCombatRotationMode(bool bUseControllerFacing)
-{
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) return;
-
-	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	if (!MovementComp) return;
-
-	if (bUseControllerFacing)
-	{
-		OwningCharacter->bUseControllerRotationYaw = false;
-		MovementComp->bOrientRotationToMovement = false;
-		MovementComp->bUseControllerDesiredRotation = false;
-		MovementComp->RotationRate = FRotator(0.0f, CombatRotationRate, 0.0f);
-		return;
-	}
-
-	OwningCharacter->bUseControllerRotationYaw = bDefaultUseControllerRotationYaw;
-	MovementComp->bOrientRotationToMovement = bDefaultOrientRotationToMovement;
-	MovementComp->bUseControllerDesiredRotation = bDefaultUseControllerDesiredRotation;
-	MovementComp->RotationRate = DefaultRotationRate;
-}
-
-bool UTimeThiefPlayerCombatComponent::ShouldUseControllerFacing() const
-{
-	const ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter) return ShouldUseWeaponControlRigRotation();
-
-	const UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
-	return ShouldUseWeaponControlRigRotation() || HasMovementIntent(MovementComp);
-}
-
-bool UTimeThiefPlayerCombatComponent::HasMovementIntent(const UCharacterMovementComponent* MovementComp) const
-{
-	if (!MovementComp) return false;
-
-	const bool bHasAcceleration = !MovementComp->GetCurrentAcceleration().IsNearlyZero();
-	const FVector HorizontalVelocity(MovementComp->Velocity.X, MovementComp->Velocity.Y, 0.0f);
-	const bool bHasHorizontalVelocity = HorizontalVelocity.SizeSquared() > FMath::Square(25.0f);
-
-	return bHasAcceleration || bHasHorizontalVelocity;
-}
-
-bool UTimeThiefPlayerCombatComponent::IsRotationManagedExternally() const
-{
-	if (!CachedWireComponent.IsValid())
-	{
-		if (AActor* Owner = GetOwner())
-		{
-			CachedWireComponent = Owner->FindComponentByClass<UTimeThiefWireComponent>();
-		}
-	}
-	return CachedWireComponent.IsValid() && CachedWireComponent->IsWireActive();
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
@@ -649,11 +344,7 @@ void UTimeThiefPlayerCombatComponent::SetMoveSpeedUpgradeBonus(float InMoveSpeed
 	}
 
 	DefaultMaxWalkSpeed = BaseSpeed + InMoveSpeedBonus;
-
-	if (!bIsAiming)
-	{
-		MC->MaxWalkSpeed = DefaultMaxWalkSpeed;
-	}
+	MC->MaxWalkSpeed = DefaultMaxWalkSpeed;
 
 #if !UE_BUILD_SHIPPING
 	UE_LOG(LogTemp, Log, TEXT("[Combat][MoveSpeed] Base=%.2f Bonus=%.2f DefaultMaxWalkSpeed=%.2f AppliedMaxWalkSpeed=%.2f bIsAiming=%s"),
