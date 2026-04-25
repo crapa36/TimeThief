@@ -8,10 +8,12 @@
 #include "Components/System/TimePointSystemComponent.h"
 #include "ItemCommons.h"
 #include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "TimeThiefPlayerState.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/TimeThiefAnimInstance.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "Components/Skill/SavePointSkillComponent.h"
 #include "Components/System/InventorySystemComponent.h"
@@ -269,6 +271,32 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 
 	bUseControllerRotationYaw = bIsFirstPerson;
 	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
+}
+
+void ATimeThiefCharacterBase::DoubleJump()
+{
+	if (DoubleJumpEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			DoubleJumpEffect,
+			GetThirdPersonMesh()->GetComponentLocation(),
+			GetActorRotation()
+		);
+	}
+
+	if (UTimeThiefAnimInstance* AnimInst = Cast<UTimeThiefAnimInstance>(GetThirdPersonMesh()->GetAnimInstance()))
+	{
+		AnimInst->TriggerDoubleJump();
+	}
+
+	if (FirstPersonMesh)
+	{
+		if (UTimeThiefAnimInstance* FPAnimInst = Cast<UTimeThiefAnimInstance>(FirstPersonMesh->GetAnimInstance()))
+		{
+			FPAnimInst->TriggerDoubleJump();
+		}
+	}
 }
 
 void ATimeThiefCharacterBase::Tick(float DeltaTime)

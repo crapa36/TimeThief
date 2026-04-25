@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "TimeThiefCharacterBase.generated.h"
 
+class UNiagaraSystem;
 class UMorphingMeshComponent;
 class ATimeThiefMasterWeapon;
 class USavePointSkillComponent;
@@ -71,6 +72,8 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 	
+	virtual void DoubleJump();
+	
 	bool bIsDead = false;
 	bool bIsRespawn = true;
 	bool bPendingRespawn = false;
@@ -113,6 +116,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Morphing")
 	TObjectPtr<UMorphingMeshComponent> MorphingCharacter;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Movement|Jump")
+	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;

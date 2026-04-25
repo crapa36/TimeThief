@@ -56,6 +56,7 @@ public:
 public:
 	void SendMove(const FMoveSyncData& MoveData);
 	void SendJump();
+	void SendDoubleJump();
 	void SendJumpLand();
 	void SendWireAction(const FVector& AnchorPoint);
 	void SendWireActionEnd();
