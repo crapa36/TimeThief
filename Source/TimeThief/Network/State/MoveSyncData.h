@@ -15,6 +15,9 @@ struct FMoveSyncData
 	float Yaw = 0.0f;
 	
 	UPROPERTY()
+	float AimYaw = 0.0f;
+	
+	UPROPERTY()
 	float Pitch = 0.0f;
 	
 	UPROPERTY()

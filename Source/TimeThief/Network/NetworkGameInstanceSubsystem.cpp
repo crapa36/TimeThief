@@ -127,6 +127,7 @@ void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
 	Position->set_z(MoveData.Position.Z);
 	
 	Movement->set_yaw(MoveData.Yaw);
+	Movement->set_pitch(MoveData.AimYaw);
 	Movement->set_pitch(MoveData.Pitch);
 	auto* Velocity = Movement->mutable_velocity();
 	Velocity->set_x(MoveData.Velocity.X);
@@ -782,6 +783,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 			}
 			
 			const auto& PlayerMovement = Pkt.player_movement();
+			EntityState.AimYaw = PlayerMovement.aim_yaw();
 			EntityState.Pitch = PlayerMovement.pitch();
 			const auto& Velocity = PlayerMovement.velocity();
 			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), 0.0f);

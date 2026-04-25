@@ -208,11 +208,12 @@ class PROTOCOLSHAREDUE_API PlayerMovement final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kVelocityFieldNumber = 4,
-    kPitchFieldNumber = 3,
-    kMovementModeFieldNumber = 5,
+    kVelocityFieldNumber = 3,
+    kAimYawFieldNumber = 1,
+    kPitchFieldNumber = 2,
+    kMovementModeFieldNumber = 4,
   };
-  // .se.common.Vector2 velocity = 4;
+  // .se.common.Vector2 velocity = 3;
   bool has_velocity() const;
   private:
   bool _internal_has_velocity() const;
@@ -230,7 +231,16 @@ class PROTOCOLSHAREDUE_API PlayerMovement final :
       ::se::common::Vector2* velocity);
   ::se::common::Vector2* unsafe_arena_release_velocity();
 
-  // float pitch = 3;
+  // float aim_yaw = 1;
+  void clear_aim_yaw();
+  float aim_yaw() const;
+  void set_aim_yaw(float value);
+  private:
+  float _internal_aim_yaw() const;
+  void _internal_set_aim_yaw(float value);
+  public:
+
+  // float pitch = 2;
   void clear_pitch();
   float pitch() const;
   void set_pitch(float value);
@@ -239,7 +249,7 @@ class PROTOCOLSHAREDUE_API PlayerMovement final :
   void _internal_set_pitch(float value);
   public:
 
-  // int32 movement_mode = 5;
+  // int32 movement_mode = 4;
   void clear_movement_mode();
   int32_t movement_mode() const;
   void set_movement_mode(int32_t value);
@@ -257,6 +267,7 @@ class PROTOCOLSHAREDUE_API PlayerMovement final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::Vector2* velocity_;
+    float aim_yaw_;
     float pitch_;
     int32_t movement_mode_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -1288,7 +1299,27 @@ class PROTOCOLSHAREDUE_API ItemStack final :
 #endif  // __GNUC__
 // PlayerMovement
 
-// float pitch = 3;
+// float aim_yaw = 1;
+inline void PlayerMovement::clear_aim_yaw() {
+  _impl_.aim_yaw_ = 0;
+}
+inline float PlayerMovement::_internal_aim_yaw() const {
+  return _impl_.aim_yaw_;
+}
+inline float PlayerMovement::aim_yaw() const {
+  // @@protoc_insertion_point(field_get:se.game.PlayerMovement.aim_yaw)
+  return _internal_aim_yaw();
+}
+inline void PlayerMovement::_internal_set_aim_yaw(float value) {
+  
+  _impl_.aim_yaw_ = value;
+}
+inline void PlayerMovement::set_aim_yaw(float value) {
+  _internal_set_aim_yaw(value);
+  // @@protoc_insertion_point(field_set:se.game.PlayerMovement.aim_yaw)
+}
+
+// float pitch = 2;
 inline void PlayerMovement::clear_pitch() {
   _impl_.pitch_ = 0;
 }
@@ -1308,7 +1339,7 @@ inline void PlayerMovement::set_pitch(float value) {
   // @@protoc_insertion_point(field_set:se.game.PlayerMovement.pitch)
 }
 
-// .se.common.Vector2 velocity = 4;
+// .se.common.Vector2 velocity = 3;
 inline bool PlayerMovement::_internal_has_velocity() const {
   return this != internal_default_instance() && _impl_.velocity_ != nullptr;
 }
@@ -1393,7 +1424,7 @@ inline void PlayerMovement::set_allocated_velocity(::se::common::Vector2* veloci
   // @@protoc_insertion_point(field_set_allocated:se.game.PlayerMovement.velocity)
 }
 
-// int32 movement_mode = 5;
+// int32 movement_mode = 4;
 inline void PlayerMovement::clear_movement_mode() {
   _impl_.movement_mode_ = 0;
 }

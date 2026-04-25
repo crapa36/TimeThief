@@ -50,6 +50,9 @@ public:
 	virtual float GetNetworkYaw() const override;
 	virtual void SetNetworkYaw(float NewYaw) override;
 	
+	virtual float GetNetworkAimYaw() const override;
+	virtual void SetNetworkAimYaw(float NewAimYaw) override;
+	
 	virtual float GetNetworkPitch() const override;
 	virtual void SetNetworkPitch(float NewPitch) override;
 	
@@ -92,6 +95,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UNetworkCombatSyncComponent> NetworkCombatSyncComponent = nullptr;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
+	float CurrentNetworkAimYaw = 0.0f;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
 	float CurrentNetworkPitch = 0.0f;

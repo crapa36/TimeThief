@@ -126,12 +126,17 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	
 	const FVector CurrentPosition = Movable->GetNetworkLocation();
 	const float CurrentYaw = Movable->GetNetworkYaw();
+	const float CurrentAimYaw = Movable->GetNetworkAimYaw();
+	const float CurrentPitch = Movable->GetNetworkPitch();
 	
 	InterpStartPosition = CurrentPosition;
 	InterpTargetPosition = EntityState.Position;
 	
 	StartYaw = CurrentYaw;
 	TargetYaw = EntityState.Yaw;
+	StartAimYaw = CurrentAimYaw;
+	TargetAimYaw = EntityState.AimYaw;
+	StartPitch = CurrentPitch;
 	TargetPitch = EntityState.Pitch;
 	
 	TargetVelocity = FVector2D(EntityState.Velocity.X, EntityState.Velocity.Y);
@@ -261,6 +266,7 @@ bool UNetworkMoveComponent::BuildMoveSyncData(FMoveSyncData& OutSyncData) const
 	
 	OutSyncData.Position = Movable->GetNetworkLocation();
 	OutSyncData.Yaw = Movable->GetNetworkYaw();
+	OutSyncData.AimYaw = Movable->GetNetworkAimYaw();
 	OutSyncData.Pitch = Movable->GetNetworkPitch();
 	const FVector2D& Velo2D = Movable->GetLocalControlVelocity2D();
 	OutSyncData.Velocity = FVector(Velo2D.X, Velo2D.Y, 0.0f);
@@ -277,6 +283,16 @@ bool UNetworkMoveComponent::IsCloseEnoughPosition(const FVector& CurrentPosition
 bool UNetworkMoveComponent::IsCloseEnoughYaw(float CurrentYaw) const
 {
 	return FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentYaw, TargetYaw)) <= RotationTolerance;
+}
+
+bool UNetworkMoveComponent::IsCloseEnoughAimYaw(float CurrentAimYaw) const
+{
+	return FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentAimYaw, TargetAimYaw)) <= RotationTolerance;
+}
+
+bool UNetworkMoveComponent::IsCloseEnoughPitch(float CurrentPitch) const
+{
+	return  FMath::Abs(FMath::FindDeltaAngleDegrees(CurrentPitch, TargetPitch)) <= RotationTolerance;
 }
 
 void UNetworkMoveComponent::TickLocal(float DeltaTime)
@@ -368,8 +384,10 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	
 	const bool bCloseEnoughPosition = IsCloseEnoughPosition(CurrentPosition);
 	const bool bCloseEnoughYaw = IsCloseEnoughYaw(CurrentYaw);
+	const bool bCloseEnoughAimYaw = IsCloseEnoughAimYaw(Movable->GetNetworkAimYaw());
+	const bool bCloseEnoughPitch = IsCloseEnoughPitch(Movable->GetNetworkPitch());
 	
-	if (bCloseEnoughPosition && bCloseEnoughYaw)
+	if (bCloseEnoughPosition && bCloseEnoughYaw && bCloseEnoughAimYaw && bCloseEnoughPitch)
 	{
 		SnapToTarget();
 		return;
@@ -402,7 +420,13 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 	const float NewYaw = FRotator::NormalizeAxis(StartYaw + DeltaYaw * Alpha);
 	Movable->SetNetworkYaw(NewYaw);
 	
-	Movable->SetNetworkPitch(TargetPitch);
+	const float DeltaAimYaw = FMath::FindDeltaAngleDegrees(Movable->GetNetworkAimYaw(), TargetAimYaw);
+	const float NewAimYaw = FRotator::NormalizeAxis(StartAimYaw + DeltaAimYaw * Alpha);
+	Movable->SetNetworkAimYaw(NewAimYaw);
+	
+	const float DeltaPitch = FMath::FindDeltaAngleDegrees(Movable->GetNetworkPitch(), TargetPitch);
+	const float NewPitch = FRotator::NormalizeAxis(StartPitch + DeltaPitch * Alpha);
+	Movable->SetNetworkPitch(NewPitch);
 
 	const FVector2D NewVelocity = BuildSyntheticVelocity2D(CurrentPosition, NewPosition, DeltaTime, TargetVelocity);
 	Movable->SetNetworkVelocity2D(NewVelocity);
@@ -424,6 +448,7 @@ void UNetworkMoveComponent::SnapToTarget()
 	
 	Movable->SetNetworkLocation(InterpTargetPosition);
 	Movable->SetNetworkYaw(TargetYaw);
+	Movable->SetNetworkAimYaw(TargetAimYaw);
 	Movable->SetNetworkPitch(TargetPitch);
 	Movable->SetNetworkVelocity2D(SnapVelocity2D);
 	MoveStep = FVector(SnapVelocity2D.X, SnapVelocity2D.Y, 0.0f);

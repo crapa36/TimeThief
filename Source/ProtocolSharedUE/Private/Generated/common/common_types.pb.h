@@ -867,10 +867,11 @@ class PROTOCOLSHAREDUE_API MovementState final :
 
   enum : int {
     kPositionFieldNumber = 1,
-    kVelocityFieldNumber = 4,
+    kVelocityFieldNumber = 5,
     kYawFieldNumber = 2,
-    kPitchFieldNumber = 3,
-    kMovementModeFieldNumber = 5,
+    kAimYawFieldNumber = 3,
+    kPitchFieldNumber = 4,
+    kMovementModeFieldNumber = 6,
   };
   // .se.common.Vector3 position = 1;
   bool has_position() const;
@@ -890,7 +891,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
       ::se::common::Vector3* position);
   ::se::common::Vector3* unsafe_arena_release_position();
 
-  // .se.common.Vector2 velocity = 4;
+  // .se.common.Vector2 velocity = 5;
   bool has_velocity() const;
   private:
   bool _internal_has_velocity() const;
@@ -917,7 +918,16 @@ class PROTOCOLSHAREDUE_API MovementState final :
   void _internal_set_yaw(float value);
   public:
 
-  // float pitch = 3;
+  // float aim_yaw = 3;
+  void clear_aim_yaw();
+  float aim_yaw() const;
+  void set_aim_yaw(float value);
+  private:
+  float _internal_aim_yaw() const;
+  void _internal_set_aim_yaw(float value);
+  public:
+
+  // float pitch = 4;
   void clear_pitch();
   float pitch() const;
   void set_pitch(float value);
@@ -926,7 +936,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
   void _internal_set_pitch(float value);
   public:
 
-  // int32 movement_mode = 5;
+  // int32 movement_mode = 6;
   void clear_movement_mode();
   int32_t movement_mode() const;
   void set_movement_mode(int32_t value);
@@ -946,6 +956,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
     ::se::common::Vector3* position_;
     ::se::common::Vector2* velocity_;
     float yaw_;
+    float aim_yaw_;
     float pitch_;
     int32_t movement_mode_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
@@ -1666,7 +1677,27 @@ inline void MovementState::set_yaw(float value) {
   // @@protoc_insertion_point(field_set:se.common.MovementState.yaw)
 }
 
-// float pitch = 3;
+// float aim_yaw = 3;
+inline void MovementState::clear_aim_yaw() {
+  _impl_.aim_yaw_ = 0;
+}
+inline float MovementState::_internal_aim_yaw() const {
+  return _impl_.aim_yaw_;
+}
+inline float MovementState::aim_yaw() const {
+  // @@protoc_insertion_point(field_get:se.common.MovementState.aim_yaw)
+  return _internal_aim_yaw();
+}
+inline void MovementState::_internal_set_aim_yaw(float value) {
+  
+  _impl_.aim_yaw_ = value;
+}
+inline void MovementState::set_aim_yaw(float value) {
+  _internal_set_aim_yaw(value);
+  // @@protoc_insertion_point(field_set:se.common.MovementState.aim_yaw)
+}
+
+// float pitch = 4;
 inline void MovementState::clear_pitch() {
   _impl_.pitch_ = 0;
 }
@@ -1686,7 +1717,7 @@ inline void MovementState::set_pitch(float value) {
   // @@protoc_insertion_point(field_set:se.common.MovementState.pitch)
 }
 
-// .se.common.Vector2 velocity = 4;
+// .se.common.Vector2 velocity = 5;
 inline bool MovementState::_internal_has_velocity() const {
   return this != internal_default_instance() && _impl_.velocity_ != nullptr;
 }
@@ -1776,7 +1807,7 @@ inline void MovementState::set_allocated_velocity(::se::common::Vector2* velocit
   // @@protoc_insertion_point(field_set_allocated:se.common.MovementState.velocity)
 }
 
-// int32 movement_mode = 5;
+// int32 movement_mode = 6;
 inline void MovementState::clear_movement_mode() {
   _impl_.movement_mode_ = 0;
 }

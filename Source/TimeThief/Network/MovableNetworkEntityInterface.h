@@ -28,6 +28,9 @@ public:
 	virtual float GetNetworkYaw() const = 0;
 	virtual void SetNetworkYaw(float NewYaw) = 0;
 	
+	virtual float GetNetworkAimYaw() const = 0;
+	virtual void SetNetworkAimYaw(float NewAimYaw) = 0;
+	
 	virtual float GetNetworkPitch() const = 0;
 	virtual void SetNetworkPitch(float NewPitch) = 0;
 	

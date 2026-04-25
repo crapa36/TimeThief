@@ -74,6 +74,16 @@ void ATimeThiefNetworkCharacterBase::SetNetworkYaw(float NewYaw)
 	SetActorRotation(NewRotation);
 }
 
+float ATimeThiefNetworkCharacterBase::GetNetworkAimYaw() const
+{
+	return CurrentNetworkAimYaw;
+}
+
+void ATimeThiefNetworkCharacterBase::SetNetworkAimYaw(float NewAimYaw)
+{
+	CurrentNetworkAimYaw = NewAimYaw;
+}
+
 float ATimeThiefNetworkCharacterBase::GetNetworkPitch() const
 {
 	return CurrentNetworkPitch;
