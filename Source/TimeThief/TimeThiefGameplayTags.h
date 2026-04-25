@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "MorphingMesh/MorphingMeshComponent.h"
 
 class UGameplayTagsManager;
 
@@ -11,7 +12,8 @@ public:
 	static void InitializeNativeGameplayTags();
 	static uint32 ResolveWeaponIdFromTag(const FGameplayTag& WeaponTag);
 	static FGameplayTag ResolveWeaponTagFromId(uint32 WeaponId);
-
+	static EMorphTargetType GetMorphTargetTypeByTag(FGameplayTag WeaponTag);
+	
 	// Input Tags
 	FGameplayTag InputTag_Action_Move;
 	FGameplayTag InputTag_Action_Look;

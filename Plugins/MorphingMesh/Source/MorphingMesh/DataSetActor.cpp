@@ -154,7 +154,55 @@ void ADataSetActor::CreateBoneIndexTexture() const
             UE_LOG(LogTemp, Warning, TEXT("No valid surface points after bone exclusion: %s"), *SkelMesh->GetName());
             continue;
         }
+    	int32 ExtraBoneIndex = INDEX_NONE;
+    	if (ExtraBoneName != NAME_None)
+    	{
+    		ExtraBoneIndex = RefSkeleton.FindBoneIndex(ExtraBoneName);
+    		if (ExtraBoneIndex == INDEX_NONE)
+    		{
+    			UE_LOG(LogTemp, Warning, TEXT("ExtraBoneName '%s'을(를) %s 스켈레톤에서 찾을 수 없습니다."), *ExtraBoneName.ToString(), *SkelMesh->GetName());
+    		}
+    	}
 
+    	// 본을 찾았고, 스태틱 메쉬 렌더 데이터가 유효한 경우 수행
+    	if (ExtraBoneIndex != INDEX_NONE && BaseMesh->GetRenderData() && BaseMesh->GetRenderData()->LODResources.IsValidIndex(0))
+    	{
+    		const FStaticMeshLODResources& StaticLOD = BaseMesh->GetRenderData()->LODResources[0];
+    		const FPositionVertexBuffer& StaticPositions = StaticLOD.VertexBuffers.PositionVertexBuffer;
+    		const int32 NumStaticVerts = StaticPositions.GetNumVertices();
+
+    		FCriticalSection Mutex;
+    		TArray<FSurfacePoint> ExtraPoints;
+    		const float ThresholdSq = FMath::Square(ExtraVertexDistanceThreshold);
+
+    		// 정점 개수가 많을 수 있으므로 ParallelFor로 병렬 처리
+    		ParallelFor(NumStaticVerts, [&](int32 VertIdx)
+			{
+				FVector StaticPos = (FVector)StaticPositions.VertexPosition(VertIdx);
+				float MinDistSq = MAX_FLT;
+
+				// 기존 스켈레탈 메쉬 정점들과의 최소 거리 계산
+				for (const FSurfacePoint& SkelPt : SurfacePoints)
+				{
+					float DistSq = FVector::DistSquared(StaticPos, SkelPt.Position);
+					if (DistSq < MinDistSq)
+					{
+						MinDistSq = DistSq;
+					}
+				}
+
+				// 거리가 Threshold보다 멀다면 스태틱 메쉬에만 있는 "독립적인 정점"으로 판단
+				if (MinDistSq > ThresholdSq)
+				{
+					FScopeLock Lock(&Mutex);
+					ExtraPoints.Add({ StaticPos, static_cast<uint8>(ExtraBoneIndex) });
+				}
+			});
+
+    		// 스태틱 메쉬에서 찾은 추가 정점들을 SurfacePoints 배열에 병합
+    		SurfacePoints.Append(ExtraPoints);
+    	}
+    	
         // --- 3. 바운딩 박스 설정 ---
         const FBox Bounds = BaseMesh->GetBoundingBox();
         const FVector Min = Bounds.Min;

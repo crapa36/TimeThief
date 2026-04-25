@@ -16,7 +16,10 @@
 #include "Components/Skill/SavePointSkillComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "MorphingMesh/MorphingMeshData.h"
+#include "MorphingMesh/Core/LiquidMeshComponent.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
 
 ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -59,23 +62,29 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	SpawnFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpawnFX"));
 	SpawnFX->SetupAttachment(GetMesh());
 	SpawnFX->bAutoActivate = false;
-	
+
 	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
 	
+	MorphingCharacter = CreateDefaultSubobject<UMorphingMeshComponent>(TEXT("MorphingCharacter"));
+	MorphingCharacter->SetupAttachment(GetMesh());
+	MorphingCharacter->BaseMeshComponent->SetupAttachment(MorphingCharacter);
+	MorphingCharacter->LiquidMeshComponent->SetupAttachment(MorphingCharacter);
+	MorphingCharacter->BaseSkeletalMeshComponent->SetupAttachment(MorphingCharacter);
+	
 	WeaponActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("WeaponActorComponent"));
-	WeaponActorComponent->SetupAttachment(GetMesh(), FName{TEXT("HandGrip_R")});
+	WeaponActorComponent->SetupAttachment(MorphingCharacter->BaseSkeletalMeshComponent, FName{TEXT("HandGrip_R")});
 }
 
 void ATimeThiefCharacterBase::OnDeath()
 {
 	bIsRespawn = false;
 	bIsDead = true;
-	
+
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->StopMovementImmediately();
 	}
-	
+
 	for (auto Comp : GetComponents())
 	{
 		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
@@ -83,7 +92,7 @@ void ATimeThiefCharacterBase::OnDeath()
 			LifeObserver->OnDeath();
 		}
 	}
-	
+
 	DeadFX->Activate(true);
 	DisappearFX->SetActive(false, true);
 }
@@ -95,7 +104,7 @@ void ATimeThiefCharacterBase::OnBeginRespawn()
 		bPendingRespawn = false;
 		bIsRespawn = true;
 		Mask = 0;
-		
+
 		for (auto Comp : GetComponents())
 		{
 			if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
@@ -103,7 +112,7 @@ void ATimeThiefCharacterBase::OnBeginRespawn()
 				LifeObserver->OnBeginRespawn();
 			}
 		}
-		
+
 		DeadFX->Deactivate();
 		SpawnFX->Activate(true);
 		DisappearFX->SetActive(false, true);
@@ -114,7 +123,7 @@ void ATimeThiefCharacterBase::OnEndRespawn()
 {
 	bIsDead = false;
 	bIsRespawn = false;
-	
+
 	for (auto Comp : GetComponents())
 	{
 		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
@@ -122,7 +131,7 @@ void ATimeThiefCharacterBase::OnEndRespawn()
 			LifeObserver->OnEndRespawn();
 		}
 	}
-	
+
 	SpawnFX->Deactivate();
 	DisappearFX->Activate();
 }
@@ -151,11 +160,36 @@ void ATimeThiefCharacterBase::AddMask(float Amount)
 	UpdateMask();
 }
 
+USkeletalMeshComponent* ATimeThiefCharacterBase::GetWeaponAttachMesh() const
+{
+	return GetThirdPersonMesh();
+}
+
+USkeletalMeshComponent* ATimeThiefCharacterBase::GetMontagePlaybackMesh() const
+{
+	return GetThirdPersonMesh();
+}
+
+USkeletalMeshComponent* ATimeThiefCharacterBase::GetThirdPersonMesh() const
+{
+	if (!MorphingCharacter || !MorphingCharacter->bIsSkeletalMesh)
+	{
+		return GetMesh();
+	}
+	
+	return MorphingCharacter->BaseSkeletalMeshComponent;
+}
+
+ATimeThiefMasterWeapon* ATimeThiefCharacterBase::GetWeaponActor() const
+{
+	return Cast<ATimeThiefMasterWeapon>(WeaponActorComponent->GetChildActor());
+}
+
 
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
 		Health->OnDeath.AddDynamic(this, &ThisClass::OnDeath);
@@ -235,37 +269,37 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 void ATimeThiefCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
 	if (bPendingRespawn)
 	{
 		return;
 	}
-	
+
 	if (bIsDead && !bIsRespawn)
 	{
 		Mask = FMath::FInterpConstantTo(Mask, 0, DeltaTime, 1 / InterpTime);
 		UpdateMask();
-		
+
 		if (Mask == 0)
 		{
 			bPendingRespawn = true;
-			if (auto GI = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>(); 
+			if (auto GI = GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>();
 				GI && !GI->IsConnected())
 			{
 				OnBeginRespawn();
 			}
 		}
 	}
-	
+
 	else if (bIsRespawn)
 	{
 		Mask = FMath::FInterpConstantTo(Mask, 1, DeltaTime, 1 / InterpTime);
-		
+
 		if (Mask == 1.f)
 		{
 			OnEndRespawn();
 		}
-		
+
 		UpdateMask();
 	}
 }
@@ -275,14 +309,14 @@ void ATimeThiefCharacterBase::HandleDeathFromServer()
 	bIsDead = true;
 	bIsRespawn = false;
 	bPendingRespawn = false;
-	
+
 	// PlayDeathEffects();
 	// NotifyLifeObserversDeath();
-	
+
 	// 아마 아래 코드가 Death 연출 및 필요작업인듯
 	DeadFX->Activate(true);
 	DisappearFX->SetActive(false, true);
-	
+
 	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
 	{
 		PS->OnDeath();
@@ -302,9 +336,9 @@ void ATimeThiefCharacterBase::HandleRespawnFromServer(const FVector& RespawnLoca
 	bIsRespawn = true;
 	bPendingRespawn = false;
 	Mask = 0;
-	
+
 	SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
-	
+
 	// 없애고 싶은 코드;
 	{
 		if (APlayerController* PC = Cast<APlayerController>(GetController()))
@@ -313,18 +347,18 @@ void ATimeThiefCharacterBase::HandleRespawnFromServer(const FVector& RespawnLoca
 			PC->SetIgnoreLookInput(false);
 			EnableInput(PC);
 		}
-		
+
 		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 		{
 			MoveComp->StopMovementImmediately();
 			MoveComp->SetMovementMode(MOVE_Walking);
 		}
 	}
-	
+
 	DeadFX->Deactivate();
 	SpawnFX->Activate(true);
 	DisappearFX->SetActive(false, true);
-		
+
 	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
 	{
 		PS->OnBeginRespawn();
@@ -336,13 +370,12 @@ void ATimeThiefCharacterBase::HandleRespawnFromServer(const FVector& RespawnLoca
 			LifeObserver->OnBeginRespawn();
 		}
 	}
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("LocallyControlled=%d"), IsLocallyControlled() ? 1 : 0);
 	UE_LOG(LogTemp, Warning, TEXT("MovementMode=%d"), (int32)GetCharacterMovement()->MovementMode);
 	UE_LOG(LogTemp, Warning, TEXT("CapsuleCollision=%d"), (int32)GetCapsuleComponent()->GetCollisionEnabled());
 	UE_LOG(LogTemp, Warning, TEXT("ActorEnableCollision=%d"), GetActorEnableCollision() ? 1 : 0);
 	UE_LOG(LogTemp, Warning, TEXT("MeshSimPhysics=%d"), GetMesh()->IsSimulatingPhysics() ? 1 : 0);
-	
 }
 
 void ATimeThiefCharacterBase::FinishRespawnPresentation()
@@ -351,15 +384,15 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 	{
 		return;
 	}
-	
+
 	bIsRespawn = false;
-	
+
 	// StopRespawnEffects();
 	// NotifyLifeObserversEndRespawn();
-	
+
 	SpawnFX->Deactivate();
 	DisappearFX->Activate();
-	
+
 	for (auto Comp : GetComponents())
 	{
 		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
@@ -371,11 +404,24 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 
 void ATimeThiefCharacterBase::UpdateMask()
 {
-	for (auto Material : GetMesh()->GetMaterials())
+	for (auto Material : GetThirdPersonMesh()->GetMaterials())
 	{
 		if (UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(Material))
 		{
 			MID->SetScalarParameterValue(FName("Mask"), Mask);
+		}
+		else
+		{
+			// const auto& Materials = GetThirdPersonMesh()->GetMaterials();
+			// for (int i = 0; i < Materials.Num(); ++i)
+			// {
+			// 	MID = UMaterialInstanceDynamic::Create(Materials[i], this);
+			// 	if (MID)
+			// 	{
+			// 		GetThirdPersonMesh()->SetMaterial(i, MID);
+			// 		MID->SetScalarParameterValue(FName("Mask"), Mask);
+			// 	}
+			// }
 		}
 	}
 
@@ -389,7 +435,7 @@ void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, floa
 		return;
 	}
 
-	if (UAnimInstance* ThirdPersonAnim = GetMesh()->GetAnimInstance())
+	if (UAnimInstance* ThirdPersonAnim = GetThirdPersonMesh()->GetAnimInstance())
 	{
 		ThirdPersonAnim->Montage_Play(Montage, PlayRate);
 	}
@@ -411,7 +457,7 @@ void ATimeThiefCharacterBase::PlayAnimationOnAllMeshes(UAnimSequenceBase* Animat
 		return;
 	}
 
-	if (UAnimInstance* ThirdPersonAnim = GetMesh()->GetAnimInstance())
+	if (UAnimInstance* ThirdPersonAnim = GetThirdPersonMesh()->GetAnimInstance())
 	{
 		ThirdPersonAnim->PlaySlotAnimationAsDynamicMontage(Animation, SlotName, BlendInTime, BlendOutTime, PlayRate);
 	}

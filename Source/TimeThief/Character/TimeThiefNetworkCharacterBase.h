@@ -86,6 +86,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Network")
 	UNetworkCombatSyncComponent* GetNetworkCombatSyncComponent() const { return NetworkCombatSyncComponent; }
 	
+	bool bIsJumping = false;
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UNetworkEntityComponent> NetworkEntityComponent = nullptr;

@@ -13,6 +13,7 @@
 #include "Network/NetworkCombatSyncComponent.h"
 #include "Network/MovableNetworkEntityInterface.h"
 #include "TimeThiefGameplayTags.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -33,6 +34,14 @@ void UTimeThiefPawnCombatComponent::BeginPlay()
 			CachedCombatSyncComponent->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
 		}
 	}
+	
+	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+	{
+		if (auto MorphingComp = Character->GetMorphingMeshComponent())
+		{
+			MorphingComp->OnMorphTargetTypeChangedSignature.AddUObject(this, &UTimeThiefPawnCombatComponent::OnChanged);
+		}
+	}
 }
 
 void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -47,7 +56,14 @@ void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 		CachedCombatSyncComponent->OnRemoteAttackNotify.RemoveAll(this);
 		CachedCombatSyncComponent = nullptr;
 	}
-
+	
+	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
+	{
+		if (auto MorphingComp = Character->GetMorphingMeshComponent())
+		{
+			MorphingComp->OnMorphTargetTypeChangedSignature.RemoveAll(this);
+		}
+	}
 	Super::EndPlay(EndPlayReason);
 	
 	
@@ -59,8 +75,23 @@ void UTimeThiefPawnCombatComponent::OnRegister()
 	
 	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 	{
-		MasterWeaponPtr = Cast<ATimeThiefMasterWeapon>(Character->GetWeaponActorComponent()->GetChildActor());
+		MasterWeaponPtr = Character->GetWeaponActor();
 	}
+}
+
+void UTimeThiefPawnCombatComponent::OnChanged(EMorphTargetType Type)
+{
+
+	GetWorld()->GetTimerManager().SetTimerForNextTick([this, Type]()
+	{
+		if (UTimeThiefWeaponComponentBase* CurrentWeapon = MasterWeaponPtr->GetActiveWeaponComponent())
+		{
+			MasterWeaponPtr->SetActorHiddenInGame(false);
+			AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());
+		}
+
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Morph Target Changed: %s"), *UEnum::GetValueAsString(Type)));
+	});
 }
 
 void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
@@ -80,14 +111,20 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 	}
 
 	CurrentEquippedWeaponTag = WeaponTag;
+	MasterWeaponPtr->SetActorHiddenInGame(true);
 	MasterWeaponPtr->SwitchWeapon(WeaponTag);
 	
 	UTimeThiefWeaponComponentBase* CurrentWeapon = MasterWeaponPtr->GetActiveWeaponComponent();
 	if (CurrentWeapon)
 	{
-		MasterWeaponPtr->SetActorHiddenInGame(false);
-		AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());
-		
+		if (auto Player = GetPawn<ATimeThiefCharacterBase>())
+		{
+			if (Player->GetMesh() == Player->GetWeaponAttachMesh())
+			{
+				MasterWeaponPtr->SetActorHiddenInGame(false);
+				AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());
+			}
+		}
 		ACharacter* OwningCharacter = GetPawn<ACharacter>();
 		if (OwningCharacter)
 		{
@@ -99,6 +136,11 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 					if (USkeletalMeshComponent* FPMesh = BaseChar->GetFirstPersonMesh())
 					{
 						FPMesh->LinkAnimClassLayers(AnimLayer);
+					}
+					
+					if (auto MorphingComp = BaseChar->GetMorphingMeshComponent())
+					{
+						MorphingComp->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(WeaponTag));
 					}
 				}
 			}
@@ -167,18 +209,19 @@ void UTimeThiefPawnCombatComponent::AttachMasterWeaponToCharacter(FName SocketNa
 
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
 	if (!OwningCharacter) return;
-
-	USkeletalMeshComponent* TargetMesh = OwningCharacter->GetMesh();
+	
 	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 	{
-		USkeletalMeshComponent* AttachMesh = BaseChar->GetWeaponAttachMesh();
-		if (AttachMesh)
+		if (USkeletalMeshComponent* AttachMesh = BaseChar->GetWeaponAttachMesh())
 		{
-			TargetMesh = AttachMesh;
+			if (auto WeaponComp = BaseChar->GetWeaponActor())
+			{
+				WeaponComp->AttachToComponent(AttachMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
+				
+				// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Attached MasterWeapon to %s at socket %s"), *AttachMesh->GetSkeletalMeshAsset()->GetName(), *SocketName.ToString()));
+			}
 		}
 	}
-
-	MasterWeaponPtr->AttachToComponent(TargetMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
 }
 
 void UTimeThiefPawnCombatComponent::BroadcastCombatAttackRequest(const FCombatAttackRequest& AttackRequest)

@@ -207,9 +207,9 @@ void UTimeThiefRifleComponent::ApplyRecoilAndSpread()
 		return;
 	}
 	
-	if (ACharacter* OwnerChar = Cast<ACharacter>(GetOwner()->GetParentActor()))
+	if (ATimeThiefCharacterBase* OwnerChar = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor()))
 	{
-		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetMesh()->GetAnimInstance()))
+		if (UTimeThiefPlayerAnimInstance* AnimInst = Cast<UTimeThiefPlayerAnimInstance>(OwnerChar->GetThirdPersonMesh()->GetAnimInstance()))
 		{
 			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadDecreasePerSecond);
 			CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, BaseSpread, MaxSpread);

@@ -28,15 +28,6 @@ UMorphingMeshComponent::UMorphingMeshComponent(const FObjectInitializer& ObjectI
 	LiquidMeshComponent = CreateDefaultSubobject<ULiquidMeshComponent>("LiquidMeshComponent");
 	LiquidMeshComponent->SetupAttachment(this);
 	LiquidMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
-	if (bDebug)
-	{
-		LiquidMeshComponent->bRenderingEnable = true;
-	}
-	else
-	{
-		LiquidMeshComponent->bRenderingEnable = false;
-	}
 
 	BaseMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("BaseMeshComponent");
 	BaseMeshComponent->SetupAttachment(this);
@@ -78,9 +69,21 @@ void UMorphingMeshComponent::OnRegister()
 	}
 	bIsSkeletalMesh = MorphingMeshData->IsSkeletalValid();
 	bIsValid = MorphingMeshData->IsValid();
-
+	
+	if (bDebug)
+	{
+		LiquidMeshComponent->bRenderingEnable = true;
+		BaseSkeletalMeshComponent->SetVisibility(false);
+		BaseMeshComponent->SetVisibility(false);
+	}
+	else
+	{
+		LiquidMeshComponent->bRenderingEnable = false;
+	}
+	
 	int Index = int(MeshType);
-	PrevAlpha = FVector3f::ZeroVector;
+	PrevIndex = Index;
+	PrevAlpha = FVector::ZeroVector;
 	if (MeshType != EMorphTargetType::None)
 	{
 		PrevAlpha[Index] = 1.0f;
@@ -88,7 +91,6 @@ void UMorphingMeshComponent::OnRegister()
 		{
 			BaseSkeletalMeshComponent->EmptyOverrideMaterials();
 			BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[Index]);
-			BaseSkeletalMeshComponent->SetAnimInstanceClass(MorphingMeshData->AnimInstances[Index]);
 			BaseMeshComponent->SetVisibility(false);
 		}
 		else
@@ -97,7 +99,7 @@ void UMorphingMeshComponent::OnRegister()
 			BaseSkeletalMeshComponent->SetVisibility(false);
 		}
 	}
-
+	
 	CurrAlpha = PrevAlpha;
 	DestAlpha = PrevAlpha;
 }
@@ -107,11 +109,13 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                            FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
 	if (MorphingMeshData == nullptr)
 	{
 		return;
 	}
-	if (ElapsedTime >= MorphingTime)
+	
+	if (ElapsedTime >= MaxMorphingTime)
 	{
 		CurrAlpha = DestAlpha;
 
@@ -127,24 +131,18 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			}
 			LiquidMeshComponent->bRenderingEnable = false;
 		}
+		
+		GetWorld()->GetTimerManager().SetTimerForNextTick([this]()
+		{
+			OnMorphTargetTypeChangedSignature.Broadcast(MeshType);
+		});
+		
 		SetComponentTickEnabled(false);
 	}
 	else
 	{
-		if (ElapsedTime >= MorphingTime / 10.f * 9.f || ElapsedTime <= MorphingTime / 10.f)
-		{
-			ElapsedTime -= DeltaTime / 10.f * 9.f;
-		}
-		else if (ElapsedTime >= MorphingTime / 10.f * 7.f || ElapsedTime <= MorphingTime / 10.f * 3.f)
-		{
-			ElapsedTime -= DeltaTime / 10.f * 7.f;
-		}
-		else if (ElapsedTime >= MorphingTime / 10.f * 4.f || ElapsedTime <= MorphingTime / 10.f * 6.f)
-		{
-			ElapsedTime += DeltaTime / 10.f * 5.f;
-		}
 		ElapsedTime += DeltaTime;
-		const float AlphaRatio = FMath::Min(ElapsedTime / MorphingTime, 1.0f);
+		const float AlphaRatio = FMath::Min(ElapsedTime / MaxMorphingTime, 1.0f);
 		CurrAlpha = FMath::Lerp(PrevAlpha, DestAlpha, AlphaRatio);
 		if (bIsSkeletalMesh)
 		{
@@ -152,10 +150,12 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 			if (Index != -1)
 			{
-				BaseSkeletalMeshComponent->EmptyOverrideMaterials();
-				BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[Index]);
-				BaseSkeletalMeshComponent->SetAnimInstanceClass(
-					MorphingMeshData->AnimInstances[Index]);
+				if (Index != PrevIndex)
+				{
+					BaseSkeletalMeshComponent->EmptyOverrideMaterials();
+					BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[Index]);
+					PrevIndex = Index;
+				}
 			}
 			else
 			{
@@ -171,7 +171,7 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 int UMorphingMeshComponent::GetActiveSkeletalIndex() const
 {
-	if (CurrAlpha == FVector3f::ZeroVector)
+	if (CurrAlpha == FVector::ZeroVector)
 	{
 		return -1;
 	}
@@ -210,21 +210,21 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	{
 		return;
 	}
-
+	
 	ElapsedTime = 0;
 	int Index = static_cast<int>(NewType);
-	DestAlpha = FVector3f::ZeroVector;
+	DestAlpha = FVector::ZeroVector;
 
 	if (NewType == EMorphTargetType::None)
 	{
-		MorphingTime = MaxMorphingTime;
+		ElapsedTime = MaxMorphingTime;
 		BaseMeshComponent->SetStaticMesh(nullptr);
 	}
 	else
 	{
 		DestAlpha[Index] = 1.0f;
 
-		MorphingTime = MaxMorphingTime * (1 - CurrAlpha[Index]);
+		ElapsedTime = MaxMorphingTime * CurrAlpha[Index];
 		BaseMeshComponent->SetStaticMesh(MorphingMeshData->GetBaseMeshes()[Index]);
 	}
 

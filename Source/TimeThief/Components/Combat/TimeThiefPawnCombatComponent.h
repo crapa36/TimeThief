@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "GameplayTagContainer.h"
+#include "MorphingMesh/MorphingMeshComponent.h"
 #include "TimeThiefPawnCombatComponent.generated.h"
 
 class ATimeThiefMasterWeapon;
@@ -26,8 +27,10 @@ public:
 	
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
+	
 	virtual void OnRegister() override;
+	
+	virtual void OnChanged(EMorphTargetType Type);
 	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
 	virtual void EquipWeapon(FGameplayTag WeaponTag);

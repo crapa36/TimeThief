@@ -71,6 +71,23 @@ FGameplayTag FTimeThiefGameplayTags::ResolveWeaponTagFromId(uint32 WeaponId)
 	}
 }
 
+EMorphTargetType FTimeThiefGameplayTags::GetMorphTargetTypeByTag(FGameplayTag WeaponTag)
+{
+	if (WeaponTag == GameplayTags.Weapon_Rifle)
+	{
+		return EMorphTargetType::A;
+	}
+	if (WeaponTag == GameplayTags.Weapon_Shotgun)
+	{
+		return EMorphTargetType::B;
+	}
+	if (WeaponTag == GameplayTags.Weapon_RocketLauncher)
+	{
+		return EMorphTargetType::C;
+	}
+	return EMorphTargetType::None;
+}
+
 void FTimeThiefGameplayTags::AddTag(FGameplayTag& OutTag, const ANSICHAR* TagName, const ANSICHAR* TagComment)
 {
 	OutTag = UGameplayTagsManager::Get().AddNativeGameplayTag(FName(TagName), FString(TagComment));

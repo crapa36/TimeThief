@@ -17,10 +17,10 @@ public:
 	// Sets default values for this actor's properties
 	ADataSetActor();
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="DataSet")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	TObjectPtr<UMorphingMeshData> MorphingMeshData;
 	
-	UPROPERTY(EditAnywhere, Category="Settings")
+	UPROPERTY(EditAnywhere, Category = "Default")
 	int Resolution = 128;
 	
 protected:
@@ -33,9 +33,17 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
-	UFUNCTION(CallInEditor)
+	UFUNCTION(CallInEditor, Category = "Default")
 	void BakeDataSet() const;
 	
-	UPROPERTY(EditAnywhere, Category="DataSet | Settings")
+	UPROPERTY(EditAnywhere, Category = "Default")
 	TArray<FString> ExcludedBoneKeywords;
+	
+	// 스태틱 메쉬에만 존재하는 정점들에 할당할 본 이름
+	UPROPERTY(EditAnywhere, Category = "Default")
+	FName ExtraBoneName = NAME_None;
+
+	// 스켈레탈 메쉬 정점과의 거리가 이 값보다 멀면 '스태틱 메쉬에만 있는 정점'으로 간주합니다.
+	UPROPERTY(EditAnywhere, Category = "Default")
+	float ExtraVertexDistanceThreshold = 2.0f;
 };
