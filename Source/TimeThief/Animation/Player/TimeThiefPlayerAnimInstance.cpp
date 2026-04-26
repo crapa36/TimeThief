@@ -8,6 +8,7 @@
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Network/MovableNetworkEntityInterface.h"
 #include "Engine/Engine.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefPlayerAnimInstance::UTimeThiefPlayerAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer) {
@@ -26,16 +27,73 @@ void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
 	if (!PlayerCharacter) {
+		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
+		if (PlayerCharacter) {
+			WireComponent = PlayerCharacter->GetWireComponent();
+		}
+	}
+
+	if (!PlayerCharacter) {
 		return;
 	}
 
+	UpdateAimData();
 	UpdateWeaponData();
-	UpdateAimingState();
 	UpdateWireData();
 	UpdateWireHandIK(DeltaSeconds);
 	UpdateRecoil(DeltaSeconds);
 	UpdateSpreadAndRecoil(DeltaSeconds);
-	UpdateAimDirection();
+}
+
+void UTimeThiefPlayerAnimInstance::UpdateAimData() {
+	if (!PlayerCharacter) {
+		AimPitch = 0.0f;
+		AimYaw = 0.0f;
+		AimDirection = FVector::ForwardVector;
+		WorldAimLocation = FVector::ZeroVector;
+		ControlRigWorldAimLocation = FVector::ZeroVector;
+		ControlRigAimLocationCS = FVector::ZeroVector;
+		bHasValidControlRigAimLocation = false;
+		return;
+	}
+
+	FVector ViewLocation = PlayerCharacter->GetPawnViewLocation();
+	FVector ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(PlayerCharacter->GetActorForwardVector());
+	if (!UTimeThiefAimStatics::ResolveAimView(PlayerCharacter, ViewLocation, ViewDirection) || ViewDirection.IsNearlyZero()) {
+		ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(PlayerCharacter->GetActorForwardVector());
+	}
+
+	WorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(ViewLocation, ViewDirection, 10000.0f);
+	if (const UTimeThiefPlayerCombatComponent* CombatComp = PlayerCharacter->GetPlayerCombatComponent()) {
+		const FVector CombatAimLocation = CombatComp->GetWorldAimLocation();
+		if (!CombatAimLocation.IsNearlyZero()) {
+			WorldAimLocation = CombatAimLocation;
+		}
+	}
+
+	ControlRigWorldAimLocation = WorldAimLocation;
+	bHasValidControlRigAimLocation = !ControlRigWorldAimLocation.IsNearlyZero();
+	if (const USkeletalMeshComponent* OwningMesh = GetOwningComponent()) {
+		ControlRigAimLocationCS = OwningMesh->GetComponentTransform().InverseTransformPosition(ControlRigWorldAimLocation);
+	} else {
+		ControlRigAimLocationCS = FVector::ZeroVector;
+	}
+
+	const FVector CharacterLocation = PlayerCharacter->GetActorLocation();
+	const FVector AimLine = WorldAimLocation - CharacterLocation;
+	const FVector ToAimFromCharacter = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+		CharacterLocation,
+		CharacterLocation + AimLine,
+		ViewDirection);
+
+	AimDirection = ToAimFromCharacter;
+
+	UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
+		PlayerCharacter->GetActorTransform(),
+		ToAimFromCharacter,
+		AimPitch,
+		AimYaw,
+		ViewDirection);
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
@@ -160,47 +218,4 @@ FVector2D UTimeThiefPlayerAnimInstance::ApplyFireSpread(float InMaxVerticalRecoi
 void UTimeThiefPlayerAnimInstance::UpdateSpreadAndRecoil(float DeltaSeconds) {
 	CurrentSpreadRatio = FMath::FInterpTo(CurrentSpreadRatio, 0.0f, DeltaSeconds, SpreadRecoverySpeed);
 	RecoilBuildup = FMath::FInterpTo(RecoilBuildup, 0.0f, DeltaSeconds, RecoilRecoverySpeed);
-	AimOffset = FMath::Vector2DInterpTo(AimOffset, TargetAimOffset, DeltaSeconds, AimOffsetInterpSpeed);
-	TargetAimOffset = FMath::Vector2DInterpTo(TargetAimOffset, FVector2D::ZeroVector, DeltaSeconds, RecoilRecoverySpeed);
-}
-
-void UTimeThiefPlayerAnimInstance::UpdateAimDirection() {
-	FRotator BaseAimRotation = PlayerCharacter->GetBaseAimRotation();
-
-	if (MovableNetworkInterface.GetInterface() && !PlayerCharacter->IsLocallyControlled()) {
-		BaseAimRotation = FRotator(MovableNetworkInterface->GetNetworkPitch(), MovableNetworkInterface->GetNetworkYaw(), 0.0f);
-	}
-
-	const FRotator ActorRotation = PlayerCharacter->GetActorRotation();
-	const FRotator DeltaRotation = (BaseAimRotation - ActorRotation).GetNormalized();
-
-	AimPitch = DeltaRotation.Pitch;
-	AimYaw = DeltaRotation.Yaw;
-
-	if (bIsAiming || bUseWeaponControlRigRotation) {
-		AimDirection = BaseAimRotation.Vector().GetSafeNormal();
-	} else {
-		AimDirection = BaseAimRotation.Vector().GetSafeNormal2D();
-	}
-
-	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
-		WorldAimLocation = PlayerCombat->GetWorldAimLocation();
-	} else {
-		FVector StartLoc = PlayerCharacter->GetActorLocation();
-		if (CurrentWeapon && CurrentWeapon->GetOwner()) {
-			StartLoc = CurrentWeapon->GetOwner()->GetActorLocation();
-		}
-		WorldAimLocation = StartLoc + (AimDirection * 50000.0f);
-	}
-}
-
-void UTimeThiefPlayerAnimInstance::UpdateAimingState() {
-	if (UTimeThiefPlayerCombatComponent* PlayerCombat = PlayerCharacter->GetPlayerCombatComponent()) {
-		bIsAiming = PlayerCombat->IsAiming();
-		AimSpreadMultiplier = bIsAiming ? PlayerCombat->GetAimSpreadMultiplier() : 1.0f;
-	} else {
-		bIsAiming = false;
-		AimSpreadMultiplier = 1.0f;
-		bUseWeaponControlRigRotation = false;
-	}
 }

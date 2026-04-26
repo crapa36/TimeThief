@@ -74,6 +74,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	FVector CameraLocation = FVector::ZeroVector;
 	FVector CameraAimDir = FVector::ForwardVector;
 	ResolveFireAimView(CameraLocation, CameraAimDir);
+	CameraAimDir = UTimeThiefAimStatics::NormalizeAimDirection(CameraAimDir);
 
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Reserve(2);
@@ -83,7 +84,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 		ActorsToIgnore.Add(GetOwner()->GetParentActor());
 	}
 
-	FVector CenterTraceEnd = CameraLocation + CameraAimDir * MaxRange;
+	FVector CenterTraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, CameraAimDir, MaxRange);
 	FHitResult CenterHitResult;
 	UTimeThiefAimStatics::TraceFromView(
 		GetWorld(),
@@ -97,7 +98,9 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 		true,
 		true);
 	const FVector CenterTargetLocation = CenterHitResult.bBlockingHit ? CenterHitResult.ImpactPoint : CenterTraceEnd;
-	CacheLastShotSyncData(MuzzleLocation, (CenterTargetLocation - MuzzleLocation).GetSafeNormal());
+	CacheLastShotSyncData(
+		MuzzleLocation,
+		UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, CenterTargetLocation, CameraAimDir));
 
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
@@ -113,7 +116,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 		const float r1 = SeededRandom.NextFloat01();
 		const float r2 = SeededRandom.NextFloat01();
 		const FVector PelletAimDir = MyRandomCone(CameraAimDir, HalfSpreadRad, r1, r2);
-		FVector CameraTraceEnd = CameraLocation + PelletAimDir * MaxRange;
+		FVector CameraTraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, PelletAimDir, MaxRange);
 
 		FHitResult CameraHitResult;
 		UTimeThiefAimStatics::TraceFromView(
@@ -147,7 +150,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 			DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
 		}
 
-		PelletResult.FireDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
+		PelletResult.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, PelletAimDir);
 		if (bWeaponHit)
 		{
 			PelletResult.bHit = true;

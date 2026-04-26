@@ -4,6 +4,7 @@
 #include "Network/NetworkEntityComponent.h"
 #include "Network/NetworkMoveComponent.h"
 #include "Network/NetworkCombatSyncComponent.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 
 ATimeThiefNetworkCharacterBase::ATimeThiefNetworkCharacterBase(const FObjectInitializer& ObjectInitializer)
@@ -39,10 +40,10 @@ FRotator ATimeThiefNetworkCharacterBase::GetBaseAimRotation() const
 	{
 		if (const AController* PlayerController = GetController())
 		{
-			return FRotator(CurrentNetworkPitch, PlayerController->GetControlRotation().Yaw, 0.0f);
+			return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkPitch, PlayerController->GetControlRotation().Yaw);
 		}
 	}
-	return FRotator(CurrentNetworkPitch, GetNetworkYaw(), 0.0f);
+	return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkPitch, GetNetworkYaw());
 }
 
 // Called to bind functionality to input

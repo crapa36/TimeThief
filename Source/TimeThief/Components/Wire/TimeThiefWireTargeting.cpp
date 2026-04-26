@@ -3,6 +3,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "Components/PrimitiveComponent.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefWireTargeting::UTimeThiefWireTargeting()
 {
@@ -18,7 +19,7 @@ void UTimeThiefWireTargeting::Initialize(ACharacter* InCharacter)
 bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, const FVector& StartLocation, const FVector& AimDirection, float MaxLength)
 {
 	if (!IsValid(CachedCharacter)) return false;
-	const FVector SafeAimDirection = AimDirection.GetSafeNormal();
+	const FVector SafeAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
 	if (SafeAimDirection.IsNearlyZero()) return false;
 
 	UWorld* World = CachedCharacter->GetWorld();
@@ -39,8 +40,8 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 	const float MinDistanceSq = FMath::Square(MinTargetDistance);
 	const float MaxDistanceSq = FMath::Square(MaxLength);
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(CachedCharacter);
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(CachedCharacter.Get());
 	const FCollisionObjectQueryParams ObjectQueryParams(CollisionObjectTypes);
 
 	struct FScreenCandidate
@@ -85,7 +86,7 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 				continue;
 			}
 
-			const FVector SampleDir = RayWorldDirection.GetSafeNormal();
+			const FVector SampleDir = UTimeThiefAimStatics::NormalizeAimDirection(RayWorldDirection);
 			if (SampleDir.IsNearlyZero())
 			{
 				continue;
@@ -95,12 +96,13 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 			const FVector TraceEnd = TraceStart + SampleDir * MaxLength;
 
 			FHitResult Hit;
-			if (!World->LineTraceSingleByObjectType(
-				Hit,
+			if (!UTimeThiefAimStatics::TraceLineByObjectType(
+				World,
 				TraceStart,
 				TraceEnd,
 				ObjectQueryParams,
-				QueryParams
+				ActorsToIgnore,
+				Hit
 			))
 			{
 				continue;
@@ -148,12 +150,13 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 			const FVector LedgeCheckEnd = LedgeCheckStart - FVector(0.0f, 0.0f, LedgeCheckHeight);
 
 			FHitResult LedgeHit;
-			const bool bIsLedge = World->LineTraceSingleByObjectType(
-				LedgeHit,
+			const bool bIsLedge = UTimeThiefAimStatics::TraceLineByObjectType(
+				World,
 				LedgeCheckStart,
 				LedgeCheckEnd,
 				ObjectQueryParams,
-				QueryParams
+				ActorsToIgnore,
+				LedgeHit
 			) && LedgeHit.ImpactNormal.Z >= LedgeMinNormalZ && (LedgeHit.ImpactPoint.Z > ImpactPoint.Z + LedgeMinHeightDelta);
 
 			FScreenCandidate Candidate;
@@ -218,12 +221,13 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 
 	const FScreenCandidate& BestCandidate = ActiveCandidates[BestCandidateIndex];
 	FHitResult ScreenValidatedHit;
-	const bool bHasBlockingHit = World->LineTraceSingleByObjectType(
-		ScreenValidatedHit,
+	const bool bHasBlockingHit = UTimeThiefAimStatics::TraceLineByObjectType(
+		World,
 		StartLocation,
 		BestCandidate.TargetLocation,
 		ObjectQueryParams,
-		QueryParams
+		ActorsToIgnore,
+		ScreenValidatedHit
 	);
 
 	if (!bHasBlockingHit)

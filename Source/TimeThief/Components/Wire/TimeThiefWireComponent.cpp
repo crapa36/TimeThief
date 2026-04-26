@@ -11,6 +11,7 @@
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundBase.h"
 #include "Kismet/GameplayStatics.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 DEFINE_LOG_CATEGORY(LogWire);
 
@@ -246,33 +247,30 @@ void UTimeThiefWireComponent::FireWire()
 	if (!CanFireWire()) return;
 
 	const FVector WireStartLocation = GetWireStartLocation();
-	
-	FVector CamLoc;
-	FRotator CamRot;
-	
+
+	FVector CamLoc = WireStartLocation;
+	FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
+		GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
+
 	if (IsValid(CachedCharacter))
 	{
-		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
+		if (!UTimeThiefAimStatics::ResolveAimView(CachedCharacter, CamLoc, AimDirection))
 		{
-			PC->GetPlayerViewPoint(CamLoc, CamRot);
-		}
-		else
-		{
-			CachedCharacter->GetActorEyesViewPoint(CamLoc, CamRot);
+			CamLoc = CachedCharacter->GetPawnViewLocation();
+			AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
 		}
 	}
-	else
-	{
-		CamLoc = WireStartLocation;
-		CamRot = GetOwner()->GetActorRotation();
-	}
-	
-	const FVector AimDirection = CamRot.Vector();
+
+	AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
+
 	FVector TargetLocation;
 	
 	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
 	{
-		FireDirection = (TargetLocation - WireStartLocation).GetSafeNormal();
+		FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+			WireStartLocation,
+			TargetLocation,
+			AimDirection);
 	}
 	else
 	{
@@ -573,10 +571,14 @@ FVector UTimeThiefWireComponent::GetAimDirection() const
 {
 	if (!IsValid(CachedCharacter)) return FVector::ForwardVector;
 
-	FVector Loc;
-	FRotator Rot;
-	CachedCharacter->GetActorEyesViewPoint(Loc, Rot);
-	return Rot.Vector();
+	FVector ViewLocation = FVector::ZeroVector;
+	FVector ViewDirection = FVector::ForwardVector;
+	if (UTimeThiefAimStatics::ResolveAimView(CachedCharacter, ViewLocation, ViewDirection))
+	{
+		return UTimeThiefAimStatics::NormalizeAimDirection(ViewDirection);
+	}
+
+	return UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
 }
 
 FVector UTimeThiefWireComponent::GetWireStartLocation() const

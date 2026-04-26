@@ -18,7 +18,6 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction) override;
-	virtual void Remote_SyncFireAction() override;
 	virtual bool ShouldApplyRemoteFireYawRotation() const override { return false; }
 	virtual void EquipWeapon(FGameplayTag WeaponTag) override;
 
@@ -75,10 +74,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimTraceRange = 50000.0f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim", meta = (ClampMin = "0.0", ClampMax = "179.9"))
+	float AimYawOverflowTurnThreshold = 90.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	bool bRotateCharacterFromAimYawOverflow = true;
+
 	bool bIsFireInputHeld = false;
 
 private:
 	void UpdateAimFOV(float DeltaTime);
+	void UpdateLocalWorldAimLocation();
+	void ApplyAimYawOverflowRotation(float DeltaTime);
 
 	float DefaultMaxWalkSpeed = 0.0f;
 	FVector CachedWorldAimLocation = FVector::ZeroVector;

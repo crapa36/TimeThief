@@ -28,15 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
 	void SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery);
 
-	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle * AimSpreadMultiplier; }
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	FVector2D GetAimOffset() const { return AimOffset; }
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Recoil")
-	float GetRecoilBuildup() const { return RecoilBuildup; }
-
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
@@ -71,11 +62,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
 	FVector WorldAimLocation = FVector::ZeroVector;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
-	float AimSpreadMultiplier = 1.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	FVector ControlRigWorldAimLocation = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
-	bool bUseWeaponControlRigRotation = false;
+	FVector ControlRigAimLocationCS = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	bool bHasValidControlRigAimLocation = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	bool bIsWireAttached = false;
@@ -119,17 +113,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
 	float CurrentSpreadRatio = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
-	FVector2D AimOffset = FVector2D::ZeroVector;
-
 private:
+	void UpdateAimData();
 	void UpdateWeaponData();
 	void UpdateWireData();
 	void UpdateWireHandIK(float DeltaSeconds);
 	void UpdateRecoil(float DeltaSeconds);
 	void UpdateSpreadAndRecoil(float DeltaSeconds);
-	void UpdateAimDirection();
-	void UpdateAimingState();
 
 	float TargetRecoilAlpha = 0.0f;
 	FVector2D TargetAimOffset = FVector2D::ZeroVector;

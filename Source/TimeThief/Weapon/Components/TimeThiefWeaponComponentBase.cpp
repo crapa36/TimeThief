@@ -303,7 +303,7 @@ bool UTimeThiefWeaponComponentBase::ResolveFireAimView(FVector& OutViewLocation,
 	if (bHasRemoteShotSyncData && !RemoteShotDirection.IsNearlyZero())
 	{
 		OutViewLocation = RemoteShotOrigin;
-		OutViewDirection = RemoteShotDirection.GetSafeNormal();
+		OutViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(RemoteShotDirection);
 		return true;
 	}
 
@@ -314,7 +314,7 @@ bool UTimeThiefWeaponComponentBase::ResolveFireAimView(FVector& OutViewLocation,
 
 	OutViewLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
 	OutViewDirection = GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector;
-	OutViewDirection = OutViewDirection.GetSafeNormal();
+	OutViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(OutViewDirection);
 	return true;
 }
 
@@ -330,7 +330,7 @@ void UTimeThiefWeaponComponentBase::CacheLastShotSyncData(const FVector& InOrigi
 
 	bHasLastShotSyncData = true;
 	LastShotOrigin = InOrigin;
-	LastShotDirection = InDirection.GetSafeNormal();
+	LastShotDirection = UTimeThiefAimStatics::NormalizeAimDirection(InDirection);
 }
 
 bool UTimeThiefWeaponComponentBase::TryGetLastShotSyncData(FVector& OutOrigin, FVector& OutDirection) const

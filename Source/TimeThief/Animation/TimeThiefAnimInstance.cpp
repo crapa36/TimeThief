@@ -102,10 +102,6 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	if (ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CharacterOwner))
 	{
-		if (UTimeThiefPawnCombatComponent* CombatComp = CharacterBase->GetCombatComponent())
-		{
-			bIsAiming = CombatComp->IsAiming();
-		}
 		if (auto Weapon = CharacterBase->GetWeaponActor())
 		{
 			if (auto Mesh = Weapon->GetWeaponMesh())

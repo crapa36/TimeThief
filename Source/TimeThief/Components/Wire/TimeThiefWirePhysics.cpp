@@ -1,6 +1,7 @@
 #include "Components/Wire/TimeThiefWirePhysics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Character.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 void UTimeThiefWirePhysics::Initialize(UCharacterMovementComponent* InMovementComponent)
 {
@@ -44,9 +45,15 @@ void UTimeThiefWirePhysics::ApplyWirePhysics(float DeltaTime, const FVector& Anc
 	{
 		if (const ACharacter* Character = Cast<ACharacter>(CachedMovementComponent->GetOwner()))
 		{
-			FVector ViewLoc;
-			FRotator ViewRot;
-			Character->GetActorEyesViewPoint(ViewLoc, ViewRot);
+			FVector ViewLoc = FVector::ZeroVector;
+			FVector ViewDirection = FVector::ForwardVector;
+			if (!UTimeThiefAimStatics::ResolveAimView(Character, ViewLoc, ViewDirection))
+			{
+				ViewLoc = Character->GetPawnViewLocation();
+				ViewDirection = Character->GetActorForwardVector();
+			}
+
+			const FRotator ViewRot = UTimeThiefAimStatics::ResolveAimRotationFromDirection(ViewDirection);
 
 			const FVector CameraRight = FRotationMatrix(ViewRot).GetUnitAxis(EAxis::Y);
 			FVector WireRight = FVector::CrossProduct(WireDirection, FVector::UpVector);

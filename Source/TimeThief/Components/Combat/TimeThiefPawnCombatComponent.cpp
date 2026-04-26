@@ -14,6 +14,7 @@
 #include "Network/MovableNetworkEntityInterface.h"
 #include "TimeThiefGameplayTags.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -368,19 +369,27 @@ void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& Origin
 
 	if (!Direction.IsNearlyZero())
 	{
-		CachedRemoteAimDirection = Direction.GetSafeNormal();
-		CachedRemoteAimLocation = Origin + CachedRemoteAimDirection * 10000.0f;
+		CachedRemoteAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(Direction);
+		CachedRemoteAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(
+			Origin,
+			CachedRemoteAimDirection,
+			10000.0f);
 		return;
 	}
 
 	if (const ACharacter* OwningCharacter = GetPawn<ACharacter>())
 	{
-		const FVector FallbackDirection = OwningCharacter->GetBaseAimRotation().Vector();
-		if (!FallbackDirection.IsNearlyZero())
+		FVector ViewLocation = FVector::ZeroVector;
+		FVector ViewDirection = FVector::ForwardVector;
+		if (const APawn* OwningPawn = Cast<APawn>(OwningCharacter);
+			OwningPawn && UTimeThiefAimStatics::ResolveAimView(OwningPawn, ViewLocation, ViewDirection) && !ViewDirection.IsNearlyZero())
 		{
-			CachedRemoteAimDirection = FallbackDirection;
-			const FVector FallbackOrigin = Origin.IsNearlyZero() ? OwningCharacter->GetPawnViewLocation() : Origin;
-			CachedRemoteAimLocation = FallbackOrigin + CachedRemoteAimDirection * 10000.0f;
+			CachedRemoteAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(ViewDirection);
+			const FVector FallbackOrigin = Origin.IsNearlyZero() ? ViewLocation : Origin;
+			CachedRemoteAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(
+				FallbackOrigin,
+				CachedRemoteAimDirection,
+				10000.0f);
 		}
 	}
 }
@@ -415,12 +424,17 @@ void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 		FVector AimDirection = CachedRemoteAimDirection;
 		if (AimDirection.IsNearlyZero() && !CachedRemoteAimLocation.IsNearlyZero())
 		{
-			AimDirection = (CachedRemoteAimLocation - GetEffectiveShotOrigin()).GetSafeNormal();
+			AimDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+				GetEffectiveShotOrigin(),
+				CachedRemoteAimLocation,
+				OwningCharacter->GetActorForwardVector());
 		}
 
 		if (!AimDirection.IsNearlyZero())
 		{
-			const FRotator AimRotation = AimDirection.Rotation();
+			const FRotator AimRotation = UTimeThiefAimStatics::ResolveAimRotationFromDirection(
+				AimDirection,
+				OwningCharacter->GetActorRotation());
 
 			if (ShouldApplyRemoteFireYawRotation())
 			{

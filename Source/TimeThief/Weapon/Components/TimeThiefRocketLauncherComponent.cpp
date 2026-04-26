@@ -53,9 +53,10 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	FVector CameraLocation = FVector::ZeroVector;
 	FVector CameraAimDirection = FVector::ForwardVector;
 	ResolveFireAimView(CameraLocation, CameraAimDirection);
+	CameraAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CameraAimDirection);
 
 	const FVector MuzzleLocation = GetMuzzleLocation();
-	FVector CameraTraceEnd = CameraLocation + (CameraAimDirection * AimTraceRange);
+	FVector CameraTraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, CameraAimDirection, AimTraceRange);
 
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Reserve(2);
@@ -79,10 +80,10 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 		false);
 	const FVector TargetLocation = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : CameraTraceEnd;
 
-	const FVector ShootDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
+	const FVector ShootDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, CameraAimDirection);
 	CacheLastShotSyncData(MuzzleLocation, ShootDirection);
 	const FVector SpawnLocation = MuzzleLocation + ShootDirection;
-	const FTransform SpawnTransform(ShootDirection.Rotation(), SpawnLocation);
+	const FTransform SpawnTransform(UTimeThiefAimStatics::ResolveAimRotationFromDirection(ShootDirection), SpawnLocation);
 
 	AActor* ShooterActor = GetOwner() ? GetOwner()->GetParentActor() : nullptr;
 	APawn* ShooterPawn = Cast<APawn>(ShooterActor);

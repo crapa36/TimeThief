@@ -24,6 +24,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -55,7 +56,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 	GetCharacterMovement()->MaxWalkSpeed = BaseMoveSpeed;
@@ -586,19 +587,16 @@ void ATimeThiefPlayerCharacter::CheckInteractableObject()
 		return;
 	}
 
-	FVector StartLocation;
-	FRotator ViewRotation;
-	PC->GetPlayerViewPoint(StartLocation, ViewRotation);
-
-	FVector EndLocation = StartLocation + ViewRotation.Vector() * (CameraBoom->TargetArmLength + LookingDistance);
-
 	FHitResult Hit;
-	bool bHit = GetWorld()->LineTraceSingleByChannel(
+	FVector EndLocation = FVector::ZeroVector;
+	const TArray<AActor*> EmptyActorsToIgnore;
+	const bool bHit = UTimeThiefAimStatics::TraceAimHit(
+		this,
+		CameraBoom->TargetArmLength + LookingDistance,
+		EmptyActorsToIgnore,
 		Hit,
-		StartLocation,
 		EndLocation,
-		ECC_InteractTrace
-	);
+		ECC_InteractTrace);
 
 	if (bHit && Hit.GetActor())
 	{
