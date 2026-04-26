@@ -12,13 +12,13 @@ struct FMoveSyncData
 	FVector Position = FVector::ZeroVector;
 	
 	UPROPERTY()
-	float Yaw = 0.0f;
+	float CharYaw = 0.0f;
 	
 	UPROPERTY()
 	float AimYaw = 0.0f;
 	
 	UPROPERTY()
-	float Pitch = 0.0f;
+	float AimPitch = 0.0f;
 	
 	UPROPERTY()
 	FVector Velocity = FVector::ZeroVector;

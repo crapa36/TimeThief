@@ -440,11 +440,6 @@ void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 			{
 				OwningCharacter->SetActorRotation(FRotator(0.0f, AimRotation.Yaw, 0.0f));
 			}
-
-			if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
-			{
-				Movable->SetNetworkPitch(AimRotation.Pitch);
-			}
 		}
 	}
 

@@ -68,63 +68,6 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 	EquipWeapon(Tags.Weapon_Rifle);
 }
 
-void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction)
-{
-	Super::Remote_SyncAimLocation(Origin, Direction);
-
-	ACharacter* OwningCharacter = GetPawn<ACharacter>();
-	if (!OwningCharacter)
-	{
-		return;
-	}
-
-	if (const APawn* OwningPawn = Cast<APawn>(OwningCharacter))
-	{
-		if (OwningPawn->IsLocallyControlled())
-		{
-			return;
-		}
-	}
-
-	if (!Direction.IsNearlyZero())
-	{
-		CachedWorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(Origin, Direction, AimTraceRange);
-	}
-	else
-	{
-		FVector ViewLocation = FVector::ZeroVector;
-		FVector ViewDirection = FVector::ForwardVector;
-		if (const APawn* OwningPawn = Cast<APawn>(OwningCharacter);
-			OwningPawn && UTimeThiefAimStatics::ResolveAimView(OwningPawn, ViewLocation, ViewDirection))
-		{
-			CachedWorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(
-				GetEffectiveShotOrigin(),
-				ViewDirection,
-				AimTraceRange);
-		}
-		else
-		{
-			CachedWorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(
-				GetEffectiveShotOrigin(),
-				OwningCharacter->GetActorForwardVector(),
-				AimTraceRange);
-		}
-	}
-
-	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
-	{
-		const FVector AimDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
-			GetEffectiveShotOrigin(),
-			CachedWorldAimLocation,
-			OwningCharacter->GetActorForwardVector());
-		const FRotator AimRotation = UTimeThiefAimStatics::ResolveAimRotationFromDirection(
-			AimDirection,
-			OwningCharacter->GetActorRotation());
-		Movable->SetNetworkYaw(AimRotation.Yaw);
-		Movable->SetNetworkPitch(AimRotation.Pitch);
-	}
-}
-
 void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 {
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
@@ -276,7 +219,6 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 	BroadcastCombatAttackRequest(Request);
 }
 
-
 void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -285,17 +227,62 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 	{
 		UpdateLocalWorldAimLocation();
 		ApplyAimYawOverflowRotation(DeltaTime);
+		SyncAimToServer();
 	}
-
-	if (IsFiringWeapon())
-	{
-		if (UWorld* World = GetWorld())
-		{
-			LastFireTime = World->GetTimeSeconds();
-		}
-	}
-
 	UpdateAimFOV(DeltaTime);
+}
+
+void UTimeThiefPlayerCombatComponent::Server_SyncAim_Implementation(float InAimYaw, float InAimPitch, float InCharacterYaw)
+{
+	ACharacter* OwningCharacter = GetPawn<ACharacter>();
+	if (!OwningCharacter || OwningCharacter->IsLocallyControlled())
+	{
+		return;
+	}
+
+	FVector Origin = GetEffectiveShotOrigin();
+	FRotator RelativeRot(InAimPitch, InAimYaw, 0.0f);
+	FVector WorldDir = OwningCharacter->GetActorTransform().TransformVectorNoScale(RelativeRot.Vector());
+	
+	CachedWorldAimLocation = Origin + (WorldDir * AimTraceRange);
+
+	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
+	{
+		Movable->SetNetworkCharYaw(InCharacterYaw);
+		Movable->SetNetworkAimYaw(InAimYaw);
+		Movable->SetNetworkAimPitch(InAimPitch);
+	}
+}
+
+void UTimeThiefPlayerCombatComponent::SyncAimToServer()
+{
+	APawn* OwningPawn = GetPawn<APawn>();
+	if (!OwningPawn) return;
+
+	const FVector AimDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+		GetEffectiveShotOrigin(),
+		CachedWorldAimLocation,
+		OwningPawn->GetActorForwardVector());
+		
+	float OutAimPitch = 0.0f;
+	float OutAimYaw = 0.0f;
+	UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
+		OwningPawn->GetActorTransform(),
+		AimDirection,
+		OutAimPitch,
+		OutAimYaw,
+		OwningPawn->GetActorForwardVector());
+
+	const float CharacterYaw = OwningPawn->GetActorRotation().Yaw;
+
+	Server_SyncAim(OutAimYaw, OutAimPitch, CharacterYaw);
+
+	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningPawn))
+	{
+		Movable->SetNetworkCharYaw(CharacterYaw);
+		Movable->SetNetworkAimYaw(OutAimYaw);
+		Movable->SetNetworkAimPitch(OutAimPitch);
+	}
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
@@ -360,7 +347,6 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 
 	FRotator CurrentRotation = OwningCharacter->GetActorRotation();
 
-	// 1. 이동 중일 때: 캐릭터의 하체를 즉시 카메라(컨트롤러) 방향으로 일치시킴
 	const bool bIsMoving = !MovementComp->GetCurrentAcceleration().IsNearlyZero() || MovementComp->Velocity.SizeSquared2D() > 1.0f;
 	if (bIsMoving)
 	{
@@ -369,19 +355,12 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 			FRotator TargetRotation = CurrentRotation;
 			TargetRotation.Yaw = PC->GetControlRotation().Yaw;
 			
-			// 이동 중일 땐 어색하지 않게 카메라 방향으로 빠르게 부드럽게 정렬 (스트레이핑 모드)
 			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, AimInterpSpeed * 1.5f);
 			OwningCharacter->SetActorRotation(NewRotation);
 		}
 		return;
 	}
-
-	// 2. 정지 중일 때: 에임 오프셋 오버플로우 제한 로직 적용 (발을 땅에 고정시키고 상체만 돌리기 위함)
-	if (!bRotateCharacterFromAimYawOverflow)
-	{
-		return;
-	}
-
+	
 	if (CachedWorldAimLocation.IsNearlyZero())
 	{
 		return;
@@ -417,18 +396,6 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 
 	FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, AimInterpSpeed);
 	OwningCharacter->SetActorRotation(NewRotation);
-}
-
-bool UTimeThiefPlayerCombatComponent::IsFiringWeapon() const
-{
-	if (MasterWeaponPtr)
-	{
-		if (UTimeThiefWeaponComponentBase* ActiveComp = MasterWeaponPtr->GetActiveWeaponComponent())
-		{
-			return ActiveComp->IsFiring();
-		}
-	}
-	return false;
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)

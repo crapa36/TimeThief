@@ -57,43 +57,61 @@ void UTimeThiefPlayerAnimInstance::UpdateAimData() {
 		return;
 	}
 
-	FVector ViewLocation = PlayerCharacter->GetPawnViewLocation();
-	FVector ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(PlayerCharacter->GetActorForwardVector());
-	if (!UTimeThiefAimStatics::ResolveAimView(PlayerCharacter, ViewLocation, ViewDirection) || ViewDirection.IsNearlyZero()) {
-		ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(PlayerCharacter->GetActorForwardVector());
-	}
+	if (PlayerCharacter->IsLocallyControlled()) {
+		FVector ViewLocation = PlayerCharacter->GetPawnViewLocation();
+		FVector ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(PlayerCharacter->GetActorForwardVector());
+		if (!UTimeThiefAimStatics::ResolveAimView(PlayerCharacter, ViewLocation, ViewDirection) || ViewDirection.IsNearlyZero()) {
+			ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(PlayerCharacter->GetActorForwardVector());
+		}
 
-	WorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(ViewLocation, ViewDirection, 10000.0f);
-	if (const UTimeThiefPlayerCombatComponent* CombatComp = PlayerCharacter->GetPlayerCombatComponent()) {
-		const FVector CombatAimLocation = CombatComp->GetWorldAimLocation();
-		if (!CombatAimLocation.IsNearlyZero()) {
-			WorldAimLocation = CombatAimLocation;
+		WorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(ViewLocation, ViewDirection, 10000.0f);
+		if (const UTimeThiefPlayerCombatComponent* CombatComp = PlayerCharacter->GetPlayerCombatComponent()) {
+			const FVector CombatAimLocation = CombatComp->GetWorldAimLocation();
+			if (!CombatAimLocation.IsNearlyZero()) {
+				WorldAimLocation = CombatAimLocation;
+			}
+		}
+
+		ControlRigWorldAimLocation = WorldAimLocation;
+		bHasValidControlRigAimLocation = !ControlRigWorldAimLocation.IsNearlyZero();
+		if (const USkeletalMeshComponent* OwningMesh = GetOwningComponent()) {
+			ControlRigAimLocationCS = OwningMesh->GetComponentTransform().InverseTransformPosition(ControlRigWorldAimLocation);
+		} else {
+			ControlRigAimLocationCS = FVector::ZeroVector;
+		}
+
+		const FVector CharacterLocation = PlayerCharacter->GetActorLocation();
+		const FVector AimLine = WorldAimLocation - CharacterLocation;
+		const FVector ToAimFromCharacter = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+			CharacterLocation,
+			CharacterLocation + AimLine,
+			ViewDirection);
+
+		AimDirection = ToAimFromCharacter;
+
+		UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
+			PlayerCharacter->GetActorTransform(),
+			ToAimFromCharacter,
+			AimPitch,
+			AimYaw,
+			ViewDirection);
+	} else if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(PlayerCharacter)) {
+		AimYaw = Movable->GetNetworkAimYaw();
+		AimPitch = Movable->GetNetworkAimPitch();
+
+		const FRotator RelativeAimRot(AimPitch, AimYaw, 0.0f);
+		AimDirection = PlayerCharacter->GetActorTransform().TransformVectorNoScale(RelativeAimRot.Vector());
+		WorldAimLocation = PlayerCharacter->GetPawnViewLocation() + (AimDirection * 10000.0f);
+
+		ControlRigWorldAimLocation = WorldAimLocation;
+		bHasValidControlRigAimLocation = !ControlRigWorldAimLocation.IsNearlyZero();
+		if (const USkeletalMeshComponent* OwningMesh = GetOwningComponent()) {
+			ControlRigAimLocationCS = OwningMesh->GetComponentTransform().InverseTransformPosition(ControlRigWorldAimLocation);
+		} else {
+			ControlRigAimLocationCS = FVector::ZeroVector;
 		}
 	}
-
-	ControlRigWorldAimLocation = WorldAimLocation;
-	bHasValidControlRigAimLocation = !ControlRigWorldAimLocation.IsNearlyZero();
-	if (const USkeletalMeshComponent* OwningMesh = GetOwningComponent()) {
-		ControlRigAimLocationCS = OwningMesh->GetComponentTransform().InverseTransformPosition(ControlRigWorldAimLocation);
-	} else {
-		ControlRigAimLocationCS = FVector::ZeroVector;
-	}
-
-	const FVector CharacterLocation = PlayerCharacter->GetActorLocation();
-	const FVector AimLine = WorldAimLocation - CharacterLocation;
-	const FVector ToAimFromCharacter = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
-		CharacterLocation,
-		CharacterLocation + AimLine,
-		ViewDirection);
-
-	AimDirection = ToAimFromCharacter;
-
-	UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
-		PlayerCharacter->GetActorTransform(),
-		ToAimFromCharacter,
-		AimPitch,
-		AimYaw,
-		ViewDirection);
+	if (PlayerCharacter->IsLocallyControlled())	UE_LOG(LogTemp, Log, TEXT("[Anim] Final AimYaw: %f, AimPitch: %f"), AimYaw, AimPitch);
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {

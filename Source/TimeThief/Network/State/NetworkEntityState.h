@@ -15,9 +15,9 @@ struct FNetworkEntityState
 	uint32 TemplateId = 0;
 	
 	FVector Position = FVector::ZeroVector;
-	float Yaw = 0.0f;
+	float CharYaw = 0.0f;
 	float AimYaw = 0.0f;	// Player Only
-	float Pitch = 0.0f;
+	float AimPitch = 0.0f;
 	FVector Velocity = FVector::ZeroVector;
 	EMovementMode MovementMode = EMovementMode::MOVE_None;
 	

@@ -166,7 +166,12 @@ bool UTimeThiefAimStatics::TraceFromView(
 	bool bReturnPhysicalMaterial)
 {
 	OutTraceEnd = ResolveAimTargetLocation(ViewLocation, ViewDirection, Range);
-	return TraceLine(World, ViewLocation, OutTraceEnd, ActorsToIgnore, OutHitResult, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
+	const bool bHit = TraceLine(World, ViewLocation, OutTraceEnd, ActorsToIgnore, OutHitResult, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
+	if (bHit && OutHitResult.bBlockingHit)
+	{
+		OutTraceEnd = OutHitResult.ImpactPoint;
+	}
+	return bHit;
 }
 
 bool UTimeThiefAimStatics::TraceLine(
@@ -206,4 +211,3 @@ bool UTimeThiefAimStatics::TraceLineByObjectType(
 	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
 	return World->LineTraceSingleByObjectType(OutHitResult, TraceStart, TraceEnd, ObjectQueryParams, QueryParams);
 }
-

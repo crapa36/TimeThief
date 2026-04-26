@@ -17,7 +17,6 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	virtual void Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction) override;
 	virtual bool ShouldApplyRemoteFireYawRotation() const override { return false; }
 	virtual void EquipWeapon(FGameplayTag WeaponTag) override;
 
@@ -29,13 +28,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat|Aim")
 	void StopAiming();
-
-	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
-	float GetAimSpreadMultiplier() const { return AimSpreadMultiplier; }
-
-	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
-	bool IsFiringWeapon() const;
-
+	
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
 	FVector GetWorldAimLocation() const { return CachedWorldAimLocation; }
 
@@ -43,6 +36,9 @@ public:
 	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
 
 	void SetMoveSpeedUpgradeBonus(float InMoveSpeedBonus);
+
+	UFUNCTION(Server, Unreliable)
+	void Server_SyncAim(float InAimYaw, float InAimPitch, float InCharacterYaw);
 
 protected:
 	virtual void OnEquipFinished() override;
@@ -59,35 +55,23 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimInterpSpeed = 15.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
-	float AimSpreadMultiplier = 0.3f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
-	float AimMovementSpeedMultiplier = 0.6f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Rotation")
-	float PostFireRotationDelay = 0.5f;
-
+	
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimTraceRange = 50000.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim", meta = (ClampMin = "0.0", ClampMax = "179.9"))
 	float AimYawOverflowTurnThreshold = 90.0f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
-	bool bRotateCharacterFromAimYawOverflow = true;
-
+	
 	bool bIsFireInputHeld = false;
 
 private:
 	void UpdateAimFOV(float DeltaTime);
 	void UpdateLocalWorldAimLocation();
 	void ApplyAimYawOverflowRotation(float DeltaTime);
+	void SyncAimToServer();
 
 	float DefaultMaxWalkSpeed = 0.0f;
 	FVector CachedWorldAimLocation = FVector::ZeroVector;
-	float LastFireTime = 0.0f;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UCameraComponent> CachedThirdPersonCamera;

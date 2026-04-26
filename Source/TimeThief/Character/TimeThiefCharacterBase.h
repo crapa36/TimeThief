@@ -62,15 +62,12 @@ public:
 
 	virtual void OnPlayerInitialized();
 
-protected:
+
 	virtual void BeginPlay() override;
 	virtual void NotifyControllerChanged() override;
 
 	virtual void OnConstruction(const FTransform& Transform) override;
-
-	virtual void ApplyPerspective();
-
-public:
+	
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void DoubleJump();
@@ -79,12 +76,13 @@ public:
 	bool bIsRespawn = true;
 	bool bPendingRespawn = false;
 
-public:
 	void HandleDeathFromServer();
 	void HandleRespawnFromServer(const FVector& RespawnLocation);
 	void FinishRespawnPresentation();
 
 protected:
+	virtual void ApplyPerspective();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")
 	TObjectPtr<UTimePointSystemComponent> TimePointSystemComponent;
 

@@ -127,9 +127,9 @@ void UNetworkGameInstanceSubsystem::SendMove(const FMoveSyncData& MoveData)
 	Position->set_y(MoveData.Position.Y);
 	Position->set_z(MoveData.Position.Z);
 	
-	Movement->set_yaw(MoveData.Yaw);
-	Movement->set_pitch(MoveData.AimYaw);
-	Movement->set_pitch(MoveData.Pitch);
+	Movement->set_yaw(MoveData.CharYaw);
+	Movement->set_aim_yaw(MoveData.AimYaw);
+	Movement->set_pitch(MoveData.AimPitch);
 	auto* Velocity = Movement->mutable_velocity();
 	Velocity->set_x(MoveData.Velocity.X);
 	Velocity->set_y(MoveData.Velocity.Y);
@@ -785,7 +785,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 	const auto& Position = Transform.position();
 	EntityState.Position = FVector(Position.x(), Position.y(), Position.z());
 	const float Yaw = Transform.yaw();
-	EntityState.Yaw = Yaw;
+	EntityState.CharYaw = Yaw;
 	
 	switch (Pkt.object_type())
 	{
@@ -799,7 +799,7 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 			
 			const auto& PlayerMovement = Pkt.player_movement();
 			EntityState.AimYaw = PlayerMovement.aim_yaw();
-			EntityState.Pitch = PlayerMovement.pitch();
+			EntityState.AimPitch = PlayerMovement.pitch();
 			const auto& Velocity = PlayerMovement.velocity();
 			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), 0.0f);
 			EntityState.MovementMode = static_cast<EMovementMode>(PlayerMovement.movement_mode());
@@ -1102,7 +1102,7 @@ void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& Pkt)
 
 	if (Entry)
 	{
-		const FRotator AimRotation = UTimeThiefAimStatics::BuildAimRotation(Entry->State.Pitch, Entry->State.Yaw);
+		const FRotator AimRotation = UTimeThiefAimStatics::BuildAimRotation(Entry->State.AimPitch, Entry->State.CharYaw);
 		Notify.Direction = UTimeThiefAimStatics::ResolveAimDirectionFromRotation(AimRotation);
 		Notify.Origin = Entry->State.Position;
 	}
@@ -1609,8 +1609,8 @@ uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo&
 			const auto& Movement = PlayerInfo.movement();
 			const auto& Pos = Movement.position();
 			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
-			EntityState.Yaw = Movement.yaw();
-			EntityState.Pitch = Movement.pitch();
+			EntityState.CharYaw = Movement.yaw();
+			EntityState.AimPitch = Movement.pitch();
 		}
 		break;
 	case se::common::ObjectType::OBJ_MONSTER:
@@ -1662,7 +1662,7 @@ uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo&
 			const auto& Pos = ChestInfo.position();
 			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 			const float Yaw = ChestInfo.yaw();
-			EntityState.Yaw = Yaw;
+			EntityState.CharYaw = Yaw;
 		}
 		break;
 	case se::common::ObjectType::OBJ_STORE:
@@ -1677,7 +1677,7 @@ uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo&
 			const auto& Pos = StoreInfo.position();
 			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 			const float Yaw = StoreInfo.yaw();
-			EntityState.Yaw = Yaw;
+			EntityState.CharYaw = Yaw;
 		}
 		break;
 	}
@@ -1982,7 +1982,7 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	TSubclassOf<AActor> ActorClass = ResolveActorClass(EntityState);
 	if (ActorClass == nullptr) return nullptr;
 	
-	const FRotator SpawnRotation(0.0f, EntityState.Yaw, 0.0f);
+	const FRotator SpawnRotation(0.0f, EntityState.CharYaw, 0.0f);
 	const FTransform SpawnTransform(SpawnRotation, EntityState.Position);
 	
 	FActorSpawnParameters SpawnParams;
@@ -2165,7 +2165,7 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const
 		return;
 	}
 	
-	const FRotator NewRotation{0.0f, EntityState.Yaw, 0.0f};
+	const FRotator NewRotation{0.0f, EntityState.CharYaw, 0.0f};
 	Actor->SetActorLocation(EntityState.Position);
 	Actor->SetActorRotation(NewRotation);
 }

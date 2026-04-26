@@ -71,30 +71,29 @@ public:
 	
 	FOnVicinityItemUpdatedEvent OnVicinityItemUpdatedEvent;
 	
-protected:
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
-	virtual void BeginPlay() override;
+	
 	virtual void NotifyControllerChanged() override;
 	
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaSeconds) override;
+		
+	virtual void OnDeath() override;
+	virtual void OnBeginRespawn() override;
+	virtual void OnEndRespawn() override;
 	
+protected:
+	virtual void BeginPlay() override;
 	virtual void ApplyPerspective() override;
 	virtual void SendJumpEventToServer();
 	virtual void SendJumpLandEventToServer();
 
 	void OnPawnDataSet();
-
-
+	
 	UFUNCTION()
 	void OnWireStateChanged(EWireState OldState, EWireState NewState);
-	
-	virtual void OnDeath() override;
-	
-	virtual void OnBeginRespawn() override;
-	
-	virtual void OnEndRespawn() override;
 	
 	void CheckInteractableObject();
 	
