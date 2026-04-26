@@ -359,7 +359,7 @@ void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
 
 void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTime)
 {
-	if (!bRotateCharacterFromAimYawOverflow || !bIsAiming)
+	if (!bRotateCharacterFromAimYawOverflow)
 	{
 		return;
 	}
@@ -392,31 +392,31 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 		OwningCharacter->GetActorForwardVector()
 	);
 
-	FRotator CurrentRotation = OwningCharacter->GetActorRotation();
-	float AimWorldYaw = AimDirection.Rotation().Yaw;
-
-	float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, AimWorldYaw);
+	float RelativeAimPitch = 0.0f;
+	float RelativeAimYaw = 0.0f;
+	
+	UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
+		OwningCharacter->GetActorTransform(),
+		AimDirection,
+		RelativeAimPitch,
+		RelativeAimYaw,
+		OwningCharacter->GetActorForwardVector()
+	);
 
 	const float Threshold = FMath::Clamp(AimYawOverflowTurnThreshold, 0.0f, 179.9f);
-	float TargetYaw = CurrentRotation.Yaw;
 
-	if (DeltaYaw > Threshold)
-	{
-		TargetYaw = AimWorldYaw - Threshold;
-	}
-	else if (DeltaYaw < -Threshold)
-	{
-		TargetYaw = AimWorldYaw + Threshold;
-	}
-	else
+	if (FMath::Abs(RelativeAimYaw) <= Threshold)
 	{
 		return;
 	}
 
-	FRotator TargetRotation = CurrentRotation;
-	TargetRotation.Yaw = TargetYaw;
+	const float Excess = RelativeAimYaw > 0.0f 
+		? (RelativeAimYaw - Threshold) 
+		: (RelativeAimYaw + Threshold);
 
-	FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, AimInterpSpeed);
+	FRotator CurrentRotation = OwningCharacter->GetActorRotation();
+	FRotator NewRotation = CurrentRotation;
+	NewRotation.Yaw = FRotator::NormalizeAxis(CurrentRotation.Yaw + Excess);
 
 	OwningCharacter->SetActorRotation(NewRotation);
 }

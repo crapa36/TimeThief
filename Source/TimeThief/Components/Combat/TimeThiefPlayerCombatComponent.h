@@ -24,8 +24,6 @@ public:
 	virtual void HandleInputPressed(FGameplayTag InputTag) override;
 	virtual void HandleInputReleased(FGameplayTag InputTag) override;
 
-	void Local_StartAiming();
-
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat|Aim")
 	void StartAiming();
 
