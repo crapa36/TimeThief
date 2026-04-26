@@ -51,7 +51,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Aim")
 	static bool ResolveAimView(const APawn* Pawn, FVector& OutViewLocation, FVector& OutViewDirection);
-
+	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Aim")
 	static bool TraceAimHit(
 		const APawn* Pawn,
@@ -60,9 +60,9 @@ public:
 		FHitResult& OutHitResult,
 		FVector& OutTraceEnd,
 		ECollisionChannel TraceChannel = ECC_Visibility,
-		bool bTraceComplex = true,
+		bool bTraceComplex = false, 
 		bool bReturnPhysicalMaterial = false);
-
+	
 	static bool TraceFromView(
 		UWorld* World,
 		const FVector& ViewLocation,
@@ -72,7 +72,7 @@ public:
 		FHitResult& OutHitResult,
 		FVector& OutTraceEnd,
 		ECollisionChannel TraceChannel = ECC_Visibility,
-		bool bTraceComplex = true,
+		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
 
 	static bool TraceLine(
@@ -82,9 +82,9 @@ public:
 		const TArray<AActor*>& ActorsToIgnore,
 		FHitResult& OutHitResult,
 		ECollisionChannel TraceChannel = ECC_Visibility,
-		bool bTraceComplex = true,
+		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
-
+	
 	static bool TraceLineByObjectType(
 		UWorld* World,
 		const FVector& TraceStart,
@@ -92,7 +92,6 @@ public:
 		const FCollisionObjectQueryParams& ObjectQueryParams,
 		const TArray<AActor*>& ActorsToIgnore,
 		FHitResult& OutHitResult,
-		bool bTraceComplex = true,
+		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
 };
-

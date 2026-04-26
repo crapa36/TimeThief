@@ -47,6 +47,7 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		if (UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement())
 		{
 			DefaultMaxWalkSpeed = MovementComp->MaxWalkSpeed;
+			MovementComp->bOrientRotationToMovement = false;
 		}
 
 		if (const ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(OwningCharacter))
@@ -262,14 +263,6 @@ void UTimeThiefPlayerCombatComponent::StartAiming()
 {
 	bIsAiming = true;
 
-	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
-	{
-		if (UCharacterMovementComponent* MC = OwningCharacter->GetCharacterMovement())
-		{
-			MC->bOrientRotationToMovement = false;
-		}
-	}
-
 	FCombatAttackRequest Request{};
 	Request.NotifyType = ECombatNotifyType::Aiming;
 	BroadcastCombatAttackRequest(Request);
@@ -280,14 +273,6 @@ void UTimeThiefPlayerCombatComponent::StopAiming()
 	if (!bIsAiming) return;
 
 	bIsAiming = false;
-
-	if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
-	{
-		if (UCharacterMovementComponent* MC = OwningCharacter->GetCharacterMovement())
-		{
-			MC->bOrientRotationToMovement = true;
-		}
-	}
 
 	FCombatAttackRequest Request{};
 	Request.NotifyType = ECombatNotifyType::Readying;
@@ -359,11 +344,6 @@ void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
 
 void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTime)
 {
-	if (!bRotateCharacterFromAimYawOverflow)
-	{
-		return;
-	}
-
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
 	if (!OwningCharacter || !OwningCharacter->IsLocallyControlled())
 	{
@@ -381,6 +361,30 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 		return;
 	}
 
+	FRotator CurrentRotation = OwningCharacter->GetActorRotation();
+
+	// 1. 이동 중일 때: 캐릭터의 하체를 즉시 카메라(컨트롤러) 방향으로 일치시킴
+	const bool bIsMoving = !MovementComp->GetCurrentAcceleration().IsNearlyZero() || MovementComp->Velocity.SizeSquared2D() > 1.0f;
+	if (bIsMoving)
+	{
+		if (AController* PC = OwningCharacter->GetController())
+		{
+			FRotator TargetRotation = CurrentRotation;
+			TargetRotation.Yaw = PC->GetControlRotation().Yaw;
+			
+			// 이동 중일 땐 어색하지 않게 카메라 방향으로 빠르게 부드럽게 정렬 (스트레이핑 모드)
+			FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, AimInterpSpeed * 1.5f);
+			OwningCharacter->SetActorRotation(NewRotation);
+		}
+		return;
+	}
+
+	// 2. 정지 중일 때: 에임 오프셋 오버플로우 제한 로직 적용 (발을 땅에 고정시키고 상체만 돌리기 위함)
+	if (!bRotateCharacterFromAimYawOverflow)
+	{
+		return;
+	}
+
 	if (CachedWorldAimLocation.IsNearlyZero())
 	{
 		return;
@@ -392,32 +396,29 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 		OwningCharacter->GetActorForwardVector()
 	);
 
-	float RelativeAimPitch = 0.0f;
-	float RelativeAimYaw = 0.0f;
-	
-	UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
-		OwningCharacter->GetActorTransform(),
-		AimDirection,
-		RelativeAimPitch,
-		RelativeAimYaw,
-		OwningCharacter->GetActorForwardVector()
-	);
+	float AimWorldYaw = AimDirection.Rotation().Yaw;
+	float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, AimWorldYaw);
 
 	const float Threshold = FMath::Clamp(AimYawOverflowTurnThreshold, 0.0f, 179.9f);
+	float TargetYaw = CurrentRotation.Yaw;
 
-	if (FMath::Abs(RelativeAimYaw) <= Threshold)
+	if (DeltaYaw > Threshold)
+	{
+		TargetYaw = AimWorldYaw - Threshold;
+	}
+	else if (DeltaYaw < -Threshold)
+	{
+		TargetYaw = AimWorldYaw + Threshold;
+	}
+	else
 	{
 		return;
 	}
 
-	const float Excess = RelativeAimYaw > 0.0f 
-		? (RelativeAimYaw - Threshold) 
-		: (RelativeAimYaw + Threshold);
+	FRotator TargetRotation = CurrentRotation;
+	TargetRotation.Yaw = TargetYaw;
 
-	FRotator CurrentRotation = OwningCharacter->GetActorRotation();
-	FRotator NewRotation = CurrentRotation;
-	NewRotation.Yaw = FRotator::NormalizeAxis(CurrentRotation.Yaw + Excess);
-
+	FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, AimInterpSpeed);
 	OwningCharacter->SetActorRotation(NewRotation);
 }
 
