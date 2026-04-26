@@ -144,6 +144,11 @@ public:
 	void HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt);
 	void HandleSkillUnlockSnapshot(const se::game::N_SkillUnlockSnapshot& Pkt);
 	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
+
+// Test
+public:
+	void HandleZoneStop(const se::test::N_ZoneStop& Pkt);
+	void HandleZoneStart(const se::test::N_ZoneStart& Pkt);
 	
 private:
 	uint32 HandleSpawnInfo(const se::room::SpawnInfo& Info);

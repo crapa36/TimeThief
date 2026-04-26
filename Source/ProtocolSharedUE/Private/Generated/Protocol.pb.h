@@ -41,6 +41,7 @@
 #include "game/game_enums.pb.h"
 #include "game/game_types.pb.h"
 #include "game/game_messages.pb.h"
+#include "test/test_messages.pb.h"
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
 #define PROTOBUF_INTERNAL_EXPORT_Protocol_2eproto PROTOCOLSHAREDUE_API

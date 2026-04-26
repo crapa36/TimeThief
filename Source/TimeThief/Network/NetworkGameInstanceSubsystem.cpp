@@ -1582,6 +1582,70 @@ void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_Time
 	TimeStormComp->SetStormPhase(DestCenter, DestRadius, Pkt.waiting_time(), Pkt.shrinking_time());
 }
 
+void UNetworkGameInstanceSubsystem::HandleZoneStop(const se::test::N_ZoneStop& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+	
+	AGameStateBase* GameState = World->GetGameState();
+	if (GameState == nullptr)
+	{
+		return;
+	}
+	
+	UTimeStormComponent* TimeStormComp = GameState->FindComponentByClass<UTimeStormComponent>();
+	if (TimeStormComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] GameState has no UTimeStormComponent"));
+		return;
+	}
+	
+	// 자기장 멈췄기에 클라이언트에서도 멈추어야 함
+	TimeStormComp->ZoneFlow(false);
+}
+
+void UNetworkGameInstanceSubsystem::HandleZoneStart(const se::test::N_ZoneStart& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+	
+	AGameStateBase* GameState = World->GetGameState();
+	if (GameState == nullptr)
+	{
+		return;
+	}
+	
+	UTimeStormComponent* TimeStormComp = GameState->FindComponentByClass<UTimeStormComponent>();
+	if (TimeStormComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] GameState has no UTimeStormComponent"));
+		return;
+	}
+	
+	// 자기장 시작했기에 클라이언트에서도 시작해야 함
+	TimeStormComp->ZoneFlow(true);
+}
+
 uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo& Info)
 {
 	const uint32 EntityId = Info.entity_id().value();

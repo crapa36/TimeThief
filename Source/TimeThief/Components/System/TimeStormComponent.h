@@ -48,6 +48,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	FVector2f MapSize;
 	
+	void ZoneFlow(bool flowing);
+	
 private:
 	// UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess="true"))
 	// TObjectPtr<UTimeStormData> DataTable;	// 서버에서만 필요한 듯 싶어서 제거함
@@ -66,6 +68,8 @@ private:
 	float DestRadius;
 	
 	bool bIsShrinking = false;
+	
+	bool bIsFlowing = true;		// Testing 용 (멈춤, 흐름 가능하게 하기 위한 변수)
 	
 	int NumShrinks = 0;	// 이게 아마 Phase 역할 일듯
 };

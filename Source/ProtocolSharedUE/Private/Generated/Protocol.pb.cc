@@ -39,10 +39,10 @@ const char descriptor_table_protodef_Protocol_2eproto[] PROTOBUF_SECTION_VARIABL
   "_messages.proto\032\025room/room_enums.proto\032\025"
   "room/room_types.proto\032\030room/room_message"
   "s.proto\032\025game/game_enums.proto\032\025game/gam"
-  "e_types.proto\032\030game/game_messages.protob"
-  "\006proto3"
+  "e_types.proto\032\030game/game_messages.proto\032"
+  "\030test/test_messages.protob\006proto3"
   ;
-static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[13] = {
+static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_deps[14] = {
   &::descriptor_table_auth_2fauth_5fmessages_2eproto,
   &::descriptor_table_auth_2fauth_5ftypes_2eproto,
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -56,12 +56,13 @@ static const ::_pbi::DescriptorTable* const descriptor_table_Protocol_2eproto_de
   &::descriptor_table_room_2froom_5fenums_2eproto,
   &::descriptor_table_room_2froom_5fmessages_2eproto,
   &::descriptor_table_room_2froom_5ftypes_2eproto,
+  &::descriptor_table_test_2ftest_5fmessages_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_Protocol_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_Protocol_2eproto = {
-    false, false, 367, descriptor_table_protodef_Protocol_2eproto,
+    false, false, 393, descriptor_table_protodef_Protocol_2eproto,
     "Protocol.proto",
-    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 13, 0,
+    &descriptor_table_Protocol_2eproto_once, descriptor_table_Protocol_2eproto_deps, 14, 0,
     schemas, file_default_instances, TableStruct_Protocol_2eproto::offsets,
     nullptr, file_level_enum_descriptors_Protocol_2eproto,
     file_level_service_descriptors_Protocol_2eproto,

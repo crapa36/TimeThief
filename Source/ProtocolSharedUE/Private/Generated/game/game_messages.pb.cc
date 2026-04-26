@@ -708,6 +708,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR N_ItemGained::N_ItemGained(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.item_id_)*/0u
+  , /*decltype(_impl_.new_quantity_)*/0u
   , /*decltype(_impl_.quantity_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct N_ItemGainedDefaultTypeInternal {
@@ -1365,6 +1366,7 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::N_ItemGained, _impl_.item_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_ItemGained, _impl_.new_quantity_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ItemGained, _impl_.quantity_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_ItemLost, _internal_metadata_),
@@ -1556,23 +1558,23 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 375, -1, -1, sizeof(::se::game::C_UseStoreReq)},
   { 383, -1, -1, sizeof(::se::game::S_UseStoreRes)},
   { 392, -1, -1, sizeof(::se::game::N_ItemGained)},
-  { 400, -1, -1, sizeof(::se::game::N_ItemLost)},
-  { 409, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
-  { 416, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
-  { 423, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
-  { 432, -1, -1, sizeof(::se::game::N_HealthChanged)},
-  { 441, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
-  { 450, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
-  { 458, -1, -1, sizeof(::se::game::N_TimePointChanged)},
-  { 466, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
-  { 473, -1, -1, sizeof(::se::game::N_SkillUnlock)},
-  { 480, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
-  { 488, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
-  { 498, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
-  { 505, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 512, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 520, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 527, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 401, -1, -1, sizeof(::se::game::N_ItemLost)},
+  { 410, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
+  { 417, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
+  { 424, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
+  { 433, -1, -1, sizeof(::se::game::N_HealthChanged)},
+  { 442, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
+  { 451, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
+  { 459, -1, -1, sizeof(::se::game::N_TimePointChanged)},
+  { 467, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
+  { 474, -1, -1, sizeof(::se::game::N_SkillUnlock)},
+  { 481, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
+  { 489, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
+  { 499, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
+  { 506, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 513, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 521, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 528, -1, -1, sizeof(::se::game::N_TimeStormChange)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1765,47 +1767,47 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "_item_id\030\002 \001(\r:\r\210\265\030\220!\220\265\030\001\230\265\030\004\"i\n\rS_UseSt"
   "oreRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132"
   "\021.se.common.Result\022\025\n\rstore_item_id\030\003 \001("
-  "\r:\r\210\265\030\221!\220\265\030\002\230\265\030\004\"@\n\014N_ItemGained\022\017\n\007item"
-  "_id\030\001 \001(\r\022\020\n\010quantity\030\002 \001(\r:\r\210\265\030\232!\220\265\030\002\230\265"
-  "\030\004\"T\n\nN_ItemLost\022\017\n\007item_id\030\001 \001(\r\022\024\n\014new"
-  "_quantity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210\265\030\233!"
-  "\220\265\030\002\230\265\030\004\"B\n\016N_ItemSnapshot\022!\n\005items\030\001 \003("
-  "\0132\022.se.game.ItemStack:\r\210\265\030\234!\220\265\030\002\230\265\030\004\"H\n\021"
-  "C_SetSavePointReq\022$\n\010position\030\001 \001(\0132\022.se"
-  ".common.Vector3:\r\210\265\030\302!\220\265\030\001\230\265\030\004\"|\n\021S_SetS"
-  "avePointRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002"
-  " \001(\0132\021.se.common.Result\022$\n\010position\030\003 \001("
-  "\0132\022.se.common.Vector3:\r\210\265\030\303!\220\265\030\002\230\265\030\004\"k\n\017"
-  "N_HealthChanged\022&\n\tentity_id\030\001 \001(\0132\023.se."
-  "common.ObjectId\022\022\n\nnew_health\030\002 \001(\005\022\r\n\005d"
-  "elta\030\003 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n\022N_MaxHealth"
-  "Changed\022&\n\tentity_id\030\001 \001(\0132\023.se.common.O"
-  "bjectId\022\026\n\016new_max_health\030\002 \001(\005\022\032\n\022new_c"
-  "urrent_health\030\003 \001(\005:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"M\n\020N_"
-  "HealthSnapshot\022\026\n\016current_health\030\001 \001(\005\022\022"
-  "\n\nmax_health\030\002 \001(\005:\r\210\265\030\316!\220\265\030\002\230\265\030\004\"K\n\022N_T"
-  "imePointChanged\022\027\n\017new_time_points\030\001 \001(\005"
-  "\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\326!\220\265\030\002\230\265\030\004\"9\n\023N_Time"
-  "PointSnapshot\022\023\n\013time_points\030\001 \001(\005:\r\210\265\030\327"
-  "!\220\265\030\002\230\265\030\004\"0\n\rN_SkillUnlock\022\020\n\010skill_id\030\001"
-  " \001(\r:\r\210\265\030\340!\220\265\030\002\230\265\030\004\"F\n\017C_SkillEquipReq\022\020"
-  "\n\010skill_id\030\001 \001(\r\022\022\n\nslot_index\030\002 \001(\r:\r\210\265"
-  "\030\341!\220\265\030\001\230\265\030\004\"z\n\017S_SkillEquipRes\022\017\n\007succes"
-  "s\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.Resu"
-  "lt\022\020\n\010skill_id\030\003 \001(\r\022\022\n\nslot_index\030\004 \001(\r"
-  ":\r\210\265\030\342!\220\265\030\002\230\265\030\004\"B\n\025N_SkillUnlockSnapshot"
-  "\022\032\n\022unlocked_skill_ids\030\001 \003(\r:\r\210\265\030\343!\220\265\030\002\230"
-  "\265\030\004\"E\n\014N_EntityDied\022&\n\tentity_id\030\001 \001(\0132\023"
-  ".se.common.ObjectId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N_"
-  "EntityRespawned\022&\n\tentity_id\030\001 \001(\0132\023.se."
-  "common.ObjectId\022\'\n\ttransform\030\002 \001(\0132\024.se."
-  "common.Transform:\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_Ent"
-  "ityDestroyed\022&\n\tentity_id\030\001 \001(\0132\023.se.com"
-  "mon.ObjectId:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeSt"
-  "ormChange\022\"\n\006center\030\001 \001(\0132\022.se.common.Ve"
-  "ctor3\022\016\n\006radius\030\002 \001(\002\022\024\n\014waiting_time\030\003 "
-  "\001(\002\022\026\n\016shrinking_time\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265"
-  "\030\004b\006proto3"
+  "\r:\r\210\265\030\221!\220\265\030\002\230\265\030\004\"V\n\014N_ItemGained\022\017\n\007item"
+  "_id\030\001 \001(\r\022\024\n\014new_quantity\030\002 \001(\r\022\020\n\010quant"
+  "ity\030\003 \001(\r:\r\210\265\030\232!\220\265\030\002\230\265\030\004\"T\n\nN_ItemLost\022\017"
+  "\n\007item_id\030\001 \001(\r\022\024\n\014new_quantity\030\002 \001(\r\022\020\n"
+  "\010quantity\030\003 \001(\r:\r\210\265\030\233!\220\265\030\002\230\265\030\004\"B\n\016N_Item"
+  "Snapshot\022!\n\005items\030\001 \003(\0132\022.se.game.ItemSt"
+  "ack:\r\210\265\030\234!\220\265\030\002\230\265\030\004\"H\n\021C_SetSavePointReq\022"
+  "$\n\010position\030\001 \001(\0132\022.se.common.Vector3:\r\210"
+  "\265\030\302!\220\265\030\001\230\265\030\004\"|\n\021S_SetSavePointRes\022\017\n\007suc"
+  "cess\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.R"
+  "esult\022$\n\010position\030\003 \001(\0132\022.se.common.Vect"
+  "or3:\r\210\265\030\303!\220\265\030\002\230\265\030\004\"k\n\017N_HealthChanged\022&\n"
+  "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\022\n"
+  "\nnew_health\030\002 \001(\005\022\r\n\005delta\030\003 \001(\005:\r\210\265\030\314!\220"
+  "\265\030\002\230\265\030\004\"\177\n\022N_MaxHealthChanged\022&\n\tentity_"
+  "id\030\001 \001(\0132\023.se.common.ObjectId\022\026\n\016new_max"
+  "_health\030\002 \001(\005\022\032\n\022new_current_health\030\003 \001("
+  "\005:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"M\n\020N_HealthSnapshot\022\026\n\016"
+  "current_health\030\001 \001(\005\022\022\n\nmax_health\030\002 \001(\005"
+  ":\r\210\265\030\316!\220\265\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n"
+  "\017new_time_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210"
+  "\265\030\326!\220\265\030\002\230\265\030\004\"9\n\023N_TimePointSnapshot\022\023\n\013t"
+  "ime_points\030\001 \001(\005:\r\210\265\030\327!\220\265\030\002\230\265\030\004\"0\n\rN_Ski"
+  "llUnlock\022\020\n\010skill_id\030\001 \001(\r:\r\210\265\030\340!\220\265\030\002\230\265\030"
+  "\004\"F\n\017C_SkillEquipReq\022\020\n\010skill_id\030\001 \001(\r\022\022"
+  "\n\nslot_index\030\002 \001(\r:\r\210\265\030\341!\220\265\030\001\230\265\030\004\"z\n\017S_S"
+  "killEquipRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030"
+  "\002 \001(\0132\021.se.common.Result\022\020\n\010skill_id\030\003 \001"
+  "(\r\022\022\n\nslot_index\030\004 \001(\r:\r\210\265\030\342!\220\265\030\002\230\265\030\004\"B\n"
+  "\025N_SkillUnlockSnapshot\022\032\n\022unlocked_skill"
+  "_ids\030\001 \003(\r:\r\210\265\030\343!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDie"
+  "d\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectI"
+  "d:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022&\n"
+  "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\'\n"
+  "\ttransform\030\002 \001(\0132\024.se.common.Transform:\r"
+  "\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\ten"
+  "tity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\250"
+  "\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeStormChange\022\"\n\006cente"
+  "r\030\001 \001(\0132\022.se.common.Vector3\022\016\n\006radius\030\002 "
+  "\001(\002\022\024\n\014waiting_time\030\003 \001(\002\022\026\n\016shrinking_t"
+  "ime\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -1816,7 +1818,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 6330, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 6352, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
     &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 68,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
@@ -12352,6 +12354,7 @@ N_ItemGained::N_ItemGained(const N_ItemGained& from)
   N_ItemGained* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.item_id_){}
+    , decltype(_impl_.new_quantity_){}
     , decltype(_impl_.quantity_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -12368,6 +12371,7 @@ inline void N_ItemGained::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.item_id_){0u}
+    , decltype(_impl_.new_quantity_){0u}
     , decltype(_impl_.quantity_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
@@ -12416,9 +12420,17 @@ const char* N_ItemGained::_InternalParse(const char* ptr, ::_pbi::ParseContext* 
         } else
           goto handle_unusual;
         continue;
-      // uint32 quantity = 2;
+      // uint32 new_quantity = 2;
       case 2:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.new_quantity_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 quantity = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           _impl_.quantity_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
@@ -12459,10 +12471,16 @@ uint8_t* N_ItemGained::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_item_id(), target);
   }
 
-  // uint32 quantity = 2;
+  // uint32 new_quantity = 2;
+  if (this->_internal_new_quantity() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_new_quantity(), target);
+  }
+
+  // uint32 quantity = 3;
   if (this->_internal_quantity() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_quantity(), target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(3, this->_internal_quantity(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -12486,7 +12504,12 @@ size_t N_ItemGained::ByteSizeLong() const {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_item_id());
   }
 
-  // uint32 quantity = 2;
+  // uint32 new_quantity = 2;
+  if (this->_internal_new_quantity() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_new_quantity());
+  }
+
+  // uint32 quantity = 3;
   if (this->_internal_quantity() != 0) {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_quantity());
   }
@@ -12511,6 +12534,9 @@ void N_ItemGained::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::P
 
   if (from._internal_item_id() != 0) {
     _this->_internal_set_item_id(from._internal_item_id());
+  }
+  if (from._internal_new_quantity() != 0) {
+    _this->_internal_set_new_quantity(from._internal_new_quantity());
   }
   if (from._internal_quantity() != 0) {
     _this->_internal_set_quantity(from._internal_quantity());

@@ -63,6 +63,11 @@ void UTimeStormComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	{
 		return;
 	}
+	
+	if (bIsFlowing == false)
+	{
+		return;
+	}
 
 	PhaseElapsedTime += DeltaTime;
 
@@ -226,5 +231,10 @@ void UTimeStormComponent::GetCurrStormZone(FVector2D& OutCenter, float& OutRadiu
 {
 	OutCenter = CurrCenter;
 	OutRadius = CurrRadius;
+}
+
+void UTimeStormComponent::ZoneFlow(bool flowing)
+{
+	bIsFlowing = flowing;
 }
 

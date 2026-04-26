@@ -1399,3 +1399,45 @@ bool Handle_N_TimeStormChange(PacketSessionRef& session, const se::game::N_TimeS
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_TimeStormChange: Failed to get NGIS"));
 	return false;	
 }
+
+
+////////////////////////////////////////////////////////////////////////////
+/////			Test Packets										////////
+////////////////////////////////////////////////////////////////////////////
+
+bool Handle_N_ZoneStop(PacketSessionRef& session, const se::test::N_ZoneStop& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleZoneStop(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_ZoneStop: Failed to get NGIS"));
+	return false;
+}
+
+bool Handle_N_ZoneStart(PacketSessionRef& session, const se::test::N_ZoneStart& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleZoneStart(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_ZoneStart: Failed to get NGIS"));
+	return false;
+}
+

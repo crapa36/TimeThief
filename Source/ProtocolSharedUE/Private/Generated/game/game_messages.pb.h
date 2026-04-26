@@ -8671,7 +8671,8 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
 
   enum : int {
     kItemIdFieldNumber = 1,
-    kQuantityFieldNumber = 2,
+    kNewQuantityFieldNumber = 2,
+    kQuantityFieldNumber = 3,
   };
   // uint32 item_id = 1;
   void clear_item_id();
@@ -8682,7 +8683,16 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
   void _internal_set_item_id(uint32_t value);
   public:
 
-  // uint32 quantity = 2;
+  // uint32 new_quantity = 2;
+  void clear_new_quantity();
+  uint32_t new_quantity() const;
+  void set_new_quantity(uint32_t value);
+  private:
+  uint32_t _internal_new_quantity() const;
+  void _internal_set_new_quantity(uint32_t value);
+  public:
+
+  // uint32 quantity = 3;
   void clear_quantity();
   uint32_t quantity() const;
   void set_quantity(uint32_t value);
@@ -8700,6 +8710,7 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
   typedef void DestructorSkippable_;
   struct Impl_ {
     uint32_t item_id_;
+    uint32_t new_quantity_;
     uint32_t quantity_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -16846,7 +16857,27 @@ inline void N_ItemGained::set_item_id(uint32_t value) {
   // @@protoc_insertion_point(field_set:se.game.N_ItemGained.item_id)
 }
 
-// uint32 quantity = 2;
+// uint32 new_quantity = 2;
+inline void N_ItemGained::clear_new_quantity() {
+  _impl_.new_quantity_ = 0u;
+}
+inline uint32_t N_ItemGained::_internal_new_quantity() const {
+  return _impl_.new_quantity_;
+}
+inline uint32_t N_ItemGained::new_quantity() const {
+  // @@protoc_insertion_point(field_get:se.game.N_ItemGained.new_quantity)
+  return _internal_new_quantity();
+}
+inline void N_ItemGained::_internal_set_new_quantity(uint32_t value) {
+  
+  _impl_.new_quantity_ = value;
+}
+inline void N_ItemGained::set_new_quantity(uint32_t value) {
+  _internal_set_new_quantity(value);
+  // @@protoc_insertion_point(field_set:se.game.N_ItemGained.new_quantity)
+}
+
+// uint32 quantity = 3;
 inline void N_ItemGained::clear_quantity() {
   _impl_.quantity_ = 0u;
 }
