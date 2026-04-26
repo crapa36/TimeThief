@@ -40,10 +40,10 @@ FRotator ATimeThiefNetworkCharacterBase::GetBaseAimRotation() const
 	{
 		if (const AController* PlayerController = GetController())
 		{
-			return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkPitch, PlayerController->GetControlRotation().Yaw);
+			return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkAimPitch, PlayerController->GetControlRotation().Yaw);
 		}
 	}
-	return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkPitch, GetNetworkYaw());
+	return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkAimPitch, GetNetworkCharYaw());
 }
 
 // Called to bind functionality to input
@@ -67,15 +67,15 @@ void ATimeThiefNetworkCharacterBase::SetNetworkLocation(const FVector& NewLocati
 	SetActorLocation(NewLocation);
 }
 
-float ATimeThiefNetworkCharacterBase::GetNetworkYaw() const
+float ATimeThiefNetworkCharacterBase::GetNetworkCharYaw() const
 {
 	return GetActorRotation().Yaw;
 }
 
-void ATimeThiefNetworkCharacterBase::SetNetworkYaw(float NewYaw)
+void ATimeThiefNetworkCharacterBase::SetNetworkCharYaw(float NewCharYaw)
 {
 	FRotator NewRotation = GetActorRotation();
-	NewRotation.Yaw = FRotator::NormalizeAxis(NewYaw);
+	NewRotation.Yaw = FRotator::NormalizeAxis(NewCharYaw);
 	SetActorRotation(NewRotation);
 }
 
@@ -85,18 +85,18 @@ float ATimeThiefNetworkCharacterBase::GetNetworkAimYaw() const
 }
 
 void ATimeThiefNetworkCharacterBase::SetNetworkAimYaw(float NewAimYaw)
-{
-	CurrentNetworkAimYaw = NewAimYaw;
+{	
+	CurrentNetworkAimYaw = FRotator::NormalizeAxis(NewAimYaw);
 }
 
-float ATimeThiefNetworkCharacterBase::GetNetworkPitch() const
+float ATimeThiefNetworkCharacterBase::GetNetworkAimPitch() const
 {
-	return CurrentNetworkPitch;
+	return CurrentNetworkAimPitch;
 }
 
-void ATimeThiefNetworkCharacterBase::SetNetworkPitch(float NewPitch)
+void ATimeThiefNetworkCharacterBase::SetNetworkAimPitch(float NewAimPitch)
 {
-	CurrentNetworkPitch = FRotator::NormalizeAxis(NewPitch);
+	CurrentNetworkAimPitch = FRotator::NormalizeAxis(NewAimPitch);
 }
 
 FVector2D ATimeThiefNetworkCharacterBase::GetNetworkVelocity2D() const
@@ -121,12 +121,13 @@ void ATimeThiefNetworkCharacterBase::SetNetworkMovementMode(EMovementMode NewMov
 
 float ATimeThiefNetworkCharacterBase::GetLocalControlAimYaw() const
 {
-	return 0.0f;
+	UE_LOG(LogTemp, Log, TEXT("[Network] GetLocalControlAimYaw(): %f"), GetNetworkAimYaw());
+	return GetNetworkAimYaw();
 }
 
-float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
+float ATimeThiefNetworkCharacterBase::GetLocalControlAimPitch() const
 {
-	return CurrentNetworkPitch;
+	return GetNetworkAimPitch();
 }
 
 FVector2D ATimeThiefNetworkCharacterBase::GetLocalControlVelocity2D() const

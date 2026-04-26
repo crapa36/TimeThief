@@ -196,7 +196,7 @@ void UTimeThiefTrajectoryComponent::UpdateRemoteTrajectory(float DeltaTime)
 	}
 
 	const FVector CurrentPos = NetChar->GetNetworkLocation();
-	const float CurrentYaw = NetChar->GetNetworkYaw();
+	const float CurrentYaw = NetChar->GetNetworkCharYaw();
 
 	const FVector2D NetworkVelocity2D = NetChar->GetNetworkVelocity2D();
 	const FVector NetworkPlanarVel(NetworkVelocity2D.X, NetworkVelocity2D.Y, 0.0f);

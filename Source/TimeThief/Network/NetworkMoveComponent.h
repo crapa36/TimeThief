@@ -53,9 +53,9 @@ public:
 	
 public:
 	bool IsCloseEnoughPosition(const FVector& CurrentPosition) const;
-	bool IsCloseEnoughYaw(float CurrentYaw) const;
+	bool IsCloseEnoughCharYaw(float CurrentCharYaw) const;
 	bool IsCloseEnoughAimYaw(float CurrentAimYaw) const;
-	bool IsCloseEnoughPitch(float CurrentPitch) const;
+	bool IsCloseEnoughAimPitch(float CurrentAimPitch) const;
 	
 private:
 	void TickLocal(float DeltaTime);
@@ -83,12 +83,12 @@ private:
 	TObjectPtr<UNetworkEntityComponent> NetworkEntityComponent = nullptr;
 	
 private:
-	float StartYaw = 0.0f;
-	float TargetYaw = 0.0f;
+	float StartCharYaw = 0.0f;
+	float TargetCharYaw = 0.0f;
 	float StartAimYaw = 0.0f;
 	float TargetAimYaw = 0.0f;
-	float StartPitch = 0.0f;
-	float TargetPitch = 0.0f;
+	float StartAimPitch = 0.0f;
+	float TargetAimPitch = 0.0f;
 	
 	FVector2D TargetVelocity = FVector2D::ZeroVector;
 	

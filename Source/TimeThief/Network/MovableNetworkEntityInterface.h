@@ -25,14 +25,14 @@ public:
 	virtual FVector GetNetworkLocation() const = 0;
 	virtual void SetNetworkLocation(const FVector& NewLocation) = 0;
 	
-	virtual float GetNetworkYaw() const = 0;
-	virtual void SetNetworkYaw(float NewYaw) = 0;
+	virtual float GetNetworkCharYaw() const = 0;
+	virtual void SetNetworkCharYaw(float NewYaw) = 0;
 	
 	virtual float GetNetworkAimYaw() const = 0;
 	virtual void SetNetworkAimYaw(float NewAimYaw) = 0;
 	
-	virtual float GetNetworkPitch() const = 0;
-	virtual void SetNetworkPitch(float NewPitch) = 0;
+	virtual float GetNetworkAimPitch() const = 0;
+	virtual void SetNetworkAimPitch(float NewPitch) = 0;
 	
 	virtual FVector2D GetNetworkVelocity2D() const = 0;
 	virtual void SetNetworkVelocity2D(FVector2D NewVelocity) = 0;
@@ -41,7 +41,7 @@ public:
 	virtual void SetNetworkMovementMode(EMovementMode NewMovementMode) = 0;
 	
 	virtual float GetLocalControlAimYaw() const = 0;
-	virtual float GetLocalControlPitch() const = 0;
+	virtual float GetLocalControlAimPitch() const = 0;
 	virtual FVector2D GetLocalControlVelocity2D() const = 0;
 	virtual EMovementMode GetLocalControlMovementMode() const = 0;
 	

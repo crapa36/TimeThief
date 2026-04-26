@@ -47,14 +47,14 @@ public:
 	virtual FVector GetNetworkLocation() const override;
 	virtual void SetNetworkLocation(const FVector& NewLocation) override;
 	
-	virtual float GetNetworkYaw() const override;
-	virtual void SetNetworkYaw(float NewYaw) override;
+	virtual float GetNetworkCharYaw() const override;
+	virtual void SetNetworkCharYaw(float NewCharYaw) override;
 	
 	virtual float GetNetworkAimYaw() const override;
 	virtual void SetNetworkAimYaw(float NewAimYaw) override;
 	
-	virtual float GetNetworkPitch() const override;
-	virtual void SetNetworkPitch(float NewPitch) override;
+	virtual float GetNetworkAimPitch() const override;
+	virtual void SetNetworkAimPitch(float NewAimPitch) override;
 	
 	virtual FVector2D GetNetworkVelocity2D() const override;
 	virtual void SetNetworkVelocity2D(FVector2D NewVelocity) override;
@@ -63,7 +63,7 @@ public:
 	virtual void SetNetworkMovementMode(EMovementMode NewMovementMode) override;
 	
 	virtual float GetLocalControlAimYaw() const override;
-	virtual float GetLocalControlPitch() const override;
+	virtual float GetLocalControlAimPitch() const override;
 	virtual FVector2D GetLocalControlVelocity2D() const override;
 	virtual EMovementMode GetLocalControlMovementMode() const override;
 	
@@ -103,7 +103,7 @@ protected:
 	float CurrentNetworkAimYaw = 0.0f;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
-	float CurrentNetworkPitch = 0.0f;
+	float CurrentNetworkAimPitch = 0.0f;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
 	float CurrentNetworkSpeed = 0.0f;
