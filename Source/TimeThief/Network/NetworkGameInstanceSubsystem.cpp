@@ -33,6 +33,7 @@
 #include "Network/NetworkCombatSyncComponent.h"
 #include "State/NetworkActionTypes.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
@@ -1101,8 +1102,8 @@ void UNetworkGameInstanceSubsystem::HandleAim(const se::game::N_Aim& Pkt)
 
 	if (Entry)
 	{
-		const FRotator AimRotation(Entry->State.Pitch, Entry->State.Yaw, 0.0f);
-		Notify.Direction = AimRotation.Vector().GetSafeNormal();
+		const FRotator AimRotation = UTimeThiefAimStatics::BuildAimRotation(Entry->State.Pitch, Entry->State.Yaw);
+		Notify.Direction = UTimeThiefAimStatics::ResolveAimDirectionFromRotation(AimRotation);
 		Notify.Origin = Entry->State.Position;
 	}
 	else

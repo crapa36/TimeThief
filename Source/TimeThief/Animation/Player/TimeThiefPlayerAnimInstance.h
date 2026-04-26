@@ -28,15 +28,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat|Recoil")
 	void SetRecoilRecoverySpeed(float InRecoilRecovery, float InSpreadRecovery);
 
-	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	float GetCurrentSpreadAngle() const { return CurrentSpreadRatio * MaxSpreadAngle * AimSpreadMultiplier; }
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Spread")
-	FVector2D GetAimOffset() const { return AimOffset; }
-
-	UFUNCTION(BlueprintPure, Category = "Combat|Recoil")
-	float GetRecoilBuildup() const { return RecoilBuildup; }
-
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Character Reference")
 	TObjectPtr<ATimeThiefPlayerCharacter> PlayerCharacter;
@@ -51,7 +42,7 @@ protected:
 	FGameplayTag EquippedWeaponTag;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
-	FTransform LeftHandIKTransform;
+	FTransform LeftHandIKTransform = FTransform::Identity;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	FName LeftHandIKSocketName = FName("LeftHandIK");
@@ -63,16 +54,22 @@ protected:
 	float AimPitch = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
+	float AimYaw = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
 	FVector AimDirection = FVector::ForwardVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
 	FVector WorldAimLocation = FVector::ZeroVector;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim")
-	float AimSpreadMultiplier = 1.0f;
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	FVector ControlRigWorldAimLocation = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
-	bool bUseWeaponControlRigRotation = false;
+	FVector ControlRigAimLocationCS = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Aim|Rig")
+	bool bHasValidControlRigAimLocation = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	bool bIsWireAttached = false;
@@ -81,19 +78,19 @@ protected:
 	bool bIsWireActive = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FVector AnchorDirection;
+	FVector AnchorDirection = FVector::ForwardVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FVector SwingVelocity;
+	FVector SwingVelocity = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FTransform WireLeftHandIKTransform;
+	FTransform WireLeftHandIKTransform = FTransform::Identity;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
 	float WireLeftHandIKAlpha = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Wire")
-	FVector WireAnchorDirectionWorld;
+	FVector WireAnchorDirectionWorld = FVector::ForwardVector;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Wire|Settings")
 	float WireHandIKInterpSpeed = 12.0f;
@@ -116,17 +113,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
 	float CurrentSpreadRatio = 0.0f;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Combat|Spread")
-	FVector2D AimOffset = FVector2D::ZeroVector;
-
 private:
+	void UpdateAimData();
 	void UpdateWeaponData();
 	void UpdateWireData();
 	void UpdateWireHandIK(float DeltaSeconds);
 	void UpdateRecoil(float DeltaSeconds);
 	void UpdateSpreadAndRecoil(float DeltaSeconds);
-	void UpdateAimDirection();
-	void UpdateAimingState();
 
 	float TargetRecoilAlpha = 0.0f;
 	FVector2D TargetAimOffset = FVector2D::ZeroVector;

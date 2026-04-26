@@ -1,12 +1,10 @@
-﻿
-
-
-#include "TimeThiefNetworkCharacterBase.h"
+﻿#include "TimeThiefNetworkCharacterBase.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Network/NetworkEntityComponent.h"
 #include "Network/NetworkMoveComponent.h"
 #include "Network/NetworkCombatSyncComponent.h"
+#include "Utils/TimeThiefAimStatics.h"
 
 
 ATimeThiefNetworkCharacterBase::ATimeThiefNetworkCharacterBase(const FObjectInitializer& ObjectInitializer)
@@ -38,7 +36,14 @@ void ATimeThiefNetworkCharacterBase::Tick(float DeltaTime)
 
 FRotator ATimeThiefNetworkCharacterBase::GetBaseAimRotation() const
 {
-	return FRotator(CurrentNetworkPitch, GetNetworkYaw(), 0.0f);
+	if (IsLocallyControlled())
+	{
+		if (const AController* PlayerController = GetController())
+		{
+			return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkPitch, PlayerController->GetControlRotation().Yaw);
+		}
+	}
+	return UTimeThiefAimStatics::BuildAimRotation(CurrentNetworkPitch, GetNetworkYaw());
 }
 
 // Called to bind functionality to input
@@ -91,8 +96,7 @@ float ATimeThiefNetworkCharacterBase::GetNetworkPitch() const
 
 void ATimeThiefNetworkCharacterBase::SetNetworkPitch(float NewPitch)
 {
-	const float NormalizedPitch = FRotator::NormalizeAxis(NewPitch);
-	CurrentNetworkPitch = FMath::Clamp(NormalizedPitch, -89.0f, 89.0f);
+	CurrentNetworkPitch = FRotator::NormalizeAxis(NewPitch);
 }
 
 FVector2D ATimeThiefNetworkCharacterBase::GetNetworkVelocity2D() const
@@ -122,8 +126,7 @@ float ATimeThiefNetworkCharacterBase::GetLocalControlAimYaw() const
 
 float ATimeThiefNetworkCharacterBase::GetLocalControlPitch() const
 {
-	const float ActorPitch = FRotator::NormalizeAxis(GetActorRotation().Pitch);
-	return FMath::Clamp(ActorPitch, -89.0f, 89.0f);
+	return CurrentNetworkPitch;
 }
 
 FVector2D ATimeThiefNetworkCharacterBase::GetLocalControlVelocity2D() const
@@ -168,14 +171,14 @@ void ATimeThiefNetworkCharacterBase::ApplyNetworkMovementState(const FNetworkEnt
 	NetworkMoveComponent->ApplyNetworkState(EntityState);
 }
 
-class UNetworkCombatSyncComponent* ATimeThiefNetworkCharacterBase::GetCombatSyncComponent() const
-{
-	return GetNetworkCombatSyncComponent();
-}
-
 class UTimeThiefPawnCombatComponent* ATimeThiefNetworkCharacterBase::GetCombatComponent() const
 {
 	return ATimeThiefCharacterBase::GetCombatComponent();
+}
+
+class UNetworkCombatSyncComponent* ATimeThiefNetworkCharacterBase::GetCombatSyncComponent() const
+{
+	return GetNetworkCombatSyncComponent();
 }
 
 uint32 ATimeThiefNetworkCharacterBase::GetCombatEntityId() const

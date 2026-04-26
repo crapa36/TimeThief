@@ -24,6 +24,90 @@ namespace
 	}
 }
 
+FVector UTimeThiefAimStatics::NormalizeAimDirection(const FVector& Direction, const FVector& FallbackDirection)
+{
+	const FVector SafeDirection = Direction.GetSafeNormal();
+	if (!SafeDirection.IsNearlyZero())
+	{
+		return SafeDirection;
+	}
+
+	const FVector SafeFallback = FallbackDirection.GetSafeNormal();
+	if (!SafeFallback.IsNearlyZero())
+	{
+		return SafeFallback;
+	}
+
+	return FVector::ForwardVector;
+}
+
+FVector UTimeThiefAimStatics::ResolveAimTargetLocation(
+	const FVector& Origin,
+	const FVector& Direction,
+	float Range,
+	const FVector& FallbackDirection)
+{
+	const FVector SafeDirection = NormalizeAimDirection(Direction, FallbackDirection);
+	return Origin + (SafeDirection * Range);
+}
+
+FVector UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+	const FVector& StartLocation,
+	const FVector& TargetLocation,
+	const FVector& FallbackDirection)
+{
+	return NormalizeAimDirection(TargetLocation - StartLocation, FallbackDirection);
+}
+
+FRotator UTimeThiefAimStatics::ResolveAimRotationFromDirection(
+	const FVector& Direction,
+	const FRotator& FallbackRotation)
+{
+	const FVector SafeDirection = Direction.GetSafeNormal();
+	if (SafeDirection.IsNearlyZero())
+	{
+		return FallbackRotation;
+	}
+
+	return SafeDirection.Rotation();
+}
+
+FRotator UTimeThiefAimStatics::ResolveRelativeAimRotation(
+	const FRotator& BaseRotation,
+	const FVector& AimDirection,
+	const FRotator& FallbackRotation)
+{
+	const FRotator AimRotation = ResolveAimRotationFromDirection(AimDirection, FallbackRotation);
+	return (AimRotation - BaseRotation).GetNormalized();
+}
+
+void UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
+	const FTransform& BasisTransform,
+	const FVector& AimDirectionWorld,
+	float& OutPitch,
+	float& OutYaw,
+	const FVector& FallbackDirection)
+{
+	const FVector WorldDirection = NormalizeAimDirection(AimDirectionWorld, FallbackDirection);
+	const FVector LocalDirection = NormalizeAimDirection(
+		BasisTransform.InverseTransformVectorNoScale(WorldDirection),
+		FVector::ForwardVector);
+
+	OutYaw = FMath::RadiansToDegrees(FMath::Atan2(LocalDirection.Y, LocalDirection.X));
+	const float HorizontalLength = FVector2D(LocalDirection.X, LocalDirection.Y).Size();
+	OutPitch = FMath::RadiansToDegrees(FMath::Atan2(LocalDirection.Z, HorizontalLength));
+}
+
+FRotator UTimeThiefAimStatics::BuildAimRotation(float Pitch, float Yaw, float Roll)
+{
+	return FRotator(Pitch, Yaw, Roll);
+}
+
+FVector UTimeThiefAimStatics::ResolveAimDirectionFromRotation(const FRotator& AimRotation)
+{
+	return NormalizeAimDirection(AimRotation.Vector(), FVector::ForwardVector);
+}
+
 bool UTimeThiefAimStatics::ResolveAimView(const APawn* Pawn, FVector& OutViewLocation, FVector& OutViewDirection)
 {
 	if (!Pawn)
@@ -35,12 +119,12 @@ bool UTimeThiefAimStatics::ResolveAimView(const APawn* Pawn, FVector& OutViewLoc
 	{
 		FRotator CameraRotation;
 		PC->GetPlayerViewPoint(OutViewLocation, CameraRotation);
-		OutViewDirection = CameraRotation.Vector().GetSafeNormal();
+		OutViewDirection = ResolveAimDirectionFromRotation(CameraRotation);
 		return true;
 	}
 
 	OutViewLocation = Pawn->GetPawnViewLocation();
-	OutViewDirection = Pawn->GetBaseAimRotation().Vector().GetSafeNormal();
+	OutViewDirection = ResolveAimDirectionFromRotation(Pawn->GetBaseAimRotation());
 	return true;
 }
 
@@ -81,8 +165,7 @@ bool UTimeThiefAimStatics::TraceFromView(
 	bool bTraceComplex,
 	bool bReturnPhysicalMaterial)
 {
-	const FVector SafeDirection = ViewDirection.GetSafeNormal();
-	OutTraceEnd = ViewLocation + (SafeDirection * Range);
+	OutTraceEnd = ResolveAimTargetLocation(ViewLocation, ViewDirection, Range);
 	return TraceLine(World, ViewLocation, OutTraceEnd, ActorsToIgnore, OutHitResult, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
 }
 
@@ -103,5 +186,24 @@ bool UTimeThiefAimStatics::TraceLine(
 
 	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
 	return World->LineTraceSingleByChannel(OutHitResult, TraceStart, TraceEnd, TraceChannel, QueryParams);
+}
+
+bool UTimeThiefAimStatics::TraceLineByObjectType(
+	UWorld* World,
+	const FVector& TraceStart,
+	const FVector& TraceEnd,
+	const FCollisionObjectQueryParams& ObjectQueryParams,
+	const TArray<AActor*>& ActorsToIgnore,
+	FHitResult& OutHitResult,
+	bool bTraceComplex,
+	bool bReturnPhysicalMaterial)
+{
+	if (!World)
+	{
+		return false;
+	}
+
+	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
+	return World->LineTraceSingleByObjectType(OutHitResult, TraceStart, TraceEnd, ObjectQueryParams, QueryParams);
 }
 

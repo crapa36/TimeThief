@@ -1,7 +1,4 @@
-﻿
-
-
-#include "NetworkMoveComponent.h"
+﻿#include "NetworkMoveComponent.h"
 
 #include "NetworkGameInstanceSubsystem.h"
 #include "Character/TimeThiefNetworkCharacterBase.h"
@@ -114,6 +111,11 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	}
 	
 	if (!NetworkEntityComponent->ShouldApplyNetworkState())
+	{
+		return;
+	}
+
+	if (NetworkEntityComponent->IsLocalControlled())
 	{
 		return;
 	}
@@ -418,6 +420,7 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 			NewVelocity.Z = 0.0f;
 		}
 		CMC->Velocity = NewVelocity;
+		CMC->RequestDirectMove(NewVelocity, false);
 
 		Movable->SetNetworkLocation(NewPosition);
 	}
@@ -470,6 +473,7 @@ void UNetworkMoveComponent::SnapToTarget()
 			SnapVelocity.Z = CMC->Velocity.Z;
 		}
 		CMC->Velocity = SnapVelocity;
+		CMC->RequestDirectMove(SnapVelocity, false);
 	}
 }
 
@@ -572,4 +576,3 @@ UNetworkGameInstanceSubsystem* UNetworkMoveComponent::GetNetworkGameInstanceSubs
 	NGIS = GameInstance->GetSubsystem<UNetworkGameInstanceSubsystem>();
 	return NGIS;
 }
-

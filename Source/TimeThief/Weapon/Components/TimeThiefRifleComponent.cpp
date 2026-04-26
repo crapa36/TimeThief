@@ -46,7 +46,7 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 		CameraAimDir = FMath::VRandCone(CameraAimDir, HalfSpread);
 	}
 
-	FVector TraceEnd = CameraLocation + CameraAimDir * MaxRange;
+	FVector TraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, CameraAimDir, MaxRange);
 
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Reserve(2);
@@ -90,7 +90,7 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 		DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
 	}
 
-	Result.FireDirection = (TargetLocation - MuzzleLocation).GetSafeNormal();
+	Result.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, CameraAimDir);
 	CacheLastShotSyncData(MuzzleLocation, Result.FireDirection);
 
 	if (bWeaponHit)

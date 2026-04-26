@@ -64,9 +64,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Jump")
 	bool bIsDoubleJumping = false;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	bool bIsAiming;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	FTransform WeaponSocket;

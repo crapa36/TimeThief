@@ -270,7 +270,8 @@ void ATimeThiefCharacterBase::ApplyPerspective()
 	}
 
 	bUseControllerRotationYaw = bIsFirstPerson;
-	GetCharacterMovement()->bOrientRotationToMovement = !bIsFirstPerson;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;
 }
 
 void ATimeThiefCharacterBase::DoubleJump()
