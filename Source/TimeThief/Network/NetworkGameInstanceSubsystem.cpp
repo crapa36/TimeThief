@@ -145,6 +145,14 @@ void UNetworkGameInstanceSubsystem::SendJump()
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendDoubleJump()
+{
+	se::game::C_DoubleJumpReq Request;
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+
 void UNetworkGameInstanceSubsystem::SendJumpLand()
 {
 	se::game::C_JumpLand Request;

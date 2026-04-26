@@ -89,7 +89,6 @@ protected:
 
 	UFUNCTION()
 	void OnWireStateChanged(EWireState OldState, EWireState NewState);
-
 	
 	virtual void OnDeath() override;
 	
@@ -165,9 +164,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Store|Upgrade")
 	TMap<FGameplayTag, FUpgradeFloatLevels> RecoilReductionByWeaponAndLevel;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Movement|Jump")
-	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;
 	
 	FTimerHandle InteractCheckTimerHandle;
 	float CachedCameraLagSpeed = 0.0f;

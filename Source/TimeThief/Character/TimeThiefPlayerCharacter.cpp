@@ -432,28 +432,7 @@ void ATimeThiefPlayerCharacter::OnJumped_Implementation()
 		return;
 	}
 
-	if (DoubleJumpEffect)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			DoubleJumpEffect,
-			GetThirdPersonMesh()->GetComponentLocation(),
-			GetActorRotation()
-		);
-	}
-
-	if (UTimeThiefAnimInstance* AnimInst = Cast<UTimeThiefAnimInstance>(GetThirdPersonMesh()->GetAnimInstance()))
-	{
-		AnimInst->TriggerDoubleJump();
-	}
-
-	if (FirstPersonMesh)
-	{
-		if (UTimeThiefAnimInstance* FPAnimInst = Cast<UTimeThiefAnimInstance>(FirstPersonMesh->GetAnimInstance()))
-		{
-			FPAnimInst->TriggerDoubleJump();
-		}
-	}
+	DoubleJump();
 }
 
 void ATimeThiefPlayerCharacter::Landed(const FHitResult& Hit)
@@ -468,11 +447,20 @@ void ATimeThiefPlayerCharacter::SendJumpEventToServer()
 	{
 		return;
 	}
-
+	
 	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
-		NGIS->SendJump();
+		if (JumpCurrentCount == 1)
+		{
+			NGIS->SendJump();
+		}
+		else
+		{
+			NGIS->SendDoubleJump();
+		}
 	}
+
+
 }
 
 void ATimeThiefPlayerCharacter::SendJumpLandEventToServer()

@@ -209,6 +209,7 @@ void UNetworkMoveComponent::ApplyJumpAction(ENetworkActionPhase Phase)
 		break;
 		
 	case ENetworkActionPhase::Double:
+		Character->DoubleJump();
 		break;
 
 	case ENetworkActionPhase::Land:
