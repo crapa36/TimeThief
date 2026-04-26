@@ -46,8 +46,6 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 		CameraAimDir = FMath::VRandCone(CameraAimDir, HalfSpread);
 	}
 
-	FVector TraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, CameraAimDir, MaxRange);
-
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Reserve(2);
 	ActorsToIgnore.Add(GetOwner());
@@ -57,6 +55,7 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 	}
 
 	FHitResult CameraHitResult;
+	FVector TraceEnd;
 	UTimeThiefAimStatics::TraceFromView(
 		GetWorld(),
 		CameraLocation,
