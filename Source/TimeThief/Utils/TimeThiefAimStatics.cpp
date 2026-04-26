@@ -150,7 +150,10 @@ bool UTimeThiefAimStatics::TraceAimHit(
 		return false;
 	}
 
-	return TraceFromView(Pawn->GetWorld(), ViewLocation, ViewDirection, Range, ActorsToIgnore, OutHitResult, OutTraceEnd, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
+	TArray<AActor*> ActualActorsToIgnore = ActorsToIgnore;
+	ActualActorsToIgnore.AddUnique(const_cast<APawn*>(Pawn));
+
+	return TraceFromView(Pawn->GetWorld(), ViewLocation, ViewDirection, Range, ActualActorsToIgnore, OutHitResult, OutTraceEnd, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
 }
 
 bool UTimeThiefAimStatics::TraceFromView(
@@ -206,4 +209,3 @@ bool UTimeThiefAimStatics::TraceLineByObjectType(
 	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
 	return World->LineTraceSingleByObjectType(OutHitResult, TraceStart, TraceEnd, ObjectQueryParams, QueryParams);
 }
-
