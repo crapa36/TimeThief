@@ -66,13 +66,15 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	SpawnFX->bAutoActivate = false;
 
 	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
-	
+
 	MorphingCharacter = CreateDefaultSubobject<UMorphingMeshComponent>(TEXT("MorphingCharacter"));
 	MorphingCharacter->SetupAttachment(GetMesh());
 	MorphingCharacter->LiquidMeshComponent->SetupAttachment(MorphingCharacter);
-	
+	MorphingCharacter->BaseMeshComponent->SetupAttachment(MorphingCharacter);
+	MorphingCharacter->BaseMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+
 	WeaponActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("WeaponActorComponent"));
-	WeaponActorComponent->SetupAttachment(MorphingCharacter->BaseSkeletalMeshComponent, FName{TEXT("HandGrip_R")});
+	WeaponActorComponent->SetupAttachment(GetMesh(), FName{TEXT("HandGrip_R")});
 }
 
 void ATimeThiefCharacterBase::OnDeath()
@@ -176,7 +178,7 @@ USkeletalMeshComponent* ATimeThiefCharacterBase::GetThirdPersonMesh() const
 	{
 		return GetMesh();
 	}
-	
+
 	return MorphingCharacter->BaseSkeletalMeshComponent;
 }
 
@@ -185,7 +187,6 @@ ATimeThiefMasterWeapon* ATimeThiefCharacterBase::GetWeaponActor() const
 	return Cast<ATimeThiefMasterWeapon>(WeaponActorComponent->GetChildActor());
 }
 
-
 void ATimeThiefCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -193,15 +194,6 @@ void ATimeThiefCharacterBase::BeginPlay()
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
 		Health->OnDeath.AddDynamic(this, &ThisClass::OnDeath);
-	}
-	
-	const auto& Materials = GetMesh()->GetMaterials();
-	for (int i = 0; i < Materials.Num(); ++i)
-	{
-		if (UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Materials[i], this))
-		{
-			GetMesh()->SetMaterial(i, MID);
-		}
 	}
 
 	DeadFX->SetVariableFloat(FName("User.Loop"), InterpTime);
@@ -245,7 +237,7 @@ void ATimeThiefCharacterBase::NotifyControllerChanged()
 void ATimeThiefCharacterBase::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	
+
 	MorphingCharacter->SetSkeletalMeshComponent(GetMesh());
 }
 
@@ -438,24 +430,19 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 
 void ATimeThiefCharacterBase::UpdateMask()
 {
-	for (auto Material : GetThirdPersonMesh()->GetMaterials())
+	for (int i = 0; i < GetMesh()->GetNumMaterials(); ++i)
 	{
-		if (UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(Material))
+		if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(GetMesh(), i))
 		{
 			MID->SetScalarParameterValue(FName("Mask"), Mask);
 		}
-		else
+	}
+
+	for (int i = 0; i < GetWeaponActor()->GetWeaponMesh()->GetNumMaterials(); ++i)
+	{
+		if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(GetWeaponActor()->GetWeaponMesh(), i))
 		{
-			// const auto& Materials = GetThirdPersonMesh()->GetMaterials();
-			// for (int i = 0; i < Materials.Num(); ++i)
-			// {
-			// 	MID = UMaterialInstanceDynamic::Create(Materials[i], this);
-			// 	if (MID)
-			// 	{
-			// 		GetThirdPersonMesh()->SetMaterial(i, MID);
-			// 		MID->SetScalarParameterValue(FName("Mask"), Mask);
-			// 	}
-			// }
+			MID->SetScalarParameterValue(FName("Mask"), Mask);
 		}
 	}
 
@@ -530,4 +517,27 @@ bool ATimeThiefCharacterBase::HasOwnedGameplayTag(const FGameplayTag& Tag) const
 void ATimeThiefCharacterBase::AppendOwnedGameplayTags(const FGameplayTagContainer& InTags)
 {
 	OwnedGameplayTags.AppendTags(InTags);
+}
+
+UMaterialInstanceDynamic* ATimeThiefCharacterBase::GetOrCreateMaterialInstanceDynamic(
+	UPrimitiveComponent* MeshComp,
+	int32 MaterialIndex)
+{
+	if (!MeshComp)
+	{
+		return nullptr;
+	}
+
+	UMaterialInterface* CurrentMaterial = MeshComp->GetMaterial(MaterialIndex);
+
+	if (UMaterialInstanceDynamic* ExistingMID =
+		Cast<UMaterialInstanceDynamic>(CurrentMaterial))
+	{
+		return ExistingMID;
+	}
+
+	UMaterialInstanceDynamic* NewMID =
+		MeshComp->CreateDynamicMaterialInstance(MaterialIndex, CurrentMaterial);
+
+	return NewMID;
 }

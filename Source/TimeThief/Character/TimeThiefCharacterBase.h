@@ -28,13 +28,13 @@ class TIMETHIEF_API ATimeThiefCharacterBase : public ACharacter
 
 public:
 	ATimeThiefCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	
+
 	UFUNCTION(BlueprintCallable)
 	virtual void OnDeath();
-	
+
 	UFUNCTION(BlueprintCallable)
 	virtual void OnBeginRespawn();
-	
+
 	UFUNCTION(BlueprintCallable)
 	virtual void OnEndRespawn();
 
@@ -45,7 +45,8 @@ public:
 	void PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate = 1.0f);
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Animation")
-	void PlayAnimationOnAllMeshes(UAnimSequenceBase* Animation, FName SlotName = FName("DefaultSlot"), float BlendInTime = 0.15f, float BlendOutTime = 0.15f, float PlayRate = 1.0f);
+	void PlayAnimationOnAllMeshes(UAnimSequenceBase* Animation, FName SlotName = FName("DefaultSlot"),
+	                              float BlendInTime = 0.15f, float BlendOutTime = 0.15f, float PlayRate = 1.0f);
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
 	void AddOwnedGameplayTag(const FGameplayTag& Tag);
@@ -64,29 +65,29 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void NotifyControllerChanged() override;
-	
+
 	virtual void OnConstruction(const FTransform& Transform) override;
-	
+
 	virtual void ApplyPerspective();
-	
+
 public:
 	virtual void Tick(float DeltaTime) override;
-	
+
 	virtual void DoubleJump();
-	
+
 	bool bIsDead = false;
 	bool bIsRespawn = true;
 	bool bPendingRespawn = false;
-	
+
 public:
 	void HandleDeathFromServer();
 	void HandleRespawnFromServer(const FVector& RespawnLocation);
 	void FinishRespawnPresentation();
-	
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Status|TimePoint")
 	TObjectPtr<UTimePointSystemComponent> TimePointSystemComponent;
-	
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
 	TObjectPtr<UTimeThiefHealthComponent> HealthComponent;
 
@@ -98,48 +99,48 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
 	TObjectPtr<UNiagaraComponent> DisappearFX;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
 	TObjectPtr<UNiagaraComponent> DeadFX;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "VFX")
 	TObjectPtr<UNiagaraComponent> SpawnFX;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Skill")
 	TObjectPtr<USavePointSkillComponent> SavePointSkillComponent;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UChildActorComponent> WeaponActorComponent;
-	
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Morphing")
 	TObjectPtr<UMorphingMeshComponent> MorphingCharacter;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = "Movement|Jump")
 	TObjectPtr<UNiagaraSystem> DoubleJumpEffect;
-	
+
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	bool bIsFirstPerson = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Tags")
 	FGameplayTagContainer OwnedGameplayTags;
-	
+
 	float Mask = 1;
-	
+
 	UPROPERTY(EditAnywhere, Category = "VFX | Dissolve")
 	float InterpTime = 1;
 
 private:
 	void UpdateMask();
-	
+
 public:
 	UFUNCTION(BlueprintCallable)
 	void SetMask(float NewMask);
-	
+
 	void AddMask(float Amount);
-	
+
 	virtual UTimeThiefPawnCombatComponent* GetCombatComponent() const { return nullptr; }
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Combat")
@@ -150,28 +151,32 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Health")
 	UTimeThiefHealthComponent* GetHealthComponent() const { return HealthComponent; }
-	
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Tags")
 	const FGameplayTagContainer& GetOwnedGameplayTags() const { return OwnedGameplayTags; }
-	
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Camera")
 	bool IsFirstPerson() const { return bIsFirstPerson; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Camera")
 	UCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
-	
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
 	USkeletalMeshComponent* GetFirstPersonMesh() const { return FirstPersonMesh; }
-	
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
 	USkeletalMeshComponent* GetThirdPersonMesh() const;
-	
+
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Mesh")
 	UMorphingMeshComponent* GetMorphingMeshComponent() const { return MorphingCharacter; }
-	
+
 	USavePointSkillComponent* GetSavePointSkillComponent() const { return SavePointSkillComponent; }
-	
+
 	ATimeThiefMasterWeapon* GetWeaponActor() const;
-	
+
 	UChildActorComponent* GetWeaponActorComponent() const { return WeaponActorComponent; }
+
+private:
+	UMaterialInstanceDynamic* GetOrCreateMaterialInstanceDynamic(UPrimitiveComponent* MeshComp,
+	                                                             int32 MaterialIndex);
 };

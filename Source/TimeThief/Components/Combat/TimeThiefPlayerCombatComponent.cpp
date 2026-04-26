@@ -65,10 +65,7 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 		}
 	}
 
-	if (const APawn* OwningPawn = GetPawn<APawn>(); OwningPawn && OwningPawn->IsLocallyControlled())
-	{
-		EquipWeapon(Tags.Weapon_Rifle);
-	}
+	EquipWeapon(Tags.Weapon_Rifle);
 }
 
 void UTimeThiefPlayerCombatComponent::Remote_SyncAimLocation(const FVector& Origin, const FVector& Direction)
