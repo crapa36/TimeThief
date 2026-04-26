@@ -1955,6 +1955,216 @@ void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
 }
 
+void UNetworkGameInstanceSubsystem::RequestSpawnMonster(FVector Pos, uint32 MonsterType)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request loading complete: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_SpawnMonsterReq Request;
+	Request.set_enemy_type(MonsterType);
+	auto* SpawnPos = Request.mutable_spawn_position();
+	SpawnPos->set_x(Pos.X);
+	SpawnPos->set_y(Pos.Y);
+	SpawnPos->set_z(Pos.Z);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_SpawnMonsterReq to server. MonsterType=%u, Pos=(%.1f, %.1f, %.1f)"), MonsterType, Pos.X, Pos.Y, Pos.Z);
+}
+
+void UNetworkGameInstanceSubsystem::RequestSpawnChest(FVector Pos)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to spawn chest: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_SpawnChestReq Request;
+	auto* SpawnPos = Request.mutable_spawn_position();
+	SpawnPos->set_x(Pos.X);
+	SpawnPos->set_y(Pos.Y);
+	SpawnPos->set_z(Pos.Z);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_SpawnChestReq to server. Pos=(%.1f, %.1f, %.1f)"), Pos.X, Pos.Y, Pos.Z);
+}
+
+void UNetworkGameInstanceSubsystem::RequestSpawnStore(FVector Pos)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to spawn store: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_SpawnStoreReq Request;
+	auto* SpawnPos = Request.mutable_spawn_position();
+	SpawnPos->set_x(Pos.X);
+	SpawnPos->set_y(Pos.Y);
+	SpawnPos->set_z(Pos.Z);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_SpawnStoreReq to server. Pos=(%.1f, %.1f, %.1f)"), Pos.X, Pos.Y, Pos.Z);
+}
+
+void UNetworkGameInstanceSubsystem::RequestItemReq(uint32 ItemId, int32 Amount)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request item: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_ItemReq Request;
+	Request.set_item_id(ItemId);
+	Request.set_quantity(Amount);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ItemReq to server. ItemId=%u, Amount=%d"), ItemId, Amount);
+}
+
+void UNetworkGameInstanceSubsystem::RequestMoneyReq(int32 Amount)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request money: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_MoneyReq Request;
+	Request.set_amount(Amount);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MoneyReq to server. Amount=%d"), Amount);
+}
+
+void UNetworkGameInstanceSubsystem::RequestHealthReq(int32 Health)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request health: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_HealthReq Request;
+	Request.set_health(Health);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_HealthReq to server. Health=%d"), Health);
+}
+
+void UNetworkGameInstanceSubsystem::RequestMaxHealthReq(int32 MaxHealth)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request max health: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_MaxHealthReq Request;
+	Request.set_max_health(MaxHealth);
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MaxHealthReq to server. MaxHealth=%d"), MaxHealth);
+}
+
+void UNetworkGameInstanceSubsystem::RequestZoneStop()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to stop zone: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_ZoneStopReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ZoneStopReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestZoneStart()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to start zone: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_ZoneStartReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ZoneStartReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestZoneReset()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to reset zone: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_ZoneResetReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ZoneResetReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestZoneDamageOff()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to turn off zone damage: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_ZoneDamageOffReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ZoneDamageOffReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestZoneDamageOn()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request to turn on zone damage: Not connected to server"));
+		return;
+	}
+	
+	se::test::C_ZoneDamageOnReq Request;
+	
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ZoneDamageOnReq to server"));
+}
+
 void UNetworkGameInstanceSubsystem::Ping()
 {
 	if (bIsConnected == false || GameSession == nullptr)

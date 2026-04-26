@@ -62,7 +62,7 @@ public:
 	void SendWireActionEnd();
 	void SendSavePointSet(FVector Location);
 	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
-	
+	// TODO: ItemPick관련 한 API 만들기
 	void SendChestInteract(uint32 ChestEntityId);
 	
 private:
@@ -194,6 +194,21 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
+	
+	// Testing
+public:
+	void RequestSpawnMonster(FVector Pos, uint32 MonsterType);
+	void RequestSpawnChest(FVector Pos);
+	void RequestSpawnStore(FVector Pos);
+	void RequestItemReq(uint32 ItemId, int32 Amount);
+	void RequestMoneyReq(int32 Amount);
+	void RequestHealthReq(int32 Health);
+	void RequestMaxHealthReq(int32 MaxHealth);
+	void RequestZoneStop();
+	void RequestZoneStart();
+	void RequestZoneReset();
+	void RequestZoneDamageOff();
+	void RequestZoneDamageOn();
 	
 public:
 	void Ping();

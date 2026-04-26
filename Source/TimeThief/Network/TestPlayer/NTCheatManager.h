@@ -29,4 +29,49 @@ public:
 	//
 	// UFUNCTION(Exec)
 	// void LeaveRoom();
+	
+// Testing 용
+public:
+	UFUNCTION(Exec)
+	void Pos();
+	
+	UFUNCTION(Exec)
+	void Tp(float X, float Y, float Z);
+	
+	UFUNCTION(Exec)
+	void TestSpawnMonster(float X, float Y, float Z, int32 MonsterType);
+	
+	UFUNCTION(Exec)
+	void TestSpawnChest(float X, float Y, float Z);
+	
+	UFUNCTION(Exec)
+	void TestSpawnStore(float X, float Y, float Z);
+	
+	UFUNCTION(Exec)
+	void TestItemReq(int32 ItemId, int32 Amount);
+	
+	UFUNCTION(Exec)
+	void TestMoneyReq(int32 Amount);
+	
+	UFUNCTION(Exec)
+	void TestHealthReq(int32 Health);
+	
+	UFUNCTION(Exec)
+	void TestMaxHealthReq(int32 MaxHealth);
+	
+	UFUNCTION(Exec)
+	void TestZoneStop();
+	
+	UFUNCTION(Exec)
+	void TestZoneStart();
+	
+	UFUNCTION(Exec)
+	void TestZoneReset();
+	
+	UFUNCTION(Exec)
+	void TestZoneDamageOff();
+	
+	UFUNCTION(Exec)
+	void TestZoneDamageOn();
+	
 };
