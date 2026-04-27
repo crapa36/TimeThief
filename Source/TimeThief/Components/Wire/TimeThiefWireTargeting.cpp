@@ -56,8 +56,8 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 
 	TArray<FScreenCandidate> LedgeCandidates;
 	TArray<FScreenCandidate> SurfaceCandidates;
-	LedgeCandidates.Reserve(8);
-	SurfaceCandidates.Reserve(16);
+	LedgeCandidates.Reserve(32);
+	SurfaceCandidates.Reserve(64);
 	
 	const float PixelStep = FMath::Max(1.0f, ScreenSamplePixelStep);
 	const int32 NumPitchSteps = FMath::Max(1, FMath::CeilToInt(ScaledScreenRadiusPx / PixelStep));
@@ -157,10 +157,10 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 				ObjectQueryParams,
 				ActorsToIgnore,
 				LedgeHit
-			) && LedgeHit.ImpactNormal.Z >= LedgeMinNormalZ && (LedgeHit.ImpactPoint.Z > ImpactPoint.Z + LedgeMinHeightDelta);
+			) && !LedgeHit.bStartPenetrating && LedgeHit.ImpactNormal.Z >= LedgeMinNormalZ && (LedgeHit.ImpactPoint.Z > ImpactPoint.Z + LedgeMinHeightDelta);
 
 			FScreenCandidate Candidate;
-			Candidate.TargetLocation = bIsLedge ? FVector(LedgeHit.ImpactPoint.X, LedgeHit.ImpactPoint.Y, ImpactPoint.Z + 5.0f) : ImpactPoint;
+			Candidate.TargetLocation = bIsLedge ? FVector(LedgeHit.ImpactPoint.X, LedgeHit.ImpactPoint.Y, LedgeHit.ImpactPoint.Z + 5.0f) : ImpactPoint;
 			Candidate.Component = HitComponent;
 			Candidate.Actor = Hit.GetActor();
 			Candidate.DistanceToAimSq = DistanceToAimSq;

@@ -54,7 +54,7 @@ public:
 
 	// 화면 중심 기준 샘플 픽셀 간격
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
-	float ScreenSamplePixelStep = 24.0f;
+	float ScreenSamplePixelStep = 12.0f;
 	
 	// 필터링에 사용하는 기본 픽셀 반경
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")

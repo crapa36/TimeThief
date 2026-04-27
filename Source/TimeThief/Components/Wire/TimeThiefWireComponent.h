@@ -16,6 +16,7 @@ class UMaterialInterface;
 class APlayerCameraManager;
 class UCameraShakeBase;
 class USoundBase;
+class UParticleSystem;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogWire, Log, All);
 
@@ -101,6 +102,7 @@ private:
 	
 	FVector GetAimDirection() const;
 	void UpdateWireVisuals();
+	void UpdateTargetIndicator();
 
 	void UpdateSpeedEffects(float DeltaTime);
 	void ResetSpeedEffects(float DeltaTime);
@@ -165,6 +167,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
 	TObjectPtr<USoundBase> AttachSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
+	TObjectPtr<UParticleSystem> AttachParticle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UStaticMesh> WireMeshTemplate;
