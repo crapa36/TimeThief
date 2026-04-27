@@ -10,6 +10,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundBase.h"
+#include "Particles/ParticleSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "DrawDebugHelpers.h"
@@ -187,6 +188,11 @@ void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
 		const EWireState OldState = CurrentState;
 		CurrentState = EWireState::Attached;
 		OnWireStateChanged.Broadcast(OldState, CurrentState);
+	}
+
+	if (AttachParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AttachParticle, AnchorPoint, AttachedAnchorRotation);
 	}
 
 	OnWireAttached.Broadcast(AnchorPoint);
@@ -390,6 +396,11 @@ void UTimeThiefWireComponent::OnAnchorAttached()
 	if (AttachSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, AttachSound, AnchorPoint);
+	}
+
+	if (AttachParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AttachParticle, AnchorPoint, AttachedAnchorRotation);
 	}
 
 	CachedAirControl = CachedMovementComponent->AirControl;
