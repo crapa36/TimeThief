@@ -12,6 +12,7 @@
 #include "Sound/SoundBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utils/TimeThiefAimStatics.h"
+#include "DrawDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(LogWire);
 
@@ -19,7 +20,7 @@ UTimeThiefWireComponent::UTimeThiefWireComponent(const FObjectInitializer& Objec
 	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 
 	WirePhysics = CreateDefaultSubobject<UTimeThiefWirePhysics>(TEXT("WirePhysics"));
@@ -162,6 +163,7 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 		UpdateSpeedEffects(DeltaTime);
 		break;
 	default:
+		UpdateTargetIndicator();
 		ResetSpeedEffects(DeltaTime);
 		break;
 	}
@@ -172,7 +174,7 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		SetComponentTickEnabled(false);
 	}
-	}
+}
 
 void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
 {
@@ -226,6 +228,10 @@ void UTimeThiefWireComponent::SimulateLaunch(const FVector& RemoteStartPosition,
 
 bool UTimeThiefWireComponent::ShouldTickComponent() const
 {
+	if (IsValid(CachedCharacter) && CachedCharacter->IsLocallyControlled())
+	{
+		return true;
+	}
 	return CurrentState != EWireState::Idle || CooldownRemaining > 0.0f;
 }
 
@@ -650,6 +656,35 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 	WireMeshComponent->SetWorldLocation(CenterLocation);
 	WireMeshComponent->SetWorldRotation(Rotation);
 	WireMeshComponent->SetWorldScale3D(Scale);
+}
+
+void UTimeThiefWireComponent::UpdateTargetIndicator()
+{
+	if (!CanFireWire())
+	{
+		return;
+	}
+
+	FVector CamLoc = GetWireStartLocation();
+	FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
+		GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
+
+	if (IsValid(CachedCharacter))
+	{
+		if (!UTimeThiefAimStatics::ResolveAimView(CachedCharacter, CamLoc, AimDirection))
+		{
+			CamLoc = CachedCharacter->GetPawnViewLocation();
+			AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
+		}
+	}
+
+	AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
+
+	FVector TargetLocation;
+	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
+	{
+		DrawDebugPoint(GetWorld(), TargetLocation, 20.0f, FColor::Red, false, -1.0f, 0);
+	}
 }
 
 float UTimeThiefWireComponent::GetSpeedEffectAlpha() const

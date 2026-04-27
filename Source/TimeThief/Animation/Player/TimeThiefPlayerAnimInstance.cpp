@@ -111,7 +111,6 @@ void UTimeThiefPlayerAnimInstance::UpdateAimData() {
 			ControlRigAimLocationCS = FVector::ZeroVector;
 		}
 	}
-	if (PlayerCharacter->IsLocallyControlled())	UE_LOG(LogTemp, Log, TEXT("[Anim] Final AimYaw: %f, AimPitch: %f"), AimYaw, AimPitch);
 }
 
 void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {

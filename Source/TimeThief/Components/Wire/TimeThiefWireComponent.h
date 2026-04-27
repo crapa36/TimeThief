@@ -101,6 +101,7 @@ private:
 	
 	FVector GetAimDirection() const;
 	void UpdateWireVisuals();
+	void UpdateTargetIndicator();
 
 	void UpdateSpeedEffects(float DeltaTime);
 	void ResetSpeedEffects(float DeltaTime);
