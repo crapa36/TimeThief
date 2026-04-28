@@ -6,6 +6,7 @@
 #include "Network/MovableNetworkEntityInterface.h"
 #include "CharacterTrajectoryComponent.h"
 #include "Character/TimeThiefNetworkCharacterBase.h"
+#include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
@@ -112,6 +113,11 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		if (auto MorphingComp = CharacterBase->GetMorphingMeshComponent())
 		{
 			MeshAlpha = MorphingComp->CurrAlpha;
+		}
+		
+		if (auto Combat = Cast<UTimeThiefPlayerCombatComponent>(CharacterBase->GetCombatComponent()))
+		{
+			TurnDirection = Combat->TurnDirection;
 		}
 	}
 }
