@@ -9,10 +9,13 @@
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
+#include "Network/State/NetworkEntityState.h"
 
 ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;	// Network 보간을 위해서 필요하다고 판단
+	PrimaryActorTick.bStartWithTickEnabled = true;
 	bExploded = true;
 	bIsActivated = false;
 
@@ -110,6 +113,9 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 	{
 		World->GetTimerManager().ClearTimer(LifeTimeTimerHandle);
 	}
+	
+	SetActorTickEnabled(false);
+	bHasNetworkTargetLocation = false;
 }
 
 void ATimeThiefRocketProjectile::BeginPlay()
@@ -125,6 +131,29 @@ void ATimeThiefRocketProjectile::BeginPlay()
 	if (ProjectileMovementComponent)
 	{
 		ProjectileMovementComponent->OnProjectileStop.AddDynamic(this, &ATimeThiefRocketProjectile::ExplodeOnce);
+	}
+}
+
+void ATimeThiefRocketProjectile::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	if (bHasNetworkTargetLocation)
+	{
+		const FVector CurrentLocation = GetActorLocation();
+
+		const FVector NewLocation = FMath::VInterpTo(
+			CurrentLocation,
+			NetworkTargetLocation,
+			DeltaTime,
+			12.0f);
+
+		SetActorLocation(NewLocation, false, nullptr, ETeleportType::ResetPhysics);
+
+		if (FVector::DistSquared(NewLocation, NetworkTargetLocation) < FMath::Square(5.0f))
+		{
+			bHasNetworkTargetLocation = false;
+		}
 	}
 }
 
@@ -248,5 +277,80 @@ void ATimeThiefRocketProjectile::PlayExplosionEffects(const FVector& ExplosionLo
 	if (ExplosionSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, ExplosionLocation);
+	}
+}
+
+void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& SpawnLocation,
+	const FVector& InitialVelocity)
+{
+	SetActorTickEnabled(true);
+	
+	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);
+	
+	const FVector Direction = InitialVelocity.GetSafeNormal();
+	
+	if (!Direction.IsNearlyZero())
+	{
+		SetActorRotation(Direction.Rotation());
+	}
+	
+	bIsActivated = true;
+	bExploded = false;
+	bHasNetworkTargetLocation = false;
+
+	SetActorHiddenInGame(false);
+	
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+	
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+		ProjectileMovementComponent->StopMovementImmediately();
+		ProjectileMovementComponent->Velocity = InitialVelocity;
+		ProjectileMovementComponent->Activate(true);
+	}
+	
+	if (FlightLoopAudioComponent && FlightLoopSound)
+	{
+		FlightLoopAudioComponent->Play();
+	}
+}
+
+void ATimeThiefRocketProjectile::ApplyNetworkMovementState(const FNetworkEntityState& EntityState)
+{
+	const FVector ServerLocation = EntityState.Position;
+	const FVector ServerVelocity = EntityState.Velocity;
+	
+	const FVector CurrentLocation = GetActorLocation();
+	const float ErrorDistance = FVector::Distance(CurrentLocation, ServerLocation);
+	
+	// 방향 갱신
+	if (!ServerVelocity.IsNearlyZero())
+	{
+		const FVector ServerDirection = ServerVelocity.GetSafeNormal();
+		SetActorRotation(ServerDirection.Rotation());
+	}
+	
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->Velocity = ServerVelocity;
+	}
+	
+	constexpr const float TeleportThreshold = 300.0f; // 텔레포트 여부 판단 기준 거리 (조정 가능)
+	constexpr const float SmoothThreshold = 30.0f; // 부드러운 보정 여부 판단 기준 거리 (조정 가능)
+	
+	if (ErrorDistance >= TeleportThreshold)
+		// 서버와의 위치 오차가 너무 크면 텔레포트로 보정
+	{
+		SetActorLocation(ServerLocation, false, nullptr, ETeleportType::ResetPhysics);
+	}
+	else if (ErrorDistance >= SmoothThreshold)
+		// 서버와의 위치 오차가 어느 정도 있지만 텔레포트할 정도는 아니면 부드럽게 보정
+	{
+		NetworkTargetLocation = ServerLocation;
+		bHasNetworkTargetLocation = true;
 	}
 }

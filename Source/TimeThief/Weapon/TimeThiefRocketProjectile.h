@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Actors/NetworkActor.h"
 #include "TimeThiefRocketProjectile.generated.h"
 
 class UProjectileMovementComponent;
@@ -14,7 +14,7 @@ class USoundBase;
 class APawn;
 
 UCLASS()
-class TIMETHIEF_API ATimeThiefRocketProjectile : public AActor
+class TIMETHIEF_API ATimeThiefRocketProjectile : public ANetworkActor
 {
 	GENERATED_BODY()
 
@@ -29,6 +29,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
@@ -101,11 +103,20 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Debug", meta = (ClampMin = "4", UIMin = "4"))
 	int32 ExplosionDebugSegments = 24;
-
+	
+// Network 관련 API
+public:
+	void ActivateProjectileFromNetwork(const FVector& SpawnLocation, const FVector& InitialVelocity);
+	void ApplyNetworkMovementState(const FNetworkEntityState& EntityState);
+	
 private:
 	FTimerHandle LifeTimeTimerHandle;
 	bool bIsActivated = false;
 	bool bExploded = false;
 	TWeakObjectPtr<AActor> CachedOwnerActor;
 	TWeakObjectPtr<APawn> CachedInstigatorPawn;
+	
+// Network 보간용 변수
+	FVector NetworkTargetLocation = FVector::ZeroVector;
+	bool bHasNetworkTargetLocation = false;
 };

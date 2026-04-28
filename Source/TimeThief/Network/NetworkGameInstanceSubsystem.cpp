@@ -35,6 +35,7 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
+#include "Weapon/TimeThiefRocketProjectile.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 namespace
@@ -2448,6 +2449,12 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const
 	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Actor))
 	{
 		Movable->ApplyNetworkMovementState(EntityState);
+		return;
+	}
+	
+	if (ATimeThiefRocketProjectile* Projectile = Cast<ATimeThiefRocketProjectile>(Actor))
+	{
+		Projectile->ApplyNetworkMovementState(EntityState);
 		return;
 	}
 	
