@@ -162,6 +162,7 @@ private:
 	AActor* GetOrSpawnEntityActor(uint32 EntityId);
 
 	void InitializeSpawnedPawnData(AActor* Actor);
+	void ApplySpawnRuntimeStateToActor(AActor* Actor, const FNetworkEntityState& EntityState);
 	void PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void InitializeNetworkEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState);
 	void ApplyRuntimeConfigToActor(AActor* Actor);

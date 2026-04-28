@@ -16,6 +16,7 @@
 #include "NetworkMoveComponent.h"
 #include "TimeThiefGameplayTags.h"
 #include "TimeThiefNetworkSettings.h"
+#include "Actors/Item/ItemBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
@@ -1708,7 +1709,7 @@ uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo&
 			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 			const auto& Velocity = ItemInfo.velocity();
 			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
-			int32 ItemCount = ItemInfo.amount();
+			EntityState.ItemCount = ItemInfo.amount();
 		}
 		break;
 	case se::common::ObjectType::OBJ_PROJECTILE:
@@ -1723,7 +1724,6 @@ uint32 UNetworkGameInstanceSubsystem::HandleSpawnInfo(const se::room::SpawnInfo&
 			const auto& Pos = ProjectileInfo.position();
 			EntityState.Position = FVector(Pos.x(), Pos.y(), Pos.z());
 			const auto& Velocity = ProjectileInfo.velocity();
-			// TODO: 아래 Velocity 3D로 변경 필요할 듯 싶음
 			EntityState.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
 		}
 		break;
@@ -2322,6 +2322,30 @@ void UNetworkGameInstanceSubsystem::InitializeSpawnedPawnData(AActor* Actor)
 		*GetNameSafe(PlayerCharacter));
 }
 
+void UNetworkGameInstanceSubsystem::ApplySpawnRuntimeStateToActor(AActor* Actor, const FNetworkEntityState& EntityState)
+{
+	switch (EntityState.ObjectType)
+	{
+	case se::common::OBJ_ITEM:
+		{
+			if (AItemBase* Item = Cast<AItemBase>(Actor))
+			{
+				Item->SetItemStack(static_cast<EItemID>(EntityState.TemplateId), EntityState.ItemCount);
+			}
+		}
+		break;
+		
+	case se::common::ObjectType::OBJ_PROJECTILE:
+		{
+			if (ATimeThiefRocketProjectile* Projectile = Cast<ATimeThiefRocketProjectile>(Actor))
+			{
+				Projectile->ActivateProjectileFromNetwork(EntityState.Position, EntityState.Velocity);
+			}
+		}
+	}
+
+}
+
 void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, const FNetworkEntityState& EntityState)
 {
 	if (SpawnedActor == nullptr) return;
@@ -2329,6 +2353,8 @@ void UNetworkGameInstanceSubsystem::PostSpawnEntityActor(AActor* SpawnedActor, c
 	InitializeNetworkEntityActor(SpawnedActor, EntityState);;
 	InitializeSpawnedPawnData(SpawnedActor);
 	ApplyRuntimeConfigToActor(SpawnedActor);
+	
+	ApplySpawnRuntimeStateToActor(SpawnedActor, EntityState);
 	
 	if (IsLocalPlayerEntity(EntityState.EntityId))
 	{
