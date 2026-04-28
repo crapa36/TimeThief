@@ -121,7 +121,7 @@ void ATimeThiefNetworkCharacterBase::SetNetworkMovementMode(EMovementMode NewMov
 
 float ATimeThiefNetworkCharacterBase::GetLocalControlAimYaw() const
 {
-	UE_LOG(LogTemp, Log, TEXT("[Network] GetLocalControlAimYaw(): %f"), GetNetworkAimYaw());
+	// UE_LOG(LogTemp, Log, TEXT("[Network] GetLocalControlAimYaw(): %f"), GetNetworkAimYaw());
 	return GetNetworkAimYaw();
 }
 

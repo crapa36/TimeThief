@@ -148,7 +148,7 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	Movable->SetNetworkMovementMode(RecentMovementMode);
 
 	InterpElapsed = 0.0f;
-	UE_LOG(LogTemp, Log, TEXT("[Network] Received Packet - EntityID: %u, AimYaw: %f, AimPitch: %f"), NetworkEntityComponent->GetEntityId(), EntityState.AimYaw, EntityState.AimPitch);
+	// UE_LOG(LogTemp, Log, TEXT("[Network] Received Packet - EntityID: %u, AimYaw: %f, AimPitch: %f"), NetworkEntityComponent->GetEntityId(), EntityState.AimYaw, EntityState.AimPitch);
 }
 
 void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
