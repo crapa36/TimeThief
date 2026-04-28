@@ -8,6 +8,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 
 // Sets default values
@@ -59,5 +60,19 @@ void AItemBase::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
 	{
 		Player->RemoveVicinityItem(this);
 	}
+}
+
+void AItemBase::TryRequestServer()
+{
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->SendItemPickUp(GetEntityId());
+	}
+}
+
+void AItemBase::SetItemStack(EItemID NewItemID, int NewQuantity)
+{
+	ItemID = NewItemID;
+	Quantity = NewQuantity;
 }
 

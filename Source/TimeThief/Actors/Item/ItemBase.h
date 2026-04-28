@@ -48,6 +48,12 @@ public:
 
 	EItemID GetItemID() const { return ItemID; }
 	int GetQuantity() const { return Quantity; }
+	
+private:
+	void TryRequestServer();
+	
+public:
+	void SetItemStack(EItemID NewItemID, int NewQuantity);
 
 protected:
 	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true), Category="Item")

@@ -62,7 +62,7 @@ public:
 	void SendWireActionEnd();
 	void SendSavePointSet(FVector Location);
 	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
-	// TODO: ItemPick관련 한 API 만들기
+	void SendItemPickUp(uint32 ItemEntityId);
 	void SendChestInteract(uint32 ChestEntityId);
 	
 private:

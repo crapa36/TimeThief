@@ -220,6 +220,18 @@ void UNetworkGameInstanceSubsystem::SendWireLaunch(const FVector& StartPosition,
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendItemPickUp(uint32 ItemEntityId)
+{
+	se::game::C_PickupItemReq Request;
+	auto* ItemId = Request.mutable_item_entity_id();
+	ItemId->set_value(ItemEntityId);
+	
+	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Item Entity Id=%u"), ItemEntityId);
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::SendChestInteract(uint32 ChestEntityId)
 {
 	se::game::C_ChestInteractReq Request;
