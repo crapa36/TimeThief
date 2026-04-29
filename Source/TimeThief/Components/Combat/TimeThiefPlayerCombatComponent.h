@@ -39,6 +39,8 @@ public:
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SyncAim(float InAimYaw, float InAimPitch, float InCharacterYaw);
+	
+    int TurnDirection = 0;
 
 protected:
 	virtual void OnEquipFinished() override;
@@ -57,10 +59,13 @@ protected:
 	float AimInterpSpeed = 15.0f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
+	float TurnSpeed = 240.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim")
 	float AimTraceRange = 50000.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Combat|Aim", meta = (ClampMin = "0.0", ClampMax = "179.9"))
-	float AimYawOverflowTurnThreshold = 90.0f;
+	float AimYawOverflowTurnThreshold = 35.0f;
 	
 	bool bIsFireInputHeld = false;
 
@@ -69,7 +74,9 @@ private:
 	void UpdateLocalWorldAimLocation();
 	void ApplyAimYawOverflowRotation(float DeltaTime);
 	void SyncAimToServer();
-
+	
+	FVector GetAimDirection() const;
+	
 	float DefaultMaxWalkSpeed = 0.0f;
 	FVector CachedWorldAimLocation = FVector::ZeroVector;
 

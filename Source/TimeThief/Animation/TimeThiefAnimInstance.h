@@ -55,7 +55,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
 	bool bShouldMove;
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Locomotion")
+	int TurnDirection;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Jump")
 	bool bIsFalling;
 

@@ -195,6 +195,11 @@ void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AttachParticle, AnchorPoint, AttachedAnchorRotation);
 	}
 
+	if (AttachSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, AttachSound, AnchorPoint);
+	}
+
 	OnWireAttached.Broadcast(AnchorPoint);
 	SetComponentTickEnabled(true);
 	UpdateWireVisuals();
@@ -226,6 +231,11 @@ void UTimeThiefWireComponent::SimulateLaunch(const FVector& RemoteStartPosition,
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
 	GroundCheckTimer = 0.0f;
+
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, RemoteStartPosition);
+	}
 
 	SetWireState(EWireState::Firing);
 	SetComponentTickEnabled(true);
@@ -711,8 +721,9 @@ float UTimeThiefWireComponent::GetSpeedEffectAlpha() const
 		return 0.0f;
 	}
 
-	const float MaxSpeed = SpeedEffectThreshold * 2.5f;
-	return FMath::Clamp((Speed - SpeedEffectThreshold) / (MaxSpeed - SpeedEffectThreshold), 0.0f, 1.0f);
+	const float MaxSpeed = SpeedEffectThreshold * 2.0f;
+	const float Alpha = FMath::Clamp((Speed - SpeedEffectThreshold) / (MaxSpeed - SpeedEffectThreshold), 0.0f, 1.0f);
+	return FMath::Pow(Alpha, 0.5f);
 }
 
 void UTimeThiefWireComponent::UpdateSpeedEffects(float DeltaTime)
@@ -735,7 +746,7 @@ void UTimeThiefWireComponent::UpdateSpeedEffects(float DeltaTime)
 		}
 	}
 
-	if (EffectAlpha > 0.3f && WireSpeedShake && IsValid(CachedCharacter))
+	if (EffectAlpha > 0.1f && WireSpeedShake && IsValid(CachedCharacter))
 	{
 		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
 		{
