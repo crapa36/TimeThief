@@ -227,8 +227,8 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
 	UpdateLocalWorldAimLocation();
-	ApplyAimYawOverflowRotation(DeltaTime);
 	SyncAimToServer();
+	ApplyAimYawOverflowRotation(DeltaTime);
 	UpdateAimFOV(DeltaTime);
 }
 
@@ -257,12 +257,12 @@ void UTimeThiefPlayerCombatComponent::Server_SyncAim_Implementation(float InAimY
 void UTimeThiefPlayerCombatComponent::SyncAimToServer()
 {
 	APawn* OwningPawn = GetPawn<APawn>();
-	if (!OwningPawn || !OwningPawn->IsLocallyControlled()) return;
+	if (!OwningPawn || !OwningPawn->IsLocallyControlled())
+	{
+		return;
+	}
 
-	const FVector AimDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
-		GetEffectiveShotOrigin(),
-		CachedWorldAimLocation,
-		OwningPawn->GetActorForwardVector());
+	const FVector AimDirection = GetAimDirection();
 	
 	float OutAimPitch = 0.0f;
 	float OutAimYaw = 0.0f;
@@ -283,6 +283,14 @@ void UTimeThiefPlayerCombatComponent::SyncAimToServer()
 		Movable->SetNetworkAimYaw(OutAimYaw);
 		Movable->SetNetworkAimPitch(OutAimPitch);
 	}
+}
+
+FVector UTimeThiefPlayerCombatComponent::GetAimDirection() const
+{
+	return UTimeThiefAimStatics::ResolveAimDirectionToTarget(
+		GetEffectiveShotOrigin(),
+		CachedWorldAimLocation,
+		GetOwner()->GetActorForwardVector());
 }
 
 void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
@@ -330,11 +338,32 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 {
 	ATimeThiefCharacterBase* OwningCharacter = GetPawn<ATimeThiefCharacterBase>();
 	
-	if (!OwningCharacter || !OwningCharacter->IsLocallyControlled())
+	if (!OwningCharacter)
 	{
 		return;
 	}
+	if (!OwningCharacter->IsLocallyControlled())
+	{
+		if (auto* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
+		{
+			const float DeltaYaw = Movable->GetNetworkAimYaw();
+			const float Threshold = FMath::Clamp(AimYawOverflowTurnThreshold, 0.0f, 179.9f);
 	
+			if (DeltaYaw > Threshold)
+			{
+				TurnDirection = 1;
+			}
+			else if (DeltaYaw < -Threshold)
+			{
+				TurnDirection = -1;
+			}
+			else
+			{
+				TurnDirection = 0;
+			}
+		}
+		return;
+	}
 	UCharacterMovementComponent* MovementComp = OwningCharacter->GetCharacterMovement();
 	if (!MovementComp)
 	{
@@ -366,11 +395,7 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 	{
 		return;
 	}
-	const FVector AimDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
-	GetEffectiveShotOrigin(),
-	CachedWorldAimLocation,
-	OwningCharacter->GetActorForwardVector()
-	);
+	const FVector AimDirection = GetAimDirection();
 	
 	float AimWorldYaw = AimDirection.Rotation().Yaw;
 	float DeltaYaw = FMath::FindDeltaAngleDegrees(CurrentRotation.Yaw, AimWorldYaw);
@@ -382,15 +407,11 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 	{
 		TargetYaw = AimWorldYaw - Threshold;
 		TurnDirection = 1;
-		UKismetSystemLibrary::DrawDebugArrow(GetWorld(), OwningCharacter->GetActorLocation(), OwningCharacter->GetActorLocation() + OwningCharacter->GetActorForwardVector() * 100.0f, 50.0f, FColor::Green, 0.1f, 5.0f);
-		UKismetSystemLibrary::DrawDebugArrow(GetWorld(), OwningCharacter->GetActorLocation(), OwningCharacter->GetActorLocation() + AimDirection * 200.0f, 100.0f, FColor::Red, 0.1f, 5.0f);
 	}
 	else if (DeltaYaw < -Threshold)
 	{
 		TargetYaw = AimWorldYaw + Threshold;
 		TurnDirection = -1;
-		UKismetSystemLibrary::DrawDebugArrow(GetWorld(), OwningCharacter->GetActorLocation(), OwningCharacter->GetActorLocation() + OwningCharacter->GetActorForwardVector() * 100.0f, 50.0f, FColor::Green, 0.1f, 5.0f);
-		UKismetSystemLibrary::DrawDebugArrow(GetWorld(), OwningCharacter->GetActorLocation(), OwningCharacter->GetActorLocation() + AimDirection * 200.0f, 100.0f, FColor::Red, 0.1f, 5.0f);
 	}
 	else
 	{
