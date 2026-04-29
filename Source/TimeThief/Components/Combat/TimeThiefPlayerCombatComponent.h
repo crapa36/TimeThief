@@ -74,7 +74,9 @@ private:
 	void UpdateLocalWorldAimLocation();
 	void ApplyAimYawOverflowRotation(float DeltaTime);
 	void SyncAimToServer();
-
+	
+	FVector GetAimDirection() const;
+	
 	float DefaultMaxWalkSpeed = 0.0f;
 	FVector CachedWorldAimLocation = FVector::ZeroVector;
 
