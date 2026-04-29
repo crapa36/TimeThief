@@ -769,7 +769,34 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		TimePointComp->SetTimePoints(TimePoints);
 	}
 	
-	// TODO: 초기 Weapon Setting은 여기서 진행 할 것
+	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
+	
+	for (const auto& WeaponInfo : Pkt.weapon_slots())
+	{
+		uint32 WeaponId = WeaponInfo.weapon_id();
+		const auto& WeaponStat = WeaponInfo.stat();
+		int Ammo = WeaponStat.mag_capacity();
+		float FireInterval = WeaponStat.fire_interval();
+		float ReloadTime = WeaponStat.reload_time();
+		int32 PelletCount = WeaponStat.pellet_count();
+		float ConeAngle = WeaponStat.cone_angle();
+		float ProjectileSpeed = WeaponStat.projectile_speed();
+		float ExplosionRadius = WeaponStat.explosion_radius();
+		auto* WeaponComp = WeaponActor->GetWeaponComponentByTag(FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId));
+
+		switch (WeaponId)
+		{
+		case 1:	// Rifle
+			// TODO: WeaponStat Setter 만들기 (WeaponBaseComp에 virtual로 작성하면 될 듯 함)
+			break;
+			
+		case 2:	// Shotgun
+			break;
+			
+		case 3:	// Launcher
+			break;
+		}
+	}
 	
 }
 
