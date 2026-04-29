@@ -721,8 +721,9 @@ float UTimeThiefWireComponent::GetSpeedEffectAlpha() const
 		return 0.0f;
 	}
 
-	const float MaxSpeed = SpeedEffectThreshold * 2.5f;
-	return FMath::Clamp((Speed - SpeedEffectThreshold) / (MaxSpeed - SpeedEffectThreshold), 0.0f, 1.0f);
+	const float MaxSpeed = SpeedEffectThreshold * 2.0f;
+	const float Alpha = FMath::Clamp((Speed - SpeedEffectThreshold) / (MaxSpeed - SpeedEffectThreshold), 0.0f, 1.0f);
+	return FMath::Pow(Alpha, 0.5f);
 }
 
 void UTimeThiefWireComponent::UpdateSpeedEffects(float DeltaTime)
@@ -745,7 +746,7 @@ void UTimeThiefWireComponent::UpdateSpeedEffects(float DeltaTime)
 		}
 	}
 
-	if (EffectAlpha > 0.3f && WireSpeedShake && IsValid(CachedCharacter))
+	if (EffectAlpha > 0.1f && WireSpeedShake && IsValid(CachedCharacter))
 	{
 		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
 		{

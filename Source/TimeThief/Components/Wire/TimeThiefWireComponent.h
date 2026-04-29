@@ -193,16 +193,16 @@ protected:
 	FRotator AnchorMeshRotationOffset = FRotator::ZeroRotator;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
-	float SpeedEffectThreshold = 800.0f;
+	float SpeedEffectThreshold = 600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
-	float MaxFOVIncrease = 15.0f;
+	float MaxFOVIncrease = 30.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
-	float FOVInterpSpeed = 8.0f;
+	float FOVInterpSpeed = 12.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
-	float CameraShakeScale = 0.3f;
+	float CameraShakeScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Speed Effects")
 	TSubclassOf<UCameraShakeBase> WireSpeedShake;
