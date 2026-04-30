@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
+#include "Weapon/WeaponStatData.h"
 #include "TimeThiefWeaponComponentBase.generated.h"
 
 class UAnimInstance;
@@ -17,7 +18,8 @@ enum ECombatNotifyType : uint8;
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChangedSignature, int32, int32);
 
 UCLASS(Blueprintable, ClassGroup = (TimeThief), meta = (BlueprintSpawnableComponent))
-class TIMETHIEF_API UTimeThiefWeaponComponentBase : public UActorComponent {
+class TIMETHIEF_API UTimeThiefWeaponComponentBase : public UActorComponent
+{
 	GENERATED_BODY()
 
 public:
@@ -108,6 +110,9 @@ public:
 
 	virtual void OnEquipped();
 	virtual void OnUnequipped();
+	
+public:
+	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData);
 
 protected:
 	virtual void BeginPlay() override;

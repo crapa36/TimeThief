@@ -236,3 +236,10 @@ void UTimeThiefRifleComponent::ApplyRecoilAndSpread()
 		}
 	}
 }
+
+void UTimeThiefRifleComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
+{
+	Super::SetWeaponStatForNetwork(InStatData);
+	
+	// NONE (Rifle은 기본 Stat 외의 추가 stat이 없다)
+}

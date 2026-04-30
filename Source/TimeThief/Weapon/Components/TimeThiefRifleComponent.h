@@ -50,6 +50,9 @@ protected:
 	void PlayFireEffects();
 	void PlayImpactEffects(const FRifleHitResult& HitResult);
 	virtual void ApplyRecoilAndSpread() override;
+	
+public:
+	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData) override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")

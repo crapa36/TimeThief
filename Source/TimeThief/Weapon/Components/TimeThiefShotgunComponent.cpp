@@ -283,3 +283,14 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 		}
 	}
 }
+
+void UTimeThiefShotgunComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
+{
+	Super::SetWeaponStatForNetwork(InStatData);
+	
+	PelletCount = InStatData.PelletCount;
+	BaseSpread = InStatData.ConeAngle;		// Spread가 Shotgun에선 ConeAngle로 사용됨 (이게 괜찮은 구조인가?)
+	
+	// Test용 로그
+	// UE_LOG(LogTemp, Log, TEXT("[Shotgun][NetworkStat] PelletCount=%d ConeAngle=%.2f"), PelletCount, BaseSpread);
+}

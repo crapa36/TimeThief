@@ -140,6 +140,14 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	return false;
 }
 
+void UTimeThiefRocketLauncherComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
+{
+	Super::SetWeaponStatForNetwork(InStatData);
+	
+	ProjectileSpeed = InStatData.ProjectileSpeed;
+	ExplosionRadius = InStatData.ExplosionRadius;
+}
+
 void UTimeThiefRocketLauncherComponent::PlayFireEffects()
 {
 	const FVector MuzzleLocation = GetMuzzleLocation();

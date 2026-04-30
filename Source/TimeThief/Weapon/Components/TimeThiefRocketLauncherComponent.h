@@ -23,6 +23,9 @@ protected:
 
 	void PlayFireEffects();
 	bool SpawnRocketProjectile();
+	
+public:
+	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Projectile")
 	TSubclassOf<ATimeThiefRocketProjectile> RocketProjectileClass;
@@ -43,4 +46,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
 	TObjectPtr<UAnimSequenceBase> FireAnimation;
+	
+	// TODO: 아래 정보를 Projectile에 적용해야 한다	
+	UPROPERTY()
+	float ProjectileSpeed = 3000.0f;
+	
+	UPROPERTY()
+	float ExplosionRadius = 300.0f;
 };

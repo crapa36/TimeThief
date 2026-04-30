@@ -775,7 +775,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	{
 		uint32 WeaponId = WeaponInfo.weapon_id();
 		const auto& WeaponStat = WeaponInfo.stat();
-		int Ammo = WeaponStat.mag_capacity();
+		int MagCapacity = WeaponStat.mag_capacity();
 		float FireInterval = WeaponStat.fire_interval();
 		float ReloadTime = WeaponStat.reload_time();
 		int32 PelletCount = WeaponStat.pellet_count();
@@ -783,21 +783,18 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		float ProjectileSpeed = WeaponStat.projectile_speed();
 		float ExplosionRadius = WeaponStat.explosion_radius();
 		auto* WeaponComp = WeaponActor->GetWeaponComponentByTag(FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId));
-
-		switch (WeaponId)
-		{
-		case 1:	// Rifle
-			// TODO: WeaponStat Setter 만들기 (WeaponBaseComp에 virtual로 작성하면 될 듯 함)
-			break;
-			
-		case 2:	// Shotgun
-			break;
-			
-		case 3:	// Launcher
-			break;
-		}
+		
+		FWeaponStatData StatData;
+		StatData.MagCapacity = MagCapacity;
+		StatData.FireInterval = FireInterval;
+		StatData.ReloadTime = ReloadTime;
+		StatData.PelletCount = PelletCount;
+		StatData.ConeAngle = ConeAngle;
+		StatData.ProjectileSpeed = ProjectileSpeed;
+		StatData.ExplosionRadius = ExplosionRadius;
+		
+		WeaponComp->SetWeaponStatForNetwork(StatData);
 	}
-	
 }
 
 void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
