@@ -47,6 +47,13 @@ void AServerMapExportTestActor::ExportSelectedActorResolved()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
+void AServerMapExportTestActor::CheckSelectedActorsStaticMeshActor()
+{
+#if WITH_EDITOR
+	ServerMapExporter::CheckSelectedActorsStaticMeshActor();
+#endif
+}
+
 void AServerMapExportTestActor::LoadPresetShapesForSelectedActor()
 {
 	const bool bResult = ServerMapExporter::SpawnPresetShapesForSelectedActor(

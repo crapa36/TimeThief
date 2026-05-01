@@ -45,6 +45,8 @@ public:
 	static UShapeComponent* CreateShapeComponentFromPresetCollider(AActor* OwnerActor, USceneComponent* AttachParent, const FServerCollisionPresetCollider& PresetCollider);
 	static int32 SpawnPresetShapesForActorsWithTag(UWorld* World, const FName& RequiredTag, bool bClearExistingPresetShapes);
 	
+	static void CheckSelectedActorsStaticMeshActor();
+	
 private:
 	static AActor* GetFirstSelectedActor();
 	static UStaticMeshComponent* FindFirstStaticMeshComponent(AActor* Actor);
@@ -103,5 +105,7 @@ private:
 	static bool WriteServerMapFile(const FString& OutputPath, const se::map::MapHeader& MapHeader, const TArray<se::map::ColliderData>& Colliders);
 	static bool WriteDebugJsonFile(const FString& OutputPath, const TArray<FServerMapColliderDebugRecord>& DebugRecords);
 	static FString MakeDebugJsonOutputPath(const FString& BinaryOutputPath);
+	
+	static void GetSelectedActors(TArray<AActor*>& OutActors);
 
 };

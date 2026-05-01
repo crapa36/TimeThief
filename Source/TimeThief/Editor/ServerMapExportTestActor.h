@@ -54,6 +54,9 @@ public:
 	
 	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
 	void ExportSelectedActorResolved();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void CheckSelectedActorsStaticMeshActor();
 
 public:
 	// =============================

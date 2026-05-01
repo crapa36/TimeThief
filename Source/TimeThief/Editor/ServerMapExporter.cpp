@@ -27,6 +27,7 @@
 #include "AssetToolsModule.h"
 #include "Factories/DataAssetFactory.h"
 #include "UObject/SavePackage.h"
+#include "Engine/StaticMeshActor.h"
 #endif
 
 namespace
@@ -830,6 +831,92 @@ int32 ServerMapExporter::SpawnPresetShapesForActorsWithTag(UWorld* World, const 
 	}
 
 	return SpawnedActorCount;
+}
+
+void ServerMapExporter::CheckSelectedActorsStaticMeshActor()
+{
+#if WITH_EDITOR
+	TArray<AActor*> SelectedActors;
+	GetSelectedActors(SelectedActors);
+
+	if (SelectedActors.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMap] No selected actors."));
+		return;
+	}
+
+	int32 OkCount = 0;
+	int32 WarningCount = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("========== [ServerMap] Check Selected Actors =========="));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMap] Selected Actor Count: %d"), SelectedActors.Num());
+
+	for (AActor* Actor : SelectedActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		const FString ActorName = Actor->GetName();
+		const FString ClassName = Actor->GetClass()->GetName();
+
+		AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(Actor);
+		if (StaticMeshActor == nullptr)
+		{
+			++WarningCount;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap][WARN] Not StaticMeshActor: Actor=%s, Class=%s"),
+				*ActorName,
+				*ClassName);
+
+			continue;
+		}
+
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+
+		if (StaticMeshComponents.Num() != 1)
+		{
+			++WarningCount;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap][WARN] StaticMeshActor but StaticMeshComponent count != 1: Actor=%s, Count=%d"),
+				*ActorName,
+				StaticMeshComponents.Num());
+
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComponent = StaticMeshComponents[0];
+		if (StaticMeshComponent == nullptr || StaticMeshComponent->GetStaticMesh() == nullptr)
+		{
+			++WarningCount;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap][WARN] StaticMeshActor has no StaticMesh: Actor=%s"),
+				*ActorName);
+
+			continue;
+		}
+
+		++OkCount;
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[ServerMap][OK] Actor=%s, StaticMesh=%s"),
+			*ActorName,
+			*StaticMeshComponent->GetStaticMesh()->GetName());
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[ServerMap] Result: OK=%d, WARN=%d, Total=%d"),
+		OkCount,
+		WarningCount,
+		SelectedActors.Num());
+
+	UE_LOG(LogTemp, Log, TEXT("======================================================"));
+#endif
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()
@@ -2335,8 +2422,35 @@ FString ServerMapExporter::MakeDebugJsonOutputPath(const FString& BinaryOutputPa
 	return Directory / (BaseName + TEXT(".debug.json"));
 }
 
+void ServerMapExporter::GetSelectedActors(TArray<AActor*>& OutActors)
+{
+#if WITH_EDITOR
+	OutActors.Reset();
+
+	if (GEditor == nullptr)
+	{
+		return;
+	}
+
+	USelection* Selection = GEditor->GetSelectedActors();
+	if (Selection == nullptr)
+	{
+		return;
+	}
+
+	for (FSelectionIterator It(*Selection); It; ++It)
+	{
+		AActor* Actor = Cast<AActor>(*It);
+		if (Actor != nullptr)
+		{
+			OutActors.Add(Actor);
+		}
+	}
+#endif
+}
+
 void ServerMapExporter::AppendDebugRecord(const AActor* Actor, const UActorComponent* Component,
-	const se::map::ColliderData& ColliderData, TArray<FServerMapColliderDebugRecord>& OutDebugRecords)
+                                          const se::map::ColliderData& ColliderData, TArray<FServerMapColliderDebugRecord>& OutDebugRecords)
 {
 	FServerMapColliderDebugRecord Record;
 	Record.ActorName = GetNameSafe(Actor);
