@@ -145,3 +145,12 @@ void AServerMapExportTestActor::ReplaceSelectedActorWithStaticMeshActors()
 		CreatedCount);
 #endif
 }
+
+void AServerMapExportTestActor::AddCollisionTagToSelectedActor()
+{
+#if WITH_EDITOR
+	ServerMapExporter::AddCollisionTagToActors();
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] AddCollisionTagToSelectedActor executed"));
+#endif
+}

@@ -833,6 +833,36 @@ int32 ServerMapExporter::SpawnPresetShapesForActorsWithTag(UWorld* World, const 
 	return SpawnedActorCount;
 }
 
+void ServerMapExporter::AddCollisionTagToActors()
+{
+#if WITH_EDITOR
+	TArray<AActor*> SelectedActors;
+	GetSelectedActors(SelectedActors);
+
+	if (SelectedActors.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMap] No selected actors."));
+		return;
+	}
+
+	for (AActor* Actor : SelectedActors)
+	{
+		if (!Actor) continue;
+
+		// 예: StaticMeshActor만 처리하고 싶다면
+		if (!Actor->IsA<AStaticMeshActor>())
+			continue;
+
+		// 이미 Tag 있으면 추가 안함 (중복 방지)
+		if (!Actor->Tags.Contains(ServerTags::Collision))
+		{
+			Actor->Modify(); // Undo 지원
+			Actor->Tags.Add(ServerTags::Collision);
+		}
+	}
+#endif
+}
+
 void ServerMapExporter::CheckSelectedActorsStaticMeshActor()
 {
 #if WITH_EDITOR

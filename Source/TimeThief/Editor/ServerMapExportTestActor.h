@@ -93,7 +93,14 @@ public:
 	void ExportTaggedActorsResolved();
 	
 public:
+	// =============================
+	// Utility
+	// =============================
+	
 	UFUNCTION(CallInEditor, Category = "ServerMap|Utility")
 	void ReplaceSelectedActorWithStaticMeshActors();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Utility")
+	void AddCollisionTagToSelectedActor();
 	
 };
