@@ -20,6 +20,10 @@ UTimeThiefRocketLauncherComponent::UTimeThiefRocketLauncherComponent()
 
 void UTimeThiefRocketLauncherComponent::ExecuteFireShot()
 {
+	// Network에서는 PlayFireEffect만 하는 식으로...
+	// PlayFireEffects();
+	// Projectile Spawn은 HandleSpawn에서...
+	
 	if (SpawnRocketProjectile())
 	{
 		PlayFireEffects();

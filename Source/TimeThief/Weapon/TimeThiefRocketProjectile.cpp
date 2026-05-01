@@ -47,6 +47,19 @@ ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 	FlightLoopAudioComponent->bAutoActivate = false;
 }
 
+void ATimeThiefRocketProjectile::InitializeProjectileSettings(float InInitSpeed, float InExplosionRadius)
+{
+	InitialSpeed = InInitSpeed;
+	MaxSpeed = InInitSpeed;
+	ExplosionRadius = InExplosionRadius;
+	
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->InitialSpeed = InitialSpeed;
+		ProjectileMovementComponent->MaxSpeed = MaxSpeed;
+	}
+}
+
 void ATimeThiefRocketProjectile::InitializeProjectile(AActor* InOwnerActor, APawn* InInstigatorPawn)
 {
 	CachedOwnerActor = InOwnerActor;

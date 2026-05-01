@@ -37,6 +37,7 @@
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
+#include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 namespace
@@ -1844,10 +1845,10 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 	}
 	else if (EntityState.ObjectType == se::common::OBJ_PROJECTILE)
 	{
-		if (SpawnData->RocketProjectileClass)
-		{
-			return SpawnData->RocketProjectileClass;
-		}
+		// if (SpawnData->RocketProjectileClass)
+		// {
+		// 	return SpawnData->RocketProjectileClass;
+		// }
 	}
 	else if (EntityState.ObjectType == se::common::OBJ_CHEST)
 	{
@@ -2363,6 +2364,33 @@ void UNetworkGameInstanceSubsystem::ApplySpawnRuntimeStateToActor(AActor* Actor,
 		{
 			if (ATimeThiefRocketProjectile* Projectile = Cast<ATimeThiefRocketProjectile>(Actor))
 			{
+				ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+				if (LocalPlayer == nullptr)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[Network] ApplySpawnRuntimeStateToActor: Local player pawn is null"));
+					return;
+				}
+				ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
+				if (WeaponActor == nullptr)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[Network] ApplySpawnRuntimeStateToActor: Local player weapon actor is null"));
+					return;
+				}
+				auto* WeaponComp = WeaponActor->GetWeaponComponentByTag(FTimeThiefGameplayTags::Get().Weapon_RocketLauncher);
+				if (WeaponComp == nullptr)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[Network] ApplySpawnRuntimeStateToActor: Weapon actor has no matching weapon component"));
+					return;
+				}
+				auto* LauncherComp = Cast<UTimeThiefRocketLauncherComponent>(WeaponComp);
+				if (LauncherComp == nullptr)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("[Network] ApplySpawnRuntimeStateToActor: Weapon component is not UTimeThiefRocketLauncherComponent"));
+					return;
+				}
+				
+				Projectile->InitializeProjectileSettings(LauncherComp->GetProjectileSpeed(), LauncherComp->GetExplosionRadius());
+				Projectile->InitializeProjectile(LocalPlayer, LocalPlayer);
 				Projectile->ActivateProjectileFromNetwork(EntityState.Position, EntityState.Velocity);
 			}
 		}

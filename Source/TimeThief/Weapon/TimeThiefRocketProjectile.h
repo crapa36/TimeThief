@@ -21,6 +21,7 @@ class TIMETHIEF_API ATimeThiefRocketProjectile : public ANetworkActor
 public:
 	ATimeThiefRocketProjectile();
 
+	void InitializeProjectileSettings(float InInitSpeed, float InExplosionRadius);
 	void InitializeProjectile(AActor* InOwnerActor, APawn* InInstigatorPawn);
 	void ActivateProjectile(const FTransform& SpawnTransform);
 	void DeactivateProjectile();

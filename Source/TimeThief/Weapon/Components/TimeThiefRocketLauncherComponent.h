@@ -16,6 +16,9 @@ class TIMETHIEF_API UTimeThiefRocketLauncherComponent : public UTimeThiefWeaponC
 
 public:
 	UTimeThiefRocketLauncherComponent();
+	
+	float GetProjectileSpeed() const { return ProjectileSpeed; }
+	float GetExplosionRadius() const { return ExplosionRadius; }
 
 protected:
 	virtual void ExecuteFireShot() override;
@@ -47,7 +50,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
 	TObjectPtr<UAnimSequenceBase> FireAnimation;
 	
-	// TODO: 아래 정보를 Projectile에 적용해야 한다	
 	UPROPERTY()
 	float ProjectileSpeed = 3000.0f;
 	
