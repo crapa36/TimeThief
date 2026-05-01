@@ -133,3 +133,15 @@ void AServerMapExportTestActor::ExportTaggedActorsResolved()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportTaggedActorsResolved result: %s"), bResult ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
+
+void AServerMapExportTestActor::ReplaceSelectedActorWithStaticMeshActors()
+{
+#if WITH_EDITOR
+	UWorld* World = GetWorld();
+	const int32 CreatedCount = ServerMapExporter::ReplaceSelectedActorWithStaticMeshActors(World, RequiredActorTag);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[ServerMapTest] ReplaceSelectedActorWithStaticMeshActors Created=%d"),
+		CreatedCount);
+#endif
+}

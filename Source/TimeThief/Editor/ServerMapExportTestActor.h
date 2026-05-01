@@ -92,4 +92,8 @@ public:
 	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
 	void ExportTaggedActorsResolved();
 	
+public:
+	UFUNCTION(CallInEditor, Category = "ServerMap|Utility")
+	void ReplaceSelectedActorWithStaticMeshActors();
+	
 };

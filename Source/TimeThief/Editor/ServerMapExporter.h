@@ -45,7 +45,11 @@ public:
 	static UShapeComponent* CreateShapeComponentFromPresetCollider(AActor* OwnerActor, USceneComponent* AttachParent, const FServerCollisionPresetCollider& PresetCollider);
 	static int32 SpawnPresetShapesForActorsWithTag(UWorld* World, const FName& RequiredTag, bool bClearExistingPresetShapes);
 	
+// 맵 데이터 정리용
+	
 	static void CheckSelectedActorsStaticMeshActor();
+	
+	static int32 ReplaceSelectedActorWithStaticMeshActors(UWorld* World, const FName& AddTag);
 	
 private:
 	static AActor* GetFirstSelectedActor();
