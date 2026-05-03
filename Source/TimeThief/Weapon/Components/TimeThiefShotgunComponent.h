@@ -48,6 +48,9 @@ protected:
 	void PlayFireEffects();
 	void PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults);
 	virtual void ApplyRecoilAndSpread() override;
+	
+public:
+	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float DamagePerPellet = 12.0f;

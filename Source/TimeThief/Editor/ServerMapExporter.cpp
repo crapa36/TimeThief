@@ -27,6 +27,7 @@
 #include "AssetToolsModule.h"
 #include "Factories/DataAssetFactory.h"
 #include "UObject/SavePackage.h"
+#include "Engine/StaticMeshActor.h"
 #endif
 
 namespace
@@ -830,6 +831,292 @@ int32 ServerMapExporter::SpawnPresetShapesForActorsWithTag(UWorld* World, const 
 	}
 
 	return SpawnedActorCount;
+}
+
+void ServerMapExporter::AddCollisionTagToActors()
+{
+#if WITH_EDITOR
+	TArray<AActor*> SelectedActors;
+	GetSelectedActors(SelectedActors);
+
+	if (SelectedActors.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMap] No selected actors."));
+		return;
+	}
+
+	for (AActor* Actor : SelectedActors)
+	{
+		if (!Actor) continue;
+
+		// 예: StaticMeshActor만 처리하고 싶다면
+		if (!Actor->IsA<AStaticMeshActor>())
+			continue;
+
+		// 이미 Tag 있으면 추가 안함 (중복 방지)
+		if (!Actor->Tags.Contains(ServerTags::Collision))
+		{
+			Actor->Modify(); // Undo 지원
+			Actor->Tags.Add(ServerTags::Collision);
+		}
+	}
+#endif
+}
+
+void ServerMapExporter::CheckSelectedActorsStaticMeshActor()
+{
+#if WITH_EDITOR
+	TArray<AActor*> SelectedActors;
+	GetSelectedActors(SelectedActors);
+
+	if (SelectedActors.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMap] No selected actors."));
+		return;
+	}
+
+	int32 OkCount = 0;
+	int32 WarningCount = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("========== [ServerMap] Check Selected Actors =========="));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMap] Selected Actor Count: %d"), SelectedActors.Num());
+
+	for (AActor* Actor : SelectedActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		const FString ActorName = Actor->GetName();
+		const FString ClassName = Actor->GetClass()->GetName();
+
+		AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(Actor);
+		if (StaticMeshActor == nullptr)
+		{
+			++WarningCount;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap][WARN] Not StaticMeshActor: Actor=%s, Class=%s"),
+				*ActorName,
+				*ClassName);
+
+			continue;
+		}
+
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+
+		if (StaticMeshComponents.Num() != 1)
+		{
+			++WarningCount;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap][WARN] StaticMeshActor but StaticMeshComponent count != 1: Actor=%s, Count=%d"),
+				*ActorName,
+				StaticMeshComponents.Num());
+
+			continue;
+		}
+
+		UStaticMeshComponent* StaticMeshComponent = StaticMeshComponents[0];
+		if (StaticMeshComponent == nullptr || StaticMeshComponent->GetStaticMesh() == nullptr)
+		{
+			++WarningCount;
+
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap][WARN] StaticMeshActor has no StaticMesh: Actor=%s"),
+				*ActorName);
+
+			continue;
+		}
+
+		++OkCount;
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[ServerMap][OK] Actor=%s, StaticMesh=%s"),
+			*ActorName,
+			*StaticMeshComponent->GetStaticMesh()->GetName());
+	}
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[ServerMap] Result: OK=%d, WARN=%d, Total=%d"),
+		OkCount,
+		WarningCount,
+		SelectedActors.Num());
+
+	UE_LOG(LogTemp, Log, TEXT("======================================================"));
+#endif
+}
+
+int32 ServerMapExporter::ReplaceSelectedActorWithStaticMeshActors(UWorld* World, const FName& AddTag)
+{
+	#if WITH_EDITOR
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMap] World is null."));
+		return 0;
+	}
+
+	AActor* SourceActor = GetFirstSelectedActor();
+	if (SourceActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMap] No selected actor."));
+		return 0;
+	}
+
+	if (SourceActor->IsA<AStaticMeshActor>())
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[ServerMap] Selected actor is already StaticMeshActor: %s"),
+			*SourceActor->GetActorLabel());
+
+		return 0;
+	}
+
+	TArray<UStaticMeshComponent*> SourceMeshComponents;
+	SourceActor->GetComponents<UStaticMeshComponent>(SourceMeshComponents);
+
+	if (SourceMeshComponents.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning,
+			TEXT("[ServerMap] Selected actor has no StaticMeshComponents: %s"),
+			*SourceActor->GetActorLabel());
+
+		return 0;
+	}
+
+	const FScopedTransaction Transaction(
+		NSLOCTEXT("ServerMap", "ReplaceSelectedActorWithStaticMeshActors", "Replace Selected Actor With StaticMeshActors")
+	);
+
+	SourceActor->Modify();
+
+	int32 CreatedCount = 0;
+	
+	SourceActor->UpdateComponentTransforms();
+
+	for (UStaticMeshComponent* SourceComp : SourceMeshComponents)
+	{
+		if (SourceComp == nullptr)
+		{
+			continue;
+		}
+
+		UStaticMesh* StaticMesh = SourceComp->GetStaticMesh();
+		if (StaticMesh == nullptr)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap] Skip component with null StaticMesh. Actor=%s, Component=%s"),
+				*SourceActor->GetActorLabel(),
+				*SourceComp->GetName());
+
+			continue;
+		}
+
+		const FTransform NewActorWorldTransform = SourceComp->GetComponentTransform();
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Name = NAME_None;
+		SpawnParams.ObjectFlags = RF_Transactional;
+
+		AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(
+			AStaticMeshActor::StaticClass(),
+			NewActorWorldTransform,
+			SpawnParams
+		);
+
+		if (NewActor != nullptr)
+		{
+			NewActor->SetActorTransform(NewActorWorldTransform);
+		}
+
+		if (NewActor == nullptr)
+		{
+			UE_LOG(LogTemp, Warning,
+				TEXT("[ServerMap] Failed to spawn StaticMeshActor. Actor=%s, Component=%s"),
+				*SourceActor->GetActorLabel(),
+				*SourceComp->GetName());
+
+			continue;
+		}
+
+		NewActor->Modify();
+
+		const FString NewLabel = FString::Printf(
+			TEXT("%s_%s"),
+			*SourceActor->GetActorLabel(),
+			*SourceComp->GetName()
+		);
+
+		NewActor->SetActorLabel(NewLabel);
+
+		UStaticMeshComponent* NewComp = NewActor->GetStaticMeshComponent();
+		if (NewComp != nullptr)
+		{
+			NewComp->Modify();
+
+			NewComp->SetStaticMesh(StaticMesh);
+			NewComp->SetMobility(SourceComp->Mobility);
+
+			// 원본 컴포넌트의 월드 Transform을 Actor Transform으로 가져왔기 때문에
+			// StaticMeshComponent의 Relative Transform은 기본값으로 둔다.
+			// NewComp->SetRelativeLocation(FVector::ZeroVector);
+			// NewComp->SetRelativeRotation(FRotator::ZeroRotator);
+			// NewComp->SetRelativeScale3D(FVector::OneVector);
+
+			// RootComponent이므로 Relative Transform 건드리지 말 것.
+			// 대신 Actor Transform을 마지막에 다시 확정.
+			NewActor->SetActorTransform(NewActorWorldTransform);
+			
+			// Collision 설정 일부 복사
+			NewComp->SetCollisionEnabled(SourceComp->GetCollisionEnabled());
+			NewComp->SetCollisionProfileName(SourceComp->GetCollisionProfileName());
+			NewComp->SetGenerateOverlapEvents(SourceComp->GetGenerateOverlapEvents());
+
+			// 머티리얼 Override 복사
+			const int32 MaterialCount = SourceComp->GetNumMaterials();
+			for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+			{
+				if (UMaterialInterface* Material = SourceComp->GetMaterial(MaterialIndex))
+				{
+					NewComp->SetMaterial(MaterialIndex, Material);
+				}
+			}
+		}
+
+		if (!AddTag.IsNone())
+		{
+			NewActor->Tags.AddUnique(AddTag);
+		}
+
+		NewActor->Tags.AddUnique(TEXT("GeneratedFromBlueprintStaticMesh"));
+		NewActor->Tags.AddUnique(FName(*FString::Printf(TEXT("Source_%s"), *SourceActor->GetActorLabel())));
+
+		++CreatedCount;
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[ServerMap] Created StaticMeshActor: %s / Mesh=%s"),
+			*NewActor->GetActorLabel(),
+			*StaticMesh->GetName());
+	}
+
+	if (CreatedCount > 0)
+	{
+		// 원본은 바로 삭제하지 말고 일단 숨김 처리
+		SourceActor->SetIsTemporarilyHiddenInEditor(true);
+		SourceActor->Tags.Remove(AddTag);
+
+		UE_LOG(LogTemp, Log,
+			TEXT("[ServerMap] Source actor hidden: %s / Created=%d"),
+			*SourceActor->GetActorLabel(),
+			CreatedCount);
+	}
+
+	return CreatedCount;
+#else
+	return 0;
+#endif
 }
 
 AActor* ServerMapExporter::GetFirstSelectedActor()
@@ -2335,8 +2622,35 @@ FString ServerMapExporter::MakeDebugJsonOutputPath(const FString& BinaryOutputPa
 	return Directory / (BaseName + TEXT(".debug.json"));
 }
 
+void ServerMapExporter::GetSelectedActors(TArray<AActor*>& OutActors)
+{
+#if WITH_EDITOR
+	OutActors.Reset();
+
+	if (GEditor == nullptr)
+	{
+		return;
+	}
+
+	USelection* Selection = GEditor->GetSelectedActors();
+	if (Selection == nullptr)
+	{
+		return;
+	}
+
+	for (FSelectionIterator It(*Selection); It; ++It)
+	{
+		AActor* Actor = Cast<AActor>(*It);
+		if (Actor != nullptr)
+		{
+			OutActors.Add(Actor);
+		}
+	}
+#endif
+}
+
 void ServerMapExporter::AppendDebugRecord(const AActor* Actor, const UActorComponent* Component,
-	const se::map::ColliderData& ColliderData, TArray<FServerMapColliderDebugRecord>& OutDebugRecords)
+                                          const se::map::ColliderData& ColliderData, TArray<FServerMapColliderDebugRecord>& OutDebugRecords)
 {
 	FServerMapColliderDebugRecord Record;
 	Record.ActorName = GetNameSafe(Actor);

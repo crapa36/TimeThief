@@ -54,6 +54,9 @@ public:
 	
 	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
 	void ExportSelectedActorResolved();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Selected")
+	void CheckSelectedActorsStaticMeshActor();
 
 public:
 	// =============================
@@ -88,5 +91,16 @@ public:
 
 	UFUNCTION(CallInEditor, Category = "ServerMap|Batch")
 	void ExportTaggedActorsResolved();
+	
+public:
+	// =============================
+	// Utility
+	// =============================
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Utility")
+	void ReplaceSelectedActorWithStaticMeshActors();
+	
+	UFUNCTION(CallInEditor, Category = "ServerMap|Utility")
+	void AddCollisionTagToSelectedActor();
 	
 };

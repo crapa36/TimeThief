@@ -47,6 +47,13 @@ void AServerMapExportTestActor::ExportSelectedActorResolved()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
+void AServerMapExportTestActor::CheckSelectedActorsStaticMeshActor()
+{
+#if WITH_EDITOR
+	ServerMapExporter::CheckSelectedActorsStaticMeshActor();
+#endif
+}
+
 void AServerMapExportTestActor::LoadPresetShapesForSelectedActor()
 {
 	const bool bResult = ServerMapExporter::SpawnPresetShapesForSelectedActor(
@@ -125,4 +132,25 @@ void AServerMapExportTestActor::ExportTaggedActorsResolved()
 
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportTaggedActorsResolved result: %s"), bResult ? TEXT("true") : TEXT("false"));
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
+void AServerMapExportTestActor::ReplaceSelectedActorWithStaticMeshActors()
+{
+#if WITH_EDITOR
+	UWorld* World = GetWorld();
+	const int32 CreatedCount = ServerMapExporter::ReplaceSelectedActorWithStaticMeshActors(World, RequiredActorTag);
+
+	UE_LOG(LogTemp, Log,
+		TEXT("[ServerMapTest] ReplaceSelectedActorWithStaticMeshActors Created=%d"),
+		CreatedCount);
+#endif
+}
+
+void AServerMapExportTestActor::AddCollisionTagToSelectedActor()
+{
+#if WITH_EDITOR
+	ServerMapExporter::AddCollisionTagToActors();
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] AddCollisionTagToSelectedActor executed"));
+#endif
 }

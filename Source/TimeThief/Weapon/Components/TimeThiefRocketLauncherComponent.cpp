@@ -20,6 +20,10 @@ UTimeThiefRocketLauncherComponent::UTimeThiefRocketLauncherComponent()
 
 void UTimeThiefRocketLauncherComponent::ExecuteFireShot()
 {
+	// Network에서는 PlayFireEffect만 하는 식으로...
+	// PlayFireEffects();
+	// Projectile Spawn은 HandleSpawn에서...
+	
 	if (SpawnRocketProjectile())
 	{
 		PlayFireEffects();
@@ -138,6 +142,14 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	}
 
 	return false;
+}
+
+void UTimeThiefRocketLauncherComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
+{
+	Super::SetWeaponStatForNetwork(InStatData);
+	
+	ProjectileSpeed = InStatData.ProjectileSpeed;
+	ExplosionRadius = InStatData.ExplosionRadius;
 }
 
 void UTimeThiefRocketLauncherComponent::PlayFireEffects()

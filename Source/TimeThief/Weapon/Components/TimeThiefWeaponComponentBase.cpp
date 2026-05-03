@@ -71,6 +71,17 @@ void UTimeThiefWeaponComponentBase::OnUnequipped() {
 	StopFire();
 }
 
+void UTimeThiefWeaponComponentBase::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
+{
+	MaxAmmo = InStatData.MagCapacity;
+	
+	const float FireInterval = InStatData.FireInterval;
+	FireRate = FireInterval > KINDA_SMALL_NUMBER ? 60.0f / FireInterval : 0.0f;				// RPM 계산
+	RoundsPerSecond = FireInterval > KINDA_SMALL_NUMBER ? 1.0f / FireInterval : 0.0f;		// RPS 계산
+	
+	ReloadTime = InStatData.ReloadTime;
+}
+
 void UTimeThiefWeaponComponentBase::StartFire() {
 	bWantsToFire = true;
 	if (bIsReloading || bIsFiring) return;
