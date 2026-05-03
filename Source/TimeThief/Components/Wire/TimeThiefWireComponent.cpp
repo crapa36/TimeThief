@@ -1,7 +1,10 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/Wire/TimeThiefWirePhysics.h"
 #include "Components/Wire/TimeThiefWireTargeting.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefGameplayTags.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -200,6 +203,8 @@ void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
 		UGameplayStatics::PlaySoundAtLocation(this, AttachSound, AnchorPoint);
 	}
 
+	PlayAttachedWireMontage();
+
 	OnWireAttached.Broadcast(AnchorPoint);
 	SetComponentTickEnabled(true);
 	UpdateWireVisuals();
@@ -261,12 +266,48 @@ void UTimeThiefWireComponent::UpdateCooldown(float DeltaTime)
 
 bool UTimeThiefWireComponent::CanFireWire() const
 {
-	return CurrentState == EWireState::Idle && CooldownRemaining <= 0.0f;
+	return CurrentState == EWireState::Idle && CooldownRemaining <= 0.0f && !bPendingWireFire;
 }
 
 void UTimeThiefWireComponent::FireWire()
 {
-	if (!CanFireWire()) return;
+	if (CurrentState != EWireState::Idle) return;
+	if (CooldownRemaining > 0.0f || bPendingWireFire) return;
+
+	bPendingWireFire = true;
+
+	bool bHasFireNotify = false;
+	if (!PlayWireFireMontage(bHasFireNotify))
+	{
+		CancelWireFire();
+		LaunchWire();
+		return;
+	}
+
+	bFireOnMontageEnded = !bHasFireNotify;
+}
+
+void UTimeThiefWireComponent::ConfirmWireFire()
+{
+	if (!bPendingWireFire) return;
+
+	ClearWireFireAnimation(true);
+
+	if (CurrentState != EWireState::Idle) return;
+
+	LaunchWire();
+}
+
+void UTimeThiefWireComponent::CancelWireFire()
+{
+	if (!bPendingWireFire) return;
+
+	ClearWireFireAnimation(true);
+}
+
+void UTimeThiefWireComponent::LaunchWire()
+{
+	if (CurrentState != EWireState::Idle) return;
 
 	const FVector WireStartLocation = GetWireStartLocation();
 
@@ -315,8 +356,189 @@ void UTimeThiefWireComponent::FireWire()
 	SetWireState(EWireState::Firing);
 }
 
+bool UTimeThiefWireComponent::PlayWireFireMontage(bool& bOutHasFireNotify)
+{
+	bOutHasFireNotify = false;
+	if (!FireMontage) return false;
+
+	UAnimInstance* AnimInstance = GetWireMontageAnimInstance();
+	if (!AnimInstance) return false;
+
+	const float MontageLength = AnimInstance->Montage_Play(FireMontage);
+	if (MontageLength <= 0.0f) return false;
+
+	PlayMontageOnWireMeshes(FireMontage, AnimInstance);
+	bOutHasFireNotify = DoesMontageContainWireFireNotify(FireMontage);
+	BindWireFireAnimation(AnimInstance, FireMontage);
+	return true;
+}
+
+void UTimeThiefWireComponent::PlayAttachedWireMontage()
+{
+	if (!AttachedMontage) return;
+
+	UAnimInstance* AnimInstance = GetWireMontageAnimInstance();
+	if (!AnimInstance) return;
+
+	if (AnimInstance->Montage_Play(AttachedMontage) > 0.0f)
+	{
+		PlayMontageOnWireMeshes(AttachedMontage, AnimInstance);
+	}
+}
+
+bool UTimeThiefWireComponent::DoesMontageContainWireFireNotify(const UAnimMontage* Montage) const
+{
+	if (!Montage || WireFireNotifyName.IsNone()) return false;
+
+	const FString NotifyNameString = WireFireNotifyName.ToString();
+	const FName NotifyEventName = GetWireFireNotifyEventName();
+	const bool bCanHandleNamedNotify = FindFunction(NotifyEventName) != nullptr;
+
+	for (const FAnimNotifyEvent& NotifyEvent : Montage->Notifies)
+	{
+		if (bCanHandleNamedNotify && NotifyEvent.NotifyName == WireFireNotifyName)
+		{
+			return true;
+		}
+
+		if (NotifyEvent.Notify && NotifyEvent.Notify->GetNotifyName() == NotifyNameString)
+		{
+			return true;
+		}
+
+		if (NotifyEvent.NotifyStateClass && NotifyEvent.NotifyStateClass->GetNotifyName() == NotifyNameString)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+UAnimInstance* UTimeThiefWireComponent::GetWireMontageAnimInstance() const
+{
+	if (!IsValid(CachedCharacter)) return nullptr;
+
+	USkeletalMeshComponent* MontageMesh = CachedCharacter->GetMesh();
+	if (const ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CachedCharacter))
+	{
+		MontageMesh = CharacterBase->GetMontagePlaybackMesh();
+	}
+
+	return MontageMesh ? MontageMesh->GetAnimInstance() : nullptr;
+}
+
+void UTimeThiefWireComponent::PlayMontageOnWireMeshes(UAnimMontage* Montage, UAnimInstance* PrimaryAnimInstance)
+{
+	if (!Montage || !IsValid(CachedCharacter)) return;
+
+	if (const ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CachedCharacter))
+	{
+		TArray<USkeletalMeshComponent*, TInlineAllocator<2>> Meshes;
+		Meshes.Add(CharacterBase->GetThirdPersonMesh());
+		Meshes.AddUnique(CharacterBase->GetFirstPersonMesh());
+
+		for (USkeletalMeshComponent* Mesh : Meshes)
+		{
+			UAnimInstance* AnimInstance = Mesh ? Mesh->GetAnimInstance() : nullptr;
+			if (AnimInstance && AnimInstance != PrimaryAnimInstance)
+			{
+				AnimInstance->Montage_Play(Montage);
+			}
+		}
+		return;
+	}
+
+	if (USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh())
+	{
+		if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance(); AnimInstance && AnimInstance != PrimaryAnimInstance)
+		{
+			AnimInstance->Montage_Play(Montage);
+		}
+	}
+}
+
+void UTimeThiefWireComponent::BindWireFireAnimation(UAnimInstance* AnimInstance, UAnimMontage* Montage)
+{
+	PendingFireAnimInstance = AnimInstance;
+	PendingFireMontage = Montage;
+	PendingWireFireNotifyName = WireFireNotifyName;
+	PendingWireFireNotifyEventName = GetWireFireNotifyEventName();
+
+	AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UTimeThiefWireComponent::OnWireFireMontageNotify);
+
+	if (FindFunction(PendingWireFireNotifyEventName))
+	{
+		AnimInstance->AddExternalNotifyHandler(this, PendingWireFireNotifyEventName);
+	}
+
+	FOnMontageEnded MontageEndedDelegate;
+	MontageEndedDelegate.BindUObject(this, &UTimeThiefWireComponent::OnWireFireMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, Montage);
+}
+
+void UTimeThiefWireComponent::ClearWireFireAnimation(bool bClearMontageEndDelegate)
+{
+	if (PendingFireAnimInstance)
+	{
+		PendingFireAnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UTimeThiefWireComponent::OnWireFireMontageNotify);
+
+		if (FindFunction(PendingWireFireNotifyEventName))
+		{
+			PendingFireAnimInstance->RemoveExternalNotifyHandler(this, PendingWireFireNotifyEventName);
+		}
+
+		if (bClearMontageEndDelegate && PendingFireMontage)
+		{
+			FOnMontageEnded EmptyDelegate;
+			PendingFireAnimInstance->Montage_SetEndDelegate(EmptyDelegate, PendingFireMontage);
+		}
+	}
+
+	PendingFireAnimInstance = nullptr;
+	PendingFireMontage = nullptr;
+	PendingWireFireNotifyName = NAME_None;
+	PendingWireFireNotifyEventName = NAME_None;
+	bPendingWireFire = false;
+	bFireOnMontageEnded = false;
+}
+
+FName UTimeThiefWireComponent::GetWireFireNotifyEventName() const
+{
+	return FName(*FString::Printf(TEXT("AnimNotify_%s"), *WireFireNotifyName.ToString()));
+}
+
+void UTimeThiefWireComponent::OnWireFireMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != PendingFireMontage) return;
+
+	const bool bShouldFire = bPendingWireFire && bFireOnMontageEnded && !bInterrupted;
+	ClearWireFireAnimation(false);
+
+	if (bShouldFire && CurrentState == EWireState::Idle)
+	{
+		LaunchWire();
+	}
+}
+
+void UTimeThiefWireComponent::OnWireFireMontageNotify(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
+{
+	if (!bPendingWireFire) return;
+	if (NotifyName != PendingWireFireNotifyName) return;
+	if (BranchingPointNotifyPayload.SequenceAsset != PendingFireMontage) return;
+
+	ConfirmWireFire();
+}
+
+void UTimeThiefWireComponent::AnimNotify_WireFire()
+{
+	ConfirmWireFire();
+}
+
 void UTimeThiefWireComponent::ReleaseWire()
 {
+	CancelWireFire();
+
 	if (CurrentState == EWireState::Idle) return;
 
 	if (CurrentState == EWireState::Attached)
@@ -402,6 +624,8 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 void UTimeThiefWireComponent::OnAnchorAttached()
 {
 	if (!IsValid(CachedMovementComponent)) return;
+
+	PlayAttachedWireMontage();
 
 	if (AttachSound)
 	{
