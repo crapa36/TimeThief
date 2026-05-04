@@ -9,8 +9,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "CableComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundBase.h"
 #include "Particles/ParticleSystem.h"
@@ -30,21 +30,25 @@ UTimeThiefWireComponent::UTimeThiefWireComponent(const FObjectInitializer& Objec
 	WirePhysics = CreateDefaultSubobject<UTimeThiefWirePhysics>(TEXT("WirePhysics"));
 	WireTargeting = CreateDefaultSubobject<UTimeThiefWireTargeting>(TEXT("WireTargeting"));
 
-	WireMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WireMeshComponent"));
-	WireMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WireMeshComponent->SetCastShadow(false);
-	WireMeshComponent->SetVisibility(false);
+	WireCable = CreateDefaultSubobject<UCableComponent>(TEXT("WireCable"));
+	WireCable->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WireCable->SetCastShadow(false);
+	WireCable->SetVisibility(false);
+	WireCable->bAttachStart = true;
+	WireCable->bAttachEnd = true;
+	WireCable->CableLength = 0.0f;
+	WireCable->CableWidth = WireThickness;
+	WireCable->EndLocation = FVector::ZeroVector;
+	WireCable->SolverIterations = FMath::Clamp(FiringCableSolverIterations, 1, 16);
+	WireCable->bEnableStiffness = bFiringCableEnableStiffness;
+	WireCable->CableGravityScale = FiringCableGravityScale;
+	WireCable->bSkipCableUpdateWhenNotVisible = true;
+	ApplyWireCableStaticSettings(false);
 
 	AnchorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AnchorMeshComponent"));
 	AnchorMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AnchorMeshComponent->SetCastShadow(false);
 	AnchorMeshComponent->SetVisibility(false);
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMeshAsset(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-	if (CylinderMeshAsset.Succeeded())
-	{
-		WireMeshComponent->SetStaticMesh(CylinderMeshAsset.Object);
-	}
 }
 
 void UTimeThiefWireComponent::BeginPlay()
@@ -68,31 +72,27 @@ void UTimeThiefWireComponent::BeginPlay()
 		USkeletalMeshComponent* SkeletalMesh = CachedCharacter->GetMesh();
 		if (SkeletalMesh && SkeletalMesh->DoesSocketExist(WireStartSocketName))
 		{
-			WireMeshComponent->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
+			WireCable->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
 		}
 		else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
 		{
-			WireMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-		}
-
-		if (WireMeshTemplate)
-		{
-			WireMeshComponent->SetStaticMesh(WireMeshTemplate);
+			WireCable->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
 
 		if (WireMaterial)
 		{
-			WireMeshComponent->SetMaterial(0, WireMaterial);
+			WireCable->SetMaterial(0, WireMaterial);
 		}
+		WireCable->AddTickPrerequisiteComponent(this);
 
-		if (SkeletalMesh)
-		{
-			AnchorMeshComponent->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::KeepWorldTransform);
-		}
-		else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
+		if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
 		{
 			AnchorMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
+		WireCable->SetAttachEndToComponent(AnchorMeshComponent);
+		WireCable->EndLocation = FVector::ZeroVector;
+		AnchorMeshComponent->SetAbsolute(true, true, true);
+		ApplyWireCableStaticSettings(true);
 
 		if (AnchorMeshTemplate)
 		{
@@ -849,13 +849,71 @@ FVector UTimeThiefWireComponent::GetWireStartLocation() const
 	return CachedCharacter->GetActorLocation();
 }
 
+float UTimeThiefWireComponent::GetWireCableTautnessAlpha(float CurrentDistance) const
+{
+	if (CurrentState != EWireState::Attached)
+	{
+		return 0.0f;
+	}
+
+	const float LengthTolerance = FMath::Max(WireLengthUpdateTolerance, 1.0f);
+	const float LengthSlack = AttachedWireLength - CurrentDistance;
+	const float LengthAlpha = 1.0f - FMath::Clamp(LengthSlack / LengthTolerance, 0.0f, 1.0f);
+
+	if (!WirePhysics)
+	{
+		return LengthAlpha;
+	}
+
+	const float DistanceError = FMath::Max(CurrentDistance - AttachedWireLength, 0.0f);
+	const float SpringForce = DistanceError * FMath::Max(WirePhysics->SpringStiffness, 0.0f);
+
+	float DampingForce = 0.0f;
+	if (IsValid(CachedMovementComponent))
+	{
+		const FVector WireDirection = (GetPullAnchorPoint() - GetWireStartLocation()).GetSafeNormal();
+		const float RadialVelocity = FVector::DotProduct(CachedMovementComponent->Velocity, WireDirection);
+		DampingForce = FMath::Max(-RadialVelocity * FMath::Max(WirePhysics->SpringDamping, 0.0f), 0.0f);
+	}
+
+	const float PullForce = FMath::Max(WirePhysics->PullForce, 0.0f);
+	const float SpringReferenceForce = FMath::Max(WirePhysics->SpringStiffness, 0.0f) * LengthTolerance;
+	const float ReferenceForce = FMath::Max(PullForce + SpringReferenceForce, 1.0f);
+	const float ForceAlpha = FMath::Clamp((PullForce + SpringForce + DampingForce) / ReferenceForce, 0.0f, 1.0f);
+
+	return FMath::Max(LengthAlpha, ForceAlpha);
+}
+
+void UTimeThiefWireComponent::ApplyWireCableStaticSettings(bool bRecreateSimulation)
+{
+	if (!WireCable)
+	{
+		return;
+	}
+
+	const int32 NumSegments = FMath::Clamp(WireCableNumSegments, 1, 20);
+	const int32 NumSides = FMath::Clamp(WireCableNumSides, 1, 16);
+
+	WireCable->NumSegments = NumSegments;
+	WireCable->NumSides = NumSides;
+	WireCable->TileMaterial = WireCableTileMaterial;
+	WireCable->SubstepTime = FMath::Max(WireCableSubstepTime, 0.005f);
+	WireCable->bResetAfterTeleport = bWireCableResetAfterTeleport;
+	WireCable->bTeleportAfterReattach = bWireCableTeleportAfterReattach;
+
+	if (bRecreateSimulation && WireCable->IsRegistered())
+	{
+		WireCable->ReregisterComponent();
+	}
+}
+
 void UTimeThiefWireComponent::UpdateWireVisuals()
 {
-	if (!WireMeshComponent || !AnchorMeshComponent) return;
+	if (!WireCable || !AnchorMeshComponent) return;
 
 	if (CurrentState == EWireState::Idle)
 	{
-		WireMeshComponent->SetVisibility(false);
+		WireCable->SetVisibility(false);
 		AnchorMeshComponent->SetVisibility(false);
 		return;
 	}
@@ -882,25 +940,36 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 
 	if (Distance < KINDA_SMALL_NUMBER)
 	{
-		WireMeshComponent->SetVisibility(false);
+		WireCable->SetVisibility(false);
 		AnchorMeshComponent->SetVisibility(false);
 		return;
 	}
 
-	WireMeshComponent->SetVisibility(true);
+	WireCable->SetWorldLocation(Start);
+	WireCable->CableWidth = FMath::Max(WireThickness, 0.01f);
+	WireCable->EndLocation = AnchorMeshComponent->GetComponentTransform().InverseTransformPosition(End);
+
+	const float TautnessAlpha = GetWireCableTautnessAlpha(Distance);
+	const float SlackMultiplier = FMath::Lerp(FiringCableSlackMultiplier, TautCableSlackMultiplier, TautnessAlpha);
+	const float GravityScale = FMath::Lerp(FiringCableGravityScale, TautCableGravityScale, TautnessAlpha);
+	const int32 SolverIterations = FMath::RoundToInt(FMath::Lerp(static_cast<float>(FiringCableSolverIterations), static_cast<float>(TautCableSolverIterations), TautnessAlpha));
+	const bool bEnableStiffness = TautnessAlpha >= 0.5f ? bTautCableEnableStiffness : bFiringCableEnableStiffness;
+	const float TeleportDistanceThreshold = FMath::Lerp(
+		FMath::Max(FiringCableTeleportDistanceThreshold, 0.01f),
+		FMath::Max(TautCableTeleportDistanceThreshold, 0.01f),
+		TautnessAlpha);
+
+	WireCable->CableLength = Distance * FMath::Max(SlackMultiplier, 1.0f);
+	WireCable->CableGravityScale = GravityScale;
+	WireCable->SolverIterations = FMath::Clamp(SolverIterations, 1, 16);
+	WireCable->bEnableStiffness = bEnableStiffness;
+	WireCable->TeleportDistanceThreshold = TeleportDistanceThreshold;
+	WireCable->SubstepTime = FMath::Max(WireCableSubstepTime, 0.005f);
+	WireCable->TileMaterial = WireCableTileMaterial;
+	WireCable->bResetAfterTeleport = bWireCableResetAfterTeleport;
+	WireCable->bTeleportAfterReattach = bWireCableTeleportAfterReattach;
+	WireCable->SetVisibility(true);
 	AnchorMeshComponent->SetVisibility(true);
-
-	const FVector Direction = (End - Start) / Distance;
-	const FVector CenterLocation = (Start + End) * 0.5f;
-	const FRotator Rotation = Direction.Rotation() + FRotator(-90.0f, 0.0f, 0.0f);
-	
-	const float LengthScale = Distance / 100.0f;
-	const float ThicknessScale = WireThickness / 100.0f;
-	const FVector Scale = FVector(ThicknessScale, ThicknessScale, LengthScale);
-
-	WireMeshComponent->SetWorldLocation(CenterLocation);
-	WireMeshComponent->SetWorldRotation(Rotation);
-	WireMeshComponent->SetWorldScale3D(Scale);
 }
 
 void UTimeThiefWireComponent::UpdateTargetIndicator()

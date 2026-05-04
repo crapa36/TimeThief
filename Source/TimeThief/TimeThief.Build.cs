@@ -12,6 +12,7 @@ public class TimeThief : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"CableComponent",
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",
