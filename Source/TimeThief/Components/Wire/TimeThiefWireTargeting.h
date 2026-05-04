@@ -59,6 +59,18 @@ public:
 	// 필터링에 사용하는 기본 픽셀 반경
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
 	float ScreenTargetingRadiusPx = 180.0f;
+
+	// 에임 주변 얇은 타겟 후보를 찾는 월드 스윕 반경
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
+	float ThinTargetObjectProbeRadius = 80.0f;
+
+	// 얇은 타겟 후보 주변 정밀 샘플 픽셀 반경
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
+	float ThinTargetRefineRadiusPx = 24.0f;
+
+	// 얇은 타겟 후보 주변 정밀 샘플 픽셀 간격
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
+	float ThinTargetRefinePixelStep = 4.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
 	TArray<TEnumAsByte<EObjectTypeQuery>> CollisionObjectTypes;

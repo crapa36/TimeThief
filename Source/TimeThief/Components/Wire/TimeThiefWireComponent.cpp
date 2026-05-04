@@ -167,7 +167,7 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 		UpdateSpeedEffects(DeltaTime);
 		break;
 	default:
-		UpdateTargetIndicator();
+		UpdateTargetIndicator(DeltaTime);
 		ResetSpeedEffects(DeltaTime);
 		break;
 	}
@@ -972,32 +972,46 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 	AnchorMeshComponent->SetVisibility(true);
 }
 
-void UTimeThiefWireComponent::UpdateTargetIndicator()
+void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 {
 	if (!CanFireWire())
 	{
+		TargetIndicatorRefreshTimer = 0.0f;
+		bHasCachedTargetIndicator = false;
 		return;
 	}
 
-	FVector CamLoc = GetWireStartLocation();
-	FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
-		GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
-
-	if (IsValid(CachedCharacter))
+	TargetIndicatorRefreshTimer -= DeltaTime;
+	if (TargetIndicatorRefreshTimer <= 0.0f)
 	{
-		if (!UTimeThiefAimStatics::ResolveAimView(CachedCharacter, CamLoc, AimDirection))
+		FVector CamLoc = GetWireStartLocation();
+		FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
+			GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
+
+		if (IsValid(CachedCharacter))
 		{
-			CamLoc = CachedCharacter->GetPawnViewLocation();
-			AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
+			if (!UTimeThiefAimStatics::ResolveAimView(CachedCharacter, CamLoc, AimDirection))
+			{
+				CamLoc = CachedCharacter->GetPawnViewLocation();
+				AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
+			}
 		}
+
+		AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
+
+		FVector TargetLocation = FVector::ZeroVector;
+		bHasCachedTargetIndicator = WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength);
+		if (bHasCachedTargetIndicator)
+		{
+			CachedTargetIndicatorLocation = TargetLocation;
+		}
+
+		TargetIndicatorRefreshTimer = FMath::Max(TargetIndicatorUpdateInterval, 0.0f);
 	}
 
-	AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
-
-	FVector TargetLocation;
-	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
+	if (bHasCachedTargetIndicator)
 	{
-		DrawDebugPoint(GetWorld(), TargetLocation, 20.0f, FColor::Red, false, -1.0f, 0);
+		DrawDebugPoint(GetWorld(), CachedTargetIndicatorLocation, 20.0f, FColor::Red, false, -1.0f, 0);
 	}
 }
 

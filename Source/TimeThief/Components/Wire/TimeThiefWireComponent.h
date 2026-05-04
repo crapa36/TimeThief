@@ -132,7 +132,7 @@ private:
 	float GetWireCableTautnessAlpha(float CurrentDistance) const;
 	void ApplyWireCableStaticSettings(bool bRecreateSimulation);
 	void UpdateWireVisuals();
-	void UpdateTargetIndicator();
+	void UpdateTargetIndicator(float DeltaTime);
 
 	void UpdateSpeedEffects(float DeltaTime);
 	void ResetSpeedEffects(float DeltaTime);
@@ -191,6 +191,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay, ClampMin = "0.0", UIMin = "0.0"))
 	float PullAnchorHeightOffset = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float TargetIndicatorUpdateInterval = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
 	TObjectPtr<USoundBase> FireSound;
@@ -347,10 +350,13 @@ private:
 	bool CachedUseControllerRotationYaw = false;
 	float StuckCheckTimer = 0.0f;
 	float GroundCheckTimer = 0.0f;
+	float TargetIndicatorRefreshTimer = 0.0f;
 	float DefaultFOV = 90.0f;
 	float CurrentFOVOffset = 0.0f;
+	FVector CachedTargetIndicatorLocation = FVector::ZeroVector;
 	FName PendingWireFireNotifyName = NAME_None;
 	FName PendingWireFireNotifyEventName = NAME_None;
 	bool bPendingWireFire = false;
 	bool bFireOnMontageEnded = false;
+	bool bHasCachedTargetIndicator = false;
 };
