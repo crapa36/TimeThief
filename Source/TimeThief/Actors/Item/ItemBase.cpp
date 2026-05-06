@@ -37,10 +37,20 @@ void AItemBase::Tick(float DeltaTime)
 
 void AItemBase::Interact(const ATimeThiefPlayerCharacter* Player)
 {
-	if (UInventorySystemComponent* Inven = Player->GetInventoryComponent())
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
-		Inven->AddItem(ItemID, Quantity);
-		Destroy();
+		if (!NGIS->IsConnected())
+		{
+			if (UInventorySystemComponent* Inven = Player->GetInventoryComponent())
+			{
+				Inven->AddItem(ItemID, Quantity);
+				Destroy();
+			}
+		}
+		else
+		{
+			TryRequestServer();
+		}
 	}
 }
 
