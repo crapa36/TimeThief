@@ -2,14 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimNotifies/AnimNotify.h"
 #include "GameplayTagContainer.h"
 #include "TimeThiefWireTypes.h"
 #include "TimeThiefWireComponent.generated.h"
 
 class UCharacterMovementComponent;
 class ACharacter;
+class UAnimInstance;
+class UAnimMontage;
 class UTimeThiefWirePhysics;
 class UTimeThiefWireTargeting;
+class UCableComponent;
 class UStaticMeshComponent;
 class UStaticMesh;
 class UMaterialInterface;
@@ -34,6 +39,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	void FireWire();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
+	void ConfirmWireFire();
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
+	void CancelWireFire();
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	void ReleaseWire();
@@ -90,6 +101,23 @@ private:
 	void UpdateCooldown(float DeltaTime);
 	bool ShouldTickComponent() const;
 
+	void LaunchWire();
+	bool PlayWireFireMontage(bool& bOutHasFireNotify);
+	void PlayAttachedWireMontage();
+	bool DoesMontageContainWireFireNotify(const UAnimMontage* Montage) const;
+	UAnimInstance* GetWireMontageAnimInstance() const;
+	void PlayMontageOnWireMeshes(UAnimMontage* Montage, UAnimInstance* PrimaryAnimInstance);
+	void BindWireFireAnimation(UAnimInstance* AnimInstance, UAnimMontage* Montage);
+	void ClearWireFireAnimation(bool bClearMontageEndDelegate);
+	FName GetWireFireNotifyEventName() const;
+	void OnWireFireMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnWireFireMontageNotify(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload);
+
+	UFUNCTION()
+	void AnimNotify_WireFire();
+
 	void UpdateFiringAnchor(float DeltaTime);
 	void UpdateAttachedWire(float DeltaTime);
 	void OnAnchorAttached();
@@ -101,8 +129,10 @@ private:
 	bool IsFacingAwayFromWire() const;
 	
 	FVector GetAimDirection() const;
+	float GetWireCableTautnessAlpha(float CurrentDistance) const;
+	void ApplyWireCableStaticSettings(bool bRecreateSimulation);
 	void UpdateWireVisuals();
-	void UpdateTargetIndicator();
+	void UpdateTargetIndicator(float DeltaTime);
 
 	void UpdateSpeedEffects(float DeltaTime);
 	void ResetSpeedEffects(float DeltaTime);
@@ -142,7 +172,7 @@ protected:
 	float ArrivalDistance = 350.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	FName WireStartSocketName = FName("WireSocket");
+	FName WireStartSocketName = FName("HandGrip_L");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	float WireLengthUpdateTolerance = 5.0f;
@@ -162,6 +192,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings|Advanced", meta = (AdvancedDisplay, ClampMin = "0.0", UIMin = "0.0"))
 	float PullAnchorHeightOffset = 300.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float TargetIndicatorUpdateInterval = 0.1f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
 	TObjectPtr<USoundBase> FireSound;
 
@@ -172,13 +205,58 @@ protected:
 	TObjectPtr<UParticleSystem> AttachParticle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
-	TObjectPtr<UStaticMesh> WireMeshTemplate;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	float WireThickness = 2.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UMaterialInterface> WireMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Shape", meta = (ClampMin = "1", ClampMax = "20", UIMin = "1", UIMax = "20"))
+	int32 WireCableNumSegments = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Shape", meta = (ClampMin = "1", ClampMax = "16", UIMin = "1", UIMax = "16"))
+	int32 WireCableNumSides = 8;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Shape", meta = (UIMin = "0.1", UIMax = "8.0"))
+	float WireCableTileMaterial = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Simulation", meta = (ClampMin = "0.005", UIMin = "0.005", UIMax = "0.1"))
+	float WireCableSubstepTime = 0.01f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Simulation")
+	bool bWireCableResetAfterTeleport = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Simulation")
+	bool bWireCableTeleportAfterReattach = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Firing", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float FiringCableSlackMultiplier = 1.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Firing", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float FiringCableGravityScale = 0.3f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Firing", meta = (ClampMin = "1", ClampMax = "16", UIMin = "1", UIMax = "16"))
+	int32 FiringCableSolverIterations = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Firing")
+	bool bFiringCableEnableStiffness = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Firing", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float FiringCableTeleportDistanceThreshold = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Taut", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float TautCableSlackMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Taut", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float TautCableGravityScale = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Taut", meta = (ClampMin = "1", ClampMax = "16", UIMin = "1", UIMax = "16"))
+	int32 TautCableSolverIterations = 16;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Taut")
+	bool bTautCableEnableStiffness = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals|Cable|Taut", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float TautCableTeleportDistanceThreshold = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Visuals")
 	TObjectPtr<UStaticMesh> AnchorMeshTemplate;
@@ -219,6 +297,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Rotation")
 	float WireRotationForceAngleThreshold = 90.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Animation")
+	TObjectPtr<UAnimMontage> FireMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Animation")
+	TObjectPtr<UAnimMontage> AttachedMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Animation")
+	FName WireFireNotifyName = FName("WireFire");
+
 private:
 	UPROPERTY(Transient)
 	TObjectPtr<ACharacter> CachedCharacter;
@@ -227,13 +314,19 @@ private:
 	TObjectPtr<UCharacterMovementComponent> CachedMovementComponent;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UStaticMeshComponent> WireMeshComponent;
+	TObjectPtr<UCableComponent> WireCable;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> AnchorMeshComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<APlayerCameraManager> CachedCameraManager;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimInstance> PendingFireAnimInstance;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> PendingFireMontage;
 	
 	UPROPERTY()
 	EWireState CurrentState = EWireState::Idle;
@@ -257,6 +350,13 @@ private:
 	bool CachedUseControllerRotationYaw = false;
 	float StuckCheckTimer = 0.0f;
 	float GroundCheckTimer = 0.0f;
+	float TargetIndicatorRefreshTimer = 0.0f;
 	float DefaultFOV = 90.0f;
 	float CurrentFOVOffset = 0.0f;
+	FVector CachedTargetIndicatorLocation = FVector::ZeroVector;
+	FName PendingWireFireNotifyName = NAME_None;
+	FName PendingWireFireNotifyEventName = NAME_None;
+	bool bPendingWireFire = false;
+	bool bFireOnMontageEnded = false;
+	bool bHasCachedTargetIndicator = false;
 };

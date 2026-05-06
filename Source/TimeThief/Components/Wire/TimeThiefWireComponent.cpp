@@ -1,13 +1,16 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/Wire/TimeThiefWirePhysics.h"
 #include "Components/Wire/TimeThiefWireTargeting.h"
+#include "Character/TimeThiefCharacterBase.h"
 #include "TimeThiefGameplayTags.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/PlayerCameraManager.h"
+#include "CableComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundBase.h"
 #include "Particles/ParticleSystem.h"
@@ -27,21 +30,25 @@ UTimeThiefWireComponent::UTimeThiefWireComponent(const FObjectInitializer& Objec
 	WirePhysics = CreateDefaultSubobject<UTimeThiefWirePhysics>(TEXT("WirePhysics"));
 	WireTargeting = CreateDefaultSubobject<UTimeThiefWireTargeting>(TEXT("WireTargeting"));
 
-	WireMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WireMeshComponent"));
-	WireMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WireMeshComponent->SetCastShadow(false);
-	WireMeshComponent->SetVisibility(false);
+	WireCable = CreateDefaultSubobject<UCableComponent>(TEXT("WireCable"));
+	WireCable->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WireCable->SetCastShadow(false);
+	WireCable->SetVisibility(false);
+	WireCable->bAttachStart = true;
+	WireCable->bAttachEnd = true;
+	WireCable->CableLength = 0.0f;
+	WireCable->CableWidth = WireThickness;
+	WireCable->EndLocation = FVector::ZeroVector;
+	WireCable->SolverIterations = FMath::Clamp(FiringCableSolverIterations, 1, 16);
+	WireCable->bEnableStiffness = bFiringCableEnableStiffness;
+	WireCable->CableGravityScale = FiringCableGravityScale;
+	WireCable->bSkipCableUpdateWhenNotVisible = true;
+	ApplyWireCableStaticSettings(false);
 
 	AnchorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AnchorMeshComponent"));
 	AnchorMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AnchorMeshComponent->SetCastShadow(false);
 	AnchorMeshComponent->SetVisibility(false);
-
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderMeshAsset(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-	if (CylinderMeshAsset.Succeeded())
-	{
-		WireMeshComponent->SetStaticMesh(CylinderMeshAsset.Object);
-	}
 }
 
 void UTimeThiefWireComponent::BeginPlay()
@@ -65,31 +72,27 @@ void UTimeThiefWireComponent::BeginPlay()
 		USkeletalMeshComponent* SkeletalMesh = CachedCharacter->GetMesh();
 		if (SkeletalMesh && SkeletalMesh->DoesSocketExist(WireStartSocketName))
 		{
-			WireMeshComponent->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
+			WireCable->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, WireStartSocketName);
 		}
 		else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
 		{
-			WireMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-		}
-
-		if (WireMeshTemplate)
-		{
-			WireMeshComponent->SetStaticMesh(WireMeshTemplate);
+			WireCable->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
 
 		if (WireMaterial)
 		{
-			WireMeshComponent->SetMaterial(0, WireMaterial);
+			WireCable->SetMaterial(0, WireMaterial);
 		}
+		WireCable->AddTickPrerequisiteComponent(this);
 
-		if (SkeletalMesh)
-		{
-			AnchorMeshComponent->AttachToComponent(SkeletalMesh, FAttachmentTransformRules::KeepWorldTransform);
-		}
-		else if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
+		if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
 		{
 			AnchorMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
+		WireCable->SetAttachEndToComponent(AnchorMeshComponent);
+		WireCable->EndLocation = FVector::ZeroVector;
+		AnchorMeshComponent->SetAbsolute(true, true, true);
+		ApplyWireCableStaticSettings(true);
 
 		if (AnchorMeshTemplate)
 		{
@@ -164,7 +167,7 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 		UpdateSpeedEffects(DeltaTime);
 		break;
 	default:
-		UpdateTargetIndicator();
+		UpdateTargetIndicator(DeltaTime);
 		ResetSpeedEffects(DeltaTime);
 		break;
 	}
@@ -199,6 +202,8 @@ void UTimeThiefWireComponent::SimulateAttach(const FVector& RemoteAnchorPoint)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, AttachSound, AnchorPoint);
 	}
+
+	PlayAttachedWireMontage();
 
 	OnWireAttached.Broadcast(AnchorPoint);
 	SetComponentTickEnabled(true);
@@ -261,12 +266,48 @@ void UTimeThiefWireComponent::UpdateCooldown(float DeltaTime)
 
 bool UTimeThiefWireComponent::CanFireWire() const
 {
-	return CurrentState == EWireState::Idle && CooldownRemaining <= 0.0f;
+	return CurrentState == EWireState::Idle && CooldownRemaining <= 0.0f && !bPendingWireFire;
 }
 
 void UTimeThiefWireComponent::FireWire()
 {
-	if (!CanFireWire()) return;
+	if (CurrentState != EWireState::Idle) return;
+	if (CooldownRemaining > 0.0f || bPendingWireFire) return;
+
+	bPendingWireFire = true;
+
+	bool bHasFireNotify = false;
+	if (!PlayWireFireMontage(bHasFireNotify))
+	{
+		CancelWireFire();
+		LaunchWire();
+		return;
+	}
+
+	bFireOnMontageEnded = !bHasFireNotify;
+}
+
+void UTimeThiefWireComponent::ConfirmWireFire()
+{
+	if (!bPendingWireFire) return;
+
+	ClearWireFireAnimation(true);
+
+	if (CurrentState != EWireState::Idle) return;
+
+	LaunchWire();
+}
+
+void UTimeThiefWireComponent::CancelWireFire()
+{
+	if (!bPendingWireFire) return;
+
+	ClearWireFireAnimation(true);
+}
+
+void UTimeThiefWireComponent::LaunchWire()
+{
+	if (CurrentState != EWireState::Idle) return;
 
 	const FVector WireStartLocation = GetWireStartLocation();
 
@@ -315,8 +356,189 @@ void UTimeThiefWireComponent::FireWire()
 	SetWireState(EWireState::Firing);
 }
 
+bool UTimeThiefWireComponent::PlayWireFireMontage(bool& bOutHasFireNotify)
+{
+	bOutHasFireNotify = false;
+	if (!FireMontage) return false;
+
+	UAnimInstance* AnimInstance = GetWireMontageAnimInstance();
+	if (!AnimInstance) return false;
+
+	const float MontageLength = AnimInstance->Montage_Play(FireMontage);
+	if (MontageLength <= 0.0f) return false;
+
+	PlayMontageOnWireMeshes(FireMontage, AnimInstance);
+	bOutHasFireNotify = DoesMontageContainWireFireNotify(FireMontage);
+	BindWireFireAnimation(AnimInstance, FireMontage);
+	return true;
+}
+
+void UTimeThiefWireComponent::PlayAttachedWireMontage()
+{
+	if (!AttachedMontage) return;
+
+	UAnimInstance* AnimInstance = GetWireMontageAnimInstance();
+	if (!AnimInstance) return;
+
+	if (AnimInstance->Montage_Play(AttachedMontage) > 0.0f)
+	{
+		PlayMontageOnWireMeshes(AttachedMontage, AnimInstance);
+	}
+}
+
+bool UTimeThiefWireComponent::DoesMontageContainWireFireNotify(const UAnimMontage* Montage) const
+{
+	if (!Montage || WireFireNotifyName.IsNone()) return false;
+
+	const FString NotifyNameString = WireFireNotifyName.ToString();
+	const FName NotifyEventName = GetWireFireNotifyEventName();
+	const bool bCanHandleNamedNotify = FindFunction(NotifyEventName) != nullptr;
+
+	for (const FAnimNotifyEvent& NotifyEvent : Montage->Notifies)
+	{
+		if (bCanHandleNamedNotify && NotifyEvent.NotifyName == WireFireNotifyName)
+		{
+			return true;
+		}
+
+		if (NotifyEvent.Notify && NotifyEvent.Notify->GetNotifyName() == NotifyNameString)
+		{
+			return true;
+		}
+
+		if (NotifyEvent.NotifyStateClass && NotifyEvent.NotifyStateClass->GetNotifyName() == NotifyNameString)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+UAnimInstance* UTimeThiefWireComponent::GetWireMontageAnimInstance() const
+{
+	if (!IsValid(CachedCharacter)) return nullptr;
+
+	USkeletalMeshComponent* MontageMesh = CachedCharacter->GetMesh();
+	if (const ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CachedCharacter))
+	{
+		MontageMesh = CharacterBase->GetMontagePlaybackMesh();
+	}
+
+	return MontageMesh ? MontageMesh->GetAnimInstance() : nullptr;
+}
+
+void UTimeThiefWireComponent::PlayMontageOnWireMeshes(UAnimMontage* Montage, UAnimInstance* PrimaryAnimInstance)
+{
+	if (!Montage || !IsValid(CachedCharacter)) return;
+
+	if (const ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CachedCharacter))
+	{
+		TArray<USkeletalMeshComponent*, TInlineAllocator<2>> Meshes;
+		Meshes.Add(CharacterBase->GetThirdPersonMesh());
+		Meshes.AddUnique(CharacterBase->GetFirstPersonMesh());
+
+		for (USkeletalMeshComponent* Mesh : Meshes)
+		{
+			UAnimInstance* AnimInstance = Mesh ? Mesh->GetAnimInstance() : nullptr;
+			if (AnimInstance && AnimInstance != PrimaryAnimInstance)
+			{
+				AnimInstance->Montage_Play(Montage);
+			}
+		}
+		return;
+	}
+
+	if (USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh())
+	{
+		if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance(); AnimInstance && AnimInstance != PrimaryAnimInstance)
+		{
+			AnimInstance->Montage_Play(Montage);
+		}
+	}
+}
+
+void UTimeThiefWireComponent::BindWireFireAnimation(UAnimInstance* AnimInstance, UAnimMontage* Montage)
+{
+	PendingFireAnimInstance = AnimInstance;
+	PendingFireMontage = Montage;
+	PendingWireFireNotifyName = WireFireNotifyName;
+	PendingWireFireNotifyEventName = GetWireFireNotifyEventName();
+
+	AnimInstance->OnPlayMontageNotifyBegin.AddDynamic(this, &UTimeThiefWireComponent::OnWireFireMontageNotify);
+
+	if (FindFunction(PendingWireFireNotifyEventName))
+	{
+		AnimInstance->AddExternalNotifyHandler(this, PendingWireFireNotifyEventName);
+	}
+
+	FOnMontageEnded MontageEndedDelegate;
+	MontageEndedDelegate.BindUObject(this, &UTimeThiefWireComponent::OnWireFireMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, Montage);
+}
+
+void UTimeThiefWireComponent::ClearWireFireAnimation(bool bClearMontageEndDelegate)
+{
+	if (PendingFireAnimInstance)
+	{
+		PendingFireAnimInstance->OnPlayMontageNotifyBegin.RemoveDynamic(this, &UTimeThiefWireComponent::OnWireFireMontageNotify);
+
+		if (FindFunction(PendingWireFireNotifyEventName))
+		{
+			PendingFireAnimInstance->RemoveExternalNotifyHandler(this, PendingWireFireNotifyEventName);
+		}
+
+		if (bClearMontageEndDelegate && PendingFireMontage)
+		{
+			FOnMontageEnded EmptyDelegate;
+			PendingFireAnimInstance->Montage_SetEndDelegate(EmptyDelegate, PendingFireMontage);
+		}
+	}
+
+	PendingFireAnimInstance = nullptr;
+	PendingFireMontage = nullptr;
+	PendingWireFireNotifyName = NAME_None;
+	PendingWireFireNotifyEventName = NAME_None;
+	bPendingWireFire = false;
+	bFireOnMontageEnded = false;
+}
+
+FName UTimeThiefWireComponent::GetWireFireNotifyEventName() const
+{
+	return FName(*FString::Printf(TEXT("AnimNotify_%s"), *WireFireNotifyName.ToString()));
+}
+
+void UTimeThiefWireComponent::OnWireFireMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != PendingFireMontage) return;
+
+	const bool bShouldFire = bPendingWireFire && bFireOnMontageEnded && !bInterrupted;
+	ClearWireFireAnimation(false);
+
+	if (bShouldFire && CurrentState == EWireState::Idle)
+	{
+		LaunchWire();
+	}
+}
+
+void UTimeThiefWireComponent::OnWireFireMontageNotify(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointNotifyPayload)
+{
+	if (!bPendingWireFire) return;
+	if (NotifyName != PendingWireFireNotifyName) return;
+	if (BranchingPointNotifyPayload.SequenceAsset != PendingFireMontage) return;
+
+	ConfirmWireFire();
+}
+
+void UTimeThiefWireComponent::AnimNotify_WireFire()
+{
+	ConfirmWireFire();
+}
+
 void UTimeThiefWireComponent::ReleaseWire()
 {
+	CancelWireFire();
+
 	if (CurrentState == EWireState::Idle) return;
 
 	if (CurrentState == EWireState::Attached)
@@ -402,6 +624,8 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 void UTimeThiefWireComponent::OnAnchorAttached()
 {
 	if (!IsValid(CachedMovementComponent)) return;
+
+	PlayAttachedWireMontage();
 
 	if (AttachSound)
 	{
@@ -625,13 +849,71 @@ FVector UTimeThiefWireComponent::GetWireStartLocation() const
 	return CachedCharacter->GetActorLocation();
 }
 
+float UTimeThiefWireComponent::GetWireCableTautnessAlpha(float CurrentDistance) const
+{
+	if (CurrentState != EWireState::Attached)
+	{
+		return 0.0f;
+	}
+
+	const float LengthTolerance = FMath::Max(WireLengthUpdateTolerance, 1.0f);
+	const float LengthSlack = AttachedWireLength - CurrentDistance;
+	const float LengthAlpha = 1.0f - FMath::Clamp(LengthSlack / LengthTolerance, 0.0f, 1.0f);
+
+	if (!WirePhysics)
+	{
+		return LengthAlpha;
+	}
+
+	const float DistanceError = FMath::Max(CurrentDistance - AttachedWireLength, 0.0f);
+	const float SpringForce = DistanceError * FMath::Max(WirePhysics->SpringStiffness, 0.0f);
+
+	float DampingForce = 0.0f;
+	if (IsValid(CachedMovementComponent))
+	{
+		const FVector WireDirection = (GetPullAnchorPoint() - GetWireStartLocation()).GetSafeNormal();
+		const float RadialVelocity = FVector::DotProduct(CachedMovementComponent->Velocity, WireDirection);
+		DampingForce = FMath::Max(-RadialVelocity * FMath::Max(WirePhysics->SpringDamping, 0.0f), 0.0f);
+	}
+
+	const float PullForce = FMath::Max(WirePhysics->PullForce, 0.0f);
+	const float SpringReferenceForce = FMath::Max(WirePhysics->SpringStiffness, 0.0f) * LengthTolerance;
+	const float ReferenceForce = FMath::Max(PullForce + SpringReferenceForce, 1.0f);
+	const float ForceAlpha = FMath::Clamp((PullForce + SpringForce + DampingForce) / ReferenceForce, 0.0f, 1.0f);
+
+	return FMath::Max(LengthAlpha, ForceAlpha);
+}
+
+void UTimeThiefWireComponent::ApplyWireCableStaticSettings(bool bRecreateSimulation)
+{
+	if (!WireCable)
+	{
+		return;
+	}
+
+	const int32 NumSegments = FMath::Clamp(WireCableNumSegments, 1, 20);
+	const int32 NumSides = FMath::Clamp(WireCableNumSides, 1, 16);
+
+	WireCable->NumSegments = NumSegments;
+	WireCable->NumSides = NumSides;
+	WireCable->TileMaterial = WireCableTileMaterial;
+	WireCable->SubstepTime = FMath::Max(WireCableSubstepTime, 0.005f);
+	WireCable->bResetAfterTeleport = bWireCableResetAfterTeleport;
+	WireCable->bTeleportAfterReattach = bWireCableTeleportAfterReattach;
+
+	if (bRecreateSimulation && WireCable->IsRegistered())
+	{
+		WireCable->ReregisterComponent();
+	}
+}
+
 void UTimeThiefWireComponent::UpdateWireVisuals()
 {
-	if (!WireMeshComponent || !AnchorMeshComponent) return;
+	if (!WireCable || !AnchorMeshComponent) return;
 
 	if (CurrentState == EWireState::Idle)
 	{
-		WireMeshComponent->SetVisibility(false);
+		WireCable->SetVisibility(false);
 		AnchorMeshComponent->SetVisibility(false);
 		return;
 	}
@@ -658,53 +940,78 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 
 	if (Distance < KINDA_SMALL_NUMBER)
 	{
-		WireMeshComponent->SetVisibility(false);
+		WireCable->SetVisibility(false);
 		AnchorMeshComponent->SetVisibility(false);
 		return;
 	}
 
-	WireMeshComponent->SetVisibility(true);
+	WireCable->SetWorldLocation(Start);
+	WireCable->CableWidth = FMath::Max(WireThickness, 0.01f);
+	WireCable->EndLocation = AnchorMeshComponent->GetComponentTransform().InverseTransformPosition(End);
+
+	const float TautnessAlpha = GetWireCableTautnessAlpha(Distance);
+	const float SlackMultiplier = FMath::Lerp(FiringCableSlackMultiplier, TautCableSlackMultiplier, TautnessAlpha);
+	const float GravityScale = FMath::Lerp(FiringCableGravityScale, TautCableGravityScale, TautnessAlpha);
+	const int32 SolverIterations = FMath::RoundToInt(FMath::Lerp(static_cast<float>(FiringCableSolverIterations), static_cast<float>(TautCableSolverIterations), TautnessAlpha));
+	const bool bEnableStiffness = TautnessAlpha >= 0.5f ? bTautCableEnableStiffness : bFiringCableEnableStiffness;
+	const float TeleportDistanceThreshold = FMath::Lerp(
+		FMath::Max(FiringCableTeleportDistanceThreshold, 0.01f),
+		FMath::Max(TautCableTeleportDistanceThreshold, 0.01f),
+		TautnessAlpha);
+
+	WireCable->CableLength = Distance * FMath::Max(SlackMultiplier, 1.0f);
+	WireCable->CableGravityScale = GravityScale;
+	WireCable->SolverIterations = FMath::Clamp(SolverIterations, 1, 16);
+	WireCable->bEnableStiffness = bEnableStiffness;
+	WireCable->TeleportDistanceThreshold = TeleportDistanceThreshold;
+	WireCable->SubstepTime = FMath::Max(WireCableSubstepTime, 0.005f);
+	WireCable->TileMaterial = WireCableTileMaterial;
+	WireCable->bResetAfterTeleport = bWireCableResetAfterTeleport;
+	WireCable->bTeleportAfterReattach = bWireCableTeleportAfterReattach;
+	WireCable->SetVisibility(true);
 	AnchorMeshComponent->SetVisibility(true);
-
-	const FVector Direction = (End - Start) / Distance;
-	const FVector CenterLocation = (Start + End) * 0.5f;
-	const FRotator Rotation = Direction.Rotation() + FRotator(-90.0f, 0.0f, 0.0f);
-	
-	const float LengthScale = Distance / 100.0f;
-	const float ThicknessScale = WireThickness / 100.0f;
-	const FVector Scale = FVector(ThicknessScale, ThicknessScale, LengthScale);
-
-	WireMeshComponent->SetWorldLocation(CenterLocation);
-	WireMeshComponent->SetWorldRotation(Rotation);
-	WireMeshComponent->SetWorldScale3D(Scale);
 }
 
-void UTimeThiefWireComponent::UpdateTargetIndicator()
+void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 {
 	if (!CanFireWire())
 	{
+		TargetIndicatorRefreshTimer = 0.0f;
+		bHasCachedTargetIndicator = false;
 		return;
 	}
 
-	FVector CamLoc = GetWireStartLocation();
-	FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
-		GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
-
-	if (IsValid(CachedCharacter))
+	TargetIndicatorRefreshTimer -= DeltaTime;
+	if (TargetIndicatorRefreshTimer <= 0.0f)
 	{
-		if (!UTimeThiefAimStatics::ResolveAimView(CachedCharacter, CamLoc, AimDirection))
+		FVector CamLoc = GetWireStartLocation();
+		FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
+			GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
+
+		if (IsValid(CachedCharacter))
 		{
-			CamLoc = CachedCharacter->GetPawnViewLocation();
-			AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
+			if (!UTimeThiefAimStatics::ResolveAimView(CachedCharacter, CamLoc, AimDirection))
+			{
+				CamLoc = CachedCharacter->GetPawnViewLocation();
+				AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(CachedCharacter->GetActorForwardVector());
+			}
 		}
+
+		AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
+
+		FVector TargetLocation = FVector::ZeroVector;
+		bHasCachedTargetIndicator = WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength);
+		if (bHasCachedTargetIndicator)
+		{
+			CachedTargetIndicatorLocation = TargetLocation;
+		}
+
+		TargetIndicatorRefreshTimer = FMath::Max(TargetIndicatorUpdateInterval, 0.0f);
 	}
 
-	AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
-
-	FVector TargetLocation;
-	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
+	if (bHasCachedTargetIndicator)
 	{
-		DrawDebugPoint(GetWorld(), TargetLocation, 20.0f, FColor::Red, false, -1.0f, 0);
+		DrawDebugPoint(GetWorld(), CachedTargetIndicatorLocation, 20.0f, FColor::Red, false, -1.0f, 0);
 	}
 }
 
