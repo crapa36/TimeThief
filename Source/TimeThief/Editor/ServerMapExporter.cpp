@@ -2095,7 +2095,7 @@ bool ServerMapExporter::IsValidShapeComponentForExport(const UShapeComponent* Sh
 	
 	if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(ShapeComponent))
 	{
-		const FVector Extent = BoxComponent->GetScaledBoxExtent();
+		const FVector Extent = BoxComponent->GetScaledBoxExtent().GetAbs();
 		return Extent.X > KINDA_SMALL_NUMBER 
 			&& Extent.Y > KINDA_SMALL_NUMBER 
 			&& Extent.Z > KINDA_SMALL_NUMBER;
