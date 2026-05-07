@@ -5,10 +5,11 @@
 #include "CoreMinimal.h"
 #include "../InteractionActorBase.h"
 #include "ItemCommons.h"
+#include "Interface/PoolObject.h"
 #include "ItemBase.generated.h"
 
 UCLASS(Blueprintable, BlueprintType)
-class TIMETHIEF_API AItemBase : public AInteractionActorBase
+class TIMETHIEF_API AItemBase : public AInteractionActorBase, public IPoolObject
 {
 	GENERATED_BODY()
 
@@ -44,17 +45,23 @@ public:
 		UPrimitiveComponent* OtherComponent,
 		int32 OtherBodyIndex
 	) override;
-
-
-	EItemID GetItemID() const { return ItemID; }
-	int GetQuantity() const { return Quantity; }
+	
+public:
+	virtual void Enable() override;
+	virtual void Disable() override;
+	
+	virtual void ApplySpawnRuntimeState(const FNetworkEntityState& EntityState) override;
 	
 private:
 	void TryRequestServer();
 	
 public:
+	UFUNCTION(BlueprintCallable)
 	void SetItemStack(EItemID NewItemID, int NewQuantity);
 
+	EItemID GetItemID() const { return ItemID; }
+	int GetQuantity() const { return Quantity; }
+	
 protected:
 	UPROPERTY(EditAnywhere, meta=(AllowPrivateAccess=true), Category="Item")
 	EItemID ItemID;

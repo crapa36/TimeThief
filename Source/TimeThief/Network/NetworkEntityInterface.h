@@ -37,4 +37,5 @@ public:
 	
 	virtual class UNetworkEntityComponent* GetNetworkEntityComponent() const = 0;
 	
+	virtual void ApplySpawnRuntimeState(const FNetworkEntityState& EntityState){};
 };

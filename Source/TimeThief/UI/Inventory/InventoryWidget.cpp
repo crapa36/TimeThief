@@ -13,7 +13,7 @@
 
 void UInventoryWidget::OnVicinityItemUpdated()
 {
-	if (IsVisible() && Player.IsValid())
+	if (Player.IsValid())
 	{
 		const auto VicinityItems = Player->GetVicinityItems();
 		if (VicinityItems.Num() > 0)
