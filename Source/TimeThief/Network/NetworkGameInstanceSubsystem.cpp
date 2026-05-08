@@ -21,6 +21,7 @@
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/System/InventorySystemComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -703,8 +704,10 @@ void UNetworkGameInstanceSubsystem::HandleEntityDespawn(const se::room::N_Entity
 	UE_LOG(LogTemp, Log, TEXT("[Network] Entity despawned: EntityId=%u"), EntityId);
 }
 
-void UNetworkGameInstanceSubsystem::HandleRoomSetupEnd(const se::room::S_RoomSetupEnd& pkt)
+void UNetworkGameInstanceSubsystem::HandleRoomSetupEnd(const se::room::S_RoomSetupEnd& Pkt)
 {
+	// TODO: Room Setup이 끝났다는 패킷이 오면 Server의 Room Setting에 관한 요청이 모두 종료 된 것
+	//		 이에 대해 처리를 다 완수 하였으면 게임 시작 준비가 되었음을 서버에 알려야 함
 }
 
 void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_EntitiesSpawn& Pkt)
@@ -735,6 +738,7 @@ void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClose
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
 {
+	// TODO: Game Start 시 플레이어의 Input을 받고 행동할 수 있게 끔
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt)
@@ -932,7 +936,7 @@ void UNetworkGameInstanceSubsystem::HandleJumpLand(const se::game::N_JumpLand& P
 	}
 }
 
-void UNetworkGameInstanceSubsystem::HandleDoubleJump(const se::game::N_DoubleJump& pkt)
+void UNetworkGameInstanceSubsystem::HandleDoubleJump(const se::game::N_DoubleJump& Pkt)
 {
 	check(IsInGameThread());
 	
@@ -941,7 +945,7 @@ void UNetworkGameInstanceSubsystem::HandleDoubleJump(const se::game::N_DoubleJum
 		return;
 	}
 	
-	const uint32 EntityId = pkt.entity_id().value();
+	const uint32 EntityId = Pkt.entity_id().value();
 	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
 	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
 	{
@@ -1076,7 +1080,7 @@ void UNetworkGameInstanceSubsystem::HandleWireActionEnd(const se::game::N_WireAc
 	}
 }
 
-void UNetworkGameInstanceSubsystem::HandleWireLaunch(const se::game::N_WireLaunch& pkt)
+void UNetworkGameInstanceSubsystem::HandleWireLaunch(const se::game::N_WireLaunch& Pkt)
 {
 	check(IsInGameThread());
 
@@ -1085,15 +1089,15 @@ void UNetworkGameInstanceSubsystem::HandleWireLaunch(const se::game::N_WireLaunc
 		return;
 	}
 
-	if (!pkt.has_entity_id() || !pkt.has_start_position() || !pkt.has_direction())
+	if (!Pkt.has_entity_id() || !Pkt.has_start_position() || !Pkt.has_direction())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[WirePkt][Stage=Apply][N_WireLaunch] missing required fields"));
 		return;
 	}
 
-	const uint32 EntityId = pkt.entity_id().value();
-	const auto& Start = pkt.start_position();
-	const auto& Direction = pkt.direction();
+	const uint32 EntityId = Pkt.entity_id().value();
+	const auto& Start = Pkt.start_position();
+	const auto& Direction = Pkt.direction();
 	UE_LOG(LogTemp, Log,
 		TEXT("[WirePkt][Stage=Apply][N_WireLaunch] EntityId=%u Start=(%.1f, %.1f, %.1f) Dir=(%.2f, %.2f, %.2f)"),
 		EntityId,
@@ -1247,6 +1251,52 @@ void UNetworkGameInstanceSubsystem::HandleWeaponChanged(const se::game::N_Weapon
 
 void UNetworkGameInstanceSubsystem::HandleWeaponStatSnapshot(const se::game::N_WeaponStatSnapshot& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+	
+	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
+	
+	for (const auto& WeaponInfo : Pkt.stats())
+	{
+		const uint32 WeaponId = WeaponInfo.weapon_id();
+		const auto& WeaponStat = WeaponInfo.stat();
+		
+		int MagCapacity = WeaponStat.mag_capacity();
+		float FireInterval = WeaponStat.fire_interval();
+		float ReloadTime = WeaponStat.reload_time();
+		int32 PelletCount = WeaponStat.pellet_count();
+		float ConeAngle = WeaponStat.cone_angle();
+		float ProjectileSpeed = WeaponStat.projectile_speed();
+		float ExplosionRadius = WeaponStat.explosion_radius();
+		auto* WeaponComp = WeaponActor->GetWeaponComponentByTag(FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId));
+		
+		if (WeaponComp == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Network] HandlePlayerInitSetup: Missing weapon component"));
+			continue;
+		}
+		
+		FWeaponStatData StatData;
+		StatData.MagCapacity = MagCapacity;
+		StatData.FireInterval = FireInterval;
+		StatData.ReloadTime = ReloadTime;
+		StatData.PelletCount = PelletCount;
+		StatData.ConeAngle = ConeAngle;
+		StatData.ProjectileSpeed = ProjectileSpeed;
+		StatData.ExplosionRadius = ExplosionRadius;
+		
+		WeaponComp->SetWeaponStatForNetwork(StatData);
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseAbility(const se::game::N_UseAbility& Pkt)
@@ -1257,7 +1307,7 @@ void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlaye
 {
 }
 
-void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes& pkt)
+void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes& Pkt)
 {
 	check(IsInGameThread());
 	
@@ -1266,16 +1316,16 @@ void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes&
 		return;
 	}
 	
-	const bool bSuccess = pkt.success();
+	const bool bSuccess = Pkt.success();
 	if (!bSuccess)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to reload (From Server)"));
 		return;
 	}
 	
-	const uint32 WeaponId = pkt.weapon_id();
-	const uint32 ReloadedAmmo = pkt.reloaded_ammo();	// Delta Ammo
-	const uint32 RemainingAmmo = pkt.remaining_ammo();	// 현재 장전된 탄약
+	const uint32 WeaponId = Pkt.weapon_id();
+	const uint32 ReloadedAmmo = Pkt.reloaded_ammo();	// Delta Ammo
+	const uint32 RemainingAmmo = Pkt.remaining_ammo();	// 현재 장전된 탄약
 	
 	if (auto LocalPlayerPawn = GetLocalPlayerPawn())
 	{
@@ -1299,29 +1349,95 @@ void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes&
 	}
 }
 
-void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit& pkt)
+void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit& Pkt)
 {
 }
 
-void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& pkt)
+void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+	
+	const uint32 WeaponId = Pkt.weapon_id();
+	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
+	if (WeaponActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleWeaponStatChanged: Missing master weaponActor"));
+		return;
+	}
+	
+	auto* WeaponComp = WeaponActor->GetWeaponComponentByTag(FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId));
+		
+	if (WeaponComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleWeaponStatChanged: Missing weapon component"));
+		return;
+	}
+	
+	// 현재 WeaponStat 받아와서
+	FWeaponStatData StatData = WeaponComp->GetWeaponStatDataForNetwork();
+	
+	// 바뀐 부분의 Stat 기록하고
+	for (const auto& WeaponStatValue : Pkt.stats())
+	{
+		switch (WeaponStatValue.stat_type())
+		{
+		case se::game::WEAPON_STAT_MAGAZINE_SIZE:
+			StatData.MagCapacity = WeaponStatValue.int_value();
+			break;
+		case se::game::WEAPON_STAT_FIRE_INTERVAL:
+			StatData.FireInterval = WeaponStatValue.float_value();
+			break;
+		case se::game::WEAPON_STAT_RELOAD:
+			StatData.ReloadTime = WeaponStatValue.float_value();
+			break;
+			
+		case se::game::WEAPON_STAT_PALLET:
+			StatData.PelletCount = WeaponStatValue.int_value();
+			break;
+		case se::game::WEAPON_STAT_CONE:
+			StatData.ConeAngle = WeaponStatValue.float_value();
+			break;
+			
+		case se::game::WEAPON_STAT_PROJECTILE_SPEED:
+			StatData.ProjectileSpeed = WeaponStatValue.float_value();
+			break;
+		case se::game::WEAPON_STAT_EXPLOSION_RADIUS:
+			StatData.ExplosionRadius = WeaponStatValue.float_value();
+			break;
+		}
+	}
+	
+	// 실제 Weapon에 적용 (업데이트)
+	WeaponComp->SetWeaponStatForNetwork(StatData);
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt)
 {
+	// TODO: 효과를 적용 하는 게 아닌 이펙트 연출을 위해서 (ex. 붕대 감는 모션 등)
 }
 
-void UNetworkGameInstanceSubsystem::HandleSetSavePointRes(const se::game::S_SetSavePointRes& pkt)
+void UNetworkGameInstanceSubsystem::HandleSetSavePointRes(const se::game::S_SetSavePointRes& Pkt)
 {
-	if (!pkt.success())
+	if (!Pkt.success())
 	{
-		const auto& Result = pkt.result();
+		const auto& Result = Pkt.result();
 		
 		UE_LOG(LogTemp, Warning, TEXT("Failed to set save point: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
 		return;
 	}
 	
-	const auto& Pos = pkt.position();
+	const auto& Pos = Pkt.position();
 	FVector SavePoint(Pos.x(), Pos.y(), Pos.z());
 	
 	auto LocalPlayerPawn = GetLocalPlayerPawn();
@@ -1347,22 +1463,105 @@ void UNetworkGameInstanceSubsystem::HandleSetSavePointRes(const se::game::S_SetS
 
 void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupItem& Pkt)
 {
+	check(IsInGameThread());
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	
+	if (EntityEntry == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EntityEntry not found"));
+		return;
+	}
+
+	// TODO: 해당 Player가 PickUp 하는 모션 1회 Play
+	// EntityEntry->Actor->PlayPickUp()
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt)
 {
+	// TODO: 프로토콜 업데이트 하여 정보를 추가하고 해당 Store UI에 접근하여 적용하여야 함
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
 {
+	check(IsInGameThread());
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get local player pawn"));
+		return;
+	}
+	auto* Player = Cast<ATimeThiefPlayerCharacter>(LocalPlayer);
+	if (Player == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get player pawn"));
+		return;
+	}
+	
+	UInventorySystemComponent* InventoryComp = Player->GetInventoryComponent();
+	if (InventoryComp == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get inventory component"));
+		return;
+	}
+	
+	uint32 ItemId = Pkt.item_id();
+	uint32 NewCount = Pkt.new_quantity();
+	uint32 Delta = Pkt.quantity();
+	
+	// TODO: 일단 임시로 이렇게, 최종적으론 NewCount로 Set 할 수 있게끔	
+	InventoryComp->AddItem(static_cast<EItemID>(ItemId), Delta);
 }
 
 void UNetworkGameInstanceSubsystem::HandleChestInteracted(const se::game::N_ChestInteracted& Pkt)
 {
+	check(IsInGameThread());
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	
+	if (EntityEntry == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("EntityEntry not found"));
+		return;
+	}
+
+	// TODO: 해당 Player가 Chest에 Interaction 하는 모션 1회 Play
+	// EntityEntry->Actor->PlayChestInteract()
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& Pkt)
 {
+	check(IsInGameThread());
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get local player pawn"));
+		return;
+	}
+	auto* Player = Cast<ATimeThiefPlayerCharacter>(LocalPlayer);
+	if (Player == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get player pawn"));
+		return;
+	}
+	
+	UInventorySystemComponent* InventoryComp = Player->GetInventoryComponent();
+	if (InventoryComp == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get inventory component"));
+		return;
+	}
+	
+	uint32 ItemId = Pkt.item_id();
+	uint32 NewCount = Pkt.new_quantity();
+	uint32 LostCount = Pkt.quantity();
+	
+	// TODO: 일단 임시로 이렇게, 최종적으론 NewCount로 Set 할 수 있게끔	
+	InventoryComp->RemoveItem(static_cast<EItemID>(ItemId), LostCount);
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemSnapshot(const se::game::N_ItemSnapshot& Pkt)
@@ -1371,10 +1570,12 @@ void UNetworkGameInstanceSubsystem::HandleItemSnapshot(const se::game::N_ItemSna
 
 void UNetworkGameInstanceSubsystem::HandleEquipItem(const se::game::N_EquipItem& Pkt)
 {
+	// TODO: 해당 플레이어 (Local이 아닌)가 특정 아이템을 손에 들고 있는 모션을 위해 (붕대를 손에 든다, 수류탄을 손에 든다)
 }
 
 void UNetworkGameInstanceSubsystem::HandleEquipItemRes(const se::game::S_EquipItemRes& Pkt)
 {
+	// TODO: 만약 유효하지 않은 아이템 장착 요청이었을 경우 (Local Player의 경우)
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseItemRes(const se::game::S_UseItemRes& Pkt)

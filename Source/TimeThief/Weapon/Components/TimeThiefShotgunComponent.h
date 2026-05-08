@@ -50,6 +50,7 @@ protected:
 	virtual void ApplyRecoilAndSpread() override;
 	
 public:
+	virtual FWeaponStatData GetWeaponStatDataForNetwork() const override;
 	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")

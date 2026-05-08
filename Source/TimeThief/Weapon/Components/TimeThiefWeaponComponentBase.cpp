@@ -71,6 +71,16 @@ void UTimeThiefWeaponComponentBase::OnUnequipped() {
 	StopFire();
 }
 
+FWeaponStatData UTimeThiefWeaponComponentBase::GetWeaponStatDataForNetwork() const
+{
+	FWeaponStatData StatData{};
+	StatData.MagCapacity = MaxAmmo;
+	StatData.FireInterval = GetFireInterval();
+	StatData.ReloadTime = ReloadTime;
+	
+	return StatData;
+}
+
 void UTimeThiefWeaponComponentBase::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
 {
 	MaxAmmo = InStatData.MagCapacity;

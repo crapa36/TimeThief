@@ -284,6 +284,15 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 	}
 }
 
+FWeaponStatData UTimeThiefShotgunComponent::GetWeaponStatDataForNetwork() const
+{
+	FWeaponStatData StatData = Super::GetWeaponStatDataForNetwork();
+	StatData.PelletCount = PelletCount;
+	StatData.ConeAngle = BaseSpread;
+	
+	return StatData;
+}
+
 void UTimeThiefShotgunComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
 {
 	Super::SetWeaponStatForNetwork(InStatData);

@@ -112,6 +112,7 @@ public:
 	virtual void OnUnequipped();
 	
 public:
+	virtual FWeaponStatData GetWeaponStatDataForNetwork() const;
 	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData);
 
 protected:

@@ -144,6 +144,15 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	return false;
 }
 
+FWeaponStatData UTimeThiefRocketLauncherComponent::GetWeaponStatDataForNetwork() const
+{
+	FWeaponStatData StatData = Super::GetWeaponStatDataForNetwork();
+	StatData.ProjectileSpeed = ProjectileSpeed;
+	StatData.ExplosionRadius = ExplosionRadius;
+	
+	return StatData;
+}
+
 void UTimeThiefRocketLauncherComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
 {
 	Super::SetWeaponStatForNetwork(InStatData);

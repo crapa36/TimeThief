@@ -28,6 +28,7 @@ protected:
 	bool SpawnRocketProjectile();
 	
 public:
+	virtual FWeaponStatData GetWeaponStatDataForNetwork() const override;
 	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Projectile")
