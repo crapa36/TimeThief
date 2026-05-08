@@ -9,6 +9,7 @@
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/State/NetworkEntityState.h"
 
 ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
@@ -205,7 +206,14 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 		World->GetTimerManager().ClearTimer(LifeTimeTimerHandle);
 	}
 
-	ApplyExplosionDamage(ExplosionLocation);
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		// Damage 처리는 서버에서만 진행한다 (현재 서버에서 연결되어 테스트 하는 상황이 아니라면 Damage 직접 적용)
+		if (!NGIS->IsConnected())
+		{
+			ApplyExplosionDamage(ExplosionLocation);
+		}
+	}
 	PlayExplosionEffects(ExplosionLocation, ExplosionNormal);
 
 	if (UWorld* World = GetWorld())

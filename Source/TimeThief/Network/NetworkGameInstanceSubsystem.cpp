@@ -2052,10 +2052,10 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 	}
 	else if (EntityState.ObjectType == se::common::OBJ_PROJECTILE)
 	{
-		// if (SpawnData->RocketProjectileClass)
-		// {
-		// 	return SpawnData->RocketProjectileClass;
-		// }
+		if (SpawnData->RocketProjectileClass)
+		{
+			return SpawnData->RocketProjectileClass;
+		}
 	}
 	else if (EntityState.ObjectType == se::common::OBJ_CHEST)
 	{
@@ -2599,6 +2599,10 @@ void UNetworkGameInstanceSubsystem::ApplySpawnRuntimeStateToActor(AActor* Actor,
 				Projectile->InitializeProjectileSettings(LauncherComp->GetProjectileSpeed(), LauncherComp->GetExplosionRadius());
 				Projectile->InitializeProjectile(LocalPlayer, LocalPlayer);
 				Projectile->ActivateProjectileFromNetwork(EntityState.Position, EntityState.Velocity);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] Spawned projectile actor is not of type ATimeThiefRocketProjectile. Actor=%s"), *GetNameSafe(Actor));
 			}
 		}
 	}
