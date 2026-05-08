@@ -785,6 +785,12 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		float ExplosionRadius = WeaponStat.explosion_radius();
 		auto* WeaponComp = WeaponActor->GetWeaponComponentByTag(FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId));
 		
+		if (WeaponComp == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Network] HandlePlayerInitSetup: Missing weapon component"));
+			continue;
+		}
+		
 		FWeaponStatData StatData;
 		StatData.MagCapacity = MagCapacity;
 		StatData.FireInterval = FireInterval;
