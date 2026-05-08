@@ -22,6 +22,7 @@ void FTimeThiefGameplayTags::InitializeNativeGameplayTags()
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_Inventory, "InputTag.Action.Inventory", "Inventory Interaction Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_WheelMenu, "InputTag.Action.WheelMenu", "Use Item Wheel Menu Input");
 	GameplayTags.AddTag(GameplayTags.InputTag_Action_SavePoint, "InputTag.Action.SavePoint", "Save Point Input");
+	GameplayTags.AddTag(GameplayTags.InputTag_Action_Throw, "InputTag.Action.Throw", "Throw Equipped Throwable Input");
 	
 	GameplayTags.AddTag(GameplayTags.Weapon_Rifle, "Weapon.Rifle", "Rifle Weapon Type");
 	GameplayTags.AddTag(GameplayTags.Weapon_Shotgun, "Weapon.Shotgun", "Shotgun Weapon Type");

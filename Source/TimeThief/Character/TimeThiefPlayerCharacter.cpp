@@ -4,6 +4,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHeroComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/Combat/TimeThiefThrowableComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
@@ -45,6 +46,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
 	NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
+	ThrowableComponent = CreateDefaultSubobject<UTimeThiefThrowableComponent>(TEXT("ThrowableComponent"));
 
 	CharacterTrajectoryComponent = CreateDefaultSubobject<UTimeThiefTrajectoryComponent>(
 		TEXT("CharacterTrajectoryComponent"));

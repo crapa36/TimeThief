@@ -1,0 +1,342 @@
+#include "Weapon/TimeThiefThrowableProjectile.h"
+
+#include "Actors/TimeThiefSmokeDebugVolume.h"
+#include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "NiagaraFunctionLibrary.h"
+#include "Particles/ParticleSystem.h"
+#include "Sound/SoundBase.h"
+#include "TimerManager.h"
+
+ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
+{
+	PrimaryActorTick.bCanEverTick = false;
+
+	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
+	SetRootComponent(CollisionComponent);
+	CollisionComponent->InitSphereRadius(ActiveSettings.CollisionRadius);
+	CollisionComponent->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionComponent->SetCollisionResponseToAllChannels(ECR_Block);
+
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(CollisionComponent);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MeshComponent->SetGenerateOverlapEvents(false);
+	MeshComponent->SetHiddenInGame(false);
+	MeshComponent->SetVisibility(true);
+
+	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
+	ProjectileMovementComponent->ProjectileGravityScale = ActiveSettings.GravityScale;
+	ProjectileMovementComponent->bRotationFollowsVelocity = true;
+	ProjectileMovementComponent->bShouldBounce = ActiveSettings.bShouldBounce;
+	ProjectileMovementComponent->Bounciness = ActiveSettings.Bounciness;
+	ProjectileMovementComponent->Friction = ActiveSettings.Friction;
+	ProjectileMovementComponent->bAutoActivate = false;
+	ProjectileMovementComponent->OnProjectileBounce.AddDynamic(this, &ATimeThiefThrowableProjectile::OnProjectileBounce);
+}
+
+void ATimeThiefThrowableProjectile::InitializeThrowable(EItemID InItemID, AActor* InOwnerActor, APawn* InInstigatorPawn)
+{
+	InitializeThrowable(InItemID, InOwnerActor, InInstigatorPawn, FTimeThiefThrowableProjectileSettings());
+}
+
+void ATimeThiefThrowableProjectile::InitializeThrowable(EItemID InItemID, AActor* InOwnerActor, APawn* InInstigatorPawn, const FTimeThiefThrowableProjectileSettings& InProjectileSettings)
+{
+	ThrowableItemID = InItemID;
+	ActiveSettings = InProjectileSettings;
+	ApplyProjectileSettings();
+	CachedOwnerActor = InOwnerActor;
+	CachedInstigatorPawn = InInstigatorPawn;
+	SetOwner(InOwnerActor);
+	SetInstigator(InInstigatorPawn);
+
+	if (CollisionComponent)
+	{
+		CollisionComponent->ClearMoveIgnoreActors();
+
+		if (InOwnerActor)
+		{
+			CollisionComponent->IgnoreActorWhenMoving(InOwnerActor, true);
+		}
+		if (InInstigatorPawn && InInstigatorPawn != InOwnerActor)
+		{
+			CollisionComponent->IgnoreActorWhenMoving(InInstigatorPawn, true);
+		}
+	}
+}
+
+void ATimeThiefThrowableProjectile::LaunchThrowable(const FVector& InitialVelocity, float InFuseTime)
+{
+	if (InitialVelocity.IsNearlyZero())
+	{
+		Destroy();
+		return;
+	}
+
+	bExploded = false;
+	SetActorHiddenInGame(false);
+	SetActorRotation(InitialVelocity.Rotation());
+
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->ProjectileGravityScale = ActiveSettings.GravityScale;
+		ProjectileMovementComponent->bShouldBounce = ActiveSettings.bShouldBounce;
+		ProjectileMovementComponent->Bounciness = ActiveSettings.Bounciness;
+		ProjectileMovementComponent->Friction = ActiveSettings.Friction;
+		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
+		ProjectileMovementComponent->Velocity = InitialVelocity;
+		ProjectileMovementComponent->Activate(true);
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().SetTimer(FuseTimerHandle, this, &ATimeThiefThrowableProjectile::HandleFuseExpired, FMath::Max(0.1f, InFuseTime), false);
+	}
+}
+
+void ATimeThiefThrowableProjectile::SetThrowableMesh()
+{
+	if (MeshComponent)
+	{
+		UStaticMesh* MeshToUse = ActiveSettings.MeshOverride.Get();
+		MeshComponent->SetStaticMesh(MeshToUse);
+		MeshComponent->SetRelativeLocation(FVector::ZeroVector);
+		MeshComponent->SetRelativeRotation(FRotator::ZeroRotator);
+		MeshComponent->SetHiddenInGame(false);
+		MeshComponent->SetVisibility(true, true);
+
+		if (MeshToUse)
+		{
+			const float MeshRadius = MeshToUse->GetBounds().SphereRadius;
+			const float Scale = MeshRadius > KINDA_SMALL_NUMBER ? ActiveSettings.MeshVisualRadius / MeshRadius : 1.0f;
+			MeshComponent->SetRelativeScale3D(FVector(Scale));
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Projectile] Mesh assigned: %s BoundsRadius=%.3f VisualScale=%.3f"),
+				*GetNameSafe(MeshToUse),
+				MeshRadius,
+				Scale);
+#endif
+		}
+		else
+		{
+			MeshComponent->SetRelativeScale3D(FVector::OneVector);
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Projectile] Mesh assignment failed: MeshOverride is not assigned for ItemID=%d."),
+				static_cast<int32>(ThrowableItemID));
+#endif
+		}
+	}
+}
+
+void ATimeThiefThrowableProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(FuseTimerHandle);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void ATimeThiefThrowableProjectile::HandleFuseExpired()
+{
+	ExplodeOnce();
+}
+
+void ATimeThiefThrowableProjectile::ExplodeOnce()
+{
+	if (bExploded)
+	{
+		return;
+	}
+
+	bExploded = true;
+	const FVector EffectLocation = GetActorLocation();
+
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->StopMovementImmediately();
+		ProjectileMovementComponent->Deactivate();
+	}
+
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	switch (ThrowableItemID)
+	{
+	case EItemID::Grenade:
+	case EItemID::SmokeGrenade:
+		break;
+	default:
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("[Throwable] Unsupported throwable item exploded. ItemID=%d"), static_cast<int32>(ThrowableItemID));
+#endif
+		break;
+	}
+
+	if (ActiveSettings.bApplyRadialDamage)
+	{
+		ApplyRadialThrowableDamage(EffectLocation);
+	}
+
+	PlayDetonationEffects(EffectLocation);
+
+	if (ActiveSettings.bApplyRadialDamage && ActiveSettings.bDrawDamageDebug)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			DrawDebugSphere(World, EffectLocation, ActiveSettings.DamageOuterRadius, FMath::Max(4, ActiveSettings.DebugSegments), FColor::Red, false, ActiveSettings.DamageDebugDuration, 0, 1.5f);
+			DrawDebugSphere(World, EffectLocation, ActiveSettings.DamageInnerRadius, FMath::Max(4, ActiveSettings.DebugSegments), FColor::Yellow, false, ActiveSettings.DamageDebugDuration, 0, 1.0f);
+		}
+	}
+
+	if (ActiveSettings.bSpawnSmokeDebugVolume)
+	{
+		SpawnSmokeDebug(EffectLocation);
+	}
+
+	Destroy();
+}
+
+void ATimeThiefThrowableProjectile::ApplyRadialThrowableDamage(const FVector& ExplosionLocation)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	AController* InstigatorController = nullptr;
+	if (APawn* InstigatorPawn = CachedInstigatorPawn.Get())
+	{
+		InstigatorController = InstigatorPawn->GetController();
+	}
+
+	TArray<AActor*> IgnoreActors;
+	IgnoreActors.Add(this);
+
+	UGameplayStatics::ApplyRadialDamageWithFalloff(
+		this,
+		ActiveSettings.MaxDamage,
+		ActiveSettings.MinDamage,
+		ExplosionLocation,
+		ActiveSettings.DamageInnerRadius,
+		ActiveSettings.DamageOuterRadius,
+		1.0f,
+		nullptr,
+		IgnoreActors,
+		this,
+		InstigatorController,
+		ECC_Visibility);
+}
+
+void ATimeThiefThrowableProjectile::PlayDetonationEffects(const FVector& ExplosionLocation)
+{
+	if (ActiveSettings.DetonationNiagaraEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ActiveSettings.DetonationNiagaraEffect, ExplosionLocation);
+	}
+
+	if (ActiveSettings.DetonationParticleEffect)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(this, ActiveSettings.DetonationParticleEffect, ExplosionLocation);
+	}
+
+	if (ActiveSettings.ExplosionSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ActiveSettings.ExplosionSound, ExplosionLocation);
+	}
+}
+
+void ATimeThiefThrowableProjectile::SpawnSmokeDebug(const FVector& SmokeLocation)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = CachedOwnerActor.Get();
+	SpawnParams.Instigator = CachedInstigatorPawn.Get();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	TSubclassOf<ATimeThiefSmokeDebugVolume> ClassToSpawn = ActiveSettings.SmokeDebugVolumeClass;
+	if (!ClassToSpawn)
+	{
+		ClassToSpawn = ATimeThiefSmokeDebugVolume::StaticClass();
+	}
+
+	ATimeThiefSmokeDebugVolume* SmokeVolume = World->SpawnActor<ATimeThiefSmokeDebugVolume>(
+		ClassToSpawn,
+		SmokeLocation,
+		FRotator::ZeroRotator,
+		SpawnParams);
+
+	if (SmokeVolume)
+	{
+		SmokeVolume->InitializeSmokeDebug(ActiveSettings.SmokeRadius, ActiveSettings.SmokeDuration);
+	}
+}
+
+void ATimeThiefThrowableProjectile::PlayCollisionSound(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
+{
+	if (bExploded || !ActiveSettings.CollisionSound)
+	{
+		return;
+	}
+
+	if (ImpactVelocity.Size() < ActiveSettings.CollisionSoundMinSpeed)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const float CurrentTime = World->GetTimeSeconds();
+	if (CurrentTime - LastCollisionSoundTime < ActiveSettings.CollisionSoundCooldown)
+	{
+		return;
+	}
+
+	LastCollisionSoundTime = CurrentTime;
+	const FVector SoundLocation = ImpactResult.bBlockingHit ? FVector(ImpactResult.ImpactPoint) : GetActorLocation();
+	UGameplayStatics::PlaySoundAtLocation(this, ActiveSettings.CollisionSound, SoundLocation);
+}
+
+void ATimeThiefThrowableProjectile::OnProjectileBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity)
+{
+	PlayCollisionSound(ImpactResult, ImpactVelocity);
+}
+
+void ATimeThiefThrowableProjectile::ApplyProjectileSettings()
+{
+	if (CollisionComponent)
+	{
+		CollisionComponent->InitSphereRadius(ActiveSettings.CollisionRadius);
+	}
+
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->ProjectileGravityScale = ActiveSettings.GravityScale;
+		ProjectileMovementComponent->bShouldBounce = ActiveSettings.bShouldBounce;
+		ProjectileMovementComponent->Bounciness = ActiveSettings.Bounciness;
+		ProjectileMovementComponent->Friction = ActiveSettings.Friction;
+	}
+}

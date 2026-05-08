@@ -8,9 +8,12 @@
 
 class UTimeThiefPawnData;
 class UTimeThiefInputConfig;
+class UTimeThiefInputComponent;
+class UInputAction;
 class UInputMappingContext;
 class UTimeThiefWireComponent;
 class UTimeThiefPawnCombatComponent;
+class UTimeThiefThrowableComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeThiefHero_ReadyDelegate, UTimeThiefHeroComponent*, HeroComponent);
 
@@ -67,6 +70,8 @@ private:
 	void Input_ToggleInventory(const FInputActionValue& Value);
 	void Input_WheelMenu(const FInputActionValue& Value);
 	void Input_SavePoint(const FInputActionValue& Value);
+	void Input_ThrowFallback(const FInputActionValue& Value);
+	void BindThrowFallbackInput(UTimeThiefInputComponent* TimeThiefIC);
 	
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")
@@ -82,4 +87,13 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTimeThiefPawnCombatComponent> CachedCombatComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefThrowableComponent> CachedThrowableComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> FallbackThrowInputAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputMappingContext> FallbackThrowMappingContext;
 };
