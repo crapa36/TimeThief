@@ -23,8 +23,7 @@ public:
 protected:
 	virtual void ExecuteFireShot() override;
 	virtual void ExecuteRemoteFireShot() override;
-
-	void PlayFireEffects();
+	
 	bool SpawnRocketProjectile();
 	
 public:
@@ -40,15 +39,6 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Projectile")
 	float AimTraceRange = 50000.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<USoundBase> FireSound;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
-	TObjectPtr<UAnimSequenceBase> FireAnimation;
 	
 	UPROPERTY()
 	float ProjectileSpeed = 3000.0f;

@@ -47,7 +47,7 @@ protected:
 	virtual void ExecuteFireShot() override;
 	FRifleHitResult PerformHitScan();
 	void ApplyDamage(const FRifleHitResult& HitResult);
-	void PlayFireEffects();
+
 	void PlayImpactEffects(const FRifleHitResult& HitResult);
 	virtual void ApplyRecoilAndSpread() override;
 	
@@ -62,16 +62,7 @@ protected:
 	float MaxRange = 10000.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<UParticleSystem> ImpactEffect;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<USoundBase> FireSound;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
-	TObjectPtr<UAnimSequenceBase> FireAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float MaxVerticalRecoil = 1.5f;

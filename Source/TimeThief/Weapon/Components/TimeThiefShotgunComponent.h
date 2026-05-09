@@ -45,7 +45,7 @@ protected:
 	virtual uint32 GetCombatAttackShotSeed() const override;
 	TArray<FShotgunHitResult> PerformPelletHitScan();
 	void ApplyDamage(const TArray<FShotgunHitResult>& HitResults);
-	void PlayFireEffects();
+
 	void PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults);
 	virtual void ApplyRecoilAndSpread() override;
 	
@@ -62,16 +62,7 @@ public:
 	int32 PelletCount = 12;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<UParticleSystem> ImpactEffect;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
-	TObjectPtr<USoundBase> FireSound;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
-	TObjectPtr<UAnimSequenceBase> FireAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float VerticalRecoil = 6.0f;

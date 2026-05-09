@@ -151,30 +151,3 @@ void UTimeThiefRocketLauncherComponent::SetWeaponStatForNetwork(const FWeaponSta
 	ProjectileSpeed = InStatData.ProjectileSpeed;
 	ExplosionRadius = InStatData.ExplosionRadius;
 }
-
-void UTimeThiefRocketLauncherComponent::PlayFireEffects()
-{
-	const FVector MuzzleLocation = GetMuzzleLocation();
-	const FRotator MuzzleRotation = GetSocketTransformByName(GetMuzzleSocketName()).GetRotation().Rotator();
-
-	if (MuzzleFlashEffect)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, MuzzleFlashEffect, MuzzleLocation, MuzzleRotation);
-	}
-
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleLocation);
-	}
-
-	if (FireAnimation)
-	{
-		if (AActor* MasterWeapon = GetOwner())
-		{
-			if (ATimeThiefCharacterBase* BaseCharacter = Cast<ATimeThiefCharacterBase>(MasterWeapon->GetOwner()))
-			{
-				BaseCharacter->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
-			}
-		}
-	}
-}
