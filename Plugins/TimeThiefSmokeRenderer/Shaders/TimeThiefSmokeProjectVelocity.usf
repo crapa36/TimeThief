@@ -1,0 +1,55 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+Texture3D<float4> VelocityIn;
+Texture3D<float> PressureIn;
+Texture3D<float> ObstacleTexture;
+SamplerState VolumeSampler;
+
+RWTexture3D<float4> OutVelocity;
+
+int3 GridResolution;
+float3 CellSize;
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
+	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	const float3 PressureGradient = float3(
+		LoadPressure(Coord + int3(1, 0, 0)) - LoadPressure(Coord - int3(1, 0, 0)),
+		LoadPressure(Coord + int3(0, 1, 0)) - LoadPressure(Coord - int3(0, 1, 0)),
+		LoadPressure(Coord + int3(0, 0, 1)) - LoadPressure(Coord - int3(0, 0, 1))) * 0.5 * InvCellSize;
+
+	Velocity -= PressureGradient;
+
+	const bool bBoundary =
+		Coord.x <= 0 || Coord.y <= 0 || Coord.z <= 0 ||
+		Coord.x >= GridResolution.x - 1 ||
+		Coord.y >= GridResolution.y - 1 ||
+		Coord.z >= GridResolution.z - 1;
+	if (bBoundary)
+	{
+		Velocity *= 0.25;
+	}
+
+	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+}

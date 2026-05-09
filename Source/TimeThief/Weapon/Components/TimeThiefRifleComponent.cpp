@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefRifleComponent::UTimeThiefRifleComponent()
@@ -87,6 +88,11 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 	if (bWeaponHit)
 	{
 		DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
+	}
+
+	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+	{
+		SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, DebugEndLocation, 1.0f, FMath::Rand());
 	}
 
 	Result.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, CameraAimDir);

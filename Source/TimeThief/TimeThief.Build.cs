@@ -28,6 +28,7 @@ public class TimeThief : ModuleRules
             "GameFeatures",
             "Json",
             "JsonUtilities",
+            "Niagara",
             "Protobuf",
             "ProtocolSharedUE",
             "AnimGraphRuntime",
@@ -37,7 +38,7 @@ public class TimeThief : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Sockets",
-			"Networking", "Niagara", "MorphingMesh",
+			"Networking", "MorphingMesh", "TimeThiefSmokeRenderer",
 		});
 
 		PublicIncludePaths.AddRange(new string[] {

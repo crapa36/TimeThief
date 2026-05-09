@@ -10,6 +10,7 @@
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 #include "Network/State/NetworkEntityState.h"
+#include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 
 ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 {
@@ -207,6 +208,11 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 
 	ApplyExplosionDamage(ExplosionLocation);
 	PlayExplosionEffects(ExplosionLocation, ExplosionNormal);
+
+	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+	{
+		SmokeSubsystem->SubmitExplosion(ExplosionLocation, ExplosionRadius, 1.0f, FMath::Rand());
+	}
 
 	if (UWorld* World = GetWorld())
 	{

@@ -1,0 +1,225 @@
+#include "/Engine/Public/Platform.ush"
+#include "/Engine/Private/ScreenPass.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+Texture2D SceneColorTexture;
+SamplerState SceneColorSampler;
+Texture2D<float> SceneDepthTexture;
+Texture3D<float> DensityTexture;
+Texture3D<float> ObstacleTexture;
+Texture3D<float> BulletSuppressionTexture;
+SamplerState VolumeSampler;
+StructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> CarrierParticles;
+StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
+
+float4 SceneColorUVScaleBias;
+int4 ViewRect;
+float3 BoundsExtent;
+float Extinction;
+float ScatteringAlbedo;
+float ScatteringAnisotropy;
+float AgeSeconds;
+float DurationSeconds;
+float SmokeFadeOutDuration;
+int RenderStepCount;
+int DebugMode;
+int CarrierParticleCount;
+int EventCount;
+float4x4 InvViewProjection;
+float4x4 LocalToWorld;
+float4x4 WorldToLocal;
+
+float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
+{
+	const float2 ViewSize = max(float2(ViewRect.zw - ViewRect.xy), 1.0);
+	const float2 UV = (PixelPosition - float2(ViewRect.xy)) / ViewSize;
+	const float2 NDC = float2(UV.x * 2.0 - 1.0, 1.0 - UV.y * 2.0);
+	float4 World = mul(float4(NDC, DeviceZ, 1.0), InvViewProjection);
+	const float SafeW = abs(World.w) > 0.000001 ? World.w : (World.w < 0.0 ? -0.000001 : 0.000001);
+	return World.xyz / SafeW;
+}
+
+bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float TMax)
+{
+	const float3 DirectionSign = lerp(float3(-1.0, -1.0, -1.0), float3(1.0, 1.0, 1.0), step(float3(0.0, 0.0, 0.0), Direction));
+	const float3 InvDirection = 1.0 / (Direction + DirectionSign * 0.000001);
+	const float3 T0 = (-1.0 - Origin) * InvDirection;
+	const float3 T1 = (1.0 - Origin) * InvDirection;
+	const float3 TSmall = min(T0, T1);
+	const float3 TBig = max(T0, T1);
+	TMin = max(max(TSmall.x, TSmall.y), TSmall.z);
+	TMax = min(min(TBig.x, TBig.y), TBig.z);
+	return TMax >= max(TMin, 0.0);
+}
+
+float ComputeCarrierDebug(float3 SampleLocal)
+{
+	float Weight = 0.0;
+	const int SafeParticleCount = min(CarrierParticleCount, 128);
+	[loop]
+	for (int ParticleIndex = 0; ParticleIndex < SafeParticleCount; ++ParticleIndex)
+	{
+		const FTimeThiefSmokeCarrierParticleShaderData Particle = CarrierParticles[ParticleIndex];
+		const float Distance = length(SampleLocal - Particle.LocalPositionRadius.xyz);
+		const float Radius = max(Particle.LocalPositionRadius.w, 1.0);
+		Weight = max(Weight, 1.0 - smoothstep(Radius * 0.22, Radius * 0.72, Distance));
+	}
+	return saturate(Weight);
+}
+
+float ComputeEventDebug(float3 SampleWorld)
+{
+	float Weight = 0.0;
+	const int SafeEventCount = min(EventCount, 128);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		const float3 EventPosition = Event.PositionRadius.xyz;
+		const float Radius = max(Event.PositionRadius.w, 1.0);
+		const float3 EventDirection = normalize(Event.DirectionLength.xyz + 0.0001);
+		const float Length = max(Event.DirectionLength.w, Radius * 2.0);
+		const float Type = Event.TypeShapeAgeSeed.x;
+		const float Shape = Event.TypeShapeAgeSeed.y;
+
+		if (Type < 0.5 || Shape > 2.5)
+		{
+			const float3 Delta = SampleWorld - EventPosition;
+			const float Along = clamp(dot(Delta, EventDirection), -Length * 0.5, Length * 0.5);
+			const float3 Closest = EventPosition + EventDirection * Along;
+			const float Distance = length(SampleWorld - Closest);
+			const float Axial = 1.0 - smoothstep(Length * 0.45, Length * 0.55 + Radius, abs(Along));
+			Weight = max(Weight, (1.0 - smoothstep(Radius * 0.35, Radius * 1.2, Distance)) * Axial);
+		}
+		else
+		{
+			const float Distance = length(SampleWorld - EventPosition);
+			Weight = max(Weight, 1.0 - smoothstep(Radius * 0.45, Radius * 1.25, Distance));
+		}
+	}
+	return saturate(Weight);
+}
+
+void MainPS(
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
+	out float4 OutColor : SV_Target0)
+{
+	const float2 SceneUV = SvPosition.xy * SceneColorUVScaleBias.xy + SceneColorUVScaleBias.zw;
+	const float4 SceneColor = SceneColorTexture.SampleLevel(SceneColorSampler, SceneUV, 0.0);
+	const float SceneDeviceZ = SceneDepthTexture.Load(int3(uint2(SvPosition.xy), 0)).r;
+	const float3 NearWorld = ReconstructWorldPosition(SvPosition.xy, 1.0);
+	const float3 FarWorld = ReconstructWorldPosition(SvPosition.xy, 0.0);
+	const bool bHasOpaqueSceneDepth = SceneDeviceZ > 0.000001;
+	const float3 SceneWorld = bHasOpaqueSceneDepth ? ReconstructWorldPosition(SvPosition.xy, SceneDeviceZ) : FarWorld;
+	const float3 LocalNear = mul(float4(NearWorld, 1.0), WorldToLocal).xyz / max(BoundsExtent, 1.0);
+	const float3 LocalFar = mul(float4(FarWorld, 1.0), WorldToLocal).xyz / max(BoundsExtent, 1.0);
+	const float3 LocalScene = mul(float4(SceneWorld, 1.0), WorldToLocal).xyz / max(BoundsExtent, 1.0);
+	const float3 RayDirection = normalize(LocalFar - LocalNear);
+
+	float TMin = 0.0;
+	float TMax = 0.0;
+	if (!IntersectUnitBox(LocalNear, RayDirection, TMin, TMax))
+	{
+		OutColor = SceneColor;
+		return;
+	}
+
+	TMin = max(TMin, 0.0);
+	TMax = min(TMax, dot(LocalScene - LocalNear, RayDirection));
+	if (TMax <= TMin)
+	{
+		OutColor = SceneColor;
+		return;
+	}
+
+	const int Steps = clamp(RenderStepCount, 16, 128);
+	const float StepSize = max((TMax - TMin) / Steps, 0.0001);
+	const float LifetimeAlpha = 1.0 - smoothstep(DurationSeconds, DurationSeconds + max(SmokeFadeOutDuration, 0.001), AgeSeconds);
+	float Transmittance = 1.0;
+	float Scatter = 0.0;
+	float DebugValue = 0.0;
+
+	[loop]
+	for (int StepIndex = 0; StepIndex < Steps; ++StepIndex)
+	{
+		const float T = TMin + (StepIndex + 0.5) * StepSize;
+		const float3 LocalPosition = LocalNear + RayDirection * T;
+		const float3 VolumeUVW = LocalPosition * 0.5 + 0.5;
+		if (!TimeThiefSmokeInsideUVW(VolumeUVW))
+		{
+			continue;
+		}
+
+		const float RawDensity = max(DensityTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
+		const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
+		const float BulletSuppression = BulletSuppressionTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
+		float Density = RawDensity * TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW);
+		const float CloudBillow = 0.5 + 0.5 * sin(
+			dot(LocalPosition, float3(9.7, 7.3, 5.9)) +
+			sin(dot(LocalPosition, float3(4.1, 6.8, 8.6))) * 1.8);
+		Density *= lerp(0.74, 1.36, CloudBillow) * LifetimeAlpha;
+
+		if (DebugMode == 1)
+		{
+			DebugValue = max(DebugValue, saturate(RawDensity * 0.45));
+		}
+		else if (DebugMode == 2)
+		{
+			DebugValue = max(DebugValue, saturate(Obstacle));
+		}
+		else if (DebugMode == 3)
+		{
+			DebugValue = max(DebugValue, saturate(BulletSuppression));
+		}
+		else if (DebugMode == 4)
+		{
+			DebugValue = max(DebugValue, ComputeCarrierDebug(LocalPosition * BoundsExtent));
+		}
+		else if (DebugMode == 5)
+		{
+			const float3 SampleWorld = mul(float4(LocalPosition * BoundsExtent, 1.0), LocalToWorld).xyz;
+			DebugValue = max(DebugValue, ComputeEventDebug(SampleWorld));
+		}
+
+		const float Absorption = Density * Extinction * StepSize;
+		const float StepTransmittance = exp(-Absorption);
+		Scatter += Transmittance * (1.0 - StepTransmittance) * Density;
+		Transmittance *= StepTransmittance;
+
+		if (Transmittance < 0.015)
+		{
+			break;
+		}
+	}
+
+	if (DebugMode != 0)
+	{
+		float3 DebugColor = float3(0.85, 0.9, 1.0);
+		if (DebugMode == 2)
+		{
+			DebugColor = float3(1.0, 0.18, 0.08);
+		}
+		else if (DebugMode == 3)
+		{
+			DebugColor = float3(1.0, 0.62, 0.08);
+		}
+		else if (DebugMode == 4)
+		{
+			DebugColor = float3(0.1, 0.8, 1.0);
+		}
+		else if (DebugMode == 5)
+		{
+			DebugColor = float3(1.0, 0.05, 0.85);
+		}
+
+		OutColor = float4(lerp(SceneColor.rgb, DebugColor, saturate(DebugValue * 0.88)), SceneColor.a);
+		return;
+	}
+
+	const float Alpha = saturate(1.0 - Transmittance);
+	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
+	const float3 SmokeColor = lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
+	const float3 Composited = SceneColor.rgb * Transmittance + SmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
+	OutColor = float4(Composited, SceneColor.a);
+}

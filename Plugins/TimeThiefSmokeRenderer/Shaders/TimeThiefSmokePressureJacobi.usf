@@ -1,0 +1,40 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+Texture3D<float> PressureIn;
+Texture3D<float> DivergenceIn;
+
+RWTexture3D<float> OutPressure;
+
+int3 GridResolution;
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float NeighborPressure =
+		LoadPressure(Coord + int3(1, 0, 0)) +
+		LoadPressure(Coord - int3(1, 0, 0)) +
+		LoadPressure(Coord + int3(0, 1, 0)) +
+		LoadPressure(Coord - int3(0, 1, 0)) +
+		LoadPressure(Coord + int3(0, 0, 1)) +
+		LoadPressure(Coord - int3(0, 0, 1));
+	const float Divergence = DivergenceIn.Load(int4(Coord, 0));
+
+	OutPressure[DispatchThreadId] = (NeighborPressure - Divergence) * (1.0 / 6.0);
+}

@@ -1,0 +1,24 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+RWTexture3D<float> OutDensity;
+RWTexture3D<float4> OutVelocity;
+
+int3 GridResolution;
+float3 BoundsExtent;
+float InitialDensity;
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float EmptySeed = InitialDensity * 0.0 + dot(UVW, float3(0.0, 0.0, 0.0));
+
+	OutDensity[DispatchThreadId] = EmptySeed;
+	OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+}

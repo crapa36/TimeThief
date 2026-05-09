@@ -1,6 +1,6 @@
 #include "Weapon/TimeThiefThrowableProjectile.h"
 
-#include "Actors/TimeThiefSmokeDebugVolume.h"
+#include "Actors/TimeThiefSmokeVolume.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
@@ -11,6 +11,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundBase.h"
+#include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "TimerManager.h"
 
 ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
@@ -203,9 +204,21 @@ void ATimeThiefThrowableProjectile::ExplodeOnce()
 		}
 	}
 
-	if (ActiveSettings.bSpawnSmokeDebugVolume)
+	if (ThrowableItemID == EItemID::SmokeGrenade)
 	{
-		SpawnSmokeDebug(EffectLocation);
+		SpawnSmokeVolume(EffectLocation);
+	}
+	else if (ThrowableItemID == EItemID::Grenade)
+	{
+		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+		{
+			const FTimeThiefSmokeRuntimeSettings SmokeDefaults;
+			SmokeSubsystem->SubmitExplosion(
+				EffectLocation,
+				FMath::Max(SmokeDefaults.ExplosionShockRadius, ActiveSettings.DamageOuterRadius),
+				1.0f,
+				FMath::Rand());
+		}
 	}
 
 	Destroy();
@@ -260,7 +273,7 @@ void ATimeThiefThrowableProjectile::PlayDetonationEffects(const FVector& Explosi
 	}
 }
 
-void ATimeThiefThrowableProjectile::SpawnSmokeDebug(const FVector& SmokeLocation)
+void ATimeThiefThrowableProjectile::SpawnSmokeVolume(const FVector& SmokeLocation)
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -273,22 +286,21 @@ void ATimeThiefThrowableProjectile::SpawnSmokeDebug(const FVector& SmokeLocation
 	SpawnParams.Instigator = CachedInstigatorPawn.Get();
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	TSubclassOf<ATimeThiefSmokeDebugVolume> ClassToSpawn = ActiveSettings.SmokeDebugVolumeClass;
-	if (!ClassToSpawn)
-	{
-		ClassToSpawn = ATimeThiefSmokeDebugVolume::StaticClass();
-	}
-
-	ATimeThiefSmokeDebugVolume* SmokeVolume = World->SpawnActor<ATimeThiefSmokeDebugVolume>(
-		ClassToSpawn,
+	ATimeThiefSmokeVolume* SmokeVolume = World->SpawnActor<ATimeThiefSmokeVolume>(
+		ATimeThiefSmokeVolume::StaticClass(),
 		SmokeLocation,
 		FRotator::ZeroRotator,
 		SpawnParams);
 
 	if (SmokeVolume)
 	{
-		SmokeVolume->InitializeSmokeDebug(ActiveSettings.SmokeRadius, ActiveSettings.SmokeDuration);
+		SmokeVolume->InitializeSmokeVolume(BuildSmokeRuntimeSettings(), CachedOwnerActor.Get(), CachedInstigatorPawn.Get());
 	}
+}
+
+FTimeThiefSmokeRuntimeSettings ATimeThiefThrowableProjectile::BuildSmokeRuntimeSettings() const
+{
+	return FTimeThiefSmokeRuntimeSettings();
 }
 
 void ATimeThiefThrowableProjectile::PlayCollisionSound(const FHitResult& ImpactResult, const FVector& ImpactVelocity)

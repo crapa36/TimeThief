@@ -53,6 +53,10 @@
 		{
 			"Name": "CableComponent",
 			"Enabled": true
+		},
+		{
+			"Name": "TimeThiefSmokeRenderer",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
