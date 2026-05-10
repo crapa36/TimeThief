@@ -12,8 +12,6 @@ ATimePointItemActor::ATimePointItemActor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	
-	ItemID = EItemID::TimePoint;
 }
 
 // Called when the game starts or when spawned
@@ -35,7 +33,7 @@ void ATimePointItemActor::Interact(const ATimeThiefPlayerCharacter* Player)
 	if (UTimePointSystemComponent* TP = Player->GetComponentByClass<UTimePointSystemComponent>())
 	{
 		TP->ModifyTimePoints(Quantity);
-		Destroy();
+		Disable();
 	}
 }
 

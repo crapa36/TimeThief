@@ -6,7 +6,7 @@
 #include "ItemCommons.h"
 #include "SkillBaseComponent.h"
 #include "Character/TimeThiefPlayerState.h"
-#include "Components/Interface/LifeObserver.h"
+#include "Interface/LifeObserver.h"
 #include "SavePointSkillComponent.generated.h"
 
 class UNiagaraComponent;

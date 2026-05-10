@@ -28,13 +28,12 @@ void UInventorySystemComponent::BeginPlay()
 void UInventorySystemComponent::OnRegister()
 {
 	Super::OnRegister();
-
-	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
-	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	
+	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
 		for (EItemID ItemID : TEnumRange<EItemID>())
 		{
-			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
 			{
 				ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
 				ItemQuantities.Last()->ItemID = ItemID;
@@ -61,21 +60,17 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 void UInventorySystemComponent::AddItem(EItemID ItemID, int Amount)
 {
 	int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
-
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Index %d"), Index));
-
-
+	
 	if (Index < 0 || Index >= ItemQuantities.Num())
 	{
 		return;
 	}
-
-	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
-	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	
+	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
 		if (ConsumableEquipment == EItemID::SIZE)
 		{
-			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
 			{
 				SetConsumableEquipment(ItemID);
 			}
@@ -116,12 +111,11 @@ bool UInventorySystemComponent::RemoveItem(EItemID ItemID, int Amount)
 		{
 			OnInventoryUpdatedEvent.Broadcast();
 
-			const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
-			if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+			if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 			{
 				if (ConsumableEquipment == ItemID)
 				{
-					if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+					if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
 					{
 						SetConsumableEquipment(EItemID::SIZE);
 					}
@@ -163,10 +157,9 @@ void UInventorySystemComponent::SetInventory(const TArray<TPair<EItemID,int>>& N
 
 void UInventorySystemComponent::SetEquipment(EItemID ItemID)
 {
-	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
-	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
-		if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable && ItemID != EItemID::TimePoint)
+		if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
 		{
 			SetConsumableEquipment(ItemID);
 		}

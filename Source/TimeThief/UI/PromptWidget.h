@@ -21,4 +21,6 @@ public:
 
 	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UTextBlock> Prompt_Text;
+	
+	void SetPromptText(const FText& NewText);
 };

@@ -6,9 +6,12 @@
 #include "ChannelCommons.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/SphereComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Components/System/InventorySystemComponent.h"
+#include "Game/ItemSettings.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "UI/PromptWidget.h"
 
 
 // Sets default values
@@ -37,19 +40,16 @@ void AItemBase::Tick(float DeltaTime)
 
 void AItemBase::Interact(const ATimeThiefPlayerCharacter* Player)
 {
-	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	if (auto GI = UNetworkGameInstanceSubsystem::Get(this); GI && GI->IsConnected())
 	{
-		if (!NGIS->IsConnected())
+		TryRequestServer();
+	}
+	else
+	{
+		if (UInventorySystemComponent* Inven = Player->GetInventoryComponent())
 		{
-			if (UInventorySystemComponent* Inven = Player->GetInventoryComponent())
-			{
-				Inven->AddItem(ItemID, Quantity);
-				Destroy();
-			}
-		}
-		else
-		{
-			TryRequestServer();
+			Inven->AddItem(ItemID, Quantity);
+			Disable();
 		}
 	}
 }
@@ -72,6 +72,27 @@ void AItemBase::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
 	}
 }
 
+void AItemBase::Enable()
+{
+	bIsEnabled = true;
+}
+
+void AItemBase::Disable()
+{
+	LookingSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MeshComponent->SetVisibility(false);
+	bIsEnabled = false;
+}
+
+void AItemBase::ApplySpawnRuntimeState(const FNetworkEntityState& EntityState)
+{
+	Super::ApplySpawnRuntimeState(EntityState);
+	
+	SetItemStack(static_cast<EItemID>(EntityState.TemplateId), EntityState.ItemCount);
+}
+
 void AItemBase::TryRequestServer()
 {
 	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
@@ -84,5 +105,21 @@ void AItemBase::SetItemStack(EItemID NewItemID, int NewQuantity)
 {
 	ItemID = NewItemID;
 	Quantity = NewQuantity;
+	
+	LookingSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	MeshComponent->SetVisibility(true);
+	MeshComponent->EmptyOverrideMaterials();
+	MeshComponent->SetStaticMesh(GetDefault<UItemSettings>()->GetItemMesh(ItemID));
+	
+	InteractionWidgetComponent->SetRelativeLocation(FVector{0, 0, MeshComponent->Bounds.BoxExtent.Z + 20});
+	
+	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	
+	if (auto Prompt = Cast<UPromptWidget>(InteractionWidgetComponent->GetWidget()))
+	{
+		Prompt->SetPromptText(FText::FromString(GetDefault<UItemSettings>()->GetItemName(ItemID) + FString::Printf(TEXT(" 줍기"))));
+	}
 }
 

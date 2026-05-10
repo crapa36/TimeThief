@@ -35,6 +35,8 @@
 #include "Network/NetworkCombatSyncComponent.h"
 #include "State/NetworkActionTypes.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Game/ItemPoolWorldSubsystem.h"
+#include "Game/ItemSettings.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
@@ -1503,17 +1505,25 @@ void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupIte
 {
 	check(IsInGameThread());
 	
-	const uint32 EntityId = Pkt.entity_id().value();
-	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	UE_LOG(LogTemp, Log, TEXT("PickupItem received"));
+	const uint32 PlayerID = Pkt.entity_id().value();
+	const uint32 ItemID = Pkt.item_entity_id().value();
 	
-	if (EntityEntry == nullptr)
+	UE_LOG(LogTemp, Log, TEXT("Entity %u picked up item %u"), PlayerID, ItemID);
+	
+	auto ItemEntry = EntityEntries.Find(ItemID);
+	if (ItemEntry == nullptr || !ItemEntry->Actor.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("EntityEntry not found"));
 		return;
+	}
+	if (auto ItemActor = Cast<AItemBase>(ItemEntry->Actor))
+	{
+		ItemActor->Disable();
 	}
 
 	// TODO: 해당 Player가 PickUp 하는 모션 1회 Play
 	// EntityEntry->Actor->PlayPickUp()
+	// A 플레이어가 아이템 먹음
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt)
@@ -1551,6 +1561,11 @@ void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGaine
 	
 	// TODO: 일단 임시로 이렇게, 최종적으론 NewCount로 Set 할 수 있게끔	
 	InventoryComp->AddItem(static_cast<EItemID>(ItemId), Delta);
+
+	// 형일이 주석
+	// 실제로 아이템이 늘어나는 곳
+	// 저 패킷에 뭐뭐 있는지
+	// 
 }
 
 void UNetworkGameInstanceSubsystem::HandleChestInteracted(const se::game::N_ChestInteracted& Pkt)
@@ -2546,8 +2561,27 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	
 	// TODO: World가 GameWorld가 아니면 안된다 (문제가 생긴 것)
-	AActor* SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform, SpawnParams);
+	AActor* SpawnedActor;
+	if (EntityState.ObjectType == se::common::OBJ_ITEM)
+	{
+		// 내꺼
+		// ItemID = EntityState.TemplateId
+		const TSubclassOf<AActor> ItemClass = GetDefault<UItemSettings>()->GetItemClass(EntityState.TemplateId);
+		SpawnedActor = GetWorld()->GetSubsystem<UItemPoolWorldSubsystem>()->Get(ItemClass);
+		
+		if (SpawnedActor == nullptr)
+		{
+			return nullptr;
+		}
+		
+		SpawnedActor->SetActorTransform(SpawnTransform);
+	}
+	else
+	{
+		SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform, SpawnParams);
+	}
 	if (SpawnedActor == nullptr) return nullptr;
+
 	
 	EntityEntry->Actor = SpawnedActor;
 	
@@ -2594,17 +2628,12 @@ void UNetworkGameInstanceSubsystem::InitializeSpawnedPawnData(AActor* Actor)
 
 void UNetworkGameInstanceSubsystem::ApplySpawnRuntimeStateToActor(AActor* Actor, const FNetworkEntityState& EntityState)
 {
+	if (auto NetEntity = Cast<INetworkEntityInterface>(Actor))
+	{
+		NetEntity->ApplySpawnRuntimeState(EntityState);
+	}
 	switch (EntityState.ObjectType)
 	{
-	case se::common::OBJ_ITEM:
-		{
-			if (AItemBase* Item = Cast<AItemBase>(Actor))
-			{
-				Item->SetItemStack(static_cast<EItemID>(EntityState.TemplateId), EntityState.ItemCount);
-			}
-		}
-		break;
-		
 	case se::common::ObjectType::OBJ_PROJECTILE:
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[Rocket] Spawned"));

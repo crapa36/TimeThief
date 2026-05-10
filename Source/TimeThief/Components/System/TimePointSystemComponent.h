@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Components/Interface/LifeObserver.h"
+#include "Interface/LifeObserver.h"
 #include "TimePointSystemComponent.generated.h"
 
 

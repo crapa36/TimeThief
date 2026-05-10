@@ -57,12 +57,10 @@ void UVicinityItemEntryWidget::BindItem(AItemBase* InItemActor)
 	BindedItem = InItemActor;
 	
 	ItemID = BindedItem->GetItemID();
-	
-	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
-	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
+
+	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
-		if (ItemID == EItemID::TimePoint ||
-			LoadedData->Items[ItemID].Category != EItemCategory::Consumable )
+		if (LoadedData->Items[ItemID].Category != EItemCategory::Consumable )
 		{
 			Interaction_Text->SetText(FText::FromString(TEXT("사용")));
 		}
