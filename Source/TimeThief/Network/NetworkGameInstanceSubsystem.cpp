@@ -1519,6 +1519,8 @@ void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupIte
 	if (auto ItemActor = Cast<AItemBase>(ItemEntry->Actor))
 	{
 		ItemActor->Disable();
+			
+		EntityEntries.Remove(ItemID);
 	}
 
 	// TODO: 해당 Player가 PickUp 하는 모션 1회 Play
