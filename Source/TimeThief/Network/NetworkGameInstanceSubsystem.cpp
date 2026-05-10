@@ -1708,12 +1708,12 @@ void UNetworkGameInstanceSubsystem::HandleEntityDied(const se::game::N_EntityDie
 	if (EntityId == LocalPlayerEntityId)
 	{
 		// 로컬 플레이어 사망 처리 후 컨트롤 불가하게
-		TTCharacter->HandleDeathFromServer();
+		TTCharacter->OnDeath();
 	}
 	else
 	{
 		// 타 플레이어는 사망 연출 진행
-		TTCharacter->HandleDeathFromServer();
+		TTCharacter->OnDeath();
 	}
 }
 
