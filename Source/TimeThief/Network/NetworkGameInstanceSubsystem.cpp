@@ -1353,6 +1353,18 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 {
 }
 
+void UNetworkGameInstanceSubsystem::HandleGrenadeMoveSync(const se::game::N_GrenadeMoveSync& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleGrenadeExplosion(const se::game::N_GrenadeExplosion& Pkt)
+{
+}
+
+void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_ProjectileExplosion& Pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& Pkt)
 {
 	check(IsInGameThread());
