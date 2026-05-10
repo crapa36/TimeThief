@@ -63,6 +63,7 @@ public:
 	void SendSavePointSet(FVector Location);
 	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
 	void SendItemPickUp(uint32 ItemEntityId);
+	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
 	
 private:

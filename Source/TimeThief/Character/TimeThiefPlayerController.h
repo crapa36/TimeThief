@@ -36,6 +36,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|UI")
 	UTimeThiefHUDWidget* GetHUDWidget() const { return MainHUDWidget; }
+	
+	uint32 GetLastInteractedStoreId() const { return LastInteractedStoreId; }
+	void SetLastInteractedStoreId(uint32 StoreEntityId) { LastInteractedStoreId = StoreEntityId; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -62,4 +65,7 @@ protected:
 	TObjectPtr<UTimeThiefHUDWidget> MainHUDWidget;
 
 	bool bUIInitialized = false;
+	
+	uint32 LastInteractedStoreId = 0;   // 마지막으로 상호작용한 상점의 EntityId (상점 UI에서 사용)
+	
 };

@@ -238,6 +238,19 @@ void UNetworkGameInstanceSubsystem::SendItemPickUp(uint32 ItemEntityId)
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendStoreUse(uint32 StoreEntityId, uint32 ItemId)
+{
+	se::game::C_UseStoreReq Request;
+	auto* StoreId = Request.mutable_store_entity_id();
+	StoreId->set_value(StoreEntityId);
+	Request.set_store_item_id(ItemId);
+	
+	UE_LOG(LogTemp, Log, TEXT("[StorePkt] Store Entity Id=%u, Item Id=%u"), StoreEntityId, ItemId);
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::SendChestInteract(uint32 ChestEntityId)
 {
 	se::game::C_ChestInteractReq Request;
@@ -2124,6 +2137,13 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 		if (SpawnData->ItemClass)
 		{
 			return SpawnData->ItemClass;
+		}
+	}
+	else if (EntityState.ObjectType == se::common::OBJ_STORE)
+	{
+		if (SpawnData->StoreClass)
+		{
+			return SpawnData->StoreClass;
 		}
 	}
 	

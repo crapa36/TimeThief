@@ -44,6 +44,7 @@ void AStoreActor::Interact(const ATimeThiefPlayerCharacter* Player)
 {
 	if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController()))
 	{
+		PC->SetLastInteractedStoreId(GetEntityId());
 		PC->ToggleWidget(EWidgetType::Store);
 	}
 }
