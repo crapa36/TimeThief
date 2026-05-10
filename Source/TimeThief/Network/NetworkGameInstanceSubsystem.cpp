@@ -1516,7 +1516,7 @@ void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupIte
 	{
 		return;
 	}
-	if (auto ItemActor = Cast<AItemBase>(ItemEntry->Actor))
+	if (auto ItemActor = Cast<AItemBase>(ItemEntry->Actor.Get()))
 	{
 		ItemActor->Disable();
 			
