@@ -27,6 +27,9 @@ public:
 	void DeactivateProjectile();
 	bool IsActive() const { return bIsActivated && !bExploded; }
 	void SetDamageBonus(float InDamageBonus) { DamageBonus = FMath::Max(0.0f, InDamageBonus); }
+	
+public:
+	void ExplodeSyncNetwork(const FVector& ExplosionLocation);
 
 protected:
 	virtual void BeginPlay() override;

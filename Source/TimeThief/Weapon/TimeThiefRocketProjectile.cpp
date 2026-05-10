@@ -132,6 +132,23 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 	bHasNetworkTargetLocation = false;
 }
 
+void ATimeThiefRocketProjectile::ExplodeSyncNetwork(const FVector& ExplosionLocation)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[Rocket] Explode"));
+	
+	// TODO: 재현을 위해 정교한 Normal 값이 필요하다면 패킷에 포함 시키는 것도 고려해야 한다
+	PlayExplosionEffects(ExplosionLocation, FVector::UpVector);
+
+	if (UWorld* World = GetWorld())
+	{
+		const int32 Segments = FMath::Max(4, ExplosionDebugSegments);
+		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, Segments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
+		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, Segments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
+	}
+
+	DeactivateProjectile();
+}
+
 void ATimeThiefRocketProjectile::BeginPlay()
 {
 	Super::BeginPlay();
@@ -304,6 +321,8 @@ void ATimeThiefRocketProjectile::PlayExplosionEffects(const FVector& ExplosionLo
 void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& SpawnLocation,
 	const FVector& InitialVelocity)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Rocket] Active"));
+	
 	SetActorTickEnabled(true);
 	
 	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);

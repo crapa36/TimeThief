@@ -1363,6 +1363,32 @@ void UNetworkGameInstanceSubsystem::HandleGrenadeExplosion(const se::game::N_Gre
 
 void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_ProjectileExplosion& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find actor for projectile explosion. EntityId=%u"), EntityId);
+		return;
+	}
+	
+	if (auto* ProjectileComp = Cast<ATimeThiefRocketProjectile>(EntityEntry->Actor.Get()))
+	{
+		const FVector ExplosionLocation = FVector(Pkt.position().x(), Pkt.position().y(), Pkt.position().z());
+		ProjectileComp->ExplodeSyncNetwork(ExplosionLocation);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find projectile component for explosion. EntityId=%u Actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
+	
+	// TODO: 이제 해당 Entity 제거하는 로직
 }
 
 void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& Pkt)
@@ -2581,6 +2607,8 @@ void UNetworkGameInstanceSubsystem::ApplySpawnRuntimeStateToActor(AActor* Actor,
 		
 	case se::common::ObjectType::OBJ_PROJECTILE:
 		{
+			UE_LOG(LogTemp, Warning, TEXT("[Rocket] Spawned"));
+			
 			if (ATimeThiefRocketProjectile* Projectile = Cast<ATimeThiefRocketProjectile>(Actor))
 			{
 				ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
