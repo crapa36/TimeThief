@@ -103,9 +103,9 @@ void UNetworkGameInstanceSubsystem::Deinitialize()
 UNetworkGameInstanceSubsystem* UNetworkGameInstanceSubsystem::Get(UObject* WorldContextObject)
 {
 	// TEMP
-	
+
 	if (!WorldContextObject) return nullptr;
-	
+
 	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
 	{
 		if (UGameInstance* GameInstance = World->GetGameInstance())
@@ -114,6 +114,17 @@ UNetworkGameInstanceSubsystem* UNetworkGameInstanceSubsystem::Get(UObject* World
 		}
 	}
 	return nullptr;
+}
+
+void UNetworkGameInstanceSubsystem::SetPlayState(ENetworkPlayState NewState)
+{
+	if (PlayState == NewState)
+	{
+		return;
+	}
+
+	PlayState = NewState;
+	OnPlayStateChanged.Broadcast(NewState);
 }
 
 void UNetworkGameInstanceSubsystem::SendPacket(TSharedPtr<SendBuffer> Buffer)
@@ -284,7 +295,7 @@ void UNetworkGameInstanceSubsystem::ConnectToServer()
 			UE_LOG(LogTemp, Log, TEXT("Connected to %s:%d"), *Host, ClientConfig.ServerPort);
 			
 			bIsConnected = true;
-			PlayState = ENetworkPlayState::Connected;
+			SetPlayState(ENetworkPlayState::Connected);
 		
 			GameSession = MakeShared<PacketSession>(Socket);
 			GameSession->Run();
@@ -305,7 +316,7 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	
 	bDisconnecting = true;
 	bIsConnected = false;
-	PlayState = ENetworkPlayState::Disconnected;
+	SetPlayState(ENetworkPlayState::Disconnected);
 	
 	// 타이머 정지 (Ping 타이머)
 	StopPingTimer();
@@ -419,8 +430,8 @@ void UNetworkGameInstanceSubsystem::Handshaking()
 	
 	se::auth::C_HandshakeReq HandshakeReq;
 	HandshakeReq.set_client_protocol_version(se::protocol::kProtocolVersion);
-	
-	PlayState = ENetworkPlayState::Handshaking;
+
+	SetPlayState(ENetworkPlayState::Handshaking);
 	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(HandshakeReq);
 	SendPacket(Buffer);
@@ -480,15 +491,15 @@ void UNetworkGameInstanceSubsystem::HandleHandshakeRes(const se::auth::S_Handsha
 	{
 		RuntimeConfig = NewRuntimeConfig;
 	}
-	
-	PlayState = ENetworkPlayState::InLobby;
-	
+
+	SetPlayState(ENetworkPlayState::InLobby);
+
 	StartPingTimer();
 	
 	
 // TEMP (Test 용이를 위해 Connect 후 자동으로 Enter Match Queue 하도록)
 #if WITH_EDITOR
-	RequestMatchQueueEnter();
+	// RequestMatchQueueEnter();
 #endif
 }
 
@@ -543,10 +554,10 @@ void UNetworkGameInstanceSubsystem::HandleMatchQueueEnterRes(const se::lobby::S_
 	
 	if (!Pkt.success())
 	{
-		PlayState = ENetworkPlayState::InLobby;
-		
+		SetPlayState(ENetworkPlayState::InLobby);
+
 		const auto& Result = Pkt.result();
-		
+
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter matchmaking queue: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
 		return;
 	}
@@ -561,7 +572,7 @@ void UNetworkGameInstanceSubsystem::HandleMatchQueueCancelRes(const se::lobby::S
 	if (!Pkt.success())
 	{
 		// 일단 Lobby로 돌아간다..
-		PlayState = ENetworkPlayState::InLobby;
+		SetPlayState(ENetworkPlayState::InLobby);
 		
 		const auto& Result = Pkt.result();
 		
@@ -569,6 +580,7 @@ void UNetworkGameInstanceSubsystem::HandleMatchQueueCancelRes(const se::lobby::S
 		return;
 	}
 	
+	SetPlayState(ENetworkPlayState::InLobby);
 	UE_LOG(LogTemp, Log, TEXT("Cancelled matchmaking queue successfully"));
 }
 
@@ -583,7 +595,7 @@ void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFou
 		return;
 	}
 	
-	PlayState = ENetworkPlayState::MatchingSucc;
+	SetPlayState(ENetworkPlayState::MatchingSucc);
 	TryRoomId = RoomId;
 	
 	UE_LOG(LogTemp, Log, TEXT("Match found! RoomId=%u"), RoomId);
@@ -604,21 +616,21 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 		const auto& Result = Pkt.result();
 		
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
-		PlayState = ENetworkPlayState::InLobby;
+		SetPlayState(ENetworkPlayState::InLobby);
 		return;
 	}
-	
+
 	if (!Pkt.has_my_entity_id())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing my_entity_id in response"));
-		PlayState = ENetworkPlayState::InLobby;
+		SetPlayState(ENetworkPlayState::InLobby);
 		return;
 	}
-	
+
 	if (!Pkt.has_snapshot())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing room snapshot in response"));
-		PlayState = ENetworkPlayState::InLobby;
+		SetPlayState(ENetworkPlayState::InLobby);
 		return;
 	}
 	
@@ -645,8 +657,8 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 		RoomState.Players.Add(Info);
 	}
 
-	PlayState = ENetworkPlayState::InRoom;
-	
+	SetPlayState(ENetworkPlayState::InRoom);
+
 	UE_LOG(LogTemp, Log, TEXT("[Network] Room enter success. RoomId=%u, LocalEntityId=%u"), RoomState.RoomId, LocalPlayerEntityId);
 	RequestLoadingComplete();	// TEMP
 }
@@ -660,12 +672,12 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		const auto& Result = Pkt.result();
 		
 		UE_LOG(LogTemp, Warning, TEXT("Failed to leave room: %s"), UTF8_TO_TCHAR(Result.message().c_str()));
-		PlayState = ENetworkPlayState::InRoom;
+		SetPlayState(ENetworkPlayState::InRoom);
 		return;
 	}
-	
+
 	ClearRoomState();
-	PlayState = ENetworkPlayState::InLobby;
+	SetPlayState(ENetworkPlayState::InLobby);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Room leave success"));
 }
@@ -2212,9 +2224,9 @@ void UNetworkGameInstanceSubsystem::RequestMatchQueueEnter()
 	
 	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(SendBuffer);
-	
-	PlayState = ENetworkPlayState::MatchMaking;
-	
+
+	SetPlayState(ENetworkPlayState::MatchMaking);
+
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MatchQueueEnterReq to server"));
 }
 

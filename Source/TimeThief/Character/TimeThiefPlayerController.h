@@ -3,11 +3,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "Components/GameFrameworkInitStateInterface.h"
+#include "Network/State/NetworkPlayState.h"
 #include "TimeThiefPlayerController.generated.h"
 
 class UInputMappingContext;
 class UTimeThiefInputConfig;
 class UTimeThiefHUDWidget;
+class UMainMenuWidget;
 class UUserWidget;
 
 UENUM(BlueprintType)
@@ -46,11 +48,20 @@ protected:
 	void OnPawnInitStateChanged(const FActorInitStateChangedParams& Params);
 	void InitializeUI();
 
+	void ShowMainMenu();
+	void HideMainMenu();
+
+	UFUNCTION()
+	void HandleNetworkPlayStateChanged(ENetworkPlayState NewState);
+
 	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;
-	
+
 	UPROPERTY(EditAnywhere, Category = "UI|HUD")
 	TSubclassOf<UTimeThiefHUDWidget> MainHUDWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "UI|MainMenu")
+	TSubclassOf<UMainMenuWidget> MainMenuWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TMap<EWidgetType, TSubclassOf<UUserWidget>> SubWidgetClassMap;
@@ -60,6 +71,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UTimeThiefHUDWidget> MainHUDWidget;
+
+	UPROPERTY()
+	TObjectPtr<UMainMenuWidget> MainMenuWidget;
 
 	bool bUIInitialized = false;
 };

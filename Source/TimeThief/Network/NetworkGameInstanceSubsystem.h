@@ -37,18 +37,28 @@ class PacketSession;
 // NetworkGameInstanceSubsystem는 네트워크 기능을 담당하는 게임 인스턴스 서브시스템 클래스입니다.
 //
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
+
 UCLASS()
 class TIMETHIEF_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
-	
+
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
-	
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Network", meta = (WorldContext="WorldContextObject"))
 	static UNetworkGameInstanceSubsystem* Get(UObject* WorldContextObject);
+
+	UPROPERTY(BlueprintAssignable, Category = "Network")
+	FOnNetworkPlayStateChanged OnPlayStateChanged;
+
+	ENetworkPlayState GetPlayState() const { return PlayState; }
+
+private:
+	void SetPlayState(ENetworkPlayState NewState);
 	
 public:
 	void SendPacket(TSharedPtr<SendBuffer> Buffer);

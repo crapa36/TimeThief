@@ -134,6 +134,7 @@ protected:
 
 public:
 	virtual void ExecuteRemoteFireShot();
+	virtual void ExecuteRemoteReload();
 	void SetRemoteShotSyncData(const FVector& InOrigin, const FVector& InDirection);
 
 	void NotifyAmmoChanged();
