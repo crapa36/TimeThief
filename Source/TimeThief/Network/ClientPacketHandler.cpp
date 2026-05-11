@@ -1283,6 +1283,24 @@ bool Handle_N_HealthSnapshot(PacketSessionRef& session, const se::game::N_Health
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthSnapshot: Failed to get NGIS"));
 	return false;
 }
+
+bool Handle_N_SpeedChanged(PacketSessionRef& session, const se::game::N_SpeedChanged& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleSpeedChanged(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_SpeedChanged: Failed to get NGIS"));
+	return false;	
+}
 	
 bool Handle_N_EntityDied(PacketSessionRef& session, const se::game::N_EntityDied& pkt)
 {

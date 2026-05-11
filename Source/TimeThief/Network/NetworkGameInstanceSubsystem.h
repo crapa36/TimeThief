@@ -139,6 +139,7 @@ public:
 	void HandleHealthChanged(const se::game::N_HealthChanged& Pkt);
 	void HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt);
 	void HandleHealthSnapshot(const se::game::N_HealthSnapshot& Pkt);
+	void HandleSpeedChanged(const se::game::N_SpeedChanged& Pkt);
 	void HandleEntityDied(const se::game::N_EntityDied& Pkt);
 	void HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt);
 	void HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt);

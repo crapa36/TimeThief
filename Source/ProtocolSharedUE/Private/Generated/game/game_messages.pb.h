@@ -217,6 +217,9 @@ PROTOCOLSHAREDUE_API extern N_SkillUnlockDefaultTypeInternal _N_SkillUnlock_defa
 class N_SkillUnlockSnapshot;
 struct N_SkillUnlockSnapshotDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_SkillUnlockSnapshotDefaultTypeInternal _N_SkillUnlockSnapshot_default_instance_;
+class N_SpeedChanged;
+struct N_SpeedChangedDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_SpeedChangedDefaultTypeInternal _N_SpeedChanged_default_instance_;
 class N_ThrowGrenade;
 struct N_ThrowGrenadeDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_ThrowGrenadeDefaultTypeInternal _N_ThrowGrenade_default_instance_;
@@ -329,6 +332,7 @@ template<> PROTOCOLSHAREDUE_API ::se::game::N_ProjectileExplosion* Arena::Create
 template<> PROTOCOLSHAREDUE_API ::se::game::N_Reload* Arena::CreateMaybeMessage<::se::game::N_Reload>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillUnlock* Arena::CreateMaybeMessage<::se::game::N_SkillUnlock>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillUnlockSnapshot* Arena::CreateMaybeMessage<::se::game::N_SkillUnlockSnapshot>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_SpeedChanged* Arena::CreateMaybeMessage<::se::game::N_SpeedChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_ThrowGrenade* Arena::CreateMaybeMessage<::se::game::N_ThrowGrenade>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimePointChanged* Arena::CreateMaybeMessage<::se::game::N_TimePointChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimePointSnapshot* Arena::CreateMaybeMessage<::se::game::N_TimePointSnapshot>(Arena*);
@@ -828,12 +832,13 @@ class PROTOCOLSHAREDUE_API N_PlayerInitSetup final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kWeaponSlotsFieldNumber = 4,
+    kWeaponSlotsFieldNumber = 5,
     kMaxHealthFieldNumber = 1,
     kCurrentHealthFieldNumber = 2,
     kTimePointsFieldNumber = 3,
+    kMoveSpeedFieldNumber = 4,
   };
-  // repeated .se.game.WeaponSlotSnapshot weapon_slots = 4;
+  // repeated .se.game.WeaponSlotSnapshot weapon_slots = 5;
   int weapon_slots_size() const;
   private:
   int _internal_weapon_slots_size() const;
@@ -878,6 +883,15 @@ class PROTOCOLSHAREDUE_API N_PlayerInitSetup final :
   void _internal_set_time_points(int32_t value);
   public:
 
+  // float move_speed = 4;
+  void clear_move_speed();
+  float move_speed() const;
+  void set_move_speed(float value);
+  private:
+  float _internal_move_speed() const;
+  void _internal_set_move_speed(float value);
+  public:
+
   // @@protoc_insertion_point(class_scope:se.game.N_PlayerInitSetup)
  private:
   class _Internal;
@@ -890,6 +904,7 @@ class PROTOCOLSHAREDUE_API N_PlayerInitSetup final :
     int32_t max_health_;
     int32_t current_health_;
     int32_t time_points_;
+    float move_speed_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -10886,6 +10901,154 @@ class PROTOCOLSHAREDUE_API N_HealthSnapshot final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API N_SpeedChanged final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_SpeedChanged) */ {
+ public:
+  inline N_SpeedChanged() : N_SpeedChanged(nullptr) {}
+  ~N_SpeedChanged() override;
+  explicit PROTOBUF_CONSTEXPR N_SpeedChanged(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_SpeedChanged(const N_SpeedChanged& from);
+  N_SpeedChanged(N_SpeedChanged&& from) noexcept
+    : N_SpeedChanged() {
+    *this = ::std::move(from);
+  }
+
+  inline N_SpeedChanged& operator=(const N_SpeedChanged& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_SpeedChanged& operator=(N_SpeedChanged&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_SpeedChanged& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_SpeedChanged* internal_default_instance() {
+    return reinterpret_cast<const N_SpeedChanged*>(
+               &_N_SpeedChanged_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    63;
+
+  friend void swap(N_SpeedChanged& a, N_SpeedChanged& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_SpeedChanged* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_SpeedChanged* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_SpeedChanged* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_SpeedChanged>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_SpeedChanged& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_SpeedChanged& from) {
+    N_SpeedChanged::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_SpeedChanged* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_SpeedChanged";
+  }
+  protected:
+  explicit N_SpeedChanged(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kNewSpeedFieldNumber = 1,
+  };
+  // float new_speed = 1;
+  void clear_new_speed();
+  float new_speed() const;
+  void set_new_speed(float value);
+  private:
+  float _internal_new_speed() const;
+  void _internal_set_new_speed(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.N_SpeedChanged)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    float new_speed_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API N_TimePointChanged final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_TimePointChanged) */ {
  public:
@@ -10934,7 +11097,7 @@ class PROTOCOLSHAREDUE_API N_TimePointChanged final :
                &_N_TimePointChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    63;
+    64;
 
   friend void swap(N_TimePointChanged& a, N_TimePointChanged& b) {
     a.Swap(&b);
@@ -11093,7 +11256,7 @@ class PROTOCOLSHAREDUE_API N_TimePointSnapshot final :
                &_N_TimePointSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    64;
+    65;
 
   friend void swap(N_TimePointSnapshot& a, N_TimePointSnapshot& b) {
     a.Swap(&b);
@@ -11241,7 +11404,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlock final :
                &_N_SkillUnlock_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    65;
+    66;
 
   friend void swap(N_SkillUnlock& a, N_SkillUnlock& b) {
     a.Swap(&b);
@@ -11389,7 +11552,7 @@ class PROTOCOLSHAREDUE_API C_SkillEquipReq final :
                &_C_SkillEquipReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    66;
+    67;
 
   friend void swap(C_SkillEquipReq& a, C_SkillEquipReq& b) {
     a.Swap(&b);
@@ -11548,7 +11711,7 @@ class PROTOCOLSHAREDUE_API S_SkillEquipRes final :
                &_S_SkillEquipRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    67;
+    68;
 
   friend void swap(S_SkillEquipRes& a, S_SkillEquipRes& b) {
     a.Swap(&b);
@@ -11738,7 +11901,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
                &_N_SkillUnlockSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    68;
+    69;
 
   friend void swap(N_SkillUnlockSnapshot& a, N_SkillUnlockSnapshot& b) {
     a.Swap(&b);
@@ -11900,7 +12063,7 @@ class PROTOCOLSHAREDUE_API N_EntityDied final :
                &_N_EntityDied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    69;
+    70;
 
   friend void swap(N_EntityDied& a, N_EntityDied& b) {
     a.Swap(&b);
@@ -12057,7 +12220,7 @@ class PROTOCOLSHAREDUE_API N_EntityRespawned final :
                &_N_EntityRespawned_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    70;
+    71;
 
   friend void swap(N_EntityRespawned& a, N_EntityRespawned& b) {
     a.Swap(&b);
@@ -12234,7 +12397,7 @@ class PROTOCOLSHAREDUE_API N_EntityDestroyed final :
                &_N_EntityDestroyed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    71;
+    72;
 
   friend void swap(N_EntityDestroyed& a, N_EntityDestroyed& b) {
     a.Swap(&b);
@@ -12391,7 +12554,7 @@ class PROTOCOLSHAREDUE_API N_TimeStormChange final :
                &_N_TimeStormChange_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    72;
+    73;
 
   friend void swap(N_TimeStormChange& a, N_TimeStormChange& b) {
     a.Swap(&b);
@@ -12614,7 +12777,27 @@ inline void N_PlayerInitSetup::set_time_points(int32_t value) {
   // @@protoc_insertion_point(field_set:se.game.N_PlayerInitSetup.time_points)
 }
 
-// repeated .se.game.WeaponSlotSnapshot weapon_slots = 4;
+// float move_speed = 4;
+inline void N_PlayerInitSetup::clear_move_speed() {
+  _impl_.move_speed_ = 0;
+}
+inline float N_PlayerInitSetup::_internal_move_speed() const {
+  return _impl_.move_speed_;
+}
+inline float N_PlayerInitSetup::move_speed() const {
+  // @@protoc_insertion_point(field_get:se.game.N_PlayerInitSetup.move_speed)
+  return _internal_move_speed();
+}
+inline void N_PlayerInitSetup::_internal_set_move_speed(float value) {
+  
+  _impl_.move_speed_ = value;
+}
+inline void N_PlayerInitSetup::set_move_speed(float value) {
+  _internal_set_move_speed(value);
+  // @@protoc_insertion_point(field_set:se.game.N_PlayerInitSetup.move_speed)
+}
+
+// repeated .se.game.WeaponSlotSnapshot weapon_slots = 5;
 inline int N_PlayerInitSetup::_internal_weapon_slots_size() const {
   return _impl_.weapon_slots_.size();
 }
@@ -19667,6 +19850,30 @@ inline void N_HealthSnapshot::set_max_health(int32_t value) {
 
 // -------------------------------------------------------------------
 
+// N_SpeedChanged
+
+// float new_speed = 1;
+inline void N_SpeedChanged::clear_new_speed() {
+  _impl_.new_speed_ = 0;
+}
+inline float N_SpeedChanged::_internal_new_speed() const {
+  return _impl_.new_speed_;
+}
+inline float N_SpeedChanged::new_speed() const {
+  // @@protoc_insertion_point(field_get:se.game.N_SpeedChanged.new_speed)
+  return _internal_new_speed();
+}
+inline void N_SpeedChanged::_internal_set_new_speed(float value) {
+  
+  _impl_.new_speed_ = value;
+}
+inline void N_SpeedChanged::set_new_speed(float value) {
+  _internal_set_new_speed(value);
+  // @@protoc_insertion_point(field_set:se.game.N_SpeedChanged.new_speed)
+}
+
+// -------------------------------------------------------------------
+
 // N_TimePointChanged
 
 // int32 new_time_points = 1;
@@ -20505,6 +20712,8 @@ inline void N_TimeStormChange::set_shrinking_time(float value) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

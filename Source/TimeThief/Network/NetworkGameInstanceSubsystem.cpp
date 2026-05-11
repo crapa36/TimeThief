@@ -772,6 +772,8 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	const int MaxHealth = Pkt.max_health();
 	const int CurrentHealth = Pkt.current_health();
 	const int TimePoints = Pkt.time_points();
+	// TODO: 이용
+	const float MoveSpeed = Pkt.move_speed();
 	
 	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
 	if (LocalPlayer == nullptr)
@@ -1873,6 +1875,11 @@ void UNetworkGameInstanceSubsystem::HandleHealthSnapshot(const se::game::N_Healt
 	}
 	
 	HealthComp->SetHealth(Pkt.max_health(), Pkt.current_health());
+}
+
+void UNetworkGameInstanceSubsystem::HandleSpeedChanged(const se::game::N_SpeedChanged& Pkt)
+{
+	// TODO: 이동 속도 변경
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
