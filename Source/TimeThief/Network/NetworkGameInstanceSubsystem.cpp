@@ -1857,6 +1857,22 @@ void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_Max
 
 void UNetworkGameInstanceSubsystem::HandleHealthSnapshot(const se::game::N_HealthSnapshot& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	auto* Player = GetLocalPlayerPawn();
+	auto HealthComp = Player ? Player->FindComponentByClass<UTimeThiefHealthComponent>() : nullptr;
+	if (HealthComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Local player has no UTimeThiefHealthComponent"));
+		return;
+	}
+	
+	HealthComp->SetHealth(Pkt.max_health(), Pkt.current_health());
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
