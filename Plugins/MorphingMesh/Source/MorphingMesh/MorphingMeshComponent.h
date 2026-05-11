@@ -82,6 +82,7 @@ public:
 	
 	bool bIsSkeletalMesh{false};
 	bool bIsValid{false};
+	bool bIsDifferentSkeletal{false};
 	
 	int PrevIndex{-1};
 	

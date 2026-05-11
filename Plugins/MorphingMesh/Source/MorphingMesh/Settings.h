@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-inline constexpr std::array<int, 3> NumVoxelsTable = {128, 32, 16};
+inline constexpr std::array<int, 3> NumVoxelsTable = {64, 32, 16};
 
 enum EVoxelResolution : uint8
 {
