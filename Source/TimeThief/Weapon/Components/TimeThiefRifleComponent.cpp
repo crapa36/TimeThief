@@ -150,37 +150,6 @@ void UTimeThiefRifleComponent::ApplyDamage(const FRifleHitResult& HitResult)
 #endif
 }
 
-void UTimeThiefRifleComponent::PlayFireEffects()
-{
-	const FVector MuzzleLoc = GetMuzzleLocation();
-
-	if (MuzzleFlashEffect)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(
-			this,
-			MuzzleFlashEffect,
-			MuzzleLoc,
-			GetOwner() ? GetOwner()->GetActorRotation() : FRotator::ZeroRotator
-		);
-	}
-
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleLoc);
-	}
-
-	if (FireAnimation)
-	{
-		if (AActor* MasterWeapon = GetOwner())
-		{
-			if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(MasterWeapon->GetOwner()))
-			{
-				BaseChar->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
-			}
-		}
-	}
-}
-
 void UTimeThiefRifleComponent::PlayImpactEffects(const FRifleHitResult& HitResult)
 {
 	if (ImpactEffect && HitResult.bHit)

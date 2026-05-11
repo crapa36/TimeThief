@@ -2,6 +2,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Sound/SoundBase.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
 #include "Utils/TimeThiefAimStatics.h"
@@ -24,9 +25,17 @@ void UTimeThiefRocketLauncherComponent::ExecuteFireShot()
 	// PlayFireEffects();
 	// Projectile Spawn은 HandleSpawn에서...
 	
-	if (SpawnRocketProjectile())
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
-		PlayFireEffects();
+		// Projectile Spawn은 서버에서만 하고, 클라이언트는 효과만 재생하도록.
+		// Projectile Spawn은 패킷으로 받아서 그 때 처리하도록
+		if (!NGIS->IsConnected())
+		{
+			if (SpawnRocketProjectile())
+			{
+				PlayFireEffects();
+			}
+		}
 	}
 }
 
@@ -144,37 +153,19 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 	return false;
 }
 
+FWeaponStatData UTimeThiefRocketLauncherComponent::GetWeaponStatDataForNetwork() const
+{
+	FWeaponStatData StatData = Super::GetWeaponStatDataForNetwork();
+	StatData.ProjectileSpeed = ProjectileSpeed;
+	StatData.ExplosionRadius = ExplosionRadius;
+	
+	return StatData;
+}
+
 void UTimeThiefRocketLauncherComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
 {
 	Super::SetWeaponStatForNetwork(InStatData);
 	
 	ProjectileSpeed = InStatData.ProjectileSpeed;
 	ExplosionRadius = InStatData.ExplosionRadius;
-}
-
-void UTimeThiefRocketLauncherComponent::PlayFireEffects()
-{
-	const FVector MuzzleLocation = GetMuzzleLocation();
-	const FRotator MuzzleRotation = GetSocketTransformByName(GetMuzzleSocketName()).GetRotation().Rotator();
-
-	if (MuzzleFlashEffect)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, MuzzleFlashEffect, MuzzleLocation, MuzzleRotation);
-	}
-
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleLocation);
-	}
-
-	if (FireAnimation)
-	{
-		if (AActor* MasterWeapon = GetOwner())
-		{
-			if (ATimeThiefCharacterBase* BaseCharacter = Cast<ATimeThiefCharacterBase>(MasterWeapon->GetOwner()))
-			{
-				BaseCharacter->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
-			}
-		}
-	}
 }

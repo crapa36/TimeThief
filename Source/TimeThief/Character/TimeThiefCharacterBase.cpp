@@ -358,50 +358,9 @@ void ATimeThiefCharacterBase::HandleDeathFromServer()
 
 void ATimeThiefCharacterBase::HandleRespawnFromServer(const FVector& RespawnLocation)
 {
-	bIsDead = false;
-	bIsRespawn = true;
-	bPendingRespawn = false;
-	Mask = 0;
-
 	SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::TeleportPhysics);
 
-	// 없애고 싶은 코드;
-	{
-		if (APlayerController* PC = Cast<APlayerController>(GetController()))
-		{
-			PC->SetIgnoreMoveInput(false);
-			PC->SetIgnoreLookInput(false);
-			EnableInput(PC);
-		}
-
-		if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
-		{
-			MoveComp->StopMovementImmediately();
-			MoveComp->SetMovementMode(MOVE_Walking);
-		}
-	}
-
-	DeadFX->Deactivate();
-	SpawnFX->Activate(true);
-	DisappearFX->SetActive(false, true);
-
-	if (ILifeObserver* PS = Cast<ILifeObserver>(GetPlayerState()))
-	{
-		PS->OnBeginRespawn();
-	}
-	for (auto Comp : GetComponents())
-	{
-		if (ILifeObserver* LifeObserver = Cast<ILifeObserver>(Comp))
-		{
-			LifeObserver->OnBeginRespawn();
-		}
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("LocallyControlled=%d"), IsLocallyControlled() ? 1 : 0);
-	UE_LOG(LogTemp, Warning, TEXT("MovementMode=%d"), (int32)GetCharacterMovement()->MovementMode);
-	UE_LOG(LogTemp, Warning, TEXT("CapsuleCollision=%d"), (int32)GetCapsuleComponent()->GetCollisionEnabled());
-	UE_LOG(LogTemp, Warning, TEXT("ActorEnableCollision=%d"), GetActorEnableCollision() ? 1 : 0);
-	UE_LOG(LogTemp, Warning, TEXT("MeshSimPhysics=%d"), GetMesh()->IsSimulatingPhysics() ? 1 : 0);
+	OnBeginRespawn();
 }
 
 void ATimeThiefCharacterBase::FinishRespawnPresentation()

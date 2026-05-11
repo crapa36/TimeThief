@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "IDetailTreeNode.h"
 #include "Engine/DeveloperSettings.h"
 #include "DataAssets/GameItemData.h"
 #include "DataAssets/StoreCategoryData.h"

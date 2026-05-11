@@ -3,6 +3,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerState.h"
 #include "GameFramework/Character.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 UTimeThiefHealthComponent::UTimeThiefHealthComponent()
 {
@@ -28,9 +29,15 @@ void UTimeThiefHealthComponent::BeginPlay()
 
 	InitializeWithHealth(DefaultMaxHealth);
 
-	if (AActor* Owner = GetOwner())
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
-		Owner->OnTakeAnyDamage.AddDynamic(this, &UTimeThiefHealthComponent::OnTakeAnyDamageCallback);
+		if (!NGIS->IsConnected())
+		{
+			if (AActor* Owner = GetOwner())
+			{
+				Owner->OnTakeAnyDamage.AddDynamic(this, &UTimeThiefHealthComponent::OnTakeAnyDamageCallback);
+			}
+		}
 	}
 }
 
@@ -71,7 +78,13 @@ void UTimeThiefHealthComponent::TakeDamage(float DamageAmount, AActor* DamageIns
 
 	if (CurrentHealth <= 0.0f)
 	{
-		HandleDeath();
+		if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+		{
+			if (!NGIS->IsConnected())
+			{
+				HandleDeath();
+			}
+		}
 	}
 }
 

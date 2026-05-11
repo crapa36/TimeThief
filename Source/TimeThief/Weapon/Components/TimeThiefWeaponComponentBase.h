@@ -112,12 +112,14 @@ public:
 	virtual void OnUnequipped();
 	
 public:
+	virtual FWeaponStatData GetWeaponStatDataForNetwork() const;
 	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData);
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
+	
+	virtual void PlayFireEffects();
 	virtual void ExecuteFireShot();
 	virtual void OnReloadStarted();
 	virtual void OnReloadFinished();
@@ -171,7 +173,7 @@ public:
 	TObjectPtr<USoundBase> ReloadSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
-	TObjectPtr<UAnimSequenceBase> ReloadAnimation;
+	TObjectPtr<UAnimMontage> ReloadAnimation;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
 	FName WeaponAnimSlot = FName("DefaultSlot");
@@ -190,7 +192,21 @@ public:
 
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Weapon|Runtime")
 	bool bWantsToFire = false;
-
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
+	TObjectPtr<USoundBase> FireSound;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Animation")
+	TObjectPtr<UAnimMontage> FireAnimation;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
+	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon")
+	float AlertTime = 2;
+	
+	float RemainingTime = 0.0f;
+	
 	bool bIsFiring = false;
 	bool bIsReloading = false;
 
