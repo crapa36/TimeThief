@@ -68,6 +68,7 @@ void ATimeThiefMasterWeapon::SwitchWeapon(FGameplayTag WeaponTag)
 		
 		if (WeaponMesh) 
 		{
+			WeaponMesh->EmptyOverrideMaterials();
 			WeaponMesh->SetStaticMesh(ActiveWeaponComponent->WeaponMeshAsset);
 		}
 

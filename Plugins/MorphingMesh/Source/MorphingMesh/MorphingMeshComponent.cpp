@@ -72,6 +72,7 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 			if (bIsSkeletalMesh)
 			{
 				BaseSkeletalMeshComponent->SetVisibility(true);
+				BaseSkeletalMeshComponent->CastShadow = true;
 			}
 			else
 			{
@@ -184,6 +185,7 @@ void UMorphingMeshComponent::SetType(EMorphTargetType NewType)
 	if (bIsSkeletalMesh)
 	{
 		BaseSkeletalMeshComponent->SetVisibility(false);
+		BaseSkeletalMeshComponent->CastShadow = false;
 	}
 	else
 	{

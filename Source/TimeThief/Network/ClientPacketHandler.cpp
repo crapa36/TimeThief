@@ -852,6 +852,96 @@ bool Handle_N_EntityHit(PacketSessionRef& session, const se::game::N_EntityHit& 
 	return false;
 }
 
+bool Handle_N_GrenadeMoveSync(PacketSessionRef& session, const se::game::N_GrenadeMoveSync& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_GrenadeMoveSync: pkt has no valid entity_id"));
+		return false;
+	}
+	
+	if (!pkt.has_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_GrenadeMoveSync: pkt has no position"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleGrenadeMoveSync(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_GrenadeMoveSync: Failed to get NGIS"));
+	return false;	
+}
+
+bool Handle_N_GrenadeExplosion(PacketSessionRef& session, const se::game::N_GrenadeExplosion& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_GrenadeExplosion: pkt has no valid entity_id"));
+		return false;
+	}
+	
+	if (!pkt.has_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_GrenadeExplosion: pkt has no position"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleGrenadeExplosion(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_GrenadeExplosion: Failed to get NGIS"));
+	return false;
+}
+
+bool Handle_N_ProjectileExplosion(PacketSessionRef& session, const se::game::N_ProjectileExplosion& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ProjectileExplosion: pkt has no valid entity_id"));
+		return false;
+	}
+	
+	if (!pkt.has_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ProjectileExplosion: pkt has no position"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleProjectileExplosion(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_ProjectileExplosion: Failed to get NGIS"));
+	return false;
+}
+
 bool Handle_N_WeaponStatChanged(PacketSessionRef& session, const se::game::N_WeaponStatChanged& pkt)
 {
 	if (!session)

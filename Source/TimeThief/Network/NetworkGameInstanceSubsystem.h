@@ -120,6 +120,9 @@ public:
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
 	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
 	void HandleEntityHit(const se::game::N_EntityHit& pkt);
+	void HandleGrenadeMoveSync(const se::game::N_GrenadeMoveSync& Pkt);
+	void HandleGrenadeExplosion(const se::game::N_GrenadeExplosion& Pkt);
+	void HandleProjectileExplosion(const se::game::N_ProjectileExplosion& Pkt);
 	void HandleWeaponStatChanged(const se::game::N_WeaponStatChanged& pkt);
 	void HandleUseItem(const se::game::N_UseItem& Pkt);
 	void HandleSetSavePointRes(const se::game::S_SetSavePointRes& pkt);

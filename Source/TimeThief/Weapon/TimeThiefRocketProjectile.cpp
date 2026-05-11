@@ -9,6 +9,7 @@
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/State/NetworkEntityState.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 
@@ -132,6 +133,23 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 	bHasNetworkTargetLocation = false;
 }
 
+void ATimeThiefRocketProjectile::ExplodeSyncNetwork(const FVector& ExplosionLocation)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[Rocket] Explode"));
+	
+	// TODO: 재현을 위해 정교한 Normal 값이 필요하다면 패킷에 포함 시키는 것도 고려해야 한다
+	PlayExplosionEffects(ExplosionLocation, FVector::UpVector);
+
+	if (UWorld* World = GetWorld())
+	{
+		const int32 Segments = FMath::Max(4, ExplosionDebugSegments);
+		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, Segments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
+		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, Segments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
+	}
+
+	DeactivateProjectile();
+}
+
 void ATimeThiefRocketProjectile::BeginPlay()
 {
 	Super::BeginPlay();
@@ -206,7 +224,14 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 		World->GetTimerManager().ClearTimer(LifeTimeTimerHandle);
 	}
 
-	ApplyExplosionDamage(ExplosionLocation);
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		// Damage 처리는 서버에서만 진행한다 (현재 서버에서 연결되어 테스트 하는 상황이 아니라면 Damage 직접 적용)
+		if (!NGIS->IsConnected())
+		{
+			ApplyExplosionDamage(ExplosionLocation);
+		}
+	}
 	PlayExplosionEffects(ExplosionLocation, ExplosionNormal);
 
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
@@ -302,6 +327,8 @@ void ATimeThiefRocketProjectile::PlayExplosionEffects(const FVector& ExplosionLo
 void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& SpawnLocation,
 	const FVector& InitialVelocity)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[Rocket] Active"));
+	
 	SetActorTickEnabled(true);
 	
 	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);

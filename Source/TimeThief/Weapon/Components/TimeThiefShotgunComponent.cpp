@@ -211,32 +211,6 @@ void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& Hi
 #endif
 }
 
-void UTimeThiefShotgunComponent::PlayFireEffects()
-{
-	const FVector MuzzleLocation = GetMuzzleLocation();
-
-	if (MuzzleFlashEffect)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, MuzzleFlashEffect, MuzzleLocation, GetOwner() ? GetOwner()->GetActorRotation() : FRotator::ZeroRotator);
-	}
-
-	if (FireSound)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, MuzzleLocation);
-	}
-
-	if (FireAnimation)
-	{
-		if (AActor* MasterWeapon = GetOwner())
-		{
-			if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(MasterWeapon->GetOwner()))
-			{
-				BaseChar->PlayAnimationOnAllMeshes(FireAnimation, WeaponAnimSlot);
-			}
-		}
-	}
-}
-
 void UTimeThiefShotgunComponent::PlayImpactEffects(const TArray<FShotgunHitResult>& HitResults)
 {
 	if (!ImpactEffect)
@@ -288,6 +262,15 @@ void UTimeThiefShotgunComponent::ApplyRecoilAndSpread()
 			}
 		}
 	}
+}
+
+FWeaponStatData UTimeThiefShotgunComponent::GetWeaponStatDataForNetwork() const
+{
+	FWeaponStatData StatData = Super::GetWeaponStatDataForNetwork();
+	StatData.PelletCount = PelletCount;
+	StatData.ConeAngle = BaseSpread;
+	
+	return StatData;
 }
 
 void UTimeThiefShotgunComponent::SetWeaponStatForNetwork(const FWeaponStatData& InStatData)
