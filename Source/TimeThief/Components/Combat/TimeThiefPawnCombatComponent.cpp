@@ -345,7 +345,10 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 		Remote_SyncFireAction();
 		break;
 	case ECombatNotifyType::Reload:
-		UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest: Reload notify received."));
+		if (UTimeThiefWeaponComponentBase* CurrentWeapon = GetCharacterCurrentEquippedWeapon())
+		{
+			CurrentWeapon->ExecuteRemoteReload();
+		}
 		break;
 	case ECombatNotifyType::WeaponChange:
 		if (const FGameplayTag WeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId); WeaponTag.IsValid())

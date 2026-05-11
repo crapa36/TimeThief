@@ -7,6 +7,30 @@
 #include "Game/ItemSettings.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+namespace
+{
+	bool IsKnownThrowableItem(EItemID ItemID)
+	{
+		return ItemID == EItemID::Grenade || ItemID == EItemID::SmokeGrenade;
+	}
+
+	bool IsTrackedInventoryItem(const FItemData* ItemData, EItemID ItemID)
+	{
+		return IsKnownThrowableItem(ItemID)
+			|| (ItemData && (ItemData->Category == EItemCategory::Consumable || ItemData->Category == EItemCategory::Throwable));
+	}
+
+	bool IsConsumableItem(const FItemData* ItemData)
+	{
+		return ItemData && ItemData->Category == EItemCategory::Consumable;
+	}
+
+	bool IsThrowableItem(const FItemData* ItemData, EItemID ItemID)
+	{
+		return IsKnownThrowableItem(ItemID) || (ItemData && ItemData->Category == EItemCategory::Throwable);
+	}
+}
+
 
 // Sets default values for this component's properties
 UInventorySystemComponent::UInventorySystemComponent()
@@ -29,20 +53,28 @@ void UInventorySystemComponent::OnRegister()
 {
 	Super::OnRegister();
 	
+	ItemQuantities.Reset();
+
 	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
 		for (EItemID ItemID : TEnumRange<EItemID>())
 		{
-			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
+			const FItemData* ItemData = LoadedData->Items.Find(ItemID);
+			if (!IsTrackedInventoryItem(ItemData, ItemID))
 			{
-				ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
-				ItemQuantities.Last()->ItemID = ItemID;
+				continue;
 			}
-			else if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
-			{
-				ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
-				ItemQuantities.Last()->ItemID = ItemID;
-			}
+
+			ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
+			ItemQuantities.Last()->ItemID = ItemID;
+		}
+
+		if (ThrowableEquipment == EItemID::SIZE && FindInventoryObject(EItemID::Grenade))
+		{
+			SetThrowableEquipment(EItemID::Grenade);
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogTemp, Log, TEXT("[ThrowableDebug][Inventory] Default throwable equipment set to Grenade."));
+#endif
 		}
 	}
 }
@@ -59,35 +91,45 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 
 void UInventorySystemComponent::AddItem(EItemID ItemID, int Amount)
 {
-	int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
-	
-	if (Index < 0 || Index >= ItemQuantities.Num())
+	if (Amount <= 0)
+	{
+		return;
+	}
+
+	UInventoryObject* InventoryObject = FindInventoryObject(ItemID);
+	if (!InventoryObject)
 	{
 		return;
 	}
 	
 	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
+		const FItemData* ItemData = LoadedData->Items.Find(ItemID);
+		if (!IsTrackedInventoryItem(ItemData, ItemID))
+		{
+			return;
+		}
+
 		if (ConsumableEquipment == EItemID::SIZE)
 		{
-			if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
+			if (IsConsumableItem(ItemData))
 			{
 				SetConsumableEquipment(ItemID);
 			}
 		}
 		if (ThrowableEquipment == EItemID::SIZE)
 		{
-			if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
+			if (IsThrowableItem(ItemData, ItemID))
 			{
 				SetThrowableEquipment(ItemID);
 			}
 		}
 	}
 
-	int PrevQuantity = ItemQuantities[Index]->Quantity;
+	int PrevQuantity = InventoryObject->Quantity;
 
-	ItemQuantities[Index]->Quantity += Amount;
-	ItemQuantities[Index]->OnInventoryObjectUpdatedEvent.Broadcast();
+	InventoryObject->Quantity += Amount;
+	InventoryObject->OnInventoryObjectUpdatedEvent.Broadcast();
 
 	if (PrevQuantity == 0)
 	{
@@ -97,32 +139,43 @@ void UInventorySystemComponent::AddItem(EItemID ItemID, int Amount)
 
 bool UInventorySystemComponent::RemoveItem(EItemID ItemID, int Amount)
 {
-	int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
-	if (Index < 0 || Index >= ItemQuantities.Num())
+	if (Amount <= 0)
 	{
 		return false;
 	}
 
-	if (ItemQuantities[Index]->Quantity >= Amount)
+	UInventoryObject* InventoryObject = FindInventoryObject(ItemID);
+	if (!InventoryObject)
 	{
-		ItemQuantities[Index]->Quantity -= Amount;
-		ItemQuantities[Index]->OnInventoryObjectUpdatedEvent.Broadcast();
-		if (ItemQuantities[Index]->Quantity == 0)
+		return false;
+	}
+
+	if (InventoryObject->Quantity >= Amount)
+	{
+		InventoryObject->Quantity -= Amount;
+		InventoryObject->OnInventoryObjectUpdatedEvent.Broadcast();
+		if (InventoryObject->Quantity == 0)
 		{
 			OnInventoryUpdatedEvent.Broadcast();
 
 			if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 			{
+				const FItemData* ItemData = LoadedData->Items.Find(ItemID);
+				if (!IsTrackedInventoryItem(ItemData, ItemID))
+				{
+					return true;
+				}
+
 				if (ConsumableEquipment == ItemID)
 				{
-					if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
+					if (IsConsumableItem(ItemData))
 					{
 						SetConsumableEquipment(EItemID::SIZE);
 					}
 				}
 				if (ThrowableEquipment == ItemID)
 				{
-					if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
+					if (IsThrowableItem(ItemData, ItemID))
 					{
 						SetThrowableEquipment(EItemID::SIZE);
 					}
@@ -137,37 +190,60 @@ bool UInventorySystemComponent::RemoveItem(EItemID ItemID, int Amount)
 
 void UInventorySystemComponent::SetInventory(const TArray<TPair<EItemID,int>>& NewInventory)
 {
-	if (ItemQuantities.Num() != NewInventory.Num())
-	{
-		return;
-	}
-	
 	for (const auto& [ItemID, Quantity] : NewInventory)
 	{
-		int Index = static_cast<int>(ItemID) - static_cast<int>(EItemID::SmallPotion);
-		if (Index < 0 || Index >= ItemQuantities.Num())
+		if (UInventoryObject* InventoryObject = FindInventoryObject(ItemID))
 		{
-			continue;
+			InventoryObject->Quantity = FMath::Max(0, Quantity);
+			InventoryObject->OnInventoryObjectUpdatedEvent.Broadcast();
 		}
-		
-		ItemQuantities[Index]->Quantity = Quantity;
 	}
 	OnInventoryUpdatedEvent.Broadcast();
 }
 
 void UInventorySystemComponent::SetEquipment(EItemID ItemID)
 {
+	if (ItemID == EItemID::SIZE)
+	{
+		return;
+	}
+
 	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
-		if (LoadedData->Items[ItemID].Category == EItemCategory::Consumable)
+		const FItemData* ItemData = LoadedData->Items.Find(ItemID);
+		if (!IsTrackedInventoryItem(ItemData, ItemID))
+		{
+			return;
+		}
+
+		if (IsConsumableItem(ItemData))
 		{
 			SetConsumableEquipment(ItemID);
 		}
-		else if (LoadedData->Items[ItemID].Category == EItemCategory::Throwable)
+		else if (IsThrowableItem(ItemData, ItemID))
 		{
 			SetThrowableEquipment(ItemID);
 		}
 	}
+}
+
+UInventoryObject* UInventorySystemComponent::FindInventoryObject(EItemID ItemID) const
+{
+	for (UInventoryObject* InventoryObject : ItemQuantities)
+	{
+		if (InventoryObject && InventoryObject->ItemID == ItemID)
+		{
+			return InventoryObject;
+		}
+	}
+
+	return nullptr;
+}
+
+int UInventorySystemComponent::GetItemQuantity(EItemID ItemID) const
+{
+	const UInventoryObject* InventoryObject = FindInventoryObject(ItemID);
+	return InventoryObject ? InventoryObject->Quantity : 0;
 }
 
 void UInventorySystemComponent::SetConsumableEquipment(EItemID ItemID)

@@ -4,7 +4,9 @@
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/TestPlayer/NTCheatManager.h"
+#include "UI/MainMenuWidget.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "UI/Inventory/InventoryWidget.h"
 #include "Components/GameFrameworkComponentManager.h"
@@ -20,6 +22,65 @@ ATimeThiefPlayerController::ATimeThiefPlayerController()
 void ATimeThiefPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (IsLocalPlayerController())
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+		{
+			NGIS->OnPlayStateChanged.AddUniqueDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
+		
+			if (NGIS->GetPlayState() == ENetworkPlayState::InLobby)
+			{
+				ShowMainMenu();
+			}
+		}
+	}
+}
+
+void ATimeThiefPlayerController::ShowMainMenu()
+{
+	if (MainMenuWidget || !MainMenuWidgetClass)
+	{
+		return;
+	}
+
+	MainMenuWidget = CreateWidget<UMainMenuWidget>(this, MainMenuWidgetClass);
+	if (!MainMenuWidget)
+	{
+		return;
+	}
+
+	MainMenuWidget->AddToViewport(10);
+
+	bShowMouseCursor = true;
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(MainMenuWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void ATimeThiefPlayerController::HideMainMenu()
+{
+	if (MainMenuWidget)
+	{
+		MainMenuWidget->RemoveFromParent();
+		MainMenuWidget = nullptr;
+	}
+
+	bShowMouseCursor = false;
+	SetInputMode(FInputModeGameOnly{});
+}
+
+void ATimeThiefPlayerController::HandleNetworkPlayStateChanged(ENetworkPlayState NewState)
+{
+	if (NewState == ENetworkPlayState::InLobby)
+	{
+		ShowMainMenu();
+	}
+	else if (NewState == ENetworkPlayState::MatchingSucc)
+	{
+		HideMainMenu();
+	}
 }
 
 void ATimeThiefPlayerController::InitializeUI()

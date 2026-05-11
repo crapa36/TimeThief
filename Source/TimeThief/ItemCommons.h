@@ -26,6 +26,7 @@ enum class EItemID : uint8
 	SkillBoost UMETA(DisplayName = "Skill Boost"),
 	Grenade UMETA(DisplayName = "Grenade"),
 	TimePoint UMETA(DisplayName = "Time Point"),
+	SmokeGrenade UMETA(DisplayName = "Smoke Grenade"),
 	SIZE UMETA(Hidden)
 };
 

@@ -56,6 +56,18 @@ public:
 	const TArray<TObjectPtr<UInventoryObject>>& GetInventory() const { return ItemQuantities; }
 
 	void SetEquipment(EItemID ItemID);
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Inventory")
+	UInventoryObject* FindInventoryObject(EItemID ItemID) const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Inventory")
+	int GetItemQuantity(EItemID ItemID) const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Inventory")
+	EItemID GetThrowableEquipment() const { return ThrowableEquipment; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Inventory")
+	EItemID GetConsumableEquipment() const { return ConsumableEquipment; }
 	
 private:
 	void SetConsumableEquipment(EItemID ItemID);

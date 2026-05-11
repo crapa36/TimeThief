@@ -5,17 +5,20 @@
 #include "TimeThiefGameplayTags.h"
 #include "Components/GameFrameworkComponentManager.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Components/Combat/TimeThiefThrowableComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "InputAction.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Skill/SavePointSkillComponent.h"
+#include "InputCoreTypes.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -56,11 +59,19 @@ void UTimeThiefHeroComponent::RebuildCachedComponents()
 	{
 		CachedWireComponent = Pawn->FindComponentByClass<UTimeThiefWireComponent>();
 		CachedCombatComponent = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>();
+		CachedThrowableComponent = Pawn->FindComponentByClass<UTimeThiefThrowableComponent>();
+
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] RebuildCachedComponents Pawn=%s Throwable=%s"),
+			*GetNameSafe(Pawn),
+			*GetNameSafe(CachedThrowableComponent));
+#endif
 		return;
 	}
 
 	CachedWireComponent = nullptr;
 	CachedCombatComponent = nullptr;
+	CachedThrowableComponent = nullptr;
 }
 
 void UTimeThiefHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -111,6 +122,21 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
+
+	if (!InputConfig->FindAbilityInputActionForTag(Tags.InputTag_Action_Throw, false))
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] No IA mapped for InputTag.Action.Throw. Binding fallback G key."));
+#endif
+		BindThrowFallbackInput(TimeThiefIC);
+	}
+	else
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] InputTag.Action.Throw is mapped in InputConfig=%s."),
+			*GetNameSafe(InputConfig));
+#endif
+	}
 
 	bReadyToBindInputs = true;
 	OnReadyToBindInputs.Broadcast(this);
@@ -248,10 +274,64 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 	}
 }
 
+void UTimeThiefHeroComponent::Input_ThrowFallback(const FInputActionValue& Value)
+{
+#if !UE_BUILD_SHIPPING
+	UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] Fallback G input triggered. Throwable=%s"),
+		*GetNameSafe(CachedThrowableComponent));
+#endif
+
+	if (CachedThrowableComponent)
+	{
+		CachedThrowableComponent->HandleInputPressed(FTimeThiefGameplayTags::Get().InputTag_Action_Throw);
+	}
+}
+
+void UTimeThiefHeroComponent::BindThrowFallbackInput(UTimeThiefInputComponent* TimeThiefIC)
+{
+	if (!TimeThiefIC)
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] BindThrowFallbackInput failed: InputComponent is null."));
+#endif
+		return;
+	}
+
+	if (!FallbackThrowInputAction)
+	{
+		FallbackThrowInputAction = NewObject<UInputAction>(this, TEXT("IA_Throw_Fallback"));
+		FallbackThrowInputAction->ValueType = EInputActionValueType::Boolean;
+	}
+
+	if (!FallbackThrowMappingContext)
+	{
+		FallbackThrowMappingContext = NewObject<UInputMappingContext>(this, TEXT("IMC_Throw_Fallback"));
+		FallbackThrowMappingContext->MapKey(FallbackThrowInputAction, EKeys::G);
+	}
+
+	AddInputMappingContext(FallbackThrowMappingContext, 2);
+	TimeThiefIC->BindAction(FallbackThrowInputAction, ETriggerEvent::Started, this, &ThisClass::Input_ThrowFallback);
+
+#if !UE_BUILD_SHIPPING
+	UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] Fallback throw input bound. IA=%s IMC=%s Key=G"),
+		*GetNameSafe(FallbackThrowInputAction),
+		*GetNameSafe(FallbackThrowMappingContext));
+#endif
+}
+
 void UTimeThiefHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
+#if !UE_BUILD_SHIPPING
+	if (InputTag == FTimeThiefGameplayTags::Get().InputTag_Action_Throw)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Hero] Ability input Throw tag pressed. Throwable=%s"),
+			*GetNameSafe(CachedThrowableComponent));
+	}
+#endif
+
 	if (CachedCombatComponent) CachedCombatComponent->HandleInputPressed(InputTag);
 	if (CachedWireComponent) CachedWireComponent->HandleInputPressed(InputTag);
+	if (CachedThrowableComponent) CachedThrowableComponent->HandleInputPressed(InputTag);
 }
 
 void UTimeThiefHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)

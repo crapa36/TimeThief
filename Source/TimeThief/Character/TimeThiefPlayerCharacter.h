@@ -13,6 +13,7 @@ class AItemBase;
 class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefPlayerCombatComponent;
+class UTimeThiefThrowableComponent;
 class UTimeThiefHeroComponent;
 class UCharacterTrajectoryComponent;
 class UTimeThiefPawnData;
@@ -55,6 +56,9 @@ public:
 	UTimeThiefWireComponent* GetWireComponent() const { return WireComponent; }
 	
 	UInventorySystemComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|Throwable")
+	UTimeThiefThrowableComponent* GetThrowableComponent() const { return ThrowableComponent; }
 	
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Camera")
 	UCameraComponent* GetFollowCamera() const { return FollowCamera; }
@@ -124,6 +128,9 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UInventorySystemComponent> InventoryComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Throwable")
+	TObjectPtr<UTimeThiefThrowableComponent> ThrowableComponent;
 	
 	UPROPERTY()
 	TObjectPtr<const UTimeThiefPawnData> PawnData;

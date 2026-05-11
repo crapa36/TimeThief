@@ -146,15 +146,13 @@ void USavePointSkillComponent::Save()
 	if (auto InventoryComp = OwnerCharacter->GetComponentByClass<UInventorySystemComponent>())
 	{
 		const auto& Inventory = InventoryComp->GetInventory();
-		if (SavedInventory.Num() != Inventory.Num())
-		{
-			SavedInventory.SetNum(Inventory.Num());
-		}
+		SavedInventory.Reset(Inventory.Num());
 		for (auto p : Inventory)
 		{
-			int Index = static_cast<int>(p->ItemID) - static_cast<int>(EItemID::SmallPotion);
-			SavedInventory[Index].Key = p->ItemID;
-			SavedInventory[Index].Value = p->Quantity;
+			if (p)
+			{
+				SavedInventory.Emplace(p->ItemID, p->Quantity);
+			}
 		}
 	}
 }
