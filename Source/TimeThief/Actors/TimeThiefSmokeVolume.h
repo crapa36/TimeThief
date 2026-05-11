@@ -47,11 +47,7 @@ private:
 	void MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent) const;
 	FVector ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime);
 	ESmokeInteractionShape ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const;
-	void ExpandDynamicBoundsForWorldSphere(const FVector& Center, float Radius);
-	void ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event);
 	void RebuildStaticObstacleMask();
-	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, FCollisionObjectQueryParams ObjectQueryParams, FCollisionQueryParams QueryParams);
-	float ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent) const;
 	void UpdateSmokeBounds();
 	void DrawDebugSmoke() const;
 
@@ -65,11 +61,7 @@ private:
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FVector> PreviousComponentLocations;
 	float ActorInteractionAccumulator = 0.0f;
 	float SmokeAgeSeconds = 0.0f;
-	FVector DynamicBoundsExtent = FVector::ZeroVector;
 	TArray<uint8> ObstacleMask;
-	TArray<uint8> ActiveBoundsCells;
 	int32 ObstacleMaskResolution = 0;
-	FIntVector ActiveBoundsCellGrid = FIntVector::ZeroValue;
 	uint32 ObstacleMaskRevision = 0;
-	FVector BoundsClusterLocalOffset = FVector::ZeroVector;
 };

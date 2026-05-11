@@ -56,6 +56,7 @@ private:
 		uint32 UploadedObstacleMaskRevision = MAX_uint32;
 		uint32 TargetObstacleMaskRevision = MAX_uint32;
 		float ObstacleMaskBlendAge = 1.0f;
+		float BulletSuppressionRemainingSeconds = 0.0f;
 		uint32 LastSimulatedFrame = 0;
 		int32 AllocatedCarrierParticleCount = 0;
 		bool bNeedsInit = true;

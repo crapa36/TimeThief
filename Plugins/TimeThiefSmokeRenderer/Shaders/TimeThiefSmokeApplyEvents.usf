@@ -41,7 +41,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	{
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
-		const uint EventShape = (uint)round(Event.TypeShapeAgeSeed.y);
 		const float Age = saturate(Event.TypeShapeAgeSeed.z);
 		const float Seed = Event.TypeShapeAgeSeed.w;
 		const float3 EventPosition = Event.PositionRadius.xyz;
@@ -53,24 +52,52 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 		if (EventType == 0)
 		{
+			const float3 Entry = EventPosition - Direction * Length * 0.5;
+			const float3 Exit = EventPosition + Direction * Length * 0.5;
 			const float Along = clamp(dot(ToCell, Direction), -Length * 0.5, Length * 0.5);
 			const float3 Closest = EventPosition + Direction * Along;
 			const float WakeDistance = length(WorldPosition - Closest);
-			const float Pocket = TimeThiefSmokeSoftSphere(WakeDistance, Radius);
-			const float BrokenMask = lerp(0.58, 1.08, TimeThiefSmokeHash13(WorldPosition * 0.017 + Seed));
+			const float CorePocket = TimeThiefSmokeSoftSphere(WakeDistance, Radius);
+			const float BrokenMask = lerp(0.62, 1.12, TimeThiefSmokeHash13(WorldPosition * 0.017 + Seed));
 			const float AgeFade = 1.0 - smoothstep(0.0, 1.0, Age);
-			const float Weight = saturate(Pocket * BrokenMask * AgeFade);
-			const float HoleWeight = pow(Weight, 1.25);
-			const float FullClearWeight = smoothstep(0.48, 0.74, Pocket) * AgeFade;
-			const float ShellWeight = saturate((1.0 - abs(WakeDistance - Radius * 0.88) / max(Radius * 0.42, 1.0)) * Weight);
+			const float Weight = saturate(CorePocket * BrokenMask * AgeFade);
+			const float HoleWeight = pow(Weight, 1.18);
+			const float FullClearWeight = smoothstep(0.42, 0.72, CorePocket) * AgeFade;
+			const float ShellWeight = saturate((1.0 - abs(WakeDistance - Radius * 0.92) / max(Radius * 0.45, 1.0)) * Weight);
 			const float3 Side = normalize(cross(Direction, abs(Direction.z) < 0.9 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0)));
 			const float CurlSign = TimeThiefSmokeHash13(WorldPosition * 0.021 + Seed * 1.7) > 0.5 ? 1.0 : -1.0;
 
-			Density *= 1.0 - saturate(FullClearWeight);
-			Density *= 1.0 - saturate(HoleWeight * lerp(0.65, 1.0, Strength));
-			Density = min(3.2, Density + ShellWeight * Strength * 0.018 * smoothstep(0.35, 0.95, Age));
+			const float3 EntryCenter = Entry + Direction * Radius * 0.65;
+			const float3 EntryDelta = WorldPosition - EntryCenter;
+			const float EntryDimple = (1.0 - smoothstep(Radius * 0.35, Radius * 1.9, length(EntryDelta))) * AgeFade;
+			const float3 EntryPull = normalize(Direction * 0.82 - normalize(EntryDelta + float3(0.0, 0.0, 0.0001)) * 0.48);
+
+			const float3 ToExit = WorldPosition - Exit;
+			const float ExitBackAlong = clamp(-dot(ToExit, Direction), 0.0, Radius * 7.0);
+			const float3 ExitTrailClosest = Exit - Direction * ExitBackAlong;
+			const float3 ExitTrailDelta = WorldPosition - ExitTrailClosest;
+			const float ExitTrailDistance = length(ExitTrailDelta);
+			const float ExitTrailTaper = 1.0 - smoothstep(Radius * 0.65, Radius * 7.0, ExitBackAlong);
+			const float ExitTrailBreakup = smoothstep(
+				0.18,
+				0.92,
+				TimeThiefSmokeValueNoise(float3(ExitBackAlong * 0.025, Seed * 0.009, dot(WorldPosition, float3(0.006, 0.004, 0.011)))));
+			const float ExitTrail = (1.0 - smoothstep(Radius * 0.28, Radius * 1.35, ExitTrailDistance)) *
+				ExitTrailTaper *
+				ExitTrailBreakup *
+				AgeFade;
+			const float3 ExitTangent = normalize(cross(Direction, ExitTrailDelta + Side * Radius * 0.08));
+			const float Spiral = sin(ExitBackAlong * 0.055 + Seed * 0.017);
+
+			const float VisibleStrength = lerp(0.9, 1.0, Strength);
+			Density *= 1.0 - saturate(FullClearWeight + HoleWeight * VisibleStrength);
+			Density *= 1.0 - saturate((EntryDimple * 0.55 + ExitTrail * 0.62) * VisibleStrength);
+			Density = min(3.2, Density + (ShellWeight + ExitTrail * 0.25) * Strength * 0.006 * smoothstep(0.35, 0.95, Age));
 			Velocity += Direction * Weight * Strength * 760.0;
-			Velocity += Side * CurlSign * Weight * Strength * 240.0;
+			Velocity += EntryPull * EntryDimple * Strength * 330.0;
+			Velocity += Direction * ExitTrail * Strength * 520.0;
+			Velocity += ExitTangent * Spiral * ExitTrail * Strength * 430.0;
+			Velocity += Side * CurlSign * Weight * Strength * 220.0;
 		}
 		else if (EventType == 1)
 		{
@@ -87,38 +114,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			Density = min(3.2, Density + ShellWeight * TimedStrength * 0.18);
 			Velocity += Radial * CoreWeight * TimedStrength * OutwardStrength;
 			Velocity += Curl * (CoreWeight + ShellWeight * 0.35) * TimedStrength * 230.0;
-		}
-		else
-		{
-			const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
-			const float3 LocalToActor = TimeThiefSmokeInverseRotateByQuat(ToCell, Event.Rotation);
-			float ShapeSdf = length(ToCell) - ShapeRadius;
-			if (EventShape == 1)
-			{
-				ShapeSdf = TimeThiefSmokeCapsuleSdf(LocalToActor, max(Radius, 1.0), max(Length, Radius * 2.0));
-			}
-			else if (EventShape == 2)
-			{
-				ShapeSdf = TimeThiefSmokeBoxSdf(LocalToActor, max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35)));
-			}
-
-			const float ShapeWeight = TimeThiefSmokeSdfWeight(ShapeSdf, ShapeRadius * 0.45) * Strength;
-			const float Along = dot(ToCell, Direction);
-			const float FrontWeight = TimeThiefSmokeSoftSphere(length(ToCell - Direction * ShapeRadius * 0.65), ShapeRadius * 1.35) * saturate(smoothstep(-ShapeRadius * 0.3, ShapeRadius, Along)) * Strength;
-			const float TrailWeight = TimeThiefSmokeSoftSphere(length(ToCell + Direction * ShapeRadius * 1.15), ShapeRadius * 1.85) * (1.0 - smoothstep(-ShapeRadius * 0.1, ShapeRadius * 1.6, Along)) * Strength;
-			const float TrailLength = ShapeRadius * 5.0;
-			const float BackAlong = clamp(-Along, 0.0, TrailLength);
-			const float3 TrailClosest = EventPosition - Direction * BackAlong;
-			const float TrailRadial = length(WorldPosition - TrailClosest);
-			const float LongTrailWeight = TimeThiefSmokeSoftSphere(TrailRadial, ShapeRadius * 1.05) * (1.0 - smoothstep(ShapeRadius * 0.35, TrailLength, BackAlong)) * saturate(-Along / max(ShapeRadius, 1.0)) * Strength;
-			const float RimWeight = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.42, 1.0)) * Strength);
-			const float SideNoise = TimeThiefSmokeHash13(WorldPosition * 0.018 + Seed * 2.3);
-			const float3 Side = normalize(cross(Direction, abs(Direction.z) < 0.9 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0)));
-			const float CurlSign = SideNoise > 0.5 ? 1.0 : -1.0;
-
-			Density = min(3.2, Density * (1.0 + LongTrailWeight * 0.035) + RimWeight * 0.025);
-			Velocity += Direction * (ShapeWeight * 270.0 + TrailWeight * 400.0 + LongTrailWeight * 650.0 + FrontWeight * 170.0);
-			Velocity += Side * CurlSign * (TrailWeight + LongTrailWeight + FrontWeight + RimWeight * 0.4) * 220.0;
 		}
 	}
 

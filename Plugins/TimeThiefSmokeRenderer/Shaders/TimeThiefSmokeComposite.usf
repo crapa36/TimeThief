@@ -29,6 +29,23 @@ float4x4 InvViewProjection;
 float4x4 LocalToWorld;
 float4x4 WorldToLocal;
 
+float TimeThiefSmokeLuminance(float3 Color)
+{
+	return dot(max(Color, 0.0), float3(0.2126, 0.7152, 0.0722));
+}
+
+float3 TimeThiefSmokeLimitLuminance(float3 Color, float MaxLuminance)
+{
+	const float Luminance = max(TimeThiefSmokeLuminance(Color), 0.0001);
+	return Color * min(1.0, MaxLuminance / Luminance);
+}
+
+float3 TimeThiefSmokeNormalizeTint(float3 Color)
+{
+	const float Luminance = TimeThiefSmokeLuminance(Color);
+	return Luminance > 0.001 ? saturate(Color / Luminance) : float3(1.0, 1.0, 1.0);
+}
+
 float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
 {
 	const float2 ViewSize = max(float2(ViewRect.zw - ViewRect.xy), 1.0);
@@ -100,6 +117,39 @@ float ComputeEventDebug(float3 SampleWorld)
 	return saturate(Weight);
 }
 
+float ComputeSmokeRenderDensity(float3 LocalPosition, float3 VolumeUVW, float LifetimeAlpha)
+{
+	if (!TimeThiefSmokeInsideUVW(VolumeUVW))
+	{
+		return 0.0;
+	}
+
+	const float RawDensity = max(DensityTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
+	const float BulletSuppression = BulletSuppressionTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
+	float Density = RawDensity * TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW);
+	const float BulletOpen = saturate(1.0 - BulletSuppression * 1.45);
+	const float CloudBillow = 0.5 + 0.5 * sin(
+		dot(LocalPosition, float3(9.7, 7.3, 5.9)) +
+		sin(dot(LocalPosition, float3(4.1, 6.8, 8.6))) * 1.8);
+	return Density * lerp(0.74, 1.36, CloudBillow) * LifetimeAlpha * BulletOpen * BulletOpen;
+}
+
+float ComputeSmokeSelfShadow(float3 LocalPosition, float3 LocalLightDirection, float LifetimeAlpha)
+{
+	float OpticalDepth = 0.0;
+	const float LightStepSize = 0.115;
+
+	[unroll]
+	for (int LightStepIndex = 1; LightStepIndex <= 4; ++LightStepIndex)
+	{
+		const float3 ShadowLocalPosition = LocalPosition + LocalLightDirection * (LightStepSize * LightStepIndex);
+		const float3 ShadowUVW = ShadowLocalPosition * 0.5 + 0.5;
+		OpticalDepth += ComputeSmokeRenderDensity(ShadowLocalPosition, ShadowUVW, LifetimeAlpha) * LightStepSize;
+	}
+
+	return exp(-OpticalDepth * Extinction * 2.15);
+}
+
 void MainPS(
 	in noperspective float4 UVAndScreenPos : TEXCOORD0,
 	float4 SvPosition : SV_POSITION,
@@ -136,8 +186,13 @@ void MainPS(
 	const int Steps = clamp(RenderStepCount, 16, 128);
 	const float StepSize = max((TMax - TMin) / Steps, 0.0001);
 	const float LifetimeAlpha = 1.0 - smoothstep(DurationSeconds, DurationSeconds + max(SmokeFadeOutDuration, 0.001), AgeSeconds);
+	const float3 ViewDirection = normalize(LocalNear - LocalFar);
+	const float3 LightDirectionWorld = normalize(View.DirectionalLightDirection + float3(0.0001, 0.0001, 0.0001));
+	const float3 LocalLightDirection = normalize((mul(float4(LightDirectionWorld, 0.0), WorldToLocal).xyz / max(BoundsExtent, 1.0)) + 0.0001);
 	float Transmittance = 1.0;
 	float Scatter = 0.0;
+	float LitVisibilityAccum = 0.0;
+	float OpacityWeightAccum = 0.0;
 	float DebugValue = 0.0;
 
 	[loop]
@@ -154,11 +209,7 @@ void MainPS(
 		const float RawDensity = max(DensityTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
 		const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
 		const float BulletSuppression = BulletSuppressionTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
-		float Density = RawDensity * TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW);
-		const float CloudBillow = 0.5 + 0.5 * sin(
-			dot(LocalPosition, float3(9.7, 7.3, 5.9)) +
-			sin(dot(LocalPosition, float3(4.1, 6.8, 8.6))) * 1.8);
-		Density *= lerp(0.74, 1.36, CloudBillow) * LifetimeAlpha;
+		const float Density = ComputeSmokeRenderDensity(LocalPosition, VolumeUVW, LifetimeAlpha);
 
 		if (DebugMode == 1)
 		{
@@ -184,7 +235,11 @@ void MainPS(
 
 		const float Absorption = Density * Extinction * StepSize;
 		const float StepTransmittance = exp(-Absorption);
+		const float StepOpacity = Transmittance * (1.0 - StepTransmittance);
+		const float SelfShadow = ComputeSmokeSelfShadow(LocalPosition, LocalLightDirection, LifetimeAlpha);
 		Scatter += Transmittance * (1.0 - StepTransmittance) * Density;
+		LitVisibilityAccum += StepOpacity * SelfShadow;
+		OpacityWeightAccum += StepOpacity;
 		Transmittance *= StepTransmittance;
 
 		if (Transmittance < 0.015)
@@ -217,9 +272,24 @@ void MainPS(
 		return;
 	}
 
-	const float Alpha = saturate(1.0 - Transmittance);
-	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
-	const float3 SmokeColor = lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
-	const float3 Composited = SceneColor.rgb * Transmittance + SmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
+	const float SceneLuminance = TimeThiefSmokeLuminance(SceneColor.rgb);
+	const float OpticalAlpha = saturate((1.0 - Transmittance) * 3.2 + Scatter * 0.08);
+	const float SmokeOpacity = saturate(smoothstep(0.08, 0.52, OpticalAlpha) + OpticalAlpha * 0.42);
+	const float AverageSelfShadow = OpacityWeightAccum > 0.0001 ? saturate(LitVisibilityAccum / OpacityWeightAccum) : 1.0;
+	const float Phase = pow(saturate(dot(ViewDirection, LocalLightDirection) * 0.5 + 0.5), lerp(1.8, 4.5, saturate(ScatteringAnisotropy)));
+	const float3 DirectionalTint = TimeThiefSmokeNormalizeTint(View.DirectionalLightColor.rgb);
+	const float3 SkyTint = TimeThiefSmokeNormalizeTint(View.SkyLightColor.rgb);
+	const float3 SceneTint = TimeThiefSmokeNormalizeTint(SceneColor.rgb);
+	const float3 LightTint = saturate(lerp(SceneTint, lerp(SkyTint, DirectionalTint, 0.45), 0.55));
+	const float AmbientTerm = lerp(0.22, 0.38, saturate(SceneLuminance * 1.4));
+	const float DirectTerm = lerp(0.08, 0.32, saturate(SceneLuminance * 1.15)) * lerp(0.38, 1.0, AverageSelfShadow);
+	const float DepthShadow = lerp(1.0, 0.66, saturate(Scatter * 0.12));
+	const float3 SmokeAlbedo = lerp(float3(0.32, 0.335, 0.335), float3(0.48, 0.49, 0.475), saturate(ScatteringAlbedo));
+	float3 LitSmokeColor = SmokeAlbedo * LightTint * (AmbientTerm + DirectTerm * lerp(0.75, 1.18, Phase)) * DepthShadow;
+	LitSmokeColor = clamp(LitSmokeColor, float3(0.09, 0.095, 0.095), float3(0.58, 0.58, 0.56));
+	float3 Composited = lerp(SceneColor.rgb, LitSmokeColor, SmokeOpacity);
+
+	const float ExposureSafeMaxLuminance = max(0.62, SceneLuminance * lerp(1.08, 0.72, SmokeOpacity) + SmokeOpacity * 0.42);
+	Composited = TimeThiefSmokeLimitLuminance(Composited, ExposureSafeMaxLuminance);
 	OutColor = float4(Composited, SceneColor.a);
 }
