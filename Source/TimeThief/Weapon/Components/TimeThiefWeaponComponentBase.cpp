@@ -27,7 +27,15 @@ void UTimeThiefWeaponComponentBase::BeginPlay()
 	BaseMaxAmmo = MaxAmmo;
 	CurrentAmmo = MaxAmmo;
 	CurrentSpread = 0.0f;
-	NextAllowedFireTime = 0.0f;
+	NextAllowedFireTime = FireAnimation ? FMath::Min(FireAnimation->GetPlayLength(), NextAllowedFireTime) : NextAllowedFireTime;
+	ReloadTime = ReloadAnimation ? FMath::Min(ReloadAnimation->GetPlayLength(),ReloadTime) : ReloadTime;
+
+	if (auto AnimInstance = Cast<ACharacter>(GetOwner<AActor>()->GetParentActor())->GetMesh()->GetAnimInstance();
+		AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.AddUniqueDynamic(this, &UTimeThiefWeaponComponentBase::OnMontageEnded);
+	}
+
 	bWantsToFire = false;
 }
 
@@ -51,6 +59,7 @@ void UTimeThiefWeaponComponentBase::EndPlay(const EEndPlayReason::Type EndPlayRe
 		World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
 		World->GetTimerManager().ClearTimer(ReloadTimerHandle);
 	}
+
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -116,7 +125,7 @@ FWeaponStatData UTimeThiefWeaponComponentBase::GetWeaponStatDataForNetwork() con
 	StatData.MagCapacity = MaxAmmo;
 	StatData.FireInterval = GetFireInterval();
 	StatData.ReloadTime = ReloadTime;
-	
+
 	return StatData;
 }
 
@@ -170,15 +179,36 @@ void UTimeThiefWeaponComponentBase::StopFire()
 void UTimeThiefWeaponComponentBase::Reload()
 {
 	if (!CanReload()) return;
+	
+	if (CurrentAmmo == 0)
+	{
+		if (auto AnimInstance = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor())->GetMesh()->GetAnimInstance())
+		{
+			if (AnimInstance->Montage_IsPlaying(FireAnimation))
+			{
+				FOnMontageSectionChanged SectionChangedDelegate;
+				SectionChangedDelegate.BindWeakLambda(this, [this]
+					(UAnimMontage* EndedMontage, FName SectionName, bool bLooped)
+				{
+					if (EndedMontage == this->FireAnimation && SectionName == FName("Recover_Start"))
+					{
+						this->bIsReloading = true;
+						this->StopFiringLoop();
+						this->OnReloadStarted();
+						this->BroadcastCombatAttackRequest(ECombatNotifyType::Reload);
+					}
+				});
+			
+				AnimInstance->Montage_SetSectionChangedDelegate(SectionChangedDelegate, FireAnimation);
+			}
+			return;
+		}
+	}
+	
 	bIsReloading = true;
 	StopFiringLoop();
 	OnReloadStarted();
 	BroadcastCombatAttackRequest(ECombatNotifyType::Reload);
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UTimeThiefWeaponComponentBase::FinishReload,
-		                                  ReloadTime, false);
-	}
 }
 
 bool UTimeThiefWeaponComponentBase::CanFire() const
@@ -317,12 +347,6 @@ void UTimeThiefWeaponComponentBase::HandleAutoFireShot()
 	}
 }
 
-void UTimeThiefWeaponComponentBase::StopFiringLoop()
-{
-	bIsFiring = false;
-	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
-}
-
 void UTimeThiefWeaponComponentBase::HandleReloadResult(uint32 DeltaAmmo, uint32 NewAmmo)
 {
 	if ((MaxAmmo - CurrentAmmo) != DeltaAmmo)
@@ -349,6 +373,12 @@ float UTimeThiefWeaponComponentBase::GetFireInterval() const
 	return RoundsPerSecond > 0.0f ? 1.0f / RoundsPerSecond : (FireRate > 0.0f ? 60.0f / FireRate : 0.1f);
 }
 
+void UTimeThiefWeaponComponentBase::StopFiringLoop()
+{
+	bIsFiring = false;
+	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
+}
+
 void UTimeThiefWeaponComponentBase::FinishReload()
 {
 	CurrentAmmo = MaxAmmo;
@@ -356,6 +386,14 @@ void UTimeThiefWeaponComponentBase::FinishReload()
 	NotifyAmmoChanged();
 	OnReloadFinished();
 	if (bWantsToFire) StartFire();
+}
+
+void UTimeThiefWeaponComponentBase::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage == ReloadAnimation)
+	{
+		FinishReload();
+	}
 }
 
 void UTimeThiefWeaponComponentBase::BroadcastCombatAttackRequest(ECombatNotifyType NotifyType) const

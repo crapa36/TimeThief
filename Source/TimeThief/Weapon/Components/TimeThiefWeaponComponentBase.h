@@ -210,7 +210,7 @@ public:
 	
 	bool bIsFiring = false;
 	bool bIsReloading = false;
-
+	
 	float NextAllowedFireTime = 0.0f;
 
 	FTimerHandle AutoFireTimerHandle;
@@ -255,4 +255,7 @@ private:
 	void StopFiringLoop();
 	void HandleAutoFireShot();
 	void FinishReload();
+	
+	UFUNCTION()
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };
