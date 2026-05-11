@@ -129,6 +129,8 @@ void UTimeThiefWeaponComponentBase::SetWeaponStatForNetwork(const FWeaponStatDat
 	RoundsPerSecond = FireInterval > KINDA_SMALL_NUMBER ? 1.0f / FireInterval : 0.0f; // RPS 계산
 
 	ReloadTime = InStatData.ReloadTime;
+	
+	NotifyAmmoChanged();
 }
 
 void UTimeThiefWeaponComponentBase::StartFire()
