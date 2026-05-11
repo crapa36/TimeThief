@@ -235,11 +235,6 @@ void UTimeThiefWeaponComponentBase::ExecuteRemoteReload()
 	bIsReloading = true;
 	StopFiringLoop();
 	OnReloadStarted();
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UTimeThiefWeaponComponentBase::FinishReload,
-		                                  ReloadTime, false);
-	}
 }
 
 void UTimeThiefWeaponComponentBase::SetRemoteShotSyncData(const FVector& InOrigin, const FVector& InDirection)
