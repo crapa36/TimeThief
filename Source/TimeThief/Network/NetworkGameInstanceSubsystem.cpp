@@ -772,7 +772,6 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	const int MaxHealth = Pkt.max_health();
 	const int CurrentHealth = Pkt.current_health();
 	const int TimePoints = Pkt.time_points();
-	// TODO: 이용
 	const float MoveSpeed = Pkt.move_speed();
 	
 	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
@@ -789,6 +788,12 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	if (auto* TimePointComp = LocalPlayer->FindComponentByClass<UTimePointSystemComponent>())
 	{
 		TimePointComp->SetTimePoints(TimePoints);
+	}
+	
+	if (auto* CMC = LocalPlayer->GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] Setting local player move speed Init: %f"), MoveSpeed);
+		CMC->MaxWalkSpeed = MoveSpeed;
 	}
 	
 	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
@@ -1879,7 +1884,19 @@ void UNetworkGameInstanceSubsystem::HandleHealthSnapshot(const se::game::N_Healt
 
 void UNetworkGameInstanceSubsystem::HandleSpeedChanged(const se::game::N_SpeedChanged& Pkt)
 {
-	// TODO: 이동 속도 변경
+	check(IsInGameThread());
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+	
+	if (auto* CMC = LocalPlayer->GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] HandleSpeedChanged local player move speed: %f"), Pkt.new_speed());
+		CMC->MaxWalkSpeed = Pkt.new_speed();
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
