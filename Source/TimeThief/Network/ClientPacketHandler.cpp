@@ -827,7 +827,7 @@ bool Handle_N_EntityHit(PacketSessionRef& session, const se::game::N_EntityHit& 
 	if (!session)
 		return false;
 	
-	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	if (!pkt.has_entity_id())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityHit: pkt has no valid entity_id"));
 		return false;
