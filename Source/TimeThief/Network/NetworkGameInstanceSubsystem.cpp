@@ -1430,6 +1430,8 @@ void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_
 		return;
 	}
 	
+	// UE_LOG(LogTemp, Log, TEXT("[Network] HandleProjectileExplosion: EntityId=%u"), Pkt.entity_id().value());
+	
 	const uint32 EntityId = Pkt.entity_id().value();
 	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
 	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
@@ -1440,6 +1442,8 @@ void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_
 	
 	if (auto* ProjectileComp = Cast<ATimeThiefRocketProjectile>(EntityEntry->Actor.Get()))
 	{
+		// UE_LOG(LogTemp, Log, TEXT("[Network] ExplodeSyncNetwork: EntityId=%u"), Pkt.entity_id().value());
+		
 		const FVector ExplosionLocation = FVector(Pkt.position().x(), Pkt.position().y(), Pkt.position().z());
 		ProjectileComp->ExplodeSyncNetwork(ExplosionLocation);
 	}
