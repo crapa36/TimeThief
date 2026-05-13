@@ -15,6 +15,15 @@ UTimeThiefHealthComponent::UTimeThiefHealthComponent()
 void UTimeThiefHealthComponent::OnEndRespawn()
 {
 	bIsDead = false;
+	
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		if (NGIS->IsConnected())
+		{
+			 return;
+		}
+	}
+	
 	if (const ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Cast<ACharacter>(GetOwner())->GetPlayerState()))
 	{
 		MaxHealth = DefaultMaxHealth + PS->Status.Health * UpgradeAmount;
