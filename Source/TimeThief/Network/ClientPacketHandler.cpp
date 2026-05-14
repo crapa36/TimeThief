@@ -334,6 +334,25 @@ bool Handle_N_PlayerInitSetup(PacketSessionRef& session, const se::game::N_Playe
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_PlayerInitSetup: Failed to get NGIS"));
 	return false;
 }
+
+bool Handle_N_PlayerGameResult(PacketSessionRef& session, const se::game::N_PlayerGameResult& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandlePlayerGameResult(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_PlayerGameResult: Failed to get NGIS"));
+	return false;	
+	
+}
 	
 bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 {

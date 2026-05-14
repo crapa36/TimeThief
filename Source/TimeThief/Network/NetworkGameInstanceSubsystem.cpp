@@ -688,6 +688,9 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		SetPlayState(ENetworkPlayState::InRoom);
 		return;
 	}
+	
+	// TODO:
+	// Room State 초기화
 
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
@@ -761,6 +764,8 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
 {
+	// TODO:
+	// Room State 초기화
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
@@ -840,6 +845,28 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		
 		WeaponComp->SetWeaponStatForNetwork(StatData);
 	}
+}
+
+void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_PlayerGameResult& Pkt)
+{
+	check(IsInGameThread())
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 Rank = Pkt.rank();
+	const int32 Score = Pkt.score();
+	FString PlayerName = UTF8_TO_TCHAR(Pkt.killer().c_str());
+	if (PlayerName.IsEmpty())
+	{
+		PlayerName = TEXT("Unknown");
+	}
+	
+	// TODO: 게임 결과 화면 표시 (Rank, Score, Killer Name 등)
+	
+	
 }
 
 void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
