@@ -3,8 +3,6 @@
 
 StructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> CarrierParticlesIn;
 StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
-Texture3D<float> ObstacleTexture;
-SamplerState VolumeSampler;
 RWStructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> OutCarrierParticles;
 
 float DeltaSeconds;
@@ -13,58 +11,8 @@ float InteractionStrength;
 int CarrierParticleCount;
 int EventCount;
 float3 BoundsExtent;
-float ObstacleTexelSize;
 float4x4 LocalToWorld;
 float4x4 WorldToLocal;
-
-float3 LocalToVolumeUVW(float3 LocalPosition)
-{
-	return LocalPosition / max(BoundsExtent, 1.0) * 0.5 + 0.5;
-}
-
-float SampleObstacle(float3 UVW)
-{
-	return ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
-}
-
-float3 ComputeObstacleGradient(float3 UVW)
-{
-	const float Step = max(ObstacleTexelSize, 1.0 / 128.0);
-	const float X = SampleObstacle(UVW + float3(Step, 0.0, 0.0)) - SampleObstacle(UVW - float3(Step, 0.0, 0.0));
-	const float Y = SampleObstacle(UVW + float3(0.0, Step, 0.0)) - SampleObstacle(UVW - float3(0.0, Step, 0.0));
-	const float Z = SampleObstacle(UVW + float3(0.0, 0.0, Step)) - SampleObstacle(UVW - float3(0.0, 0.0, Step));
-	return float3(X, Y, Z);
-}
-
-void ResolveObstacleCollision(inout float3 LocalPosition, inout float3 Velocity, float Radius, float SafeDeltaSeconds)
-{
-	const float3 UVW = LocalToVolumeUVW(LocalPosition);
-	if (!TimeThiefSmokeInsideUVW(UVW))
-	{
-		return;
-	}
-
-	const float Obstacle = SampleObstacle(UVW);
-	const float CollisionWeight = smoothstep(0.18, 0.72, Obstacle);
-	if (CollisionWeight <= 0.001)
-	{
-		return;
-	}
-
-	const float3 Gradient = ComputeObstacleGradient(UVW);
-	const float GradientLengthSq = dot(Gradient, Gradient);
-	const float3 ObstacleNormal = GradientLengthSq > 0.000001
-		? normalize(Gradient)
-		: normalize(-Velocity + float3(0.0, 0.0, 0.15));
-	const float3 OpenNormal = -ObstacleNormal;
-	const float PushDistance = min(max(Radius * 0.28, 8.0), 38.0) * CollisionWeight;
-	LocalPosition += OpenNormal * PushDistance;
-
-	const float IntoObstacle = max(dot(Velocity, ObstacleNormal), 0.0);
-	Velocity -= ObstacleNormal * IntoObstacle * 1.35;
-	Velocity += OpenNormal * (45.0 + max(DriftSpeed, 0.0) * 0.28) * CollisionWeight * SafeDeltaSeconds;
-	Velocity *= lerp(1.0, 0.72, CollisionWeight);
-}
 
 [numthreads(64, 1, 1)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
@@ -81,7 +29,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float3 Velocity = Particle.VelocityPhase.xyz;
 	float Radius = max(Particle.LocalPositionRadius.w, 1.0);
 	float Phase = Particle.VelocityPhase.w + SafeDeltaSeconds * 0.9;
-	const float3 ParticleBounds = max(BoundsExtent * float3(1.08, 1.08, 1.02), 1.0);
+	const float3 ParticleBounds = max(BoundsExtent * float3(0.84, 0.84, 0.82), 1.0);
 
 	const float3 Wander = normalize(float3(
 		sin(Phase + LocalPosition.y * 0.006),
@@ -104,31 +52,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		if (Type < 0.5)
 		{
 			const float HalfLength = max(Event.DirectionLength.w * 0.5, 1.0);
-			const float3 EntryLocal = EventLocalPosition - EventLocalDirection * HalfLength;
-			const float3 ExitLocal = EventLocalPosition + EventLocalDirection * HalfLength;
 			const float Along = clamp(dot(ToParticle, EventLocalDirection), -HalfLength, HalfLength);
 			const float3 Closest = EventLocalPosition + EventLocalDirection * Along;
-			const float3 LineDelta = LocalPosition - Closest;
-			const float3 Away = normalize(LineDelta + float3(0.0, 0.0, 0.0001));
-			const float Distance = length(LineDelta);
-			const float CoreWeight = 1.0 - smoothstep(ShapeRadius, ShapeRadius * 3.0, Distance);
-
-			const float EntryWeight = 1.0 - smoothstep(ShapeRadius * 0.6, ShapeRadius * 2.2, length(LocalPosition - (EntryLocal + EventLocalDirection * ShapeRadius * 0.65)));
-			const float3 EntryPull = normalize(EventLocalDirection * 0.82 - Away * 0.42);
-			const float3 ToExit = LocalPosition - ExitLocal;
-			const float ExitBackAlong = clamp(-dot(ToExit, EventLocalDirection), 0.0, ShapeRadius * 7.0);
-			const float3 ExitTrailClosest = ExitLocal - EventLocalDirection * ExitBackAlong;
-			const float3 ExitTrailDelta = LocalPosition - ExitTrailClosest;
-			const float ExitTrailDistance = length(ExitTrailDelta);
-			const float ExitTrailWeight =
-				(1.0 - smoothstep(ShapeRadius * 0.7, ShapeRadius * 2.35, ExitTrailDistance)) *
-				(1.0 - smoothstep(ShapeRadius * 0.55, ShapeRadius * 7.0, ExitBackAlong));
-			const float3 BulletTangent = normalize(cross(EventLocalDirection, ExitTrailDelta + Away * ShapeRadius * 0.08));
-			const float Spiral = sin(ExitBackAlong * 0.055 + Event.TypeShapeAgeSeed.w * 0.017);
-
-			Velocity += (EventLocalDirection * 690.0 + Away * 760.0) * CoreWeight * Strength * SafeDeltaSeconds;
-			Velocity += EntryPull * EntryWeight * 260.0 * Strength * SafeDeltaSeconds;
-			Velocity += (EventLocalDirection * 460.0 + BulletTangent * Spiral * 390.0) * ExitTrailWeight * Strength * SafeDeltaSeconds;
+			const float3 Away = normalize(LocalPosition - Closest + float3(0.0, 0.0, 0.0001));
+			const float Distance = length(LocalPosition - Closest);
+			const float Weight = 1.0 - smoothstep(ShapeRadius, ShapeRadius * 3.0, Distance);
+			Velocity += (EventLocalDirection * 780.0 + Away * 920.0) * Weight * Strength * SafeDeltaSeconds;
 		}
 		else if (Type < 1.5)
 		{
@@ -141,27 +70,17 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		else
 		{
 			const float Distance = length(ToParticle);
-			const float PushWeight = 1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 1.55, Distance);
+			const float PushWeight = 1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 1.65, Distance);
 			const float3 Away = normalize(ToParticle - EventLocalDirection * 0.0001);
 			const float Along = dot(ToParticle, EventLocalDirection);
-			const float WakeLength = ShapeRadius * 12.0;
-			const float BackAlong = clamp(-Along, 0.0, WakeLength);
+			const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 5.0);
 			const float3 TrailClosest = EventLocalPosition - EventLocalDirection * BackAlong;
-			const float3 TrailDelta = LocalPosition - TrailClosest;
-			const float TrailDistance = length(TrailDelta);
-			const float TrailTaper = 1.0 - smoothstep(ShapeRadius * 0.35, WakeLength, BackAlong);
+			const float TrailDistance = length(LocalPosition - TrailClosest);
 			const float TrailWeight =
-				(1.0 - smoothstep(ShapeRadius * 0.72, ShapeRadius * 2.35, TrailDistance)) *
-				TrailTaper *
-				saturate(-Along / max(ShapeRadius, 1.0));
-			const float VortexWeight =
-				(1.0 - smoothstep(ShapeRadius * 0.95, ShapeRadius * 3.0, TrailDistance)) *
-				TrailTaper;
-			const float3 TrailTangent = normalize(cross(EventLocalDirection, TrailDelta + Away * ShapeRadius * 0.1));
-			const float VortexPair = sin(BackAlong * 0.034 + Event.TypeShapeAgeSeed.w * 0.019) >= 0.0 ? 1.0 : -1.0;
-			Velocity += Away * PushWeight * 105.0 * Strength * SafeDeltaSeconds;
-			Velocity += EventLocalDirection * TrailWeight * 680.0 * Strength * SafeDeltaSeconds;
-			Velocity += TrailTangent * VortexPair * VortexWeight * 310.0 * Strength * SafeDeltaSeconds;
+				(1.0 - smoothstep(ShapeRadius * 0.8, ShapeRadius * 2.0, TrailDistance)) *
+				(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 5.0, BackAlong));
+			Velocity += Away * PushWeight * 150.0 * Strength * SafeDeltaSeconds;
+			Velocity += EventLocalDirection * TrailWeight * 520.0 * Strength * SafeDeltaSeconds;
 		}
 	}
 
@@ -187,7 +106,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	Velocity *= exp2(-2.668 * SafeDeltaSeconds);
 	LocalPosition += Velocity * SafeDeltaSeconds;
-	ResolveObstacleCollision(LocalPosition, Velocity, Radius, SafeDeltaSeconds);
 
 	[unroll]
 	for (int Axis = 0; Axis < 3; ++Axis)
@@ -213,7 +131,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		LocalPosition = Normal * ParticleBounds;
 		Velocity -= Normal * dot(Velocity, Normal) * 1.35;
 	}
-	ResolveObstacleCollision(LocalPosition, Velocity, Radius, SafeDeltaSeconds);
 
 	FTimeThiefSmokeCarrierParticleShaderData OutParticle;
 	OutParticle.LocalPositionRadius = float4(LocalPosition, Radius);

@@ -15,46 +15,59 @@ namespace TimeThiefSmokeVolume
 {
 	int32 GNextSmokeId = 1;
 
-	bool IntersectSegmentBox(const FVector& SegmentStart, const FVector& SegmentDelta, const FVector& BoxCenter, const FVector& BoxExtent, float& OutTMin, float& OutTMax)
+	FIntVector ClampCellGrid(const FIntVector& CellGrid)
 	{
-		float TMin = 0.0f;
-		float TMax = 1.0f;
-
-		for (int32 Axis = 0; Axis < 3; ++Axis)
-		{
-			const float StartValue = SegmentStart[Axis];
-			const float DeltaValue = SegmentDelta[Axis];
-			const float MinValue = BoxCenter[Axis] - BoxExtent[Axis];
-			const float MaxValue = BoxCenter[Axis] + BoxExtent[Axis];
-
-			if (FMath::IsNearlyZero(DeltaValue))
-			{
-				if (StartValue < MinValue || StartValue > MaxValue)
-				{
-					return false;
-				}
-				continue;
-			}
-
-			float NearT = (MinValue - StartValue) / DeltaValue;
-			float FarT = (MaxValue - StartValue) / DeltaValue;
-			if (NearT > FarT)
-			{
-				Swap(NearT, FarT);
-			}
-
-			TMin = FMath::Max(TMin, NearT);
-			TMax = FMath::Min(TMax, FarT);
-			if (TMin > TMax)
-			{
-				return false;
-			}
-		}
-
-		OutTMin = TMin;
-		OutTMax = TMax;
-		return true;
+		return FIntVector(
+			FMath::Clamp(CellGrid.X, 1, 16),
+			FMath::Clamp(CellGrid.Y, 1, 16),
+			FMath::Clamp(CellGrid.Z, 1, 12));
 	}
+
+	bool IsCellCoordValid(const FIntVector& Coord, const FIntVector& CellGrid)
+	{
+		return Coord.X >= 0 && Coord.Y >= 0 && Coord.Z >= 0 &&
+			Coord.X < CellGrid.X && Coord.Y < CellGrid.Y && Coord.Z < CellGrid.Z;
+	}
+
+	int32 FlattenCellCoord(const FIntVector& Coord, const FIntVector& CellGrid)
+	{
+		return Coord.X + Coord.Y * CellGrid.X + Coord.Z * CellGrid.X * CellGrid.Y;
+	}
+
+	FIntVector LocalToCellCoord(const FVector& LocalPosition, const FVector& BoundsExtent, const FVector& ClusterOffset, const FIntVector& CellGrid)
+	{
+		const FVector Relative = LocalPosition - ClusterOffset;
+		const FVector Alpha = (Relative / BoundsExtent.ComponentMax(FVector(1.0f))) * 0.5f + FVector(0.5f);
+		return FIntVector(
+			FMath::FloorToInt(Alpha.X * static_cast<float>(CellGrid.X)),
+			FMath::FloorToInt(Alpha.Y * static_cast<float>(CellGrid.Y)),
+			FMath::FloorToInt(Alpha.Z * static_cast<float>(CellGrid.Z)));
+	}
+
+	FVector CellCoordToLocalCenter(const FIntVector& Coord, const FVector& BoundsExtent, const FVector& ClusterOffset, const FIntVector& CellGrid)
+	{
+		const FVector Alpha(
+			(static_cast<float>(Coord.X) + 0.5f) / static_cast<float>(CellGrid.X),
+			(static_cast<float>(Coord.Y) + 0.5f) / static_cast<float>(CellGrid.Y),
+			(static_cast<float>(Coord.Z) + 0.5f) / static_cast<float>(CellGrid.Z));
+		return ((Alpha * 2.0f) - FVector::OneVector) * BoundsExtent + ClusterOffset;
+	}
+
+	FVector ClampClusterOffset(const FVector& Offset, const FVector& BoundsExtent)
+	{
+		const FVector MaxOffset = BoundsExtent * 0.42f;
+		return FVector(
+			FMath::Clamp(Offset.X, -MaxOffset.X, MaxOffset.X),
+			FMath::Clamp(Offset.Y, -MaxOffset.Y, MaxOffset.Y),
+			FMath::Clamp(Offset.Z, -MaxOffset.Z, MaxOffset.Z));
+	}
+
+	float SmoothStep01(float Alpha)
+	{
+		const float T = FMath::Clamp(Alpha, 0.0f, 1.0f);
+		return T * T * (3.0f - 2.0f * T);
+	}
+
 }
 
 ATimeThiefSmokeVolume::ATimeThiefSmokeVolume()
@@ -78,6 +91,10 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(const FTimeThiefSmokeRuntimeSe
 	SmokeSettings = InSettings;
 	SmokeId = TimeThiefSmokeVolume::GNextSmokeId++;
 	SmokeAgeSeconds = 0.0f;
+	DynamicBoundsExtent = FVector::ZeroVector;
+	BoundsClusterLocalOffset = FVector::ZeroVector;
+	ActiveBoundsCells.Reset();
+	ActiveBoundsCellGrid = FIntVector::ZeroValue;
 
 	SetOwner(InOwnerActor);
 	SetInstigator(InInstigatorPawn);
@@ -97,7 +114,12 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(const FTimeThiefSmokeRuntimeSe
 
 FVector ATimeThiefSmokeVolume::GetCurrentSmokeBoundsExtent() const
 {
-	return SmokeSettings.SmokeBoundsExtent.ComponentMax(FVector(1.0f));
+	const FVector BaseExtent = SmokeSettings.SmokeBoundsExtent.ComponentMax(FVector(1.0f));
+	const float FlowExpansion = FMath::Min(FMath::Max(0.0f, SmokeSettings.SmokeBoundsExpansionSpeed) * FMath::Max(0.0f, SmokeSettings.SmokeDuration) * 0.35f, 420.0f);
+	const float ShockExpansion = FMath::Max(0.0f, SmokeSettings.ExplosionOutwardStrength) * FMath::Max(0.0f, SmokeSettings.ExplosionImpulseDuration) * 0.35f;
+	const float ReservedExpansion = FMath::Max(FlowExpansion, ShockExpansion);
+	const FVector ReservedExtent = BaseExtent + FVector(ReservedExpansion, ReservedExpansion, ReservedExpansion * 0.75f);
+	return ReservedExtent.ComponentMax(DynamicBoundsExtent);
 }
 
 bool ATimeThiefSmokeVolume::IntersectTraceSegment(const FVector& SegmentStart, const FVector& SegmentEnd, FVector& OutEntryPoint, FVector& OutExitPoint) const
@@ -111,13 +133,40 @@ bool ATimeThiefSmokeVolume::IntersectTraceSegment(const FVector& SegmentStart, c
 	const FVector LocalStart = BoundsTransform.InverseTransformPosition(SegmentStart);
 	const FVector LocalEnd = BoundsTransform.InverseTransformPosition(SegmentEnd);
 	const FVector LocalDelta = LocalEnd - LocalStart;
+	const FVector Extent = SmokeBoundsComponent->GetUnscaledBoxExtent();
 
 	float TMin = 0.0f;
 	float TMax = 1.0f;
-	const FVector Extent = SmokeBoundsComponent->GetUnscaledBoxExtent();
-	if (!TimeThiefSmokeVolume::IntersectSegmentBox(LocalStart, LocalDelta, FVector::ZeroVector, Extent, TMin, TMax))
+
+	for (int32 Axis = 0; Axis < 3; ++Axis)
 	{
-		return false;
+		const float StartValue = LocalStart[Axis];
+		const float DeltaValue = LocalDelta[Axis];
+		const float MinValue = -Extent[Axis];
+		const float MaxValue = Extent[Axis];
+
+		if (FMath::IsNearlyZero(DeltaValue))
+		{
+			if (StartValue < MinValue || StartValue > MaxValue)
+			{
+				return false;
+			}
+			continue;
+		}
+
+		float NearT = (MinValue - StartValue) / DeltaValue;
+		float FarT = (MaxValue - StartValue) / DeltaValue;
+		if (NearT > FarT)
+		{
+			Swap(NearT, FarT);
+		}
+
+		TMin = FMath::Max(TMin, NearT);
+		TMax = FMath::Min(TMax, FarT);
+		if (TMin > TMax)
+		{
+			return false;
+		}
 	}
 
 	OutEntryPoint = FMath::Lerp(SegmentStart, SegmentEnd, TMin);
@@ -193,6 +242,17 @@ void ATimeThiefSmokeVolume::HandleExplosionShock(const FVector& Center, float Ra
 
 void ATimeThiefSmokeVolume::ApplyInteractionEvent(const FTimeThiefSmokeInteractionEvent& Event)
 {
+	if (Event.Type == ESmokeInteractionType::ExplosionShock)
+	{
+		if (Event.NormalizedAge <= KINDA_SMALL_NUMBER)
+		{
+			ShiftBoundsClusterForExplosion(Event);
+		}
+
+		const float ShockTravel = FMath::Max(0.0f, Event.Extents.X) * FMath::Max(0.0f, SmokeSettings.ExplosionImpulseDuration) * 0.45f;
+		ExpandDynamicBoundsForWorldSphere(Event.Position, Event.Radius + ShockTravel);
+	}
+
 	ControlGrid.ApplyInteractionEvent(Event);
 
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
@@ -325,7 +385,7 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	OutEvent.Position = PrimitiveComponent->Bounds.Origin;
 	OutEvent.Direction = Velocity.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
 	OutEvent.Rotation = PrimitiveComponent->GetComponentQuat();
-	OutEvent.Strength = FMath::Clamp(Speed / 600.0f, 0.0f, 1.0f);
+	OutEvent.Strength = FMath::Clamp(Speed / 600.0f, 0.15f, 1.0f);
 	OutEvent.NormalizedAge = 0.0f;
 	OutEvent.Seed = GetTypeHash(PrimitiveComponent);
 	OutEvent.Shape = ResolvePrimitiveShape(PrimitiveComponent, OutEvent);
@@ -385,10 +445,43 @@ ESmokeInteractionShape ATimeThiefSmokeVolume::ResolvePrimitiveShape(UPrimitiveCo
 	return ESmokeInteractionShape::Box;
 }
 
+void ATimeThiefSmokeVolume::ExpandDynamicBoundsForWorldSphere(const FVector& Center, float Radius)
+{
+	const FVector LocalCenter = GetActorTransform().InverseTransformPosition(Center).GetAbs();
+	const FVector RequiredExtent = LocalCenter + FVector(FMath::Max(1.0f, Radius));
+	const FVector PreviousExtent = DynamicBoundsExtent;
+	DynamicBoundsExtent = DynamicBoundsExtent.ComponentMax(RequiredExtent);
+	if (!DynamicBoundsExtent.Equals(PreviousExtent, 1.0f))
+	{
+		UpdateSmokeBounds();
+		RebuildStaticObstacleMask();
+	}
+}
+
+void ATimeThiefSmokeVolume::ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event)
+{
+	if (!SmokeSettings.bUseBoundsCellCluster)
+	{
+		return;
+	}
+
+	const FVector WorldDirection = (GetActorLocation() - Event.Position).GetSafeNormal(UE_SMALL_NUMBER, Event.Direction.GetSafeNormal(UE_SMALL_NUMBER, FVector::UpVector));
+	const float ShiftDistance = FMath::Max(0.0f, Event.Extents.X) * FMath::Max(0.0f, SmokeSettings.ExplosionImpulseDuration) * FMath::Max(0.0f, SmokeSettings.ExplosionBoundsShiftScale) * FMath::Max(0.0f, Event.Strength);
+	const FVector LocalShift = GetActorTransform().InverseTransformVectorNoScale(WorldDirection * ShiftDistance);
+	const FVector PreviousOffset = BoundsClusterLocalOffset;
+	BoundsClusterLocalOffset = TimeThiefSmokeVolume::ClampClusterOffset(BoundsClusterLocalOffset + LocalShift, GetCurrentSmokeBoundsExtent().ComponentMax(FVector(1.0f)));
+	if (!BoundsClusterLocalOffset.Equals(PreviousOffset, 1.0f))
+	{
+		RebuildStaticObstacleMask();
+	}
+}
+
 void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 {
 	ObstacleMask.Reset();
 	ObstacleMaskResolution = 0;
+	ActiveBoundsCells.Reset();
+	ActiveBoundsCellGrid = FIntVector::ZeroValue;
 
 	UWorld* World = GetWorld();
 	if (!World || !SmokeSettings.bUseStaticObstacleMask)
@@ -411,6 +504,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeObstacleMask), false);
 	QueryParams.AddIgnoredActor(this);
+	BuildActiveBoundsCells(BoundsExtent, SmokeTransform, ObjectQueryParams, QueryParams);
 
 	for (int32 Z = 0; Z < Resolution; ++Z)
 	{
@@ -432,12 +526,206 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 					QueryParams);
 
 				const int32 Index = X + Y * Resolution + Z * Resolution * Resolution;
-				ObstacleMask[Index] = bBlocked ? 255 : 0;
+				if (bBlocked)
+				{
+					ObstacleMask[Index] = 255;
+					continue;
+				}
+
+				const float ActiveOpen = ComputeLocalActiveBoundsOpen(LocalPosition, BoundsExtent);
+				ObstacleMask[Index] = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt((1.0f - ActiveOpen) * 255.0f), 0, 255));
 			}
 		}
 	}
 
 	++ObstacleMaskRevision;
+}
+
+void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
+	const FVector& BoundsExtent,
+	const FTransform& SmokeTransform,
+	FCollisionObjectQueryParams ObjectQueryParams,
+	FCollisionQueryParams QueryParams)
+{
+	if (!SmokeSettings.bUseBoundsCellCluster)
+	{
+		return;
+	}
+
+	ActiveBoundsCellGrid = TimeThiefSmokeVolume::ClampCellGrid(SmokeSettings.BoundsCellGrid);
+	const int32 CellCount = ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y * ActiveBoundsCellGrid.Z;
+	const int32 MaxActiveCells = FMath::Clamp(SmokeSettings.MaxActiveBoundsCells, 1, CellCount);
+	TArray<uint8> BlockedCells;
+	BlockedCells.Init(0, CellCount);
+	ActiveBoundsCells.Init(0, CellCount);
+
+	const FVector CellExtent(
+		BoundsExtent.X / static_cast<float>(ActiveBoundsCellGrid.X),
+		BoundsExtent.Y / static_cast<float>(ActiveBoundsCellGrid.Y),
+		BoundsExtent.Z / static_cast<float>(ActiveBoundsCellGrid.Z));
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	for (int32 Z = 0; Z < ActiveBoundsCellGrid.Z; ++Z)
+	{
+		for (int32 Y = 0; Y < ActiveBoundsCellGrid.Y; ++Y)
+		{
+			for (int32 X = 0; X < ActiveBoundsCellGrid.X; ++X)
+			{
+				const FIntVector Coord(X, Y, Z);
+				const FVector LocalCenter = TimeThiefSmokeVolume::CellCoordToLocalCenter(Coord, BoundsExtent, BoundsClusterLocalOffset, ActiveBoundsCellGrid);
+				const bool bOutsideBounds = (LocalCenter.GetAbs() - BoundsExtent).GetMax() > 0.0f;
+				const bool bBlocked = bOutsideBounds || World->OverlapAnyTestByObjectType(
+					SmokeTransform.TransformPosition(LocalCenter),
+					SmokeTransform.GetRotation(),
+					ObjectQueryParams,
+					FCollisionShape::MakeBox(CellExtent * 0.48f),
+					QueryParams);
+
+				if (bBlocked)
+				{
+					BlockedCells[TimeThiefSmokeVolume::FlattenCellCoord(Coord, ActiveBoundsCellGrid)] = 1;
+				}
+			}
+		}
+	}
+
+	FIntVector StartCoord(
+		ActiveBoundsCellGrid.X / 2,
+		ActiveBoundsCellGrid.Y / 2,
+		ActiveBoundsCellGrid.Z / 2);
+	if (!TimeThiefSmokeVolume::IsCellCoordValid(StartCoord, ActiveBoundsCellGrid) ||
+		BlockedCells[TimeThiefSmokeVolume::FlattenCellCoord(StartCoord, ActiveBoundsCellGrid)] != 0)
+	{
+		float BestDistanceSq = TNumericLimits<float>::Max();
+		for (int32 CellIndex = 0; CellIndex < CellCount; ++CellIndex)
+		{
+			if (BlockedCells[CellIndex] != 0)
+			{
+				continue;
+			}
+
+			const FIntVector Coord(
+				CellIndex % ActiveBoundsCellGrid.X,
+				(CellIndex / ActiveBoundsCellGrid.X) % ActiveBoundsCellGrid.Y,
+				CellIndex / (ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y));
+			const FVector CellDelta(
+				static_cast<float>(Coord.X - ActiveBoundsCellGrid.X / 2),
+				static_cast<float>(Coord.Y - ActiveBoundsCellGrid.Y / 2),
+				static_cast<float>(Coord.Z - ActiveBoundsCellGrid.Z / 2));
+			const float DistanceSq = CellDelta.SizeSquared();
+			if (DistanceSq < BestDistanceSq)
+			{
+				BestDistanceSq = DistanceSq;
+				StartCoord = Coord;
+			}
+		}
+	}
+
+	if (!TimeThiefSmokeVolume::IsCellCoordValid(StartCoord, ActiveBoundsCellGrid))
+	{
+		return;
+	}
+
+	TArray<FIntVector> Queue;
+	Queue.Reserve(CellCount);
+	Queue.Add(StartCoord);
+	int32 ReadIndex = 0;
+	int32 ActiveCount = 0;
+
+	static const FIntVector Neighbors[] =
+	{
+		FIntVector(1, 0, 0),
+		FIntVector(-1, 0, 0),
+		FIntVector(0, 1, 0),
+		FIntVector(0, -1, 0),
+		FIntVector(0, 0, 1),
+		FIntVector(0, 0, -1)
+	};
+
+	while (ReadIndex < Queue.Num() && ActiveCount < MaxActiveCells)
+	{
+		const FIntVector Coord = Queue[ReadIndex++];
+		if (!TimeThiefSmokeVolume::IsCellCoordValid(Coord, ActiveBoundsCellGrid))
+		{
+			continue;
+		}
+
+		const int32 CellIndex = TimeThiefSmokeVolume::FlattenCellCoord(Coord, ActiveBoundsCellGrid);
+		if (BlockedCells[CellIndex] != 0 || ActiveBoundsCells[CellIndex] != 0)
+		{
+			continue;
+		}
+
+		ActiveBoundsCells[CellIndex] = 1;
+		++ActiveCount;
+
+		for (const FIntVector& Neighbor : Neighbors)
+		{
+			const FIntVector NextCoord = Coord + Neighbor;
+			if (TimeThiefSmokeVolume::IsCellCoordValid(NextCoord, ActiveBoundsCellGrid))
+			{
+				Queue.Add(NextCoord);
+			}
+		}
+	}
+}
+
+float ATimeThiefSmokeVolume::ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent) const
+{
+	if (!SmokeSettings.bUseBoundsCellCluster || ActiveBoundsCells.IsEmpty())
+	{
+		return 1.0f;
+	}
+
+	if (LocalPosition.SizeSquared() <= FMath::Square(FMath::Max(1.0f, SmokeSettings.PlumeSourceRadius) * 1.25f))
+	{
+		return 1.0f;
+	}
+
+	const FVector Relative = LocalPosition - BoundsClusterLocalOffset;
+	const FVector Alpha = (Relative / BoundsExtent.ComponentMax(FVector(1.0f))) * 0.5f + FVector(0.5f);
+	const FVector CellPosition(
+		Alpha.X * static_cast<float>(ActiveBoundsCellGrid.X),
+		Alpha.Y * static_cast<float>(ActiveBoundsCellGrid.Y),
+		Alpha.Z * static_cast<float>(ActiveBoundsCellGrid.Z));
+
+	float NearestDistanceSq = TNumericLimits<float>::Max();
+	for (int32 CellIndex = 0; CellIndex < ActiveBoundsCells.Num(); ++CellIndex)
+	{
+		if (ActiveBoundsCells[CellIndex] == 0)
+		{
+			continue;
+		}
+
+		const FIntVector Coord(
+			CellIndex % ActiveBoundsCellGrid.X,
+			(CellIndex / ActiveBoundsCellGrid.X) % ActiveBoundsCellGrid.Y,
+			CellIndex / (ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y));
+		const FVector CellMin(static_cast<float>(Coord.X), static_cast<float>(Coord.Y), static_cast<float>(Coord.Z));
+		const FVector CellMax = CellMin + FVector::OneVector;
+		const FVector Delta(
+			FMath::Max(FMath::Max(CellMin.X - CellPosition.X, 0.0f), CellPosition.X - CellMax.X),
+			FMath::Max(FMath::Max(CellMin.Y - CellPosition.Y, 0.0f), CellPosition.Y - CellMax.Y),
+			FMath::Max(FMath::Max(CellMin.Z - CellPosition.Z, 0.0f), CellPosition.Z - CellMax.Z));
+		NearestDistanceSq = FMath::Min(NearestDistanceSq, Delta.SizeSquared());
+		if (NearestDistanceSq <= KINDA_SMALL_NUMBER)
+		{
+			return 1.0f;
+		}
+	}
+
+	if (NearestDistanceSq == TNumericLimits<float>::Max())
+	{
+		return 1.0f;
+	}
+
+	const float FeatherCells = 1.35f;
+	return 1.0f - TimeThiefSmokeVolume::SmoothStep01(FMath::Sqrt(NearestDistanceSq) / FeatherCells);
 }
 
 void ATimeThiefSmokeVolume::UpdateSmokeBounds()
@@ -465,4 +753,38 @@ void ATimeThiefSmokeVolume::DrawDebugSmoke() const
 		0.0f,
 		0,
 		1.5f);
+
+	if (SmokeSettings.bUseBoundsCellCluster && !ActiveBoundsCells.IsEmpty())
+	{
+		const FVector BoundsExtent = GetCurrentSmokeBoundsExtent().ComponentMax(FVector(1.0f));
+		const FVector CellExtent(
+			BoundsExtent.X / static_cast<float>(ActiveBoundsCellGrid.X),
+			BoundsExtent.Y / static_cast<float>(ActiveBoundsCellGrid.Y),
+			BoundsExtent.Z / static_cast<float>(ActiveBoundsCellGrid.Z));
+		const FTransform SmokeTransform = GetActorTransform();
+
+		for (int32 CellIndex = 0; CellIndex < ActiveBoundsCells.Num(); ++CellIndex)
+		{
+			if (ActiveBoundsCells[CellIndex] == 0)
+			{
+				continue;
+			}
+
+			const FIntVector Coord(
+				CellIndex % ActiveBoundsCellGrid.X,
+				(CellIndex / ActiveBoundsCellGrid.X) % ActiveBoundsCellGrid.Y,
+				CellIndex / (ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y));
+			const FVector LocalCenter = TimeThiefSmokeVolume::CellCoordToLocalCenter(Coord, BoundsExtent, BoundsClusterLocalOffset, ActiveBoundsCellGrid);
+			DrawDebugBox(
+				GetWorld(),
+				SmokeTransform.TransformPosition(LocalCenter),
+				CellExtent * 0.48f,
+				SmokeTransform.GetRotation(),
+				FColor::Green,
+				false,
+				0.0f,
+				0,
+				0.75f);
+		}
+	}
 }

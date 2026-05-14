@@ -58,18 +58,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		}
 
 		const float Inside = 1.0 - smoothstep(-ShapeRadius * 0.18, ShapeRadius * 0.18, ShapeSdf);
-		const float BoundaryLayer = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.2, 1.0)) * Strength);
+		const float Boundary = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.55, 1.0)) * Strength);
 		const float Along = dot(ToCell, Direction);
-		const float WakeLength = ShapeRadius * 12.0;
-		const float BackAlong = clamp(-Along, 0.0, WakeLength);
+		const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 5.2);
 		const float3 TrailClosest = EventPosition - Direction * BackAlong;
-		const float3 TrailDelta = WorldPosition - TrailClosest;
-		const float TrailRadial = length(TrailDelta);
-		const float TrailTaper = (1.0 - smoothstep(ShapeRadius * 0.35, WakeLength, BackAlong)) *
+		const float TrailRadial = length(WorldPosition - TrailClosest);
+		const float Trail = TimeThiefSmokeSoftSphere(TrailRadial, ShapeRadius * 1.08) *
+			(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 5.2, BackAlong)) *
 			saturate(-Along / max(ShapeRadius, 1.0)) * Strength;
-		const float Trail = TimeThiefSmokeSoftSphere(TrailRadial, ShapeRadius * 1.16) * TrailTaper;
-		const float WakeVoid = TimeThiefSmokeSoftSphere(TrailRadial, ShapeRadius * 0.78) * TrailTaper;
-		const float FilamentBackAlong = clamp(-Along, 0.0, ShapeRadius * 14.0);
+		const float FilamentBackAlong = clamp(-Along, 0.0, ShapeRadius * 8.5);
 		const float Seed = Event.TypeShapeAgeSeed.w;
 		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.018 + Seed * 0.001, FilamentBackAlong * 0.012);
 		const float3 LateralCurl = Curl - Direction * dot(Curl, Direction);
@@ -78,7 +75,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 FilamentClosest = EventPosition - Direction * FilamentBackAlong + StrandDirection * StrandOffset;
 		const float FilamentRadial = length(WorldPosition - FilamentClosest);
 		const float FilamentLength =
-			(1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 13.5, FilamentBackAlong)) *
+			(1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 8.5, FilamentBackAlong)) *
 			saturate(-Along / max(ShapeRadius * 0.65, 1.0));
 		const float FilamentBreakup = smoothstep(
 			0.2,
@@ -88,15 +85,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			FilamentLength *
 			FilamentBreakup *
 			Strength;
-		const float3 TrailTangent = normalize(cross(Direction, TrailDelta + StrandDirection * ShapeRadius * 0.1));
-		const float VortexPair = sin(BackAlong * 0.034 + Seed * 0.019) >= 0.0 ? 1.0 : -1.0;
 
-		Density *= 1.0 - saturate(Inside * Strength * 0.72 + WakeVoid * 0.32);
-		Velocity = lerp(Velocity, Direction * max(length(Velocity), 150.0), Inside * Strength * 0.36);
-		Velocity += Direction * BoundaryLayer * 180.0;
-		Velocity += Direction * Trail * 620.0;
-		Velocity += Direction * Filament * 820.0 + StrandDirection * Filament * 170.0;
-		Velocity += TrailTangent * VortexPair * (Trail + Filament) * 360.0;
+		Density *= 1.0 - Inside * Strength * 0.78;
+		Density = min(3.2, Density + Boundary * 0.022 + Trail * 0.018 + Filament * 0.07);
+		Velocity = lerp(Velocity, Direction * max(length(Velocity), 180.0), Inside * Strength * 0.42);
+		Velocity += Direction * Trail * 520.0;
+		Velocity += Direction * Filament * 760.0 + StrandDirection * Filament * 140.0;
 	}
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);

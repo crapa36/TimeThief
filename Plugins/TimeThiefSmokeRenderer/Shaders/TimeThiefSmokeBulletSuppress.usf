@@ -42,28 +42,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Length = max(Event.DirectionLength.w, Radius * 2.0);
 		const float Strength = saturate(Event.ExtentsStrength.w);
 		const float Seed = Event.TypeShapeAgeSeed.w;
-		const float3 Entry = EventPosition - Direction * Length * 0.5;
-		const float3 Exit = EventPosition + Direction * Length * 0.5;
 		const float3 ToCell = WorldPosition - EventPosition;
 		const float Along = clamp(dot(ToCell, Direction), -Length * 0.5, Length * 0.5);
 		const float3 Closest = EventPosition + Direction * Along;
 		const float WakeDistance = length(WorldPosition - Closest);
-		const float Core = 1.0 - smoothstep(Radius * 0.18, Radius * 0.92, WakeDistance);
-		const float Breakup = lerp(0.76, 1.2, TimeThiefSmokeValueNoise(WorldPosition * 0.036 + Seed));
-
-		const float EntryDistance = length(WorldPosition - (Entry + Direction * Radius * 0.65));
-		const float EntryDimple = (1.0 - smoothstep(Radius * 0.35, Radius * 1.85, EntryDistance)) * 0.55;
-
-		const float3 ToExit = WorldPosition - Exit;
-		const float ExitBackAlong = clamp(-dot(ToExit, Direction), 0.0, Radius * 6.5);
-		const float3 ExitTrailClosest = Exit - Direction * ExitBackAlong;
-		const float ExitTrailDistance = length(WorldPosition - ExitTrailClosest);
-		const float ExitTrailTaper = 1.0 - smoothstep(Radius * 0.65, Radius * 6.5, ExitBackAlong);
-		const float ExitTrail = (1.0 - smoothstep(Radius * 0.35, Radius * 1.25, ExitTrailDistance)) * ExitTrailTaper * 0.65;
-
-		const float ShatteredCore = saturate(Core * Breakup);
-		const float VisibleStrength = lerp(0.9, 1.0, Strength);
-		Suppression = max(Suppression, saturate(max(ShatteredCore, max(EntryDimple, ExitTrail)) * VisibleStrength));
+		const float Core = 1.0 - smoothstep(Radius * 0.28, Radius, WakeDistance);
+		const float Breakup = lerp(0.72, 1.18, TimeThiefSmokeValueNoise(WorldPosition * 0.036 + Seed));
+		Suppression = max(Suppression, saturate(Core * Breakup * lerp(0.82, 1.0, Strength)));
 	}
 
 	OutSuppression[DispatchThreadId] = saturate(Suppression);

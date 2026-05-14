@@ -4,10 +4,11 @@
 #include "Engine/Engine.h"
 #include "Stats/Stats.h"
 #include "TimeThiefSmokeRendererSubsystem.h"
-#include "TimeThiefSmokeTuning.h"
 
 namespace TimeThiefSmoke
 {
+	constexpr int32 MaxBulletTracesPerSmokePerTick = 18;
+
 	ETimeThiefSmokeRendererInteractionType ToRendererType(ESmokeInteractionType Type)
 	{
 		switch (Type)
@@ -184,7 +185,7 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 		if (SmokeVolume->IntersectTraceSegment(TraceStart, TraceEnd, EntryPoint, ExitPoint))
 		{
 			int32& TraceCount = BulletTraceCountsThisTick.FindOrAdd(SmokeVolume);
-			if (TraceCount >= TimeThiefSmokeTuning::MaxBulletTracesPerSmokePerTick)
+			if (TraceCount >= TimeThiefSmoke::MaxBulletTracesPerSmokePerTick)
 			{
 				continue;
 			}

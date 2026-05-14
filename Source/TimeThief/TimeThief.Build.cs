@@ -33,13 +33,12 @@ public class TimeThief : ModuleRules
             "ProtocolSharedUE",
             "AnimGraphRuntime",
             "DeveloperSettings",
-            "TimeThiefSmokeRenderer",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Sockets",
-			"Networking", "MorphingMesh",
+			"Networking", "MorphingMesh", "TimeThiefSmokeRenderer",
 		});
 
 		PublicIncludePaths.AddRange(new string[] {

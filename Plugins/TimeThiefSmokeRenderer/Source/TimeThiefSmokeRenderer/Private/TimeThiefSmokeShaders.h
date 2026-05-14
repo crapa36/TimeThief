@@ -1,7 +1,6 @@
 #pragma once
 
 #include "GlobalShader.h"
-#include "SceneView.h"
 #include "ShaderParameterStruct.h"
 
 struct FTimeThiefSmokeEventShaderData
@@ -110,13 +109,10 @@ public:
 		SHADER_PARAMETER(int32, CarrierParticleCount)
 		SHADER_PARAMETER(int32, EventCount)
 		SHADER_PARAMETER(FVector3f, BoundsExtent)
-		SHADER_PARAMETER(float, ObstacleTexelSize)
 		SHADER_PARAMETER(FMatrix44f, LocalToWorld)
 		SHADER_PARAMETER(FMatrix44f, WorldToLocal)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData>, CarrierParticlesIn)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeEventShaderData>, Events)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture)
-		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData>, OutCarrierParticles)
 	END_SHADER_PARAMETER_STRUCT()
 };
@@ -212,7 +208,6 @@ public:
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeCompositePS, FGlobalShader);
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		SHADER_PARAMETER_STRUCT_REF(FViewUniformShaderParameters, View)
 		SHADER_PARAMETER(FVector4f, SceneColorUVScaleBias)
 		SHADER_PARAMETER(FIntRect, ViewRect)
 		SHADER_PARAMETER(FVector3f, BoundsExtent)

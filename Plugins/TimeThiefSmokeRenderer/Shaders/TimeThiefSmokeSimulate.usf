@@ -72,8 +72,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 PreviousLocal = mul(float4(PreviousWorld, 1.0), WorldToLocal).xyz;
 	const float3 PreviousUVW = PreviousLocal / max(BoundsExtent, 1.0) * 0.5 + 0.5;
 	const float BulletSuppression = BulletSuppressionTexture.SampleLevel(VolumeSampler, UVW, 0.0);
-	const float SuppressionOpen = saturate(1.0 - BulletSuppression * 1.35);
-	const float RecoveryOpen = SuppressionOpen * SuppressionOpen;
 
 	float Density = 0.0;
 	float3 AdvectedVelocity = float3(0.0, 0.0, 0.0);
@@ -107,18 +105,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0) +
 		DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0)) / 6.0;
 
-	const float3 Centered = UVW * 2.0 - 1.0;
-	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007 + AgeSeconds * 0.13) - 0.5) * 0.12;
-	const float EllipsoidDistance = length(Centered / float3(1.0, 1.0, 0.86));
-	const float BoundaryDamping = 1.0 - smoothstep(0.78, 1.08, EllipsoidDistance + BoundaryNoise);
-	const float BodyDistance = length(Centered / float3(0.7, 0.7, 0.78));
-	const float BodyEnvelope = 1.0 - smoothstep(0.78, 1.08, BodyDistance + BoundaryNoise);
-	const float NaturalRecovery = RecoveryOpen * BodyEnvelope;
 	const float FadeOutAlpha = saturate(max(AgeSeconds - DurationSeconds, 0.0) / max(SmokeFadeOutDuration, 0.001));
 	const float EffectiveDissipation = DensityDissipation + FadeOutAlpha * 1.0;
 	Density *= exp2(-max(EffectiveDissipation, 0.0) * DeltaSeconds);
-	Density = lerp(Density, max(Density, NeighborDensity * 0.97), saturate(DeltaSeconds * 1.35) * NaturalRecovery);
-	Density = lerp(Density, NeighborDensity, saturate(DeltaSeconds * 0.1) * NaturalRecovery);
+	Density = lerp(Density, max(Density, NeighborDensity * 0.97), saturate(DeltaSeconds * 1.35));
+	Density = lerp(Density, NeighborDensity, saturate(DeltaSeconds * 0.1));
 
 	const float3 SmokeOrigin = mul(float4(0.0, 0.0, 0.0, 1.0), LocalToWorld).xyz;
 	const float3 SmokeUp = normalize(mul(float4(0.0, 0.0, 1.0, 0.0), LocalToWorld).xyz + 0.0001);
@@ -131,21 +122,25 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float SourceNoise = lerp(0.74, 1.24, TimeThiefSmokeHash13(WorldPosition * 0.021 + AgeSeconds * 0.37));
 	SourceWeight = saturate(SourceWeight * SourceNoise) * OpenMask;
 
+	const float3 Centered = UVW * 2.0 - 1.0;
+	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007 + AgeSeconds * 0.13) - 0.5) * 0.12;
+	const float EllipsoidDistance = length(Centered / float3(1.0, 1.0, 0.86));
+	const float BoundaryDamping = 1.0 - smoothstep(0.78, 1.08, EllipsoidDistance + BoundaryNoise);
+	const float SuppressionOpen = 1.0 - saturate(BulletSuppression);
 	Density += SourceWeight * Emission * InitialDensity * DeltaSeconds * 2.35 * SuppressionOpen;
 	const float CloudBillow = 0.5 + 0.5 * sin(
 		dot(WorldPosition, float3(0.021, 0.017, 0.013)) +
 		sin(dot(WorldPosition, float3(0.011, 0.026, 0.019))) * 1.7);
 	const float CloudCohesion = lerp(0.86, 1.24, CloudBillow);
-	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.55) * BodyEnvelope);
+	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.55));
 	float CarrierVoid = 0.0;
 	float CarrierShell = 0.0;
 	ComputeCarrierField(LocalPosition, CarrierVoid, CarrierShell);
 	const float CarrierInfluence = saturate(Density * 0.65);
-	Density += CarrierShell * Emission * InitialDensity * DeltaSeconds * 0.48 * SuppressionOpen * BodyEnvelope;
+	Density += CarrierShell * Emission * InitialDensity * DeltaSeconds * 0.65 * SuppressionOpen;
 	Density *= lerp(1.0, 0.22, CarrierVoid * CarrierInfluence);
 	Density *= 1.0 + CarrierShell * CarrierInfluence * 0.25;
-	Density *= RecoveryOpen;
-	Density *= lerp(0.86, 1.0, NaturalRecovery);
+	Density *= 1.0 - saturate(BulletSuppression * 0.92);
 	Density *= BoundaryDamping;
 
 	const float NoiseA = TimeThiefSmokeHash13(WorldPosition * 0.006 + DeltaSeconds);
