@@ -764,8 +764,12 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
 {
-	// TODO:
-	// Room State 초기화
+	check(IsInGameThread());
+	
+	ClearRoomState();
+	SetPlayState(ENetworkPlayState::InLobby);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room close"));
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
@@ -862,7 +866,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_Pla
 	FString PlayerName = UTF8_TO_TCHAR(Pkt.killer().c_str());
 	if (PlayerName.IsEmpty())
 	{
-		PlayerName = TEXT("Unknown");
+		PlayerName = TEXT("You are Victorious!");
 	}
 	
 	// TODO: 게임 결과 화면 표시 (Rank, Score, Killer Name 등)
