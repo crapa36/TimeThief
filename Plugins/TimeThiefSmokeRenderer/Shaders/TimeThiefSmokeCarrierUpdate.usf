@@ -22,20 +22,6 @@ float3 LocalToVolumeUVW(float3 LocalPosition)
 	return LocalPosition / max(BoundsExtent, 1.0) * 0.5 + 0.5;
 }
 
-float SampleObstacle(float3 UVW)
-{
-	return ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
-}
-
-float3 ComputeObstacleGradient(float3 UVW)
-{
-	const float Step = max(ObstacleTexelSize, 1.0 / 128.0);
-	const float X = SampleObstacle(UVW + float3(Step, 0.0, 0.0)) - SampleObstacle(UVW - float3(Step, 0.0, 0.0));
-	const float Y = SampleObstacle(UVW + float3(0.0, Step, 0.0)) - SampleObstacle(UVW - float3(0.0, Step, 0.0));
-	const float Z = SampleObstacle(UVW + float3(0.0, 0.0, Step)) - SampleObstacle(UVW - float3(0.0, 0.0, Step));
-	return float3(X, Y, Z);
-}
-
 void ResolveObstacleCollision(inout float3 LocalPosition, inout float3 Velocity, float Radius, float SafeDeltaSeconds)
 {
 	const float3 UVW = LocalToVolumeUVW(LocalPosition);
@@ -44,14 +30,25 @@ void ResolveObstacleCollision(inout float3 LocalPosition, inout float3 Velocity,
 		return;
 	}
 
-	const float Obstacle = SampleObstacle(UVW);
-	const float CollisionWeight = smoothstep(0.18, 0.72, Obstacle);
+	float Obstacle = 0.0;
+	float MaxNeighborObstacle = 0.0;
+	float3 Gradient = float3(0.0, 0.0, 0.0);
+	const float Step = max(ObstacleTexelSize, 1.0 / 128.0);
+	TimeThiefSmokeSampleObstacleNeighborhood(
+		ObstacleTexture,
+		VolumeSampler,
+		UVW,
+		float3(Step, Step, Step),
+		float3(1.0, 1.0, 1.0),
+		Obstacle,
+		MaxNeighborObstacle,
+		Gradient);
+	const float CollisionWeight = smoothstep(0.18, 0.72, max(Obstacle, MaxNeighborObstacle * 0.35));
 	if (CollisionWeight <= 0.001)
 	{
 		return;
 	}
 
-	const float3 Gradient = ComputeObstacleGradient(UVW);
 	const float GradientLengthSq = dot(Gradient, Gradient);
 	const float3 ObstacleNormal = GradientLengthSq > 0.000001
 		? normalize(Gradient)
@@ -88,6 +85,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		cos(Phase * 0.73 + LocalPosition.x * 0.005),
 		sin(Phase * 0.41 + LocalPosition.z * 0.004) * 0.38) + 0.0001);
 	Velocity += Wander * max(DriftSpeed, 0.0) * SafeDeltaSeconds;
+	const float3 ParticleWorldPosition = mul(float4(LocalPosition, 1.0), LocalToWorld).xyz;
 
 	const int SafeEventCount = min(EventCount, 128);
 	[loop]
@@ -140,11 +138,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		}
 		else
 		{
-			const float Distance = length(ToParticle);
-			const float PushWeight = 1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 1.55, Distance);
-			const float3 Away = normalize(ToParticle - EventLocalDirection * 0.0001);
+			const float SpeedScale = saturate(Event.PreviousPositionSpeed.w / 900.0);
+			const float ShapeSdf = TimeThiefSmokeActorShapeSdf(Event, ParticleWorldPosition);
+			const float PushWeight = 1.0 - smoothstep(ShapeRadius * 0.05, ShapeRadius * 1.25, ShapeSdf);
+			const float3 SurfaceNormalWorld = TimeThiefSmokeActorShapeNormal(Event, ParticleWorldPosition, max(ShapeRadius * 0.025, 2.0));
+			const float3 SurfaceNormalLocal = normalize(mul(float4(SurfaceNormalWorld, 0.0), WorldToLocal).xyz + 0.0001);
+			const float3 Away = normalize(lerp(ToParticle - EventLocalDirection * 0.0001, SurfaceNormalLocal, PushWeight) + 0.0001);
 			const float Along = dot(ToParticle, EventLocalDirection);
-			const float WakeLength = ShapeRadius * 12.0;
+			const float WakeLength = ShapeRadius * lerp(10.0, 14.0, SpeedScale);
 			const float BackAlong = clamp(-Along, 0.0, WakeLength);
 			const float3 TrailClosest = EventLocalPosition - EventLocalDirection * BackAlong;
 			const float3 TrailDelta = LocalPosition - TrailClosest;
@@ -159,9 +160,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 				TrailTaper;
 			const float3 TrailTangent = normalize(cross(EventLocalDirection, TrailDelta + Away * ShapeRadius * 0.1));
 			const float VortexPair = sin(BackAlong * 0.034 + Event.TypeShapeAgeSeed.w * 0.019) >= 0.0 ? 1.0 : -1.0;
-			Velocity += Away * PushWeight * 105.0 * Strength * SafeDeltaSeconds;
-			Velocity += EventLocalDirection * TrailWeight * 680.0 * Strength * SafeDeltaSeconds;
-			Velocity += TrailTangent * VortexPair * VortexWeight * 310.0 * Strength * SafeDeltaSeconds;
+			const float MovingBoost = lerp(0.85, 1.25, SpeedScale);
+			Velocity += Away * PushWeight * 105.0 * Strength * MovingBoost * SafeDeltaSeconds;
+			Velocity += EventLocalDirection * TrailWeight * 680.0 * Strength * MovingBoost * SafeDeltaSeconds;
+			Velocity += TrailTangent * VortexPair * VortexWeight * 310.0 * Strength * MovingBoost * SafeDeltaSeconds;
 		}
 	}
 

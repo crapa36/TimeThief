@@ -50,11 +50,13 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererEvent
 	ETimeThiefSmokeRendererInteractionType Type = ETimeThiefSmokeRendererInteractionType::BulletWake;
 	ETimeThiefSmokeRendererInteractionShape Shape = ETimeThiefSmokeRendererInteractionShape::Sphere;
 	FVector3f Position = FVector3f::ZeroVector;
+	FVector3f PreviousPosition = FVector3f::ZeroVector;
 	FVector3f Direction = FVector3f::ForwardVector;
 	FQuat4f Rotation = FQuat4f::Identity;
 	FVector3f Extents = FVector3f::ZeroVector;
 	float Radius = 0.0f;
 	float Length = 0.0f;
+	float Speed = 0.0f;
 	float Strength = 1.0f;
 	float NormalizedAge = 0.0f;
 	int32 Seed = 0;

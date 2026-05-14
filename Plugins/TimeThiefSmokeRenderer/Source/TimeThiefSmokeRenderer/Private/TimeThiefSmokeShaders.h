@@ -7,6 +7,7 @@
 struct FTimeThiefSmokeEventShaderData
 {
 	FVector4f PositionRadius = FVector4f::Zero();
+	FVector4f PreviousPositionSpeed = FVector4f::Zero();
 	FVector4f DirectionLength = FVector4f::Zero();
 	FVector4f ExtentsStrength = FVector4f::Zero();
 	FVector4f Rotation = FVector4f::Zero();
@@ -86,6 +87,11 @@ public:
 		SHADER_PARAMETER(FIntVector, GridResolution)
 		SHADER_PARAMETER(FVector3f, BoundsExtent)
 		SHADER_PARAMETER(int32, EventCount)
+		SHADER_PARAMETER(float, ObjectStagnationDensityStrength)
+		SHADER_PARAMETER(float, ObjectSeparationDensityStrength)
+		SHADER_PARAMETER(float, ObjectSurfaceSlipStrength)
+		SHADER_PARAMETER(float, ObjectWakeRecirculationStrength)
+		SHADER_PARAMETER(float, ObjectVortexSheddingStrength)
 		SHADER_PARAMETER(FMatrix44f, LocalToWorld)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeEventShaderData>, Events)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityIn)
@@ -142,6 +148,17 @@ public:
 		SHADER_PARAMETER(float, DensityDissipation)
 		SHADER_PARAMETER(float, VelocityDamping)
 		SHADER_PARAMETER(float, VorticityStrength)
+		SHADER_PARAMETER(float, SelfRepulsionStrength)
+		SHADER_PARAMETER(float, BuoyancyStrength)
+		SHADER_PARAMETER(float, AmbientEntrainmentStrength)
+		SHADER_PARAMETER(float, VorticityConfinementStrength)
+		SHADER_PARAMETER(float, ShearLayerRollStrength)
+		SHADER_PARAMETER(float, TurbulentDiffusionStrength)
+		SHADER_PARAMETER(float, BaroclinicTorqueStrength)
+		SHADER_PARAMETER(float, StaticObstacleNoPenetrationStrength)
+		SHADER_PARAMETER(float, StaticObstacleNoSlipStrength)
+		SHADER_PARAMETER(float, StaticObstacleWallVorticityStrength)
+		SHADER_PARAMETER(float, StaticObstacleCompressionStrength)
 		SHADER_PARAMETER(uint32, bUseMacCormackAdvection)
 		SHADER_PARAMETER(int32, CarrierParticleCount)
 		SHADER_PARAMETER(FMatrix44f, LocalToWorld)
@@ -223,6 +240,20 @@ public:
 		SHADER_PARAMETER(float, DurationSeconds)
 		SHADER_PARAMETER(float, SmokeFadeOutDuration)
 		SHADER_PARAMETER(int32, RenderStepCount)
+		SHADER_PARAMETER(float, RenderDensityScale)
+		SHADER_PARAMETER(float, RenderDensityMax)
+		SHADER_PARAMETER(float, RenderNoiseScale)
+		SHADER_PARAMETER(float, RenderNoiseStrength)
+		SHADER_PARAMETER(float, RenderFilamentScale)
+		SHADER_PARAMETER(float, RenderFilamentStrength)
+		SHADER_PARAMETER(float, RenderFilamentContrast)
+		SHADER_PARAMETER(float, RenderFilamentWarpStrength)
+		SHADER_PARAMETER(float, NoiseTimeScale)
+		SHADER_PARAMETER(float, SmokeOpacityScale)
+		SHADER_PARAMETER(int32, LightSelfShadowStepCount)
+		SHADER_PARAMETER(float, LightSelfShadowExtinctionScale)
+		SHADER_PARAMETER(float, SmokeDirectionalLightStrength)
+		SHADER_PARAMETER(float, SmokeSkyLightStrength)
 		SHADER_PARAMETER(int32, DebugMode)
 		SHADER_PARAMETER(int32, CarrierParticleCount)
 		SHADER_PARAMETER(int32, EventCount)

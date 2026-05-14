@@ -73,11 +73,13 @@ namespace TimeThiefSmoke
 		RendererEvent.Type = ToRendererType(Event.Type);
 		RendererEvent.Shape = ToRendererShape(Event.Shape);
 		RendererEvent.Position = FVector3f(Event.Position);
+		RendererEvent.PreviousPosition = FVector3f(Event.PreviousPosition);
 		RendererEvent.Direction = FVector3f(Event.Direction);
 		RendererEvent.Rotation = FQuat4f(Event.Rotation);
 		RendererEvent.Extents = FVector3f(Event.Extents);
 		RendererEvent.Radius = Event.Radius;
 		RendererEvent.Length = Event.Length;
+		RendererEvent.Speed = Event.Speed;
 		RendererEvent.Strength = Event.Strength;
 		RendererEvent.NormalizedAge = Event.NormalizedAge;
 		RendererEvent.Seed = Event.Seed;

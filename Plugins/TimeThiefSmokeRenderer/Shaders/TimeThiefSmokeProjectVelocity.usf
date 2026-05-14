@@ -40,6 +40,26 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		LoadPressure(Coord + int3(0, 0, 1)) - LoadPressure(Coord - int3(0, 0, 1))) * 0.5 * InvCellSize;
 
 	Velocity -= PressureGradient;
+	const float3 Texel = 1.0 / max(float3(GridResolution), float3(1.0, 1.0, 1.0));
+	float ObstacleCenter = 0.0;
+	float MaxNeighborObstacle = 0.0;
+	float3 ObstacleGradient = float3(0.0, 0.0, 0.0);
+	TimeThiefSmokeSampleObstacleNeighborhood(
+		ObstacleTexture,
+		VolumeSampler,
+		UVW,
+		Texel,
+		0.5 * InvCellSize,
+		ObstacleCenter,
+		MaxNeighborObstacle,
+		ObstacleGradient);
+	const float ObstacleGradientMagnitude = length(ObstacleGradient);
+	const float3 ObstacleSolidDirection = ObstacleGradient / max(ObstacleGradientMagnitude, 0.0001);
+	const float StaticWallLayer = smoothstep(0.04, 0.55, max(ObstacleCenter, MaxNeighborObstacle)) * OpenMask * smoothstep(0.0003, 0.012, ObstacleGradientMagnitude);
+	const float WallPenetrationSpeed = max(dot(Velocity, ObstacleSolidDirection), 0.0);
+	const float3 WallTangentialVelocity = Velocity - ObstacleSolidDirection * dot(Velocity, ObstacleSolidDirection);
+	Velocity -= ObstacleSolidDirection * WallPenetrationSpeed * saturate(StaticWallLayer * 0.95);
+	Velocity = lerp(Velocity, WallTangentialVelocity * 0.62, saturate(StaticWallLayer * 0.42));
 
 	const bool bBoundary =
 		Coord.x <= 0 || Coord.y <= 0 || Coord.z <= 0 ||
