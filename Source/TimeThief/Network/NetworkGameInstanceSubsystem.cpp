@@ -865,6 +865,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_Pla
 	}
 	
 	// TODO: 게임 결과 화면 표시 (Rank, Score, Killer Name 등)
+	UE_LOG(LogTemp, Log, TEXT("[Network] Game Result - Rank: %u, Score: %d, Killer: %s"), Rank, Score, *PlayerName);
 	
 	
 }
