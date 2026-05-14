@@ -25,17 +25,6 @@ float PlumeRiseVelocity;
 float DensityDissipation;
 float VelocityDamping;
 float VorticityStrength;
-float SelfRepulsionStrength;
-float BuoyancyStrength;
-float AmbientEntrainmentStrength;
-float VorticityConfinementStrength;
-float ShearLayerRollStrength;
-float TurbulentDiffusionStrength;
-float BaroclinicTorqueStrength;
-float StaticObstacleNoPenetrationStrength;
-float StaticObstacleNoSlipStrength;
-float StaticObstacleWallVorticityStrength;
-float StaticObstacleCompressionStrength;
 uint bUseMacCormackAdvection;
 int CarrierParticleCount;
 float4x4 LocalToWorld;
@@ -110,46 +99,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
-	const float DensityXP = DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0);
-	const float DensityXN = DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0);
-	const float DensityYP = DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0);
-	const float DensityYN = DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0);
-	const float DensityZP = DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0);
-	const float DensityZN = DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0);
-	const float3 VelocityXP = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0).xyz;
-	const float3 VelocityXN = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0).xyz;
-	const float3 VelocityYP = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0).xyz;
-	const float3 VelocityYN = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0).xyz;
-	const float3 VelocityZP = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0).xyz;
-	const float3 VelocityZN = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0).xyz;
 	const float NeighborDensity =
-		(DensityXP + DensityXN + DensityYP + DensityYN + DensityZP + DensityZN) / 6.0;
-	const float3 CellSizeLocal = max((BoundsExtent * 2.0) / max(float3(GridResolution), float3(1.0, 1.0, 1.0)), float3(1.0, 1.0, 1.0));
-	float ObstacleCenter = 0.0;
-	float MaxNeighborObstacle = 0.0;
-	float3 ObstacleGradientWorld = float3(0.0, 0.0, 0.0);
-	TimeThiefSmokeSampleObstacleNeighborhood(
-		ObstacleTexture,
-		VolumeSampler,
-		UVW,
-		Texel,
-		1.0 / CellSizeLocal,
-		ObstacleCenter,
-		MaxNeighborObstacle,
-		ObstacleGradientWorld);
-	const float3 DensityGradientLocal = float3(DensityXP - DensityXN, DensityYP - DensityYN, DensityZP - DensityZN) / CellSizeLocal;
-	const float3 DensityGradientWorld = mul(float4(DensityGradientLocal, 0.0), LocalToWorld).xyz;
-	ObstacleGradientWorld = mul(float4(ObstacleGradientWorld, 0.0), LocalToWorld).xyz;
-	const float ObstacleGradientMagnitude = length(ObstacleGradientWorld);
-	const float3 ObstacleSolidDirection = ObstacleGradientWorld / max(ObstacleGradientMagnitude, 0.0001);
-	const float StaticWallLayer = smoothstep(0.04, 0.55, max(ObstacleCenter, MaxNeighborObstacle)) * OpenMask * smoothstep(0.0003, 0.012, ObstacleGradientMagnitude);
-	const float InvCellX = 0.5 / CellSizeLocal.x;
-	const float InvCellY = 0.5 / CellSizeLocal.y;
-	const float InvCellZ = 0.5 / CellSizeLocal.z;
-	const float3 VelocityCurl = float3(
-		(VelocityZP.y - VelocityZN.y) * InvCellZ - (VelocityYP.z - VelocityYN.z) * InvCellY,
-		(VelocityXP.z - VelocityXN.z) * InvCellX - (VelocityZP.x - VelocityZN.x) * InvCellZ,
-		(VelocityYP.x - VelocityYN.x) * InvCellY - (VelocityXP.y - VelocityXN.y) * InvCellX);
+		(DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0) +
+		DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0) +
+		DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0) +
+		DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0) +
+		DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0) +
+		DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0)) / 6.0;
 
 	const float3 Centered = UVW * 2.0 - 1.0;
 	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007 + AgeSeconds * 0.13) - 0.5) * 0.12;
@@ -176,12 +132,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	SourceWeight = saturate(SourceWeight * SourceNoise) * OpenMask;
 
 	Density += SourceWeight * Emission * InitialDensity * DeltaSeconds * 2.35 * SuppressionOpen;
-	const float3 BillowWarp = TimeThiefSmokeDomainWarp(WorldPosition * 0.004, AgeSeconds * 0.09);
-	const float LargeBillow = TimeThiefSmokeRidgedFBM(WorldPosition * 0.006 + BillowWarp * 1.6 + AgeSeconds * 0.05);
-	const float FineBreakup = TimeThiefSmokeFBM(WorldPosition * 0.018 - BillowWarp * 0.35 - AgeSeconds * 0.11);
-	const float EdgeLump = smoothstep(0.32, 0.95, EllipsoidDistance);
-	const float CloudCohesion = lerp(0.8, 1.34, saturate(LargeBillow * 0.72 + FineBreakup * 0.28));
-	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.55) * BodyEnvelope * lerp(0.45, 1.0, EdgeLump));
+	const float CloudBillow = 0.5 + 0.5 * sin(
+		dot(WorldPosition, float3(0.021, 0.017, 0.013)) +
+		sin(dot(WorldPosition, float3(0.011, 0.026, 0.019))) * 1.7);
+	const float CloudCohesion = lerp(0.86, 1.24, CloudBillow);
+	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.55) * BodyEnvelope);
 	float CarrierVoid = 0.0;
 	float CarrierShell = 0.0;
 	ComputeCarrierField(LocalPosition, CarrierVoid, CarrierShell);
@@ -192,57 +147,17 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	Density *= RecoveryOpen;
 	Density *= lerp(0.86, 1.0, NaturalRecovery);
 	Density *= BoundaryDamping;
-	const float DensityInterface = smoothstep(0.01, 0.16, abs(Density - NeighborDensity));
-	const float SmokeInterior = smoothstep(0.05, 0.75, Density);
-	const float PlumeInterface = DensityInterface * SmokeInterior * BoundaryDamping * RecoveryOpen;
-	Density = lerp(Density, NeighborDensity, saturate(DeltaSeconds * TurbulentDiffusionStrength) * PlumeInterface);
 
-	const float DensityShear = smoothstep(0.015, 0.18, abs(Density - NeighborDensity));
-	const float EdgeTurbulence = saturate(DensityShear + smoothstep(0.44, 0.96, EllipsoidDistance) * 0.7);
-	const float3 CurlLow = TimeThiefSmokeCurlNoise(WorldPosition * 0.007 + AgeSeconds * 0.03, AgeSeconds * 0.11);
-	const float3 CurlMid = TimeThiefSmokeCurlNoise(WorldPosition * 0.016 + float3(17.3, 5.1, 11.9), AgeSeconds * 0.23);
-	const float3 ToSmoke = WorldPosition - SmokeOrigin;
-	const float3 RadialFromAxis = ToSmoke - SmokeUp * dot(ToSmoke, SmokeUp);
-	const float3 ToroidalAxis = normalize(cross(SmokeUp, RadialFromAxis) + 0.0001);
-	const float RollWave = sin(length(RadialFromAxis) * 0.018 - dot(ToSmoke, SmokeUp) * 0.024 + AgeSeconds * 2.2);
-	const float3 VortexRoll = ToroidalAxis * RollWave * EdgeTurbulence;
-	const float3 CurlNoise = normalize(CurlLow * 0.58 + CurlMid * 0.34 + VortexRoll * 0.55 + 0.0001);
-	const float3 Swirl = CurlNoise * VorticityStrength * Density * lerp(18.0, 34.0, EdgeTurbulence);
+	const float NoiseA = TimeThiefSmokeHash13(WorldPosition * 0.006 + DeltaSeconds);
+	const float NoiseB = TimeThiefSmokeHash13(WorldPosition * 0.009 + 17.0);
+	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.17);
+	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0;
 	const float Damping = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
 	AdvectedVelocity = AdvectedVelocity * Damping + Swirl;
-	const float DensityGradientMagnitude = length(DensityGradientWorld);
-	const float3 DensityNormal = DensityGradientWorld / max(DensityGradientMagnitude, 0.0001);
-	const float DensityCompression = smoothstep(0.02, 0.28, Density - NeighborDensity);
-	const float DenseRepulsionGate = smoothstep(0.16, 1.05, Density);
-	const float RepulsionStepScale = saturate(DeltaSeconds * 60.0);
-	const float VelocityCurlMagnitude = length(VelocityCurl);
-	const float VorticityEnergy = saturate(VelocityCurlMagnitude * 0.035);
-	const float HeatBuoyancy = saturate(Density * 0.82 + SourceWeight * Emission * 0.7) * BodyEnvelope * RecoveryOpen;
-	const float3 BuoyancyForce = SmokeUp * BuoyancyStrength * HeatBuoyancy * RepulsionStepScale;
-	const float3 SelfRepulsion = -DensityNormal * SelfRepulsionStrength * DensityCompression * DenseRepulsionGate * BoundaryDamping * RecoveryOpen * RepulsionStepScale;
-	const float3 VorticityConfinement = cross(DensityNormal, VelocityCurl) * VorticityConfinementStrength * (0.45 + VorticityEnergy) * PlumeInterface * RepulsionStepScale;
-	const float3 RadialOut = normalize(RadialFromAxis + 0.0001);
-	const float3 EntrainmentForce = (-RadialOut + SmokeUp * 0.35) * AmbientEntrainmentStrength * PlumeInterface * RepulsionStepScale;
-	const float3 ShearLayerRoll = cross(SmokeUp, RadialOut) * ShearLayerRollStrength * RollWave * PlumeInterface * RepulsionStepScale;
-	const float3 BaroclinicRoll = cross(SmokeUp, DensityNormal) * BaroclinicTorqueStrength * DensityCompression * PlumeInterface * RepulsionStepScale;
-	AdvectedVelocity += BuoyancyForce + SelfRepulsion + VorticityConfinement + EntrainmentForce + ShearLayerRoll + BaroclinicRoll;
 	const float3 SourceRadial = normalize(WorldPosition - SmokeOrigin + SmokeUp * 18.0);
 	const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity;
 	AdvectedVelocity += SourceVelocity * SourceWeight * Emission * DeltaSeconds * 3.0;
-	AdvectedVelocity += CurlNoise * CarrierShell * VorticityStrength * 16.0;
-	const float StaticWallSmoke = StaticWallLayer * SmokeInterior * RecoveryOpen;
-	const float WallPenetrationSpeed = max(dot(AdvectedVelocity, ObstacleSolidDirection), 0.0);
-	const float3 WallTangentialVelocity = AdvectedVelocity - ObstacleSolidDirection * dot(AdvectedVelocity, ObstacleSolidDirection);
-	const float WallTangentialSpeed = length(WallTangentialVelocity);
-	const float3 WallTangentialDirection = WallTangentialVelocity / max(WallTangentialSpeed, 0.0001);
-	const float WallNoPenetration = saturate(StaticWallSmoke * StaticObstacleNoPenetrationStrength);
-	const float WallNoSlip = saturate(StaticWallSmoke * StaticObstacleNoSlipStrength);
-	AdvectedVelocity -= ObstacleSolidDirection * WallPenetrationSpeed * WallNoPenetration;
-	AdvectedVelocity = lerp(AdvectedVelocity, WallTangentialVelocity * 0.58, WallNoSlip);
-	const float WallShear = smoothstep(40.0, 420.0, WallTangentialSpeed) * StaticWallSmoke;
-	const float3 WallRoll = cross(ObstacleSolidDirection, WallTangentialDirection) * StaticObstacleWallVorticityStrength * WallShear * RepulsionStepScale;
-	AdvectedVelocity += WallRoll;
-	Density = min(3.2, Density + StaticWallSmoke * smoothstep(25.0, 360.0, WallPenetrationSpeed) * StaticObstacleCompressionStrength);
+	AdvectedVelocity += CurlNoise * CarrierShell * VorticityStrength * 12.0;
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);

@@ -41,9 +41,6 @@ struct FTimeThiefSmokeInteractionEvent
 	FVector Position = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
-	FVector PreviousPosition = FVector::ZeroVector;
-
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	FVector Direction = FVector::ForwardVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
@@ -57,9 +54,6 @@ struct FTimeThiefSmokeInteractionEvent
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	float Length = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
-	float Speed = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	float Strength = 1.0f;

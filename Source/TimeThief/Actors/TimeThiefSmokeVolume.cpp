@@ -15,12 +15,6 @@ namespace TimeThiefSmokeVolume
 {
 	int32 GNextSmokeId = 1;
 
-	struct FActorPushCandidate
-	{
-		FTimeThiefSmokeInteractionEvent Event;
-		float Score = 0.0f;
-	};
-
 	bool IntersectSegmentBox(const FVector& SegmentStart, const FVector& SegmentDelta, const FVector& BoxCenter, const FVector& BoxExtent, float& OutTMin, float& OutTMax)
 	{
 		float TMin = 0.0f;
@@ -253,9 +247,9 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 		return;
 	}
 
-	const float ActorInteractionInterval = 1.0f / FMath::Max(SmokeSettings.ActorInteractionHz, 1.0f);
+	const float SafeHz = FMath::Max(1.0f, SmokeSettings.ActorInteractionHz);
 	ActorInteractionAccumulator += DeltaTime;
-	if (ActorInteractionAccumulator < ActorInteractionInterval)
+	if (ActorInteractionAccumulator < (1.0f / SafeHz))
 	{
 		return;
 	}
@@ -286,25 +280,16 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 		return;
 	}
 
-	TMap<AActor*, TimeThiefSmokeVolume::FActorPushCandidate> CandidatesByActor;
-	CandidatesByActor.Reserve(Overlaps.Num());
+	int32 EventsSubmitted = 0;
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
+		if (EventsSubmitted >= SmokeSettings.MaxActorInteractionEventsPerTick)
+		{
+			break;
+		}
+
 		UPrimitiveComponent* PrimitiveComponent = Overlap.GetComponent();
 		if (!PrimitiveComponent || PrimitiveComponent == SmokeBoundsComponent || PrimitiveComponent->Mobility == EComponentMobility::Static)
-		{
-			continue;
-		}
-
-		AActor* ComponentOwner = PrimitiveComponent->GetOwner();
-		if (!ComponentOwner || !PrimitiveComponent->IsQueryCollisionEnabled())
-		{
-			continue;
-		}
-
-		const bool bIsRootComponent = ComponentOwner->GetRootComponent() == PrimitiveComponent;
-		const bool bIsShapeComponent = PrimitiveComponent->IsA<UShapeComponent>();
-		if (!bIsRootComponent && !bIsShapeComponent)
 		{
 			continue;
 		}
@@ -316,43 +301,19 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 			continue;
 		}
 
-		TimeThiefSmokeVolume::FActorPushCandidate Candidate;
-		Candidate.Event = Event;
-		Candidate.Score =
-			(bIsRootComponent ? 2000000.0f : 0.0f) +
-			(bIsShapeComponent ? 1000000.0f : 0.0f) +
-			Event.Speed * FMath::Max(Event.Radius, Event.Extents.GetMax());
-
-		TimeThiefSmokeVolume::FActorPushCandidate* ExistingCandidate = CandidatesByActor.Find(ComponentOwner);
-		if (!ExistingCandidate || Candidate.Score > ExistingCandidate->Score)
-		{
-			CandidatesByActor.Add(ComponentOwner, Candidate);
-		}
-	}
-
-	TArray<TimeThiefSmokeVolume::FActorPushCandidate> Candidates;
-	CandidatesByActor.GenerateValueArray(Candidates);
-	Candidates.Sort([](const TimeThiefSmokeVolume::FActorPushCandidate& Left, const TimeThiefSmokeVolume::FActorPushCandidate& Right)
-	{
-		return Left.Score > Right.Score;
-	});
-
-	const int32 EventCount = FMath::Min(FMath::Max(1, SmokeSettings.MaxActorInteractionEventsPerTick), Candidates.Num());
-	for (int32 Index = 0; Index < EventCount; ++Index)
-	{
-		ApplyInteractionEvent(Candidates[Index].Event);
+		ApplyInteractionEvent(Event);
+		++EventsSubmitted;
 	}
 }
 
-void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent)
+void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent) const
 {
 	if (!PrimitiveComponent)
 	{
 		return;
 	}
 
-	FVector PreviousLocation = PrimitiveComponent->GetComponentLocation();
-	const FVector Velocity = ResolveComponentVelocity(PrimitiveComponent, DeltaTime, PreviousLocation);
+	const FVector Velocity = const_cast<ATimeThiefSmokeVolume*>(this)->ResolveComponentVelocity(PrimitiveComponent, DeltaTime);
 	const float Speed = Velocity.Size();
 	if (Speed < SmokeSettings.ActorPushVelocityThreshold)
 	{
@@ -362,39 +323,30 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	OutEvent.SmokeId = SmokeId;
 	OutEvent.Type = ESmokeInteractionType::ActorPush;
 	OutEvent.Position = PrimitiveComponent->Bounds.Origin;
-	OutEvent.PreviousPosition = PreviousLocation + (PrimitiveComponent->Bounds.Origin - PrimitiveComponent->GetComponentLocation());
 	OutEvent.Direction = Velocity.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
 	OutEvent.Rotation = PrimitiveComponent->GetComponentQuat();
 	OutEvent.Strength = FMath::Clamp(Speed / 600.0f, 0.0f, 1.0f);
-	OutEvent.Speed = Speed;
 	OutEvent.NormalizedAge = 0.0f;
 	OutEvent.Seed = GetTypeHash(PrimitiveComponent);
 	OutEvent.Shape = ResolvePrimitiveShape(PrimitiveComponent, OutEvent);
 }
 
-FVector ATimeThiefSmokeVolume::ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FVector& OutPreviousLocation)
+FVector ATimeThiefSmokeVolume::ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime)
 {
 	if (!PrimitiveComponent)
 	{
-		OutPreviousLocation = FVector::ZeroVector;
 		return FVector::ZeroVector;
 	}
 
 	FVector Velocity = PrimitiveComponent->GetComponentVelocity();
 	const FVector CurrentLocation = PrimitiveComponent->GetComponentLocation();
-	OutPreviousLocation = CurrentLocation;
 
-	if (const FVector* PreviousLocation = PreviousComponentLocations.Find(PrimitiveComponent))
+	if (Velocity.IsNearlyZero() && DeltaTime > KINDA_SMALL_NUMBER)
 	{
-		OutPreviousLocation = *PreviousLocation;
-		if (Velocity.IsNearlyZero() && DeltaTime > KINDA_SMALL_NUMBER)
+		if (const FVector* PreviousLocation = PreviousComponentLocations.Find(PrimitiveComponent))
 		{
 			Velocity = (CurrentLocation - *PreviousLocation) / DeltaTime;
 		}
-	}
-	else if (!Velocity.IsNearlyZero() && DeltaTime > KINDA_SMALL_NUMBER)
-	{
-		OutPreviousLocation = CurrentLocation - Velocity * DeltaTime;
 	}
 
 	PreviousComponentLocations.FindOrAdd(PrimitiveComponent) = CurrentLocation;

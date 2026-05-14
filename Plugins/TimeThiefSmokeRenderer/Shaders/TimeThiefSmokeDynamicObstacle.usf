@@ -12,11 +12,6 @@ RWTexture3D<float4> OutVelocity;
 int3 GridResolution;
 float3 BoundsExtent;
 int EventCount;
-float ObjectStagnationDensityStrength;
-float ObjectSeparationDensityStrength;
-float ObjectSurfaceSlipStrength;
-float ObjectWakeRecirculationStrength;
-float ObjectVortexSheddingStrength;
 float4x4 LocalToWorld;
 
 [numthreads(4, 4, 4)]
@@ -43,23 +38,29 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			continue;
 		}
 
+		const uint EventShape = (uint)round(Event.TypeShapeAgeSeed.y);
 		const float3 EventPosition = Event.PositionRadius.xyz;
 		const float Radius = max(Event.PositionRadius.w, 1.0);
 		const float3 Direction = normalize(Event.DirectionLength.xyz + 0.0001);
 		const float Length = max(Event.DirectionLength.w, Radius * 2.0);
 		const float Strength = saturate(Event.ExtentsStrength.w);
 		const float3 ToCell = WorldPosition - EventPosition;
-		const float ObjectSpeed = Event.PreviousPositionSpeed.w;
-		const float SpeedScale = saturate(Event.PreviousPositionSpeed.w / 900.0);
-		const float ShapeRadius = TimeThiefSmokeActorShapeRadius(Event);
-		const float ShapeSdf = TimeThiefSmokeActorShapeSdf(Event, WorldPosition);
-		const float NormalProbe = max(ShapeRadius * 0.025, 2.0);
-		const float3 SurfaceNormal = TimeThiefSmokeActorShapeNormal(Event, WorldPosition, NormalProbe);
+		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
+		const float3 LocalToActor = TimeThiefSmokeInverseRotateByQuat(ToCell, Event.Rotation);
+		float ShapeSdf = length(ToCell) - ShapeRadius;
+		if (EventShape == 1)
+		{
+			ShapeSdf = TimeThiefSmokeCapsuleSdf(LocalToActor, Radius, Length);
+		}
+		else if (EventShape == 2)
+		{
+			ShapeSdf = TimeThiefSmokeBoxSdf(LocalToActor, max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35)));
+		}
 
 		const float Inside = 1.0 - smoothstep(-ShapeRadius * 0.18, ShapeRadius * 0.18, ShapeSdf);
 		const float BoundaryLayer = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.2, 1.0)) * Strength);
 		const float Along = dot(ToCell, Direction);
-		const float WakeLength = ShapeRadius * lerp(10.0, 14.0, SpeedScale);
+		const float WakeLength = ShapeRadius * 12.0;
 		const float BackAlong = clamp(-Along, 0.0, WakeLength);
 		const float3 TrailClosest = EventPosition - Direction * BackAlong;
 		const float3 TrailDelta = WorldPosition - TrailClosest;
@@ -89,33 +90,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			Strength;
 		const float3 TrailTangent = normalize(cross(Direction, TrailDelta + StrandDirection * ShapeRadius * 0.1));
 		const float VortexPair = sin(BackAlong * 0.034 + Seed * 0.019) >= 0.0 ? 1.0 : -1.0;
-		const float3 ObjectVelocity = Direction * ObjectSpeed;
-		const float FrontFace = saturate(dot(SurfaceNormal, Direction) * 1.35);
-		const float BackFace = saturate(-dot(SurfaceNormal, Direction) * 1.35);
-		const float RelativeImpactSpeed = max(dot(ObjectVelocity - Velocity, SurfaceNormal), 0.0);
-		const float Stagnation = BoundaryLayer * FrontFace * smoothstep(20.0, 620.0, RelativeImpactSpeed) * Strength;
-		const float SeparationRidge = BoundaryLayer * (1.0 - abs(dot(SurfaceNormal, Direction))) * smoothstep(0.15, 0.95, SpeedScale) * Strength;
-		const float NearWake = Trail * (1.0 - smoothstep(ShapeRadius * 0.25, ShapeRadius * 4.5, BackAlong));
-		const float Recirculation = NearWake * lerp(0.35, 1.0, BackFace) * Strength;
-		const float3 SurfaceSlipDirection = normalize(Direction - SurfaceNormal * dot(Direction, SurfaceNormal) + LateralCurl * 0.22 + 0.0001);
-		const float SheddingWave = sin(BackAlong * 0.075 + dot(WorldPosition, StrandDirection) * 0.016 + Seed * 0.021);
-		const float3 SheddingDirection = normalize(TrailTangent * SheddingWave + StrandDirection * (1.0 - abs(SheddingWave)) * 0.5 + 0.0001);
-		const float RelativeNormalSpeed = dot(Velocity - ObjectVelocity, SurfaceNormal);
-		const float ContactNoPenetration = saturate(Inside * Strength + BoundaryLayer * FrontFace * Strength);
 
 		Density *= 1.0 - saturate(Inside * Strength * 0.72 + WakeVoid * 0.32);
-		Density = min(3.2, Density + Stagnation * ObjectStagnationDensityStrength + SeparationRidge * ObjectSeparationDensityStrength + Recirculation * 0.04);
-		Velocity -= SurfaceNormal * min(RelativeNormalSpeed, 0.0) * ContactNoPenetration;
 		Velocity = lerp(Velocity, Direction * max(length(Velocity), 150.0), Inside * Strength * 0.36);
-		const float MovingBoost = lerp(0.85, 1.25, SpeedScale);
-		Velocity += SurfaceNormal * Stagnation * ObjectSurfaceSlipStrength * 0.42 * MovingBoost;
-		Velocity += SurfaceSlipDirection * (Stagnation + SeparationRidge) * ObjectSurfaceSlipStrength * MovingBoost;
-		Velocity += -Direction * Recirculation * ObjectWakeRecirculationStrength * MovingBoost;
-		Velocity += Direction * BoundaryLayer * 180.0 * MovingBoost;
-		Velocity += Direction * Trail * 620.0 * MovingBoost;
-		Velocity += (Direction * 820.0 + StrandDirection * 170.0) * Filament * MovingBoost;
-		Velocity += TrailTangent * VortexPair * (Trail + Filament) * 360.0 * MovingBoost;
-		Velocity += SheddingDirection * (Trail + Filament + Recirculation * 0.55) * ObjectVortexSheddingStrength * MovingBoost;
+		Velocity += Direction * BoundaryLayer * 180.0;
+		Velocity += Direction * Trail * 620.0;
+		Velocity += Direction * Filament * 820.0 + StrandDirection * Filament * 170.0;
+		Velocity += TrailTangent * VortexPair * (Trail + Filament) * 360.0;
 	}
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);
