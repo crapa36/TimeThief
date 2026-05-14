@@ -775,6 +775,7 @@ void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart&
 
 void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt)
 {
+	// TODO: Game End 시 종료에 대한 처리
 }
 
 void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
