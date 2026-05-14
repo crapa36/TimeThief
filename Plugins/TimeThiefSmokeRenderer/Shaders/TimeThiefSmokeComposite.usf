@@ -1,33 +1,8 @@
 #include "/Engine/Public/Platform.ush"
 #include "/Engine/Private/ScreenPass.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-Texture2D SceneColorTexture;
-SamplerState SceneColorSampler;
-Texture2D<float> SceneDepthTexture;
-Texture3D<float> DensityTexture;
-Texture3D<float> ObstacleTexture;
-Texture3D<float> BulletSuppressionTexture;
-SamplerState VolumeSampler;
-StructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> CarrierParticles;
-StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
-
-float4 SceneColorUVScaleBias;
-int4 ViewRect;
-float3 BoundsExtent;
-float Extinction;
-float ScatteringAlbedo;
-float ScatteringAnisotropy;
-float AgeSeconds;
-float DurationSeconds;
-float SmokeFadeOutDuration;
-int RenderStepCount;
-int DebugMode;
-int CarrierParticleCount;
-int EventCount;
-float4x4 InvViewProjection;
-float4x4 LocalToWorld;
-float4x4 WorldToLocal;
+TIME_THIEF_SMOKE_COMPOSITE_PARAMETERS
 
 float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
 {
@@ -112,9 +87,9 @@ void MainPS(
 	const float3 FarWorld = ReconstructWorldPosition(SvPosition.xy, 0.0);
 	const bool bHasOpaqueSceneDepth = SceneDeviceZ > 0.000001;
 	const float3 SceneWorld = bHasOpaqueSceneDepth ? ReconstructWorldPosition(SvPosition.xy, SceneDeviceZ) : FarWorld;
-	const float3 LocalNear = mul(float4(NearWorld, 1.0), WorldToLocal).xyz / max(BoundsExtent, 1.0);
-	const float3 LocalFar = mul(float4(FarWorld, 1.0), WorldToLocal).xyz / max(BoundsExtent, 1.0);
-	const float3 LocalScene = mul(float4(SceneWorld, 1.0), WorldToLocal).xyz / max(BoundsExtent, 1.0);
+	const float3 LocalNear = mul(float4(NearWorld, 1.0), WorldToLocal).xyz / max(RenderBoundsExtent, 1.0);
+	const float3 LocalFar = mul(float4(FarWorld, 1.0), WorldToLocal).xyz / max(RenderBoundsExtent, 1.0);
+	const float3 LocalScene = mul(float4(SceneWorld, 1.0), WorldToLocal).xyz / max(RenderBoundsExtent, 1.0);
 	const float3 RayDirection = normalize(LocalFar - LocalNear);
 
 	float TMin = 0.0;
@@ -135,9 +110,12 @@ void MainPS(
 
 	const int Steps = clamp(RenderStepCount, 16, 128);
 	const float StepSize = max((TMax - TMin) / Steps, 0.0001);
+	const float3 LocalStep = RayDirection * StepSize * RenderBoundsExtent;
+	const float SimulationStepSize = length(LocalStep / max(BoundsExtent, 1.0));
 	const float LifetimeAlpha = 1.0 - smoothstep(DurationSeconds, DurationSeconds + max(SmokeFadeOutDuration, 0.001), AgeSeconds);
 	float Transmittance = 1.0;
 	float Scatter = 0.0;
+	float WarpScatter = 0.0;
 	float DebugValue = 0.0;
 
 	[loop]
@@ -145,19 +123,23 @@ void MainPS(
 	{
 		const float T = TMin + (StepIndex + 0.5) * StepSize;
 		const float3 LocalPosition = LocalNear + RayDirection * T;
-		const float3 VolumeUVW = LocalPosition * 0.5 + 0.5;
+		const float3 SampleLocal = LocalPosition * RenderBoundsExtent;
+		const float3 SimulationLocal = SampleLocal / max(BoundsExtent, 1.0);
+		const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
 		if (!TimeThiefSmokeInsideUVW(VolumeUVW))
 		{
 			continue;
 		}
 
 		const float RawDensity = max(DensityTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
+		const float RawWarp = max(WarpTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
 		const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
 		const float BulletSuppression = BulletSuppressionTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
 		float Density = RawDensity * TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW);
+		const float Warp = RawWarp * TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW) * LifetimeAlpha;
 		const float CloudBillow = 0.5 + 0.5 * sin(
-			dot(LocalPosition, float3(9.7, 7.3, 5.9)) +
-			sin(dot(LocalPosition, float3(4.1, 6.8, 8.6))) * 1.8);
+			dot(SimulationLocal, float3(9.7, 7.3, 5.9)) +
+			sin(dot(SimulationLocal, float3(4.1, 6.8, 8.6))) * 1.8);
 		Density *= lerp(0.74, 1.36, CloudBillow) * LifetimeAlpha;
 
 		if (DebugMode == 1)
@@ -174,17 +156,22 @@ void MainPS(
 		}
 		else if (DebugMode == 4)
 		{
-			DebugValue = max(DebugValue, ComputeCarrierDebug(LocalPosition * BoundsExtent));
+			DebugValue = max(DebugValue, ComputeCarrierDebug(SampleLocal));
 		}
 		else if (DebugMode == 5)
 		{
-			const float3 SampleWorld = mul(float4(LocalPosition * BoundsExtent, 1.0), LocalToWorld).xyz;
+			const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
 			DebugValue = max(DebugValue, ComputeEventDebug(SampleWorld));
 		}
+		else if (DebugMode == 6)
+		{
+			DebugValue = max(DebugValue, saturate(RawWarp));
+		}
 
-		const float Absorption = Density * Extinction * StepSize;
+		const float Absorption = Density * Extinction * SimulationStepSize;
 		const float StepTransmittance = exp(-Absorption);
 		Scatter += Transmittance * (1.0 - StepTransmittance) * Density;
+		WarpScatter += Transmittance * Warp * SimulationStepSize * 0.85;
 		Transmittance *= StepTransmittance;
 
 		if (Transmittance < 0.015)
@@ -212,6 +199,10 @@ void MainPS(
 		{
 			DebugColor = float3(1.0, 0.05, 0.85);
 		}
+		else if (DebugMode == 6)
+		{
+			DebugColor = float3(0.45, 0.95, 1.0);
+		}
 
 		OutColor = float4(lerp(SceneColor.rgb, DebugColor, saturate(DebugValue * 0.88)), SceneColor.a);
 		return;
@@ -221,5 +212,7 @@ void MainPS(
 	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
 	const float3 SmokeColor = lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
 	const float3 Composited = SceneColor.rgb * Transmittance + SmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
-	OutColor = float4(Composited, SceneColor.a);
+	const float WarpAlpha = saturate(WarpScatter * 0.62);
+	const float3 WarpColor = lerp(SmokeColor, float3(0.92, 0.96, 1.0), 0.55);
+	OutColor = float4(lerp(Composited, WarpColor, WarpAlpha * 0.42), SceneColor.a);
 }

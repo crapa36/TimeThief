@@ -1,18 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-StructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> CarrierParticlesIn;
-StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
-RWStructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> OutCarrierParticles;
-
-float DeltaSeconds;
-float DriftSpeed;
-float InteractionStrength;
-int CarrierParticleCount;
-int EventCount;
-float3 BoundsExtent;
-float4x4 LocalToWorld;
-float4x4 WorldToLocal;
+TIME_THIEF_SMOKE_CARRIER_UPDATE_PARAMETERS
 
 [numthreads(64, 1, 1)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)

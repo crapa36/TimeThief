@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TimeThiefSmokeParameterDefaults.h"
 
 enum class ETimeThiefSmokeRendererInteractionType : uint8
 {
@@ -19,28 +20,38 @@ enum class ETimeThiefSmokeRendererInteractionShape : uint8
 
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 {
-	int32 SmokeGridResolution = 64;
-	int32 PressureIterations = 10;
-	int32 RenderStepCount = 56;
-	int32 MaxGPUEventsPerSmokePerFrame = 96;
-	float InitialDensity = 0.725f;
-	float SmokeFadeOutDuration = 5.0f;
-	float PlumeEmissionDuration = 2.8f;
-	float PlumeSourceRadius = 75.0f;
-	float PlumeExpansionVelocity = 260.0f;
-	float PlumeRiseVelocity = 95.0f;
-	float Extinction = 2.25f;
-	float ScatteringAlbedo = 0.9f;
-	float ScatteringAnisotropy = 0.35f;
-	float DensityDissipation = 0.014f;
-	float VelocityDamping = 0.16f;
-	float VorticityStrength = 0.65f;
-	float BulletWakeMaxVisibleLife = 2.5f;
-	bool bUseMacCormackAdvection = false;
-	int32 CarrierParticleCount = 40;
-	float CarrierParticleRadius = 92.0f;
-	float CarrierParticleDriftSpeed = 55.0f;
-	float CarrierParticleInteractionStrength = 1.0f;
+	FTimeThiefSmokeRendererSettings();
+
+	int32 SmokeGridResolution;
+	int32 PressureIterations;
+	int32 RenderStepCount;
+	int32 MaxGPUEventsPerSmokePerFrame;
+	float InitialDensity;
+	float SmokeFadeOutDuration;
+	float PlumeEmissionDuration;
+	float PlumeSourceRadius;
+	float PlumeExpansionVelocity;
+	float PlumeRiseVelocity;
+	float Extinction;
+	float ScatteringAlbedo;
+	float ScatteringAnisotropy;
+	float DensityDissipation;
+	float VelocityDamping;
+	float VorticityStrength;
+	float VorticityConfinementStrength;
+	float TurbulenceStrength;
+	float AirInteractionStrength;
+	float EventVortexStrength;
+	float WarpTrailIntensity;
+	float WarpTrailDecayRate;
+	float WarpTrailRadiusScale;
+	float WarpTrailLengthScale;
+	float BulletWakeMaxVisibleLife;
+	bool bUseMacCormackAdvection;
+	int32 CarrierParticleCount;
+	float CarrierParticleRadius;
+	float CarrierParticleDriftSpeed;
+	float CarrierParticleInteractionStrength;
 };
 
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererEvent
@@ -61,11 +72,14 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererEvent
 
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererVolume
 {
+	FTimeThiefSmokeRendererVolume();
+
 	int32 SmokeId = INDEX_NONE;
 	FTransform3f LocalToWorld = FTransform3f::Identity;
-	FVector3f BoundsExtent = FVector3f(900.0f, 900.0f, 860.0f);
+	FVector3f BoundsExtent;
+	FVector3f RenderBoundsExtent;
 	float AgeSeconds = 0.0f;
-	float DurationSeconds = 12.0f;
+	float DurationSeconds;
 	int32 ObstacleMaskResolution = 0;
 	uint32 ObstacleMaskRevision = 0;
 	TArray<uint8> ObstacleMask;

@@ -1,0 +1,208 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_VORTICITY_PARAMETERS
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float3 SafeNormalize(float3 Value)
+{
+	return normalize(Value + float3(0.0001, 0.0001, 0.0001));
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+}
+
+float3 LoadOpenVelocity(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return LoadOpen(SafeCoord) > 0.01 ? VelocityIn.Load(int4(SafeCoord, 0)).xyz : float3(0.0, 0.0, 0.0);
+}
+
+float3 ComputeCurl(int3 Coord)
+{
+	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	const float3 VX0 = LoadOpenVelocity(Coord - int3(1, 0, 0));
+	const float3 VX1 = LoadOpenVelocity(Coord + int3(1, 0, 0));
+	const float3 VY0 = LoadOpenVelocity(Coord - int3(0, 1, 0));
+	const float3 VY1 = LoadOpenVelocity(Coord + int3(0, 1, 0));
+	const float3 VZ0 = LoadOpenVelocity(Coord - int3(0, 0, 1));
+	const float3 VZ1 = LoadOpenVelocity(Coord + int3(0, 0, 1));
+	const float3 DVX = (VX1 - VX0) * 0.5 * InvCellSize.x;
+	const float3 DVY = (VY1 - VY0) * 0.5 * InvCellSize.y;
+	const float3 DVZ = (VZ1 - VZ0) * 0.5 * InvCellSize.z;
+	return float3(DVY.z - DVZ.y, DVZ.x - DVX.z, DVX.y - DVY.x);
+}
+
+float ComputeCurlMagnitude(int3 Coord)
+{
+	return length(ComputeCurl(Coord));
+}
+
+float LoadOpenDensity(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return max(DensityIn.Load(int4(SafeCoord, 0)), 0.0) * LoadOpen(SafeCoord);
+}
+
+float3 ComputeDensityGradient(int3 Coord)
+{
+	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	return float3(
+		LoadOpenDensity(Coord + int3(1, 0, 0)) - LoadOpenDensity(Coord - int3(1, 0, 0)),
+		LoadOpenDensity(Coord + int3(0, 1, 0)) - LoadOpenDensity(Coord - int3(0, 1, 0)),
+		LoadOpenDensity(Coord + int3(0, 0, 1)) - LoadOpenDensity(Coord - int3(0, 0, 1))) * 0.5 * InvCellSize;
+}
+
+float3 ComputeAirInteractionForce(int3 Coord, float3 Velocity, float Density, float3 CurlNoise, float CellLength)
+{
+	const float3 DensityGradient = ComputeDensityGradient(Coord);
+	const float GradientMagnitude = length(DensityGradient);
+	const float3 SmokeToAir = SafeNormalize(-DensityGradient);
+	const float3 TangentialVelocity = Velocity - SmokeToAir * dot(Velocity, SmokeToAir);
+	const float TangentialSpeed = length(TangentialVelocity);
+	const float3 TangentDirection = SafeNormalize(TangentialVelocity);
+	const float3 RollAxis = SafeNormalize(cross(SmokeToAir, TangentDirection) + CurlNoise * 0.35);
+	const float3 RollForce = SafeNormalize(cross(RollAxis, SmokeToAir));
+	const float InterfaceMask = saturate(GradientMagnitude * CellLength * 3.0) * saturate(Density * 1.35);
+	const float ShearMask = saturate(TangentialSpeed / 320.0);
+	const float WakeMask = InterfaceMask * lerp(0.35, 1.0, ShearMask);
+	const float WakeScale = max(AirInteractionStrength, 0.0) * WakeMask;
+	return (RollForce * (120.0 + TangentialSpeed * 0.42) + CurlNoise * 180.0) * WakeScale;
+}
+
+float3 ComputeEventVortexForce(float3 WorldPosition, float DensityMask, float3 CurlNoise)
+{
+	float3 Force = float3(0.0, 0.0, 0.0);
+	const int SafeEventCount = min(EventCount, 128);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
+		const float Age = saturate(Event.TypeShapeAgeSeed.z);
+		const float Seed = Event.TypeShapeAgeSeed.w;
+		const float3 EventPosition = Event.PositionRadius.xyz;
+		const float Radius = max(Event.PositionRadius.w, 1.0);
+		const float3 Direction = SafeNormalize(Event.DirectionLength.xyz);
+		const float Length = max(Event.DirectionLength.w, Radius * 2.0);
+		const float Strength = max(Event.ExtentsStrength.w, 0.0) * max(EventVortexStrength, 0.0);
+		const float3 ToCell = WorldPosition - EventPosition;
+		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
+
+		if (EventType == 0)
+		{
+			const float HalfLength = max(Length * 0.5, 1.0);
+			const float Along = clamp(dot(ToCell, Direction), -HalfLength, HalfLength);
+			const float3 Closest = EventPosition + Direction * Along;
+			const float3 Radial = WorldPosition - Closest;
+			const float Distance = length(Radial);
+			const float3 RadialDirection = SafeNormalize(Radial);
+			const float3 Tangent = SafeNormalize(cross(Direction, RadialDirection));
+			const float Core = 1.0 - smoothstep(Radius * 0.25, Radius * 2.2, Distance);
+			const float Shell = saturate((1.0 - abs(Distance - Radius * 0.95) / max(Radius * 0.72, 1.0)) * Core);
+			const float AgeFade = 1.0 - smoothstep(0.0, 1.0, Age);
+			const float SpinSign = TimeThiefSmokeHash13(float3(Seed * 0.017, Along * 0.013, 3.71)) > 0.5 ? 1.0 : -1.0;
+			Force += Tangent * SpinSign * (Core + Shell * 1.65) * Strength * AgeFade * 640.0;
+			Force += CurlNoise * Shell * Strength * AgeFade * 190.0;
+		}
+		else if (EventType == 1)
+		{
+			const float Distance = length(ToCell);
+			const float3 RadialDirection = SafeNormalize(ToCell);
+			const float ExpandingShell = Radius * lerp(0.22, 1.12, Age);
+			const float Shell = 1.0 - smoothstep(Radius * 0.05, Radius * 0.55, abs(Distance - ExpandingShell));
+			const float Core = 1.0 - smoothstep(Radius * 0.08, Radius * 0.9, Distance);
+			const float3 Tangent = SafeNormalize(cross(RadialDirection, CurlNoise));
+			const float Fade = 1.0 - smoothstep(0.65, 1.0, Age);
+			Force += Tangent * Shell * Strength * Fade * 760.0;
+			Force += CurlNoise * (Core + Shell * 0.55) * Strength * Fade * 320.0;
+		}
+		else
+		{
+			const float Along = dot(ToCell, Direction);
+			const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 8.5);
+			const float3 TrailClosest = EventPosition - Direction * BackAlong;
+			const float3 TrailRadial = WorldPosition - TrailClosest;
+			const float TrailDistance = length(TrailRadial);
+			const float3 TrailRadialDirection = SafeNormalize(TrailRadial);
+			const float Trail =
+				TimeThiefSmokeSoftSphere(TrailDistance, ShapeRadius * 1.45) *
+				(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 8.5, BackAlong)) *
+				saturate(-Along / max(ShapeRadius * 0.65, 1.0));
+			const float Front =
+				TimeThiefSmokeSoftSphere(length(ToCell - Direction * ShapeRadius * 0.55), ShapeRadius * 1.75) *
+				saturate(smoothstep(-ShapeRadius * 0.25, ShapeRadius * 1.25, Along));
+			const float3 Tangent = SafeNormalize(cross(Direction, TrailRadialDirection));
+			const float3 SideSpill = SafeNormalize(TrailRadialDirection - Direction * dot(TrailRadialDirection, Direction));
+			const float SpinBreakup = lerp(0.45, 1.0, TimeThiefSmokeValueNoise(float3(BackAlong * 0.035, Seed * 0.011, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
+			Force += Tangent * Trail * SpinBreakup * Strength * 920.0;
+			Force += SideSpill * Front * Strength * 380.0;
+			Force += CurlNoise * (Trail + Front * 0.35) * Strength * 240.0;
+		}
+	}
+	return Force * DensityMask;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	if (OpenMask <= 0.01)
+	{
+		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+
+	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
+	const float Density = max(DensityIn.Load(int4(Coord, 0)), 0.0);
+	float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
+	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
+	const float3 Curl = ComputeCurl(Coord);
+	const float CurlMagnitude = length(Curl);
+	const float3 CurlGradient = float3(
+		ComputeCurlMagnitude(Coord + int3(1, 0, 0)) - ComputeCurlMagnitude(Coord - int3(1, 0, 0)),
+		ComputeCurlMagnitude(Coord + int3(0, 1, 0)) - ComputeCurlMagnitude(Coord - int3(0, 1, 0)),
+		ComputeCurlMagnitude(Coord + int3(0, 0, 1)) - ComputeCurlMagnitude(Coord - int3(0, 0, 1))) * 0.5 / max(CellSize, 1.0);
+	const float3 CurlNormal = SafeNormalize(CurlGradient);
+	const float CellLength = max(dot(CellSize, float3(0.333333, 0.333333, 0.333333)), 1.0);
+	const float DensityMask = saturate(Density * 0.72);
+	const float3 Centered = UVW * 2.0 - 1.0;
+	const float BoundaryDamping = 1.0 - smoothstep(0.82, 1.08, length(Centered / float3(1.0, 1.0, 0.88)));
+	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.23);
+	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * 24.0;
+	const float TurbulenceBand = lerp(90.0, 280.0, saturate(CurlMagnitude * 0.18));
+	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * DensityMask * TurbulenceBand;
+	const float3 AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
+	const float3 EventForce = ComputeEventVortexForce(WorldPosition, DensityMask, CurlNoise);
+	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
+	const float MaxDeltaSpeed = max(160.0, 420.0 * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
+	const float DeltaSpeed = length(DeltaVelocity);
+	if (DeltaSpeed > MaxDeltaSpeed)
+	{
+		DeltaVelocity *= MaxDeltaSpeed / max(DeltaSpeed, 0.0001);
+	}
+
+	Velocity += DeltaVelocity;
+	const float MaxSpeed = 2600.0;
+	const float Speed = length(Velocity);
+	if (Speed > MaxSpeed)
+	{
+		Velocity *= MaxSpeed / max(Speed, 0.0001);
+	}
+
+	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+}

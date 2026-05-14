@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Smoke/TimeThiefSmokeControlGrid.h"
 #include "Smoke/TimeThiefSmokeTypes.h"
 #include "TimeThiefSmokeVolume.generated.h"
 
@@ -23,6 +22,7 @@ public:
 	const FTimeThiefSmokeRuntimeSettings& GetSmokeSettings() const { return SmokeSettings; }
 	float GetSmokeAgeSeconds() const { return SmokeAgeSeconds; }
 	FVector GetCurrentSmokeBoundsExtent() const;
+	FVector GetCurrentSmokeRenderBoundsExtent() const;
 	int32 GetObstacleMaskResolution() const { return ObstacleMaskResolution; }
 	uint32 GetObstacleMaskRevision() const { return ObstacleMaskRevision; }
 	const TArray<uint8>& GetObstacleMask() const { return ObstacleMask; }
@@ -44,10 +44,9 @@ protected:
 
 private:
 	void GatherActorPushEvents(float DeltaTime);
-	void MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent) const;
+	void MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent);
 	FVector ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime);
 	ESmokeInteractionShape ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const;
-	void ExpandDynamicBoundsForWorldSphere(const FVector& Center, float Radius);
 	void ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event);
 	void RebuildStaticObstacleMask();
 	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, FCollisionObjectQueryParams ObjectQueryParams, FCollisionQueryParams QueryParams);
@@ -61,11 +60,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Smoke")
 	FTimeThiefSmokeRuntimeSettings SmokeSettings;
 
-	FTimeThiefSmokeControlGrid ControlGrid;
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FVector> PreviousComponentLocations;
 	float ActorInteractionAccumulator = 0.0f;
 	float SmokeAgeSeconds = 0.0f;
-	FVector DynamicBoundsExtent = FVector::ZeroVector;
 	TArray<uint8> ObstacleMask;
 	TArray<uint8> ActiveBoundsCells;
 	int32 ObstacleMaskResolution = 0;

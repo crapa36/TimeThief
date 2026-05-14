@@ -1,34 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-Texture3D<float> DensityIn;
-Texture3D<float4> VelocityIn;
-Texture3D<float> ObstacleTexture;
-Texture3D<float> BulletSuppressionTexture;
-SamplerState VolumeSampler;
-StructuredBuffer<FTimeThiefSmokeCarrierParticleShaderData> CarrierParticles;
-
-RWTexture3D<float> OutDensity;
-RWTexture3D<float4> OutVelocity;
-
-int3 GridResolution;
-float3 BoundsExtent;
-float DeltaSeconds;
-float InitialDensity;
-float AgeSeconds;
-float DurationSeconds;
-float SmokeFadeOutDuration;
-float PlumeEmissionDuration;
-float PlumeSourceRadius;
-float PlumeExpansionVelocity;
-float PlumeRiseVelocity;
-float DensityDissipation;
-float VelocityDamping;
-float VorticityStrength;
-uint bUseMacCormackAdvection;
-int CarrierParticleCount;
-float4x4 LocalToWorld;
-float4x4 WorldToLocal;
+TIME_THIEF_SMOKE_SIMULATE_PARAMETERS
 
 void ComputeCarrierField(float3 LocalPosition, out float OutVoid, out float OutShell)
 {
@@ -113,7 +86,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	const float3 SmokeOrigin = mul(float4(0.0, 0.0, 0.0, 1.0), LocalToWorld).xyz;
 	const float3 SmokeUp = normalize(mul(float4(0.0, 0.0, 1.0, 0.0), LocalToWorld).xyz + 0.0001);
-	const float SafeEmissionDuration = max(max(DurationSeconds, PlumeEmissionDuration), 0.01);
+	const float SafeEmissionDuration = min(max(DurationSeconds, 0.01), max(PlumeEmissionDuration, 0.01));
 	const float EmissionRamp = saturate((AgeSeconds + DeltaSeconds) / 0.35);
 	const float EmissionFade = 1.0 - smoothstep(SafeEmissionDuration, SafeEmissionDuration + 0.25, AgeSeconds);
 	const float Emission = EmissionRamp * EmissionFade;
@@ -153,6 +126,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity;
 	AdvectedVelocity += SourceVelocity * SourceWeight * Emission * DeltaSeconds * 3.0;
 	AdvectedVelocity += CurlNoise * CarrierShell * VorticityStrength * 12.0;
+	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * Density * 4.0;
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);

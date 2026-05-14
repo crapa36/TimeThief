@@ -1,15 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-Texture3D<float4> VelocityIn;
-Texture3D<float> ObstacleTexture;
-SamplerState VolumeSampler;
-
-RWTexture3D<float> OutDivergence;
-RWTexture3D<float> OutPressure;
-
-int3 GridResolution;
-float3 CellSize;
+TIME_THIEF_SMOKE_DIVERGENCE_PARAMETERS
 
 int3 ClampSmokeCoord(int3 Coord)
 {
@@ -19,6 +11,17 @@ int3 ClampSmokeCoord(int3 Coord)
 float3 LoadVelocity(int3 Coord)
 {
 	return VelocityIn.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+}
+
+float3 LoadOpenVelocity(int3 Coord)
+{
+	return LoadOpen(Coord) > 0.01 ? LoadVelocity(Coord) : float3(0.0, 0.0, 0.0);
 }
 
 [numthreads(4, 4, 4)]
@@ -39,12 +42,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
-	const float3 VelX0 = LoadVelocity(Coord - int3(1, 0, 0));
-	const float3 VelX1 = LoadVelocity(Coord + int3(1, 0, 0));
-	const float3 VelY0 = LoadVelocity(Coord - int3(0, 1, 0));
-	const float3 VelY1 = LoadVelocity(Coord + int3(0, 1, 0));
-	const float3 VelZ0 = LoadVelocity(Coord - int3(0, 0, 1));
-	const float3 VelZ1 = LoadVelocity(Coord + int3(0, 0, 1));
+	const float3 VelX0 = LoadOpenVelocity(Coord - int3(1, 0, 0));
+	const float3 VelX1 = LoadOpenVelocity(Coord + int3(1, 0, 0));
+	const float3 VelY0 = LoadOpenVelocity(Coord - int3(0, 1, 0));
+	const float3 VelY1 = LoadOpenVelocity(Coord + int3(0, 1, 0));
+	const float3 VelZ0 = LoadOpenVelocity(Coord - int3(0, 0, 1));
+	const float3 VelZ1 = LoadOpenVelocity(Coord + int3(0, 0, 1));
 
 	const float Divergence =
 		(VelX1.x - VelX0.x) * 0.5 * InvCellSize.x +

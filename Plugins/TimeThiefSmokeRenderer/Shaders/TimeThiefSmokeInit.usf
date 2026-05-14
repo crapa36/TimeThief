@@ -1,12 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-RWTexture3D<float> OutDensity;
-RWTexture3D<float4> OutVelocity;
-
-int3 GridResolution;
-float3 BoundsExtent;
-float InitialDensity;
+TIME_THIEF_SMOKE_INIT_PARAMETERS
 
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
@@ -16,9 +11,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float EmptySeed = InitialDensity * 0.0 + dot(UVW, float3(0.0, 0.0, 0.0));
+	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+	const float SourceSeed = TimeThiefSmokeSoftSphere(length(LocalPosition), max(PlumeSourceRadius, 1.0));
+	const float3 Ellipsoid = LocalPosition / max(BoundsExtent * float3(0.92, 0.92, 0.84), 1.0);
+	const float BoundsFade = 1.0 - smoothstep(0.86, 1.0, length(Ellipsoid));
+	const float DensitySeed = InitialDensity * SourceSeed * BoundsFade * 0.45;
 
-	OutDensity[DispatchThreadId] = EmptySeed;
+	OutDensity[DispatchThreadId] = DensitySeed;
 	OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
 }

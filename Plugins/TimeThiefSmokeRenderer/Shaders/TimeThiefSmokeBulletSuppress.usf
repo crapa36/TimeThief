@@ -1,17 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
-Texture3D<float> SuppressionIn;
-SamplerState VolumeSampler;
-RWTexture3D<float> OutSuppression;
-
-int3 GridResolution;
-float3 BoundsExtent;
-float DeltaSeconds;
-float SuppressionLife;
-int EventCount;
-float4x4 LocalToWorld;
+TIME_THIEF_SMOKE_BULLET_SUPPRESS_PARAMETERS
 
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)

@@ -1,20 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-Texture3D<float> DensityIn;
-Texture3D<float4> VelocityIn;
-Texture3D<float> ObstacleTexture;
-SamplerState VolumeSampler;
-StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
-
-RWTexture3D<float> OutDensity;
-RWTexture3D<float4> OutVelocity;
-
-int3 GridResolution;
-float3 BoundsExtent;
-float DeltaSeconds;
-int EventCount;
-float4x4 LocalToWorld;
+TIME_THIEF_SMOKE_APPLY_EVENTS_PARAMETERS
 
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
@@ -79,7 +66,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			const float ShellWeight = 1.0 - abs(saturate(Distance / Radius) * 2.0 - 1.0);
 			const float3 Radial = normalize(ToCell + float3(0.0, 0.0, 35.0));
 			const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
-			const float TimedStrength = Strength * (1.0 - Age);
+			const float TimedStrength = Strength;
 			const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
 			const float ClearStrength = saturate(Event.ExtentsStrength.y);
 

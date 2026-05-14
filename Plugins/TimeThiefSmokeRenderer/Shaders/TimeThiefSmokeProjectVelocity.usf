@@ -1,15 +1,7 @@
 #include "/Engine/Public/Platform.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
 
-Texture3D<float4> VelocityIn;
-Texture3D<float> PressureIn;
-Texture3D<float> ObstacleTexture;
-SamplerState VolumeSampler;
-
-RWTexture3D<float4> OutVelocity;
-
-int3 GridResolution;
-float3 CellSize;
+TIME_THIEF_SMOKE_PROJECT_VELOCITY_PARAMETERS
 
 int3 ClampSmokeCoord(int3 Coord)
 {
@@ -19,6 +11,17 @@ int3 ClampSmokeCoord(int3 Coord)
 float LoadPressure(int3 Coord)
 {
 	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+}
+
+float LoadNeighborPressure(int3 Coord, float CenterPressure)
+{
+	return LoadOpen(Coord) > 0.01 ? LoadPressure(Coord) : CenterPressure;
 }
 
 [numthreads(4, 4, 4)]
@@ -32,12 +35,19 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const int3 Coord = int3(DispatchThreadId);
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
 	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	if (OpenMask <= 0.01)
+	{
+		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+
 	float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
 	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	const float CenterPressure = LoadPressure(Coord);
 	const float3 PressureGradient = float3(
-		LoadPressure(Coord + int3(1, 0, 0)) - LoadPressure(Coord - int3(1, 0, 0)),
-		LoadPressure(Coord + int3(0, 1, 0)) - LoadPressure(Coord - int3(0, 1, 0)),
-		LoadPressure(Coord + int3(0, 0, 1)) - LoadPressure(Coord - int3(0, 0, 1))) * 0.5 * InvCellSize;
+		LoadNeighborPressure(Coord + int3(1, 0, 0), CenterPressure) - LoadNeighborPressure(Coord - int3(1, 0, 0), CenterPressure),
+		LoadNeighborPressure(Coord + int3(0, 1, 0), CenterPressure) - LoadNeighborPressure(Coord - int3(0, 1, 0), CenterPressure),
+		LoadNeighborPressure(Coord + int3(0, 0, 1), CenterPressure) - LoadNeighborPressure(Coord - int3(0, 0, 1), CenterPressure)) * 0.5 * InvCellSize;
 
 	Velocity -= PressureGradient;
 

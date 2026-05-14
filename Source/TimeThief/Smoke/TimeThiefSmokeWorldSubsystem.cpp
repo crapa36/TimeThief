@@ -51,6 +51,14 @@ namespace TimeThiefSmoke
 		RendererSettings.DensityDissipation = Settings.DensityDissipation;
 		RendererSettings.VelocityDamping = Settings.VelocityDamping;
 		RendererSettings.VorticityStrength = Settings.VorticityStrength;
+		RendererSettings.VorticityConfinementStrength = Settings.VorticityConfinementStrength;
+		RendererSettings.TurbulenceStrength = Settings.TurbulenceStrength;
+		RendererSettings.AirInteractionStrength = Settings.AirInteractionStrength;
+		RendererSettings.EventVortexStrength = Settings.EventVortexStrength;
+		RendererSettings.WarpTrailIntensity = Settings.WarpTrailIntensity;
+		RendererSettings.WarpTrailDecayRate = Settings.WarpTrailDecayRate;
+		RendererSettings.WarpTrailRadiusScale = Settings.WarpTrailRadiusScale;
+		RendererSettings.WarpTrailLengthScale = Settings.WarpTrailLengthScale;
 		RendererSettings.BulletWakeMaxVisibleLife = Settings.BulletWakeMaxVisibleLife;
 		RendererSettings.bUseMacCormackAdvection = Settings.bUseMacCormackAdvection;
 		RendererSettings.CarrierParticleCount = Settings.CarrierParticleCount;
@@ -278,6 +286,7 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
 		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
 		RendererVolume.BoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
+		RendererVolume.RenderBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeRenderBoundsExtent());
 		RendererVolume.AgeSeconds = SmokeVolume->GetSmokeAgeSeconds();
 		RendererVolume.DurationSeconds = Settings.SmokeDuration;
 		RendererVolume.ObstacleMaskResolution = SmokeVolume->GetObstacleMaskResolution();
