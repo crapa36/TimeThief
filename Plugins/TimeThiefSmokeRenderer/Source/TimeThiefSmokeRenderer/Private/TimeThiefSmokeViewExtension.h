@@ -48,14 +48,10 @@ private:
 		TRefCountPtr<IPooledRenderTarget> DivergenceTexture;
 		TRefCountPtr<IPooledRenderTarget> BulletCutoutTextures[2];
 		TRefCountPtr<IPooledRenderTarget> BulletSinkTextures[2];
-		TRefCountPtr<IPooledRenderTarget> BulletImpulseTexture;
 		TRefCountPtr<IPooledRenderTarget> WarpTextures[2];
 		TRefCountPtr<IPooledRenderTarget> ObstacleTexture;
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
-		TRefCountPtr<IPooledRenderTarget> SparseDensityAtlasTexture;
-		TRefCountPtr<IPooledRenderTarget> SparseWarpAtlasTexture;
-		TRefCountPtr<IPooledRenderTarget> SparseBulletCutoutAtlasTexture;
-		TRefCountPtr<IPooledRenderTarget> SparseBulletSinkAtlasTexture;
+		TRefCountPtr<IPooledRenderTarget> SparseFieldAtlasTexture;
 		TRefCountPtr<FRDGPooledBuffer> CarrierParticleBuffers[2];
 		TRefCountPtr<FRDGPooledBuffer> VortexParticleBuffers[2];
 		TSharedPtr<FRHIGPUBufferReadback> ActiveBrickCountReadback;
@@ -73,7 +69,6 @@ private:
 		FIntVector AllocatedSparseAtlasBrickGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedSparseAtlasGridSize = FIntVector::ZeroValue;
 		int32 EffectiveSmokeGridResolution = 0;
-		int32 SparseResolutionCap = 0;
 		int32 AllocatedObstacleResolution = 0;
 		uint32 LastActiveBrickCount = 0;
 		uint32 UploadedObstacleMaskRevision = MAX_uint32;
@@ -106,9 +101,8 @@ private:
 	void SimulateSmoke(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, float DeltaSeconds);
 	void AddInitPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef VelocityTexture);
 	void AddApplyEventsPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef DensityOut, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
-	void AddBulletFieldPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef CutoutIn, FRDGTextureRef SinkIn, FRDGTextureRef VelocityIn, FRDGTextureRef CutoutOut, FRDGTextureRef SinkOut, FRDGTextureRef BulletImpulseOut, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
 	void AddDynamicObstaclePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef DensityOut, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, int32 EventCount);
-	void AddSimulatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGTextureRef BulletImpulseTexture, FRDGBufferRef CarrierBuffer, FRDGTextureRef DensityOut, FRDGTextureRef VelocityOut, float DeltaSeconds);
+	void AddSimulatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef CarrierBuffer, FRDGBufferRef EventBuffer, int32 EventCount, FRDGTextureRef DensityOut, FRDGTextureRef VelocityOut, FRDGTextureRef BulletCutoutOut, FRDGTextureRef BulletSinkOut, float DeltaSeconds);
 	void AddWarpPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef WarpIn, FRDGTextureRef WarpOut, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
 	void AddVorticityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
 	void AddDivergencePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef DivergenceOut, FRDGTextureRef PressureOut);

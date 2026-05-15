@@ -49,17 +49,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeBulletSuppressCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBulletSuppressCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBulletSuppressCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_BULLET_SUPPRESS_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeDynamicObstacleCS : public FGlobalShader
 {
 public:

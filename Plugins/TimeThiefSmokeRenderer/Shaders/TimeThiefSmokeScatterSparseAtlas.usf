@@ -30,8 +30,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const int3 LocalCellCoord = CellCoord - BrickCoord * SafeBrickSize;
 	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
 
-	OutSparseDensityAtlas[AtlasCoord] = DensityTexture.Load(int4(CellCoord, 0));
-	OutSparseWarpAtlas[AtlasCoord] = WarpTexture.Load(int4(CellCoord, 0));
-	OutSparseBulletCutoutAtlas[AtlasCoord] = BulletCutoutTexture.Load(int4(CellCoord, 0));
-	OutSparseBulletSinkAtlas[AtlasCoord] = BulletSinkTexture.Load(int4(CellCoord, 0));
+	OutSparseFieldAtlas[AtlasCoord] = float4(
+		DensityTexture.Load(int4(CellCoord, 0)),
+		WarpTexture.Load(int4(CellCoord, 0)),
+		BulletCutoutTexture.Load(int4(CellCoord, 0)),
+		BulletSinkTexture.Load(int4(CellCoord, 0)));
 }

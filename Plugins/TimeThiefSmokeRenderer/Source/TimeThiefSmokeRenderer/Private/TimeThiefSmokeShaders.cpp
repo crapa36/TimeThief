@@ -2,7 +2,6 @@
 
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeInitCS, "/TimeThiefSmokeShaders/TimeThiefSmokeInit.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeApplyEventsCS, "/TimeThiefSmokeShaders/TimeThiefSmokeApplyEvents.usf", "MainCS", SF_Compute);
-IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBulletSuppressCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBulletSuppress.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeDynamicObstacleCS, "/TimeThiefSmokeShaders/TimeThiefSmokeDynamicObstacle.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeCarrierUpdateCS, "/TimeThiefSmokeShaders/TimeThiefSmokeCarrierUpdate.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeSimulateCS, "/TimeThiefSmokeShaders/TimeThiefSmokeSimulate.usf", "MainCS", SF_Compute);

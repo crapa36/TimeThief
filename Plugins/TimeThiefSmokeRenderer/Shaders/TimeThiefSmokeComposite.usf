@@ -115,7 +115,7 @@ bool IsActiveBrick(float3 VolumeUVW)
 	return BrickOccupancyTexture.Load(int4(ComputeBrickCoord(VolumeUVW), 0)) != 0u;
 }
 
-float LoadCompositeSparseScalarCell(Texture3D<float> DenseTexture, Texture3D<float> SparseAtlasTexture, int3 CellCoord)
+float4 LoadCompositeFieldCell(int3 CellCoord)
 {
 	const int SafeBrickSize = max(SmokeBrickSize, 1);
 	const int3 SafeCellCoord = clamp(CellCoord, int3(0, 0, 0), GridResolution - 1);
@@ -123,70 +123,57 @@ float LoadCompositeSparseScalarCell(Texture3D<float> DenseTexture, Texture3D<flo
 	const uint BrickIndirection = BrickOccupancyTexture.Load(int4(BrickCoord, 0));
 	if (BrickIndirection == 0u)
 	{
-		return 0.0;
+		return float4(0.0, 0.0, 0.0, 0.0);
 	}
 	if (BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
 	{
-		return DenseTexture.Load(int4(SafeCellCoord, 0));
+		return float4(
+			DensityTexture.Load(int4(SafeCellCoord, 0)),
+			WarpTexture.Load(int4(SafeCellCoord, 0)),
+			BulletCutoutTexture.Load(int4(SafeCellCoord, 0)),
+			BulletSinkTexture.Load(int4(SafeCellCoord, 0)));
 	}
 
 	const int3 AtlasBrickCoord = TimeThiefSmokeAtlasBrickCoord(BrickIndirection, SparseAtlasBrickGridResolution);
 	const int3 LocalCellCoord = SafeCellCoord - BrickCoord * SafeBrickSize;
 	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
-	return SparseAtlasTexture.Load(int4(AtlasCoord, 0));
+	return SparseFieldAtlasTexture.Load(int4(AtlasCoord, 0));
 }
 
-float SampleCompositeSparseScalar(Texture3D<float> DenseTexture, Texture3D<float> SparseAtlasTexture, float3 VolumeUVW)
+float4 SampleCompositeSparseFields(float3 VolumeUVW)
 {
 	const float3 GridPosition = saturate(VolumeUVW) * max(float3(GridResolution), 1.0) - 0.5;
 	const int3 Cell0 = (int3)floor(GridPosition);
 	const float3 CellAlpha = saturate(GridPosition - float3(Cell0));
 	const int3 Cell1 = Cell0 + int3(1, 1, 1);
 
-	const float V000 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell0.y, Cell0.z));
-	const float V100 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell0.y, Cell0.z));
-	const float V010 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell1.y, Cell0.z));
-	const float V110 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell1.y, Cell0.z));
-	const float V001 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell0.y, Cell1.z));
-	const float V101 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell0.y, Cell1.z));
-	const float V011 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell1.y, Cell1.z));
-	const float V111 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell1.y, Cell1.z));
+	const float4 V000 = LoadCompositeFieldCell(int3(Cell0.x, Cell0.y, Cell0.z));
+	const float4 V100 = LoadCompositeFieldCell(int3(Cell1.x, Cell0.y, Cell0.z));
+	const float4 V010 = LoadCompositeFieldCell(int3(Cell0.x, Cell1.y, Cell0.z));
+	const float4 V110 = LoadCompositeFieldCell(int3(Cell1.x, Cell1.y, Cell0.z));
+	const float4 V001 = LoadCompositeFieldCell(int3(Cell0.x, Cell0.y, Cell1.z));
+	const float4 V101 = LoadCompositeFieldCell(int3(Cell1.x, Cell0.y, Cell1.z));
+	const float4 V011 = LoadCompositeFieldCell(int3(Cell0.x, Cell1.y, Cell1.z));
+	const float4 V111 = LoadCompositeFieldCell(int3(Cell1.x, Cell1.y, Cell1.z));
 
-	const float X00 = lerp(V000, V100, CellAlpha.x);
-	const float X10 = lerp(V010, V110, CellAlpha.x);
-	const float X01 = lerp(V001, V101, CellAlpha.x);
-	const float X11 = lerp(V011, V111, CellAlpha.x);
-	const float Y0 = lerp(X00, X10, CellAlpha.y);
-	const float Y1 = lerp(X01, X11, CellAlpha.y);
+	const float4 X00 = lerp(V000, V100, CellAlpha.x);
+	const float4 X10 = lerp(V010, V110, CellAlpha.x);
+	const float4 X01 = lerp(V001, V101, CellAlpha.x);
+	const float4 X11 = lerp(V011, V111, CellAlpha.x);
+	const float4 Y0 = lerp(X00, X10, CellAlpha.y);
+	const float4 Y1 = lerp(X01, X11, CellAlpha.y);
 	return lerp(Y0, Y1, CellAlpha.z);
 }
 
-float SampleDensityField(float3 VolumeUVW)
+float4 SampleFieldSet(float3 VolumeUVW)
 {
 	return bUseSparseAtlas != 0u
-		? SampleCompositeSparseScalar(DensityTexture, SparseDensityAtlasTexture, VolumeUVW)
-		: DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
-}
-
-float SampleWarpField(float3 VolumeUVW)
-{
-	return bUseSparseAtlas != 0u
-		? SampleCompositeSparseScalar(WarpTexture, SparseWarpAtlasTexture, VolumeUVW)
-		: WarpTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
-}
-
-float SampleBulletCutoutField(float3 VolumeUVW)
-{
-	return bUseSparseAtlas != 0u
-		? SampleCompositeSparseScalar(BulletCutoutTexture, SparseBulletCutoutAtlasTexture, VolumeUVW)
-		: BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
-}
-
-float SampleBulletSinkField(float3 VolumeUVW)
-{
-	return bUseSparseAtlas != 0u
-		? SampleCompositeSparseScalar(BulletSinkTexture, SparseBulletSinkAtlasTexture, VolumeUVW)
-		: BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
+		? SampleCompositeSparseFields(VolumeUVW)
+		: float4(
+			DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+			WarpTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+			BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+			BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0));
 }
 
 float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
@@ -321,11 +308,12 @@ void MainPS(
 			}
 		}
 
-		const float RawDensity = max(SampleDensityField(VolumeUVW), 0.0);
-		const float RawWarp = max(SampleWarpField(VolumeUVW), 0.0);
+		const float4 RawFields = SampleFieldSet(VolumeUVW);
+		const float RawDensity = max(RawFields.x, 0.0);
+		const float RawWarp = max(RawFields.y, 0.0);
 		const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
-		const float BulletCutout = SampleBulletCutoutField(VolumeUVW);
-		const float BulletSink = SampleBulletSinkField(VolumeUVW);
+		const float BulletCutout = RawFields.z;
+		const float BulletSink = RawFields.w;
 		const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
 		const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
 		const float AnalyticBulletOpen = ComputeAnalyticBulletOpen(SampleWorld);
