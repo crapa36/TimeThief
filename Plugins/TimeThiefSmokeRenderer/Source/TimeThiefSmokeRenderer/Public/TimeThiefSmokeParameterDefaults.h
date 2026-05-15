@@ -9,13 +9,13 @@ namespace TimeThiefSmokeParameterDefaults
 	//연막 실제 충돌/시뮬레이션 내부 박스 반경(센티미터).
 	inline FVector GetSmokeBoundsExtent()
 	{
-		return FVector(800.0, 800.0, 500.0);
+		return FVector(500.0, 500.0, 500.0);
 	}
 
 	//내부 박스 외부 추가 렌더링 여백(센티미터).
 	inline FVector GetRenderBoundsPadding()
 	{
-		return FVector(200.0, 200.0, 200.0);
+		return FVector(300.0, 300.0, 300.0);
 	}
 
 	//수명/기본 밀도
@@ -25,18 +25,18 @@ namespace TimeThiefSmokeParameterDefaults
 	//유지 후 밀도 페이드아웃 시간(초).
 	constexpr float SmokeFadeOutDuration = 5.0f;
 	//초기 연막 밀도 배율. 높을수록 더 짙게 시작.
-	constexpr float InitialDensity = 0.78f;
+	constexpr float InitialDensity = 0.8f;
 
 	//생성 플룸
 
 	//생성 직후 상승/팽창 플룸 주입 시간(초).
-	constexpr float PlumeEmissionDuration = 2.0f;
+	constexpr float PlumeEmissionDuration = 2.5f;
 	//플룸 중심 소스 반경(센티미터).
-	constexpr float PlumeSourceRadius = 50.0f;
+	constexpr float PlumeSourceRadius = 100.0f;
 	//초기 연막 외향 확산 속도(센티미터/초).
-	constexpr float PlumeExpansionVelocity = 150.0f;
+	constexpr float PlumeExpansionVelocity = 200.0f;
 	//초기 연막 상승 속도(센티미터/초).
-	constexpr float PlumeRiseVelocity = 90.0f;
+	constexpr float PlumeRiseVelocity = 100.0f;
 
 	//장애물 마스크
 
@@ -59,7 +59,7 @@ namespace TimeThiefSmokeParameterDefaults
 	//동시 활성 내부 박스 셀 최대 개수.
 	constexpr int32 MaxActiveBoundsCells = 48;
 	//폭발 충격에 따른 내부 박스 활성 영역 이동 배율.
-	constexpr float ExplosionBoundsShiftScale = 0.05f;
+	constexpr float ExplosionBoundsShiftScale = 0.5f;
 
 	//그래픽 격자/렌더링
 
@@ -80,7 +80,7 @@ namespace TimeThiefSmokeParameterDefaults
 	//렌더 레이마칭 목표 단계 길이의 복셀 크기 배율. 높을수록 빠르지만 세부가 줄어듦.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	//연막 내부 빛 흡수/소멸 계수.
-	constexpr float Extinction = 2.05f;
+	constexpr float Extinction = 2.0f;
 	//흡수 대비 산란 비율(0~1). 높을수록 밝게 보임.
 	constexpr float ScatteringAlbedo = 0.9f;
 	//전방 산란 방향성(-1~1). 양수일수록 빛 방향으로 산란이 강함.
@@ -89,9 +89,9 @@ namespace TimeThiefSmokeParameterDefaults
 	//밀도/속도 시뮬레이션
 
 	//초당 밀도 자연 감소 비율.
-	constexpr float DensityDissipation = 0.06f;
+	constexpr float DensityDissipation = 0.05f;
 	//초당 속도장 감쇠 비율.
-	constexpr float VelocityDamping = 0.34f;
+	constexpr float VelocityDamping = 0.35f;
 	//매코맥 보정 이류 사용 여부. 켜면 보존력/비용 증가.
 	constexpr bool bUseMacCormackAdvection = true;
 	//비어 있고 영향이 없는 셀에서 매코맥 제한자 계산을 건너뜀.
@@ -137,15 +137,15 @@ namespace TimeThiefSmokeParameterDefaults
 	//워프 꼬리
 
 	//액터 통과 워프 꼬리 초기 강도.
-	constexpr float WarpTrailIntensity = 1.1f;
+	constexpr float WarpTrailIntensity = 1.5f;
 	//워프 초당 감쇠율. 높을수록 빠르게 사라짐.
-	constexpr float WarpTrailDecayRate = 1.5f;
+	constexpr float WarpTrailDecayRate = 1.0f;
 	//액터 이벤트 반경 대비 워프 꼬리 두께 배율.
-	constexpr float WarpTrailRadiusScale = 0.055f;
+	constexpr float WarpTrailRadiusScale = 0.05f;
 	//액터 속도/반경 대비 워프 꼬리 길이 배율.
 	constexpr float WarpTrailLengthScale = 8.5f;
 	//액터 워프 밀도 누적 배율.
-	constexpr float ActorWarpDensityAccumulationScale = 1.65f;
+	constexpr float ActorWarpDensityAccumulationScale = 1.5f;
 	//액터 워프 누적값 감쇠 시간(초).
 	constexpr float ActorWarpAccumulationDecaySeconds = 0.4f;
 	//액터 워프 생성 후 남기는 누적 비율.
@@ -154,12 +154,12 @@ namespace TimeThiefSmokeParameterDefaults
 	//그래픽 이벤트 제한
 
 	//연막당 프레임별 그래픽 상호작용 이벤트 최대 개수.
-	constexpr int32 MaxGPUEventsPerSmokePerFrame = 32;
+	constexpr int32 MaxGPUEventsPerSmokePerFrame = 64;
 
 	//캐리어 입자
 
 	//내부 흐름 보조 캐리어 입자 개수.
-	constexpr int32 CarrierParticleCount = 16;
+	constexpr int32 CarrierParticleCount = 24;
 	//캐리어 입자 영향 반경(센티미터).
 	constexpr float CarrierParticleRadius = 80.0f;
 	//캐리어 입자 자체 유영 기준 속도(센티미터/초).
@@ -189,9 +189,9 @@ namespace TimeThiefSmokeParameterDefaults
 	//폭발 충격
 
 	//폭발 충격 영향 반경(센티미터).
-	constexpr float ExplosionShockRadius = 420.0f;
+	constexpr float ExplosionShockRadius = 500.0f;
 	//폭발 충격 속도장 유지 시간(초).
-	constexpr float ExplosionImpulseDuration = 0.18f;
+	constexpr float ExplosionImpulseDuration = 0.5f;
 	//폭발 외향 밀림 속도 강도(센티미터/초).
 	constexpr float ExplosionOutwardStrength = 900.0f;
 	//폭발 즉시 밀도 제거 비율(0~1).
@@ -206,17 +206,17 @@ namespace TimeThiefSmokeParameterDefaults
 	//틱당 액터 상호작용 이벤트 최대 생성 개수.
 	constexpr int32 MaxActorInteractionEventsPerTick = 6;
 	//렌더 밀도 노이즈 공간 스케일.
-	constexpr float RenderNoiseScale = 0.032f;
+	constexpr float RenderNoiseScale = 0.05f;
 	//렌더 밀도 노이즈 강도.
-	constexpr float RenderNoiseStrength = 0.60f;
+	constexpr float RenderNoiseStrength = 0.5f;
 	//렌더 밀도 노이즈 시간 스케일.
 	constexpr float RenderNoiseTimeScale = 0.01f;
 	//렌더 필라먼트 공간 스케일.
-	constexpr float RenderFilamentScale = 0.072f;
+	constexpr float RenderFilamentScale = 0.1;
 	//렌더 필라먼트 강도.
-	constexpr float RenderFilamentStrength = 1.16f;
+	constexpr float RenderFilamentStrength = 1.5f;
 	//렌더 필라먼트 대비.
-	constexpr float RenderFilamentContrast = 4.15f;
+	constexpr float RenderFilamentContrast = 4.5f;
 	//렌더 필라먼트 왜곡 강도.
 	constexpr float RenderFilamentWarpStrength = 3.75f;
 
