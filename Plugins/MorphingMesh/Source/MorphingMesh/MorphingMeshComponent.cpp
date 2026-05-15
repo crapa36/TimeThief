@@ -98,7 +98,7 @@ void UMorphingMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 				if (Index != PrevIndex)
 				{
 					BaseSkeletalMeshComponent->EmptyOverrideMaterials();
-					BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[Index]);
+					BaseSkeletalMeshComponent->SetSkeletalMesh(MorphingMeshData->SkeletalMeshes[Index], bIsDifferentSkeletal);
 					PrevIndex = Index;
 				}
 			}
@@ -240,6 +240,17 @@ void UMorphingMeshComponent::Check()
 			BaseSkeletalMeshComponent->VisibilityBasedAnimTickOption =
 				EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 			BaseMeshComponent->SetVisibility(false);
+			
+			bIsDifferentSkeletal = false;
+			auto Skeletal = MorphingMeshData->SkeletalMeshes[Index]->Skeleton;
+			for (auto SkeletalMesh : MorphingMeshData->SkeletalMeshes)
+			{
+				if (Skeletal != SkeletalMesh->Skeleton)
+				{
+					bIsDifferentSkeletal = true;
+					break;
+				}
+			}
 		}
 		else
 		{
