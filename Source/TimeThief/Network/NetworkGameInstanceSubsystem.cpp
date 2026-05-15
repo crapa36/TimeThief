@@ -1425,25 +1425,28 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 		return;
 	}
 	
-	UE_LOG(LogTemp, Log, TEXT("[Network] HandleEntityHit: EntityId=%u"), Pkt.entity_id().value());
-	
-	const uint32 TargetEntityId = Pkt.entity_id().value();
-	if (TargetEntityId == 0) {
-		// TODO: Entity가 아니라 벽 같은 것에 맞은 것
-	}
+	// UE_LOG(LogTemp, Log, TEXT("[Network] HandleEntityHit: EntityId=%u"), Pkt.entity_id().value());
 	
 	const FVector HitPosition = FVector(Pkt.hit_position().x(), Pkt.hit_position().y(), Pkt.hit_position().z());
 	
-	FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetEntityId);
-	if (TargetEntry == nullptr || TargetEntry->Actor == nullptr)
+	const uint32 TargetEntityId = Pkt.entity_id().value();
+	if (TargetEntityId == 0) 
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Failed to find target actor for EntityHit. EntityId=%u"), TargetEntityId);
-		return;
+		// TODO: Entity가 아니라 벽 같은 것에 맞은 것
 	}
+	else
+	{
+		FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetEntityId);
+		if (TargetEntry == nullptr || TargetEntry->Actor == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to find target actor for EntityHit. EntityId=%u"), TargetEntityId);
+			return;
+		}
 	
-	auto* HitActor = TargetEntry->Actor.Get();
-	// TODO: 해당 Actor에 대한 Hit 처리 (Pos에 근사한 위치에 Hit Effect)
-	//		 Damage는 충격량 정도
+		auto* HitActor = TargetEntry->Actor.Get();
+		// TODO: 해당 Actor에 대한 Hit 처리 (Pos에 근사한 위치에 Hit Effect)
+		//		 Damage는 충격량 정도
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleGrenadeMoveSync(const se::game::N_GrenadeMoveSync& Pkt)
