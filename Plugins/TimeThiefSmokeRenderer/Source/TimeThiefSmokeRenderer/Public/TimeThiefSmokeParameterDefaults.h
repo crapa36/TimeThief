@@ -66,7 +66,9 @@ namespace TimeThiefSmokeParameterDefaults
 	//그래픽 연막 시뮬레이션 3차원 격자 한 축 해상도.
 	constexpr int32 SmokeGridResolution = 256;
 	//압력 투영 자코비 반복 횟수. 높을수록 속도장 압축 감소.
-	constexpr int32 PressureIterations = 8;
+	constexpr int32 PressureIterations = 5;
+	//기본 압력 풀이에 멀티그리드를 사용할지 여부. 끄면 훨씬 빠른 자코비 경로를 사용.
+	constexpr bool bUseMultigridPressureByDefault = false;
 	//볼륨 레이마칭 샘플 단계 수. 높을수록 품질/비용 증가.
 	constexpr int32 RenderStepCount = 16;
 	//희소 아틀라스 브릭 한 변의 복셀 수.
@@ -74,7 +76,7 @@ namespace TimeThiefSmokeParameterDefaults
 	//희소 아틀라스에 저장할 수 있는 활성 연막 브릭 최대 개수.
 	constexpr int32 MaxActiveSmokeBricks = 1024;
 	//적응형 레이마칭이 사용할 수 있는 최대 샘플 단계 수.
-	constexpr int32 RenderMaxStepCount = 192;
+	constexpr int32 RenderMaxStepCount = 126;
 	//렌더 레이마칭 목표 단계 길이의 복셀 크기 배율. 높을수록 빠르지만 세부가 줄어듦.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	//연막 내부 빛 흡수/소멸 계수.
@@ -206,7 +208,7 @@ namespace TimeThiefSmokeParameterDefaults
 	//렌더 밀도 노이즈 공간 스케일.
 	constexpr float RenderNoiseScale = 0.032f;
 	//렌더 밀도 노이즈 강도.
-	constexpr float RenderNoiseStrength = 0.62f;
+	constexpr float RenderNoiseStrength = 0.60f;
 	//렌더 밀도 노이즈 시간 스케일.
 	constexpr float RenderNoiseTimeScale = 0.01f;
 	//렌더 필라먼트 공간 스케일.

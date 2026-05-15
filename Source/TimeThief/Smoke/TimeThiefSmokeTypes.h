@@ -155,7 +155,7 @@ struct FTimeThiefSmokeRuntimeSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "1", UIMin = "1", ClampMax = "64", UIMax = "64"))
 	int32 PressureIterations;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "512", UIMax = "512"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "8", UIMin = "8", ClampMax = "512", UIMax = "512"))
 	int32 RenderStepCount;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "4", UIMin = "4", ClampMax = "32", UIMax = "32"))

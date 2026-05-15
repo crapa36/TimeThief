@@ -83,6 +83,7 @@ private:
 		int32 LastProfilePassCount = 0;
 		uint32 LastProfileLogFrame = 0;
 		uint64 LastEstimatedVRAMBytes = 0;
+		float AccumulatedSimulationDeltaSeconds = 0.0f;
 		bool bNeedsInit = true;
 		bool bCarrierParticlesNeedUpload = true;
 		bool bVortexParticlesNeedUpload = true;

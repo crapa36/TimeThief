@@ -47,6 +47,11 @@ namespace
 		0,
 		TEXT("Logs custom smoke grid, active brick, fallback, pass, VRAM, and render step estimates. 1=once per 60 frames, 2=every frame."));
 
+	static TAutoConsoleVariable<float> CVarTimeThiefSmokeSimulationHz(
+		TEXT("r.TimeThiefSmoke.SimulationHz"),
+		30.0f,
+		TEXT("Caps custom smoke simulation update rate. <=0 simulates every rendered frame."));
+
 	int32 MakeAxisGridSize(const float AxisExtent, const float MaxExtent, const int32 MaxAxisResolution)
 	{
 		if (MaxExtent <= UE_SMALL_NUMBER)
@@ -559,6 +564,7 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.LastSimulatedFrame = MAX_uint32;
 			State.AllocatedCarrierParticleCount = 0;
 			State.AllocatedVortexParticleCount = 0;
+			State.AccumulatedSimulationDeltaSeconds = 0.0f;
 			State.bCarrierParticlesNeedUpload = true;
 			State.bVortexParticlesNeedUpload = true;
 			State.bNeedsInit = true;
@@ -634,7 +640,21 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 			continue;
 		}
 
-		SimulateSmoke(GraphBuilder, State, LastFrameDeltaSeconds);
+		const float FrameDeltaSeconds = FMath::Clamp(LastFrameDeltaSeconds, 0.0f, 0.1f);
+		const float SimulationHz = CVarTimeThiefSmokeSimulationHz.GetValueOnRenderThread();
+		const float SimulationInterval = SimulationHz > 0.0f ? 1.0f / SimulationHz : 0.0f;
+		State.AccumulatedSimulationDeltaSeconds = FMath::Min(State.AccumulatedSimulationDeltaSeconds + FrameDeltaSeconds, 0.1f);
+		if (!State.bNeedsInit && SimulationInterval > 0.0f && State.AccumulatedSimulationDeltaSeconds < SimulationInterval)
+		{
+			State.LastSimulatedFrame = GFrameNumberRenderThread;
+			continue;
+		}
+
+		const float SimulationDeltaSeconds = SimulationInterval > 0.0f
+			? FMath::Max(State.AccumulatedSimulationDeltaSeconds, FrameDeltaSeconds)
+			: FrameDeltaSeconds;
+		State.AccumulatedSimulationDeltaSeconds = 0.0f;
+		SimulateSmoke(GraphBuilder, State, SimulationDeltaSeconds);
 		State.LastSimulatedFrame = GFrameNumberRenderThread;
 		const int32 ProfileMode = CVarTimeThiefSmokeProfile.GetValueOnRenderThread();
 		if (ProfileMode != 0)
@@ -657,7 +677,7 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 					bDenseFallback ? 1 : 0,
 					State.LastProfilePassCount,
 					EstimatedVRAMMB,
-					FMath::Clamp(State.Volume.Settings.RenderStepCount, 16, 512),
+					FMath::Clamp(State.Volume.Settings.RenderStepCount, 8, 512),
 					FMath::Clamp(State.Volume.Settings.RenderMaxStepCount, 16, 1024),
 					FMath::Clamp(State.Volume.Settings.RenderStepVoxelScale, 0.1f, 4.0f));
 				State.LastProfileLogFrame = CurrentFrame;
@@ -672,7 +692,7 @@ void FTimeThiefSmokeViewExtension::SubscribeToPostProcessingPass(
 	FAfterPassCallbackDelegateArray& InOutPassCallbacks,
 	bool bIsPassEnabled)
 {
-	if (Pass == EPostProcessingPass::BeforeDOF)
+	if (Pass == EPostProcessingPass::Tonemap)
 	{
 		InOutPassCallbacks.Add(FAfterPassCallbackDelegate::CreateRaw(this, &FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread));
 	}
@@ -696,7 +716,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 	}
 
 	const FScreenPassViewInfo ViewInfo(View);
-	const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
 	const FMatrix44f InvViewProjection(View.ViewMatrices.GetInvViewProjectionMatrix());
 	const int32 DebugMode = FMath::Clamp(CVarTimeThiefSmokeDebugView.GetValueOnRenderThread(), 0, 10);
 	const bool bUseScissor = CVarTimeThiefSmokeScissor.GetValueOnRenderThread() != 0;
@@ -728,19 +747,29 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 	{
 		FRenderSmokeState& State = *RenderStates[StateIndex];
 		const bool bIsLastSmoke = StateIndex == RenderStates.Num() - 1;
-		FIntRect SmokeRect = CurrentSceneColor.ViewRect;
-		if (bUseScissor && !ComputeSmokeScreenRect(View, State.Volume, CurrentSceneColor.ViewRect, SmokeRect))
-		{
-			continue;
-		}
+		const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
 
 		FScreenPassRenderTarget Output = bIsLastSmoke && Inputs.OverrideOutput.IsValid()
 			? Inputs.OverrideOutput
 			: FScreenPassRenderTarget::CreateFromInput(GraphBuilder, CurrentSceneColor, ERenderTargetLoadAction::ELoad, TEXT("TimeThiefSmoke.Composite"));
 
+		FIntRect SmokeRect = Output.ViewRect;
+		if (bUseScissor && !ComputeSmokeScreenRect(View, State.Volume, Output.ViewRect, SmokeRect))
+		{
+			continue;
+		}
+
 		if (Output.Texture != CurrentSceneColor.Texture)
 		{
-			AddCopyTexturePass(GraphBuilder, CurrentSceneColor.Texture, Output.Texture);
+			AddDrawTexturePass(
+				GraphBuilder,
+				ViewInfo,
+				CurrentSceneColor.Texture,
+				Output.Texture,
+				CurrentSceneColor.ViewRect.Min,
+				CurrentSceneColor.ViewRect.Size(),
+				Output.ViewRect.Min,
+				Output.ViewRect.Size());
 		}
 
 		TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
@@ -797,12 +826,24 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 		PassParameters->CarrierParticles = GraphBuilder.CreateSRV(CarrierBuffer);
 		PassParameters->Events = GraphBuilder.CreateSRV(EventBuffer);
+		const FVector2f SceneColorTextureExtent(
+			static_cast<float>(FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.X)),
+			static_cast<float>(FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.Y)));
+		const FVector2f InputRectMin(
+			static_cast<float>(CurrentSceneColor.ViewRect.Min.X),
+			static_cast<float>(CurrentSceneColor.ViewRect.Min.Y));
+		const FVector2f OutputRectMin(
+			static_cast<float>(Output.ViewRect.Min.X),
+			static_cast<float>(Output.ViewRect.Min.Y));
+		const FVector2f InputToOutputScale(
+			static_cast<float>(CurrentSceneColor.ViewRect.Width()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Width())),
+			static_cast<float>(CurrentSceneColor.ViewRect.Height()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Height())));
 		PassParameters->SceneColorUVScaleBias = FVector4f(
-			1.0f / FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.X),
-			1.0f / FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.Y),
-			0.0f,
-			0.0f);
-		PassParameters->ViewRect = CurrentSceneColor.ViewRect;
+			InputToOutputScale.X / SceneColorTextureExtent.X,
+			InputToOutputScale.Y / SceneColorTextureExtent.Y,
+			(InputRectMin.X - OutputRectMin.X * InputToOutputScale.X) / SceneColorTextureExtent.X,
+			(InputRectMin.Y - OutputRectMin.Y * InputToOutputScale.Y) / SceneColorTextureExtent.Y);
+		PassParameters->ViewRect = Output.ViewRect;
 		PassParameters->GridResolution = State.AllocatedGridSize;
 		const bool bUseSparseComposite = State.Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
 			!State.bForceDenseComposite &&
@@ -827,7 +868,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		PassParameters->AgeSeconds = State.Volume.AgeSeconds;
 		PassParameters->DurationSeconds = State.Volume.DurationSeconds;
 		PassParameters->SmokeFadeOutDuration = State.Volume.Settings.SmokeFadeOutDuration;
-		PassParameters->RenderStepCount = FMath::Clamp(State.Volume.Settings.RenderStepCount, 16, 512);
+		PassParameters->RenderStepCount = FMath::Clamp(State.Volume.Settings.RenderStepCount, 8, 512);
 		PassParameters->RenderMaxStepCount = FMath::Clamp(State.Volume.Settings.RenderMaxStepCount, 16, 1024);
 		PassParameters->RenderStepVoxelScale = FMath::Clamp(State.Volume.Settings.RenderStepVoxelScale, 0.1f, 4.0f);
 		PassParameters->DebugMode = DebugMode;
