@@ -57,6 +57,9 @@ protected:
 	void HideMainMenu();
 	void ShowGameResult(int32 Rank, int32 Score, const FString& KillerName);
 	void HideGameResult();
+	void ApplyDLSSSuperResolutionSetting();
+	void ApplyNVIDIAReflexSetting();
+	void ApplyDLSSFrameGenerationSetting();
 
 	UFUNCTION()
 	void HandleNetworkPlayStateChanged(ENetworkPlayState NewState);
@@ -78,6 +81,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TMap<EWidgetType, TSubclassOf<UUserWidget>> SubWidgetClassMap;
+
+	UPROPERTY(EditAnywhere, Category = "Graphics|DLSS")
+	bool bEnableDLSSSuperResolution = true;
+
+	UPROPERTY(EditAnywhere, Category = "Graphics|DLSS")
+	bool bEnableNVIDIAReflex = true;
+
+	UPROPERTY(EditAnywhere, Category = "Graphics|DLSS")
+	bool bEnableDLSSFrameGeneration = true;
 
 	UPROPERTY()
 	TArray<TObjectPtr<UUserWidget>> SubWidgets;
