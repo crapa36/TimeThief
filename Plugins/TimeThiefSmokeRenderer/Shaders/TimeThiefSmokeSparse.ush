@@ -1,0 +1,12 @@
+#pragma once
+
+int3 TimeThiefSmokeAtlasBrickCoord(uint BrickIndirection, int3 AtlasBrickGridResolution)
+{
+	const uint BrickIndex = BrickIndirection - 1u;
+	const uint AtlasX = max((uint)AtlasBrickGridResolution.x, 1u);
+	const uint AtlasY = max((uint)AtlasBrickGridResolution.y, 1u);
+	return int3(
+		(int)(BrickIndex % AtlasX),
+		(int)((BrickIndex / AtlasX) % AtlasY),
+		(int)(BrickIndex / max(AtlasX * AtlasY, 1u)));
+}

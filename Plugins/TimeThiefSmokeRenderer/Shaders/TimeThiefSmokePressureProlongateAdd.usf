@@ -1,0 +1,19 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_PRESSURE_PROLONGATE_ADD_PARAMETERS
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const float3 FineUVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float CoarseCorrection = CoarsePressureIn.SampleLevel(VolumeSampler, saturate(FineUVW), 0.0);
+	const float FinePressure = PressureIn.Load(int4(int3(DispatchThreadId), 0));
+
+	OutPressure[DispatchThreadId] = FinePressure + CoarseCorrection;
+}

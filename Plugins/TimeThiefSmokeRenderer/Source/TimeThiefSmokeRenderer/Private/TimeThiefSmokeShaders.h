@@ -126,6 +126,39 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeBuildBrickOccupancyCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildBrickOccupancyCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildBrickOccupancyCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_BUILD_BRICK_OCCUPANCY_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeExpandBrickOccupancyCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeExpandBrickOccupancyCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeExpandBrickOccupancyCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_EXPAND_BRICK_OCCUPANCY_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeScatterSparseAtlasCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeScatterSparseAtlasCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeScatterSparseAtlasCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_SCATTER_SPARSE_ATLAS_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeDivergenceCS : public FGlobalShader
 {
 public:
@@ -134,6 +167,28 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_DIVERGENCE_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeBuildMacVelocityCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildMacVelocityCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildMacVelocityCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_BUILD_MAC_VELOCITY_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeMacDivergenceCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeMacDivergenceCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeMacDivergenceCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_MAC_DIVERGENCE_CS_PARAMETERS
 	END_SHADER_PARAMETER_STRUCT()
 };
 
@@ -159,6 +214,39 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokePressureResidualCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePressureResidualCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePressureResidualCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_PRESSURE_RESIDUAL_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokePressureRestrictCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePressureRestrictCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePressureRestrictCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_PRESSURE_RESTRICT_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokePressureProlongateAddCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePressureProlongateAddCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePressureProlongateAddCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_PRESSURE_PROLONGATE_ADD_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeProjectVelocityCS : public FGlobalShader
 {
 public:
@@ -167,6 +255,28 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_PROJECT_VELOCITY_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeProjectMacVelocityCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeProjectMacVelocityCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeProjectMacVelocityCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_PROJECT_MAC_VELOCITY_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeMacToCollocatedVelocityCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeMacToCollocatedVelocityCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeMacToCollocatedVelocityCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_MAC_TO_COLLOCATED_VELOCITY_CS_PARAMETERS
 	END_SHADER_PARAMETER_STRUCT()
 };
 

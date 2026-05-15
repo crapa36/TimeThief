@@ -1,0 +1,37 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeSparse.ush"
+
+TIME_THIEF_SMOKE_SCATTER_SPARSE_ATLAS_PARAMETERS
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 CellCoord = int3(DispatchThreadId);
+	const int3 BrickCoord = clamp(CellCoord / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	const uint BrickIndirection = BrickOccupancyTexture.Load(int4(BrickCoord, 0));
+	if (BrickIndirection == 0u || BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
+	{
+		return;
+	}
+
+	const int3 AtlasBrickCoord = TimeThiefSmokeAtlasBrickCoord(BrickIndirection, SparseAtlasBrickGridResolution);
+	if (any(AtlasBrickCoord >= SparseAtlasBrickGridResolution))
+	{
+		return;
+	}
+
+	const int3 LocalCellCoord = CellCoord - BrickCoord * SafeBrickSize;
+	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
+
+	OutSparseDensityAtlas[AtlasCoord] = DensityTexture.Load(int4(CellCoord, 0));
+	OutSparseWarpAtlas[AtlasCoord] = WarpTexture.Load(int4(CellCoord, 0));
+	OutSparseBulletCutoutAtlas[AtlasCoord] = BulletCutoutTexture.Load(int4(CellCoord, 0));
+	OutSparseBulletSinkAtlas[AtlasCoord] = BulletSinkTexture.Load(int4(CellCoord, 0));
+}

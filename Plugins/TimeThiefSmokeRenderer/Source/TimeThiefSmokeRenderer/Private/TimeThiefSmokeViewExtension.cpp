@@ -12,6 +12,8 @@
 #include "ScreenPass.h"
 #include "TimeThiefSmokeShaders.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogTimeThiefSmokeRenderer, Log, All);
+
 namespace
 {
 	constexpr uint32 SmokeThreadGroupSize = 4;
@@ -20,11 +22,16 @@ namespace
 	constexpr int32 MaxShaderEventCount = 128;
 	constexpr int32 MaxDebugEventCount = 128;
 	constexpr float ObstacleMaskBlendDuration = 0.25f;
+	constexpr int32 MultigridMaxLevelCount = 4;
+	constexpr int32 MultigridCycleCount = 2;
+	constexpr int32 MultigridPreSmoothPassCount = 2;
+	constexpr int32 MultigridPostSmoothPassCount = 2;
+	constexpr int32 MultigridCoarsestSmoothPassCount = 12;
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeDebugView(
 		TEXT("r.TimeThiefSmoke.DebugView"),
 		0,
-		TEXT("Custom smoke debug view. 0=off, 1=density, 2=obstacle, 3=bullet fields, 4=carrier particles, 5=events, 6=warp."));
+		TEXT("Custom smoke debug view. 0=off, 1=density, 2=obstacle, 3=bullet fields, 4=carrier particles, 5=events, 6=warp, 7=active bricks, 8=divergence, 9=bounds, 10=analytic bullet."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeScissor(
 		TEXT("r.TimeThiefSmoke.Scissor"),
@@ -46,7 +53,7 @@ namespace
 
 	FIntVector MakeGridSize(const int32 Resolution, const FVector3f& BoundsExtent)
 	{
-		const int32 MaxAxisResolution = FMath::Clamp(Resolution, 16, 192);
+		const int32 MaxAxisResolution = FMath::Clamp(Resolution, 16, 512);
 		const FVector3f AbsExtent(FMath::Abs(BoundsExtent.X), FMath::Abs(BoundsExtent.Y), FMath::Abs(BoundsExtent.Z));
 		const float MaxExtent = FMath::Max(FMath::Max(AbsExtent.X, AbsExtent.Y), AbsExtent.Z);
 
@@ -67,6 +74,98 @@ namespace
 			FMath::DivideAndRoundUp(GridSize.X, static_cast<int32>(SmokeThreadGroupSize)),
 			FMath::DivideAndRoundUp(GridSize.Y, static_cast<int32>(SmokeThreadGroupSize)),
 			FMath::DivideAndRoundUp(GridSize.Z, static_cast<int32>(SmokeThreadGroupSize)));
+	}
+
+	FVector3f MakeCellSize(const FTimeThiefSmokeRendererVolume& Volume, const FIntVector& GridSize)
+	{
+		const FVector3f GridSizeFloat(
+			static_cast<float>(FMath::Max(GridSize.X, 1)),
+			static_cast<float>(FMath::Max(GridSize.Y, 1)),
+			static_cast<float>(FMath::Max(GridSize.Z, 1)));
+		return (FVector3f(Volume.BoundsExtent) * 2.0f) / GridSizeFloat;
+	}
+
+	FIntVector MakeCoarseGridSize(const FIntVector& FineGridSize)
+	{
+		return FIntVector(
+			FMath::Max(4, FMath::DivideAndRoundUp(FineGridSize.X, 2)),
+			FMath::Max(4, FMath::DivideAndRoundUp(FineGridSize.Y, 2)),
+			FMath::Max(4, FMath::DivideAndRoundUp(FineGridSize.Z, 2)));
+	}
+
+	FIntVector MakeBrickGridSize(const FIntVector& GridSize, const int32 BrickSize)
+	{
+		const int32 SafeBrickSize = FMath::Max(BrickSize, 1);
+		return FIntVector(
+			FMath::Max(1, FMath::DivideAndRoundUp(GridSize.X, SafeBrickSize)),
+			FMath::Max(1, FMath::DivideAndRoundUp(GridSize.Y, SafeBrickSize)),
+			FMath::Max(1, FMath::DivideAndRoundUp(GridSize.Z, SafeBrickSize)));
+	}
+
+	FIntVector MakeSparseAtlasBrickGridSize(const int32 MaxActiveBricks)
+	{
+		const int32 SafeMaxActiveBricks = FMath::Max(MaxActiveBricks, 1);
+		const int32 Axis = FMath::Max(1, FMath::CeilToInt(FMath::Pow(static_cast<float>(SafeMaxActiveBricks), 1.0f / 3.0f)));
+		const int32 SliceCount = FMath::Max(1, FMath::DivideAndRoundUp(SafeMaxActiveBricks, Axis * Axis));
+		return FIntVector(Axis, Axis, SliceCount);
+	}
+
+	FIntVector MakeSparseAtlasGridSize(const FIntVector& AtlasBrickGridSize, const int32 BrickSize)
+	{
+		const int32 SafeBrickSize = FMath::Max(BrickSize, 1);
+		return FIntVector(
+			FMath::Max(1, AtlasBrickGridSize.X * SafeBrickSize),
+			FMath::Max(1, AtlasBrickGridSize.Y * SafeBrickSize),
+			FMath::Max(1, AtlasBrickGridSize.Z * SafeBrickSize));
+	}
+
+	int32 NextLowerSmokeResolutionTier(const int32 Resolution)
+	{
+		if (Resolution > 384)
+		{
+			return 384;
+		}
+		return 256;
+	}
+
+	FIntVector MakeBudgetedGridSize(
+		const FTimeThiefSmokeRendererVolume& Volume,
+		const int32 SparseResolutionCap,
+		int32& OutEffectiveResolution,
+		bool& bOutBudgetOverflow)
+	{
+		const int32 RequestedResolution = FMath::Clamp(Volume.Settings.SmokeGridResolution, 16, 512);
+		const int32 ResolutionCap = SparseResolutionCap > 0 ? FMath::Clamp(SparseResolutionCap, 16, 512) : RequestedResolution;
+		int32 EffectiveResolution = FMath::Min(RequestedResolution, ResolutionCap);
+		bOutBudgetOverflow = EffectiveResolution < RequestedResolution;
+		OutEffectiveResolution = EffectiveResolution;
+		return MakeGridSize(EffectiveResolution, Volume.BoundsExtent);
+	}
+
+	FRDGTextureRef CreateTransientScalarTexture(
+		FRDGBuilder& GraphBuilder,
+		const FIntVector& GridSize,
+		const TCHAR* Name)
+	{
+		const FRDGTextureDesc Desc = FRDGTextureDesc::Create3D(
+			GridSize,
+			PF_R16F,
+			FClearValueBinding::Black,
+			TexCreate_ShaderResource | TexCreate_UAV);
+		return GraphBuilder.CreateTexture(Desc, Name);
+	}
+
+	FRDGTextureRef CreateTransientUIntTexture(
+		FRDGBuilder& GraphBuilder,
+		const FIntVector& GridSize,
+		const TCHAR* Name)
+	{
+		const FRDGTextureDesc Desc = FRDGTextureDesc::Create3D(
+			GridSize,
+			PF_R32_UINT,
+			FClearValueBinding::Black,
+			TexCreate_ShaderResource | TexCreate_UAV);
+		return GraphBuilder.CreateTexture(Desc, Name);
 	}
 
 	FTimeThiefSmokeEventShaderData ToShaderEvent(const FTimeThiefSmokeRendererEvent& Event)
@@ -91,6 +190,31 @@ namespace
 			static_cast<float>(Event.Seed));
 		ShaderEvent.PreviousPositionSpeed = FVector4f(Event.PreviousPosition.X, Event.PreviousPosition.Y, Event.PreviousPosition.Z, Event.Speed);
 		return ShaderEvent;
+	}
+
+	FRDGBufferRef CreateSmokeEventBuffer(
+		FRDGBuilder& GraphBuilder,
+		const TArray<FTimeThiefSmokeRendererEvent>& Events,
+		int32& OutEventCount,
+		const TCHAR* Name)
+	{
+		OutEventCount = FMath::Min(Events.Num(), MaxShaderEventCount);
+		TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
+		ShaderEvents.Reserve(FMath::Max(OutEventCount, 1));
+		for (int32 EventIndex = 0; EventIndex < OutEventCount; ++EventIndex)
+		{
+			ShaderEvents.Add(ToShaderEvent(Events[EventIndex]));
+		}
+		if (ShaderEvents.IsEmpty())
+		{
+			ShaderEvents.AddDefaulted();
+		}
+
+		FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
+			FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
+			Name);
+		GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
+		return EventBuffer;
 	}
 
 	FTransform ToDoubleTransform(const FTransform3f& Transform)
@@ -203,7 +327,87 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 
 		ActiveSmokeIds.Add(Volume.SmokeId);
 		FRenderSmokeState& State = SmokeStates.FindOrAdd(Volume.SmokeId);
-		const FIntVector NewGridSize = MakeGridSize(Volume.Settings.SmokeGridResolution, Volume.BoundsExtent);
+		const bool bSparseBackend = Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac;
+		if (!bSparseBackend)
+		{
+			State.SparseResolutionCap = 0;
+			State.bWarnedBrickBudgetOverflow = false;
+			State.bForceDenseComposite = false;
+		}
+		if (bSparseBackend && State.bActiveBrickCountReadbackPending && State.ActiveBrickCountReadback.IsValid() && State.ActiveBrickCountReadback->IsReady())
+		{
+			const uint32* ActiveBrickCount = static_cast<const uint32*>(State.ActiveBrickCountReadback->Lock(sizeof(uint32)));
+			State.LastActiveBrickCount = ActiveBrickCount ? ActiveBrickCount[0] : 0u;
+			State.ActiveBrickCountReadback->Unlock();
+			State.bActiveBrickCountReadbackPending = false;
+
+			const int32 MaxActiveSmokeBricks = FMath::Max(Volume.Settings.MaxActiveSmokeBricks, 1);
+			if (State.LastActiveBrickCount > static_cast<uint32>(MaxActiveSmokeBricks))
+			{
+				const int32 CurrentResolution = State.EffectiveSmokeGridResolution > 0
+					? State.EffectiveSmokeGridResolution
+					: FMath::Clamp(Volume.Settings.SmokeGridResolution, 16, 512);
+				const int32 NextResolutionCap = NextLowerSmokeResolutionTier(CurrentResolution);
+				if (NextResolutionCap >= CurrentResolution)
+				{
+					const bool bFallbackChanged = !State.bForceDenseComposite;
+					State.bForceDenseComposite = true;
+					if (!State.bWarnedBrickBudgetOverflow || bFallbackChanged)
+					{
+						UE_LOG(
+							LogTimeThiefSmokeRenderer,
+							Warning,
+							TEXT("SmokeId %d active brick count %u exceeded sparse brick budget %d at minimum sparse resolution %d; using dense composite fallback."),
+							Volume.SmokeId,
+							State.LastActiveBrickCount,
+							MaxActiveSmokeBricks,
+							CurrentResolution);
+					}
+				}
+				else
+				{
+					const bool bCapChanged = State.SparseResolutionCap <= 0 || NextResolutionCap < State.SparseResolutionCap;
+					State.SparseResolutionCap = State.SparseResolutionCap > 0
+						? FMath::Min(State.SparseResolutionCap, NextResolutionCap)
+						: NextResolutionCap;
+					State.bForceDenseComposite = false;
+					if (!State.bWarnedBrickBudgetOverflow || bCapChanged)
+					{
+						UE_LOG(
+							LogTimeThiefSmokeRenderer,
+							Warning,
+							TEXT("SmokeId %d active brick count %u exceeded sparse brick budget %d; capping next-frame resolution to %d."),
+							Volume.SmokeId,
+							State.LastActiveBrickCount,
+							MaxActiveSmokeBricks,
+							State.SparseResolutionCap);
+					}
+				}
+				State.bWarnedBrickBudgetOverflow = true;
+			}
+			else
+			{
+				State.bForceDenseComposite = false;
+				if (State.SparseResolutionCap > 0 && State.LastActiveBrickCount < static_cast<uint32>(MaxActiveSmokeBricks / 2))
+				{
+					State.SparseResolutionCap = 0;
+					State.bWarnedBrickBudgetOverflow = false;
+				}
+			}
+		}
+		if (bSparseBackend && State.SparseResolutionCap > 0 && Volume.Settings.SmokeGridResolution <= State.SparseResolutionCap)
+		{
+			State.SparseResolutionCap = 0;
+			State.bWarnedBrickBudgetOverflow = false;
+		}
+		int32 EffectiveResolution = 0;
+		bool bBrickBudgetOverflow = false;
+		const FIntVector NewGridSize = MakeBudgetedGridSize(Volume, bSparseBackend ? State.SparseResolutionCap : 0, EffectiveResolution, bBrickBudgetOverflow);
+		if (!bSparseBackend || (!bBrickBudgetOverflow && !State.bForceDenseComposite))
+		{
+			State.bWarnedBrickBudgetOverflow = false;
+		}
+		State.EffectiveSmokeGridResolution = EffectiveResolution;
 		if (State.AllocatedGridSize != NewGridSize)
 		{
 			State.AllocatedGridSize = NewGridSize;
@@ -211,6 +415,12 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.DensityTextures[1].SafeRelease();
 			State.VelocityTextures[0].SafeRelease();
 			State.VelocityTextures[1].SafeRelease();
+			State.MacVelocityUTextures[0].SafeRelease();
+			State.MacVelocityUTextures[1].SafeRelease();
+			State.MacVelocityVTextures[0].SafeRelease();
+			State.MacVelocityVTextures[1].SafeRelease();
+			State.MacVelocityWTextures[0].SafeRelease();
+			State.MacVelocityWTextures[1].SafeRelease();
 			State.PressureTextures[0].SafeRelease();
 			State.PressureTextures[1].SafeRelease();
 			State.DivergenceTexture.SafeRelease();
@@ -222,6 +432,11 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.WarpTextures[0].SafeRelease();
 			State.WarpTextures[1].SafeRelease();
 			State.ObstacleTexture.SafeRelease();
+			State.BrickOccupancyTexture.SafeRelease();
+			State.SparseDensityAtlasTexture.SafeRelease();
+			State.SparseWarpAtlasTexture.SafeRelease();
+			State.SparseBulletCutoutAtlasTexture.SafeRelease();
+			State.SparseBulletSinkAtlasTexture.SafeRelease();
 			State.CarrierParticleBuffers[0].SafeRelease();
 			State.CarrierParticleBuffers[1].SafeRelease();
 			State.VortexParticleBuffers[0].SafeRelease();
@@ -232,7 +447,11 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.CurrentWarpIndex = 0;
 			State.CurrentCarrierParticleIndex = 0;
 			State.CurrentVortexParticleIndex = 0;
+			State.AnalyticBulletEvents.Reset();
 			State.AllocatedObstacleResolution = 0;
+			State.AllocatedBrickGridSize = FIntVector::ZeroValue;
+			State.AllocatedSparseAtlasBrickGridSize = FIntVector::ZeroValue;
+			State.AllocatedSparseAtlasGridSize = FIntVector::ZeroValue;
 			State.UploadedObstacleMaskRevision = MAX_uint32;
 			State.TargetObstacleMaskRevision = MAX_uint32;
 			State.ObstacleMaskBlendAge = 1.0f;
@@ -254,7 +473,19 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 		}
 		else
 		{
-			It.Value().LastDebugEvents.Reset();
+			FRenderSmokeState& State = It.Value();
+			State.LastDebugEvents.Reset();
+			const float BulletLife = FMath::Max(State.Volume.Settings.BulletWakeMaxVisibleLife, 0.001f);
+			const float BulletAgeStep = FMath::Max(LastFrameDeltaSeconds, 0.0f) / BulletLife;
+			for (FTimeThiefSmokeRendererEvent& Event : State.AnalyticBulletEvents)
+			{
+				Event.NormalizedAge = FMath::Clamp(Event.NormalizedAge + BulletAgeStep, 0.0f, 1.0f);
+			}
+			State.AnalyticBulletEvents.RemoveAll(
+				[](const FTimeThiefSmokeRendererEvent& Event)
+				{
+					return Event.NormalizedAge >= 1.0f;
+				});
 		}
 	}
 
@@ -270,6 +501,18 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 				{
 					State->LastDebugEvents.Add(Event);
 				}
+			}
+
+			if (Event.Type == ETimeThiefSmokeRendererInteractionType::BulletWake)
+			{
+				while (State->AnalyticBulletEvents.Num() >= MaxDebugEventCount)
+				{
+					State->AnalyticBulletEvents.RemoveAt(0, 1, EAllowShrinking::No);
+				}
+
+				FTimeThiefSmokeRendererEvent AnalyticEvent = Event;
+				AnalyticEvent.NormalizedAge = 0.0f;
+				State->AnalyticBulletEvents.Add(AnalyticEvent);
 			}
 		}
 	}
@@ -330,7 +573,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 	const FScreenPassViewInfo ViewInfo(View);
 	const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
 	const FMatrix44f InvViewProjection(View.ViewMatrices.GetInvViewProjectionMatrix());
-	const int32 DebugMode = FMath::Clamp(CVarTimeThiefSmokeDebugView.GetValueOnRenderThread(), 0, 6);
+	const int32 DebugMode = FMath::Clamp(CVarTimeThiefSmokeDebugView.GetValueOnRenderThread(), 0, 10);
 	const bool bUseScissor = CVarTimeThiefSmokeScissor.GetValueOnRenderThread() != 0;
 
 	TArray<FRenderSmokeState*> RenderStates;
@@ -342,6 +585,12 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 			State.WarpTextures[State.CurrentWarpIndex].IsValid() &&
 			State.BulletCutoutTextures[State.CurrentBulletFieldIndex].IsValid() &&
 			State.BulletSinkTextures[State.CurrentBulletFieldIndex].IsValid() &&
+			State.DivergenceTexture.IsValid() &&
+			State.BrickOccupancyTexture.IsValid() &&
+			State.SparseDensityAtlasTexture.IsValid() &&
+			State.SparseWarpAtlasTexture.IsValid() &&
+			State.SparseBulletCutoutAtlasTexture.IsValid() &&
+			State.SparseBulletSinkAtlasTexture.IsValid() &&
 			State.CarrierParticleBuffers[State.CurrentCarrierParticleIndex].IsValid())
 		{
 			RenderStates.Add(&State);
@@ -373,11 +622,28 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		}
 
 		TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-		ShaderEvents.Reserve(State.LastDebugEvents.Num());
-		for (const FTimeThiefSmokeRendererEvent& Event : State.LastDebugEvents)
+		ShaderEvents.Reserve(State.LastDebugEvents.Num() + State.AnalyticBulletEvents.Num());
+		for (const FTimeThiefSmokeRendererEvent& Event : State.AnalyticBulletEvents)
 		{
+			if (ShaderEvents.Num() >= MaxDebugEventCount)
+			{
+				break;
+			}
 			ShaderEvents.Add(ToShaderEvent(Event));
 		}
+		for (const FTimeThiefSmokeRendererEvent& Event : State.LastDebugEvents)
+		{
+			if (ShaderEvents.Num() >= MaxDebugEventCount)
+			{
+				break;
+			}
+			if (Event.Type == ETimeThiefSmokeRendererInteractionType::BulletWake)
+			{
+				continue;
+			}
+			ShaderEvents.Add(ToShaderEvent(Event));
+		}
+		const int32 ShaderEventCount = ShaderEvents.Num();
 		if (ShaderEvents.IsEmpty())
 		{
 			ShaderEvents.AddDefaulted();
@@ -397,6 +663,12 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		PassParameters->SceneDepthTexture = Inputs.SceneTextures.SceneTextures->GetParameters()->SceneDepthTexture;
 		PassParameters->SceneColorSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 		PassParameters->DensityTexture = GraphBuilder.RegisterExternalTexture(State.DensityTextures[State.CurrentDensityIndex]);
+		PassParameters->DivergenceTexture = GraphBuilder.RegisterExternalTexture(State.DivergenceTexture);
+		PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
+		PassParameters->SparseDensityAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseDensityAtlasTexture);
+		PassParameters->SparseWarpAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseWarpAtlasTexture);
+		PassParameters->SparseBulletCutoutAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseBulletCutoutAtlasTexture);
+		PassParameters->SparseBulletSinkAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseBulletSinkAtlasTexture);
 		PassParameters->WarpTexture = GraphBuilder.RegisterExternalTexture(State.WarpTextures[State.CurrentWarpIndex]);
 		PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 		PassParameters->BulletCutoutTexture = GraphBuilder.RegisterExternalTexture(State.BulletCutoutTextures[State.CurrentBulletFieldIndex]);
@@ -411,6 +683,11 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 			0.0f);
 		PassParameters->ViewRect = CurrentSceneColor.ViewRect;
 		PassParameters->GridResolution = State.AllocatedGridSize;
+		PassParameters->bUseSparseAtlas = (State.Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac && !State.bForceDenseComposite) ? 1u : 0u;
+		PassParameters->MaxActiveSmokeBricks = FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1);
+		PassParameters->BrickGridResolution = State.AllocatedBrickGridSize;
+		PassParameters->SparseAtlasBrickGridResolution = State.AllocatedSparseAtlasBrickGridSize;
+		PassParameters->SmokeBrickSize = FMath::Clamp(State.Volume.Settings.SmokeBrickSize, 4, 32);
 		PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 		PassParameters->RenderBoundsExtent = FVector3f(State.Volume.RenderBoundsExtent);
 		PassParameters->Extinction = State.Volume.Settings.Extinction;
@@ -426,10 +703,12 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		PassParameters->AgeSeconds = State.Volume.AgeSeconds;
 		PassParameters->DurationSeconds = State.Volume.DurationSeconds;
 		PassParameters->SmokeFadeOutDuration = State.Volume.Settings.SmokeFadeOutDuration;
-		PassParameters->RenderStepCount = FMath::Clamp(State.Volume.Settings.RenderStepCount, 16, 192);
+		PassParameters->RenderStepCount = FMath::Clamp(State.Volume.Settings.RenderStepCount, 16, 512);
+		PassParameters->RenderMaxStepCount = FMath::Clamp(State.Volume.Settings.RenderMaxStepCount, 16, 1024);
+		PassParameters->RenderStepVoxelScale = FMath::Clamp(State.Volume.Settings.RenderStepVoxelScale, 0.1f, 4.0f);
 		PassParameters->DebugMode = DebugMode;
 		PassParameters->CarrierParticleCount = FMath::Min(State.AllocatedCarrierParticleCount, MaxCarrierParticleCount);
-		PassParameters->EventCount = FMath::Min(State.LastDebugEvents.Num(), MaxDebugEventCount);
+		PassParameters->EventCount = ShaderEventCount;
 		PassParameters->InvViewProjection = InvViewProjection;
 		PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 		PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
@@ -468,6 +747,21 @@ void FTimeThiefSmokeViewExtension::EnsureResources(FRDGBuilder& GraphBuilder, FR
 		PF_R16F,
 		FClearValueBinding::Black,
 		TexCreate_ShaderResource | TexCreate_UAV);
+	const bool bSparseBackend = State.Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac;
+	const int32 BrickSize = FMath::Clamp(State.Volume.Settings.SmokeBrickSize, 4, 32);
+	const FIntVector BrickGridSize = bSparseBackend ? MakeBrickGridSize(GridSize, BrickSize) : FIntVector(1, 1, 1);
+	const FIntVector SparseAtlasBrickGridSize = bSparseBackend ? MakeSparseAtlasBrickGridSize(State.Volume.Settings.MaxActiveSmokeBricks) : FIntVector(1, 1, 1);
+	const FIntVector SparseAtlasGridSize = bSparseBackend ? MakeSparseAtlasGridSize(SparseAtlasBrickGridSize, BrickSize) : FIntVector(1, 1, 1);
+	const FRDGTextureDesc BrickOccupancyDesc = FRDGTextureDesc::Create3D(
+		BrickGridSize,
+		PF_R32_UINT,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+	const FRDGTextureDesc SparseAtlasDesc = FRDGTextureDesc::Create3D(
+		SparseAtlasGridSize,
+		PF_R16F,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
 
 	for (int32 TextureIndex = 0; TextureIndex < 2; ++TextureIndex)
 	{
@@ -481,6 +775,33 @@ void FTimeThiefSmokeViewExtension::EnsureResources(FRDGBuilder& GraphBuilder, FR
 		{
 			AllocatePooledTexture(VelocityDesc, State.VelocityTextures[TextureIndex], TEXT("TimeThiefSmoke.Velocity"));
 			State.bNeedsInit = true;
+		}
+
+		if (bSparseBackend && !State.MacVelocityUTextures[TextureIndex].IsValid())
+		{
+			AllocatePooledTexture(ScalarDesc, State.MacVelocityUTextures[TextureIndex], TEXT("TimeThiefSmoke.MacVelocityU"));
+		}
+		else if (!bSparseBackend)
+		{
+			State.MacVelocityUTextures[TextureIndex].SafeRelease();
+		}
+
+		if (bSparseBackend && !State.MacVelocityVTextures[TextureIndex].IsValid())
+		{
+			AllocatePooledTexture(ScalarDesc, State.MacVelocityVTextures[TextureIndex], TEXT("TimeThiefSmoke.MacVelocityV"));
+		}
+		else if (!bSparseBackend)
+		{
+			State.MacVelocityVTextures[TextureIndex].SafeRelease();
+		}
+
+		if (bSparseBackend && !State.MacVelocityWTextures[TextureIndex].IsValid())
+		{
+			AllocatePooledTexture(ScalarDesc, State.MacVelocityWTextures[TextureIndex], TEXT("TimeThiefSmoke.MacVelocityW"));
+		}
+		else if (!bSparseBackend)
+		{
+			State.MacVelocityWTextures[TextureIndex].SafeRelease();
 		}
 
 		if (!State.PressureTextures[TextureIndex].IsValid())
@@ -518,6 +839,31 @@ void FTimeThiefSmokeViewExtension::EnsureResources(FRDGBuilder& GraphBuilder, FR
 	{
 		AllocatePooledTexture(VelocityDesc, State.BulletImpulseTexture, TEXT("TimeThiefSmoke.BulletImpulse"));
 		State.bNeedsInit = true;
+	}
+
+	if (!State.BrickOccupancyTexture.IsValid() || State.AllocatedBrickGridSize != BrickGridSize)
+	{
+		State.BrickOccupancyTexture.SafeRelease();
+		AllocatePooledTexture(BrickOccupancyDesc, State.BrickOccupancyTexture, TEXT("TimeThiefSmoke.BrickOccupancy"));
+		State.AllocatedBrickGridSize = BrickGridSize;
+	}
+
+	if (!State.SparseDensityAtlasTexture.IsValid() ||
+		!State.SparseWarpAtlasTexture.IsValid() ||
+		!State.SparseBulletCutoutAtlasTexture.IsValid() ||
+		!State.SparseBulletSinkAtlasTexture.IsValid() ||
+		State.AllocatedSparseAtlasGridSize != SparseAtlasGridSize)
+	{
+		State.SparseDensityAtlasTexture.SafeRelease();
+		State.SparseWarpAtlasTexture.SafeRelease();
+		State.SparseBulletCutoutAtlasTexture.SafeRelease();
+		State.SparseBulletSinkAtlasTexture.SafeRelease();
+		AllocatePooledTexture(SparseAtlasDesc, State.SparseDensityAtlasTexture, TEXT("TimeThiefSmoke.SparseDensityAtlas"));
+		AllocatePooledTexture(SparseAtlasDesc, State.SparseWarpAtlasTexture, TEXT("TimeThiefSmoke.SparseWarpAtlas"));
+		AllocatePooledTexture(SparseAtlasDesc, State.SparseBulletCutoutAtlasTexture, TEXT("TimeThiefSmoke.SparseBulletCutoutAtlas"));
+		AllocatePooledTexture(SparseAtlasDesc, State.SparseBulletSinkAtlasTexture, TEXT("TimeThiefSmoke.SparseBulletSinkAtlas"));
+		State.AllocatedSparseAtlasBrickGridSize = SparseAtlasBrickGridSize;
+		State.AllocatedSparseAtlasGridSize = SparseAtlasGridSize;
 	}
 
 	EnsureObstacleTexture(GraphBuilder, State);
@@ -760,26 +1106,11 @@ void FTimeThiefSmokeViewExtension::AddCarrierParticleUpdatePass(
 	FRenderSmokeState& State,
 	FRDGBufferRef CarrierIn,
 	FRDGBufferRef CarrierOut,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events,
+	FRDGBufferRef EventBuffer,
+	int32 EventCount,
 	float DeltaSeconds)
 {
 	const int32 CarrierParticleCount = FMath::Clamp(State.Volume.Settings.CarrierParticleCount, 1, MaxCarrierParticleCount);
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.CarrierEvents"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
-
 	TShaderMapRef<FTimeThiefSmokeCarrierUpdateCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeCarrierUpdateCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeCarrierUpdateCS::FParameters>();
 	PassParameters->CarrierParticlesIn = GraphBuilder.CreateSRV(CarrierIn);
@@ -789,7 +1120,7 @@ void FTimeThiefSmokeViewExtension::AddCarrierParticleUpdatePass(
 	PassParameters->DriftSpeed = State.Volume.Settings.CarrierParticleDriftSpeed;
 	PassParameters->InteractionStrength = State.Volume.Settings.CarrierParticleInteractionStrength;
 	PassParameters->CarrierParticleCount = CarrierParticleCount;
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
@@ -797,7 +1128,7 @@ void FTimeThiefSmokeViewExtension::AddCarrierParticleUpdatePass(
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.CarrierUpdate SmokeId=%d Events=%d", State.Volume.SmokeId, Events.Num()),
+		RDG_EVENT_NAME("TimeThiefSmoke.CarrierUpdate SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
 		FIntVector(FMath::DivideAndRoundUp(CarrierParticleCount, 64), 1, 1));
@@ -812,27 +1143,11 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleUpdatePass(
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events,
+	FRDGBufferRef EventBuffer,
+	int32 EventCount,
 	float DeltaSeconds)
 {
 	const int32 VortexParticleCount = FMath::Clamp(State.Volume.Settings.VortexParticleCount, 1, MaxVortexParticleCount);
-
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.VortexParticleEvents"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
-
 	TShaderMapRef<FTimeThiefSmokeUpdateVortexParticlesCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeUpdateVortexParticlesCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeUpdateVortexParticlesCS::FParameters>();
 	PassParameters->VortexParticlesIn = GraphBuilder.CreateSRV(VortexIn);
@@ -852,7 +1167,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleUpdatePass(
 	PassParameters->VortexParticleLifeSeconds = FMath::Max(0.05f, State.Volume.Settings.VortexParticleLifeSeconds);
 	PassParameters->VortexParticleStrength = State.Volume.Settings.VortexParticleStrength;
 	PassParameters->VortexDensityGradientScale = FMath::Max(0.0f, State.Volume.Settings.VortexDensityGradientScale);
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 	PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 
@@ -909,6 +1224,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	EnsureResources(GraphBuilder, State);
 	EnsureCarrierParticleBuffers(GraphBuilder, State);
 	EnsureVortexParticleBuffers(GraphBuilder, State);
+	const bool bUseMacProjection = State.Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac;
 
 	FRDGTextureRef DensityTextures[2] =
 	{
@@ -920,6 +1236,18 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		GraphBuilder.RegisterExternalTexture(State.VelocityTextures[0]),
 		GraphBuilder.RegisterExternalTexture(State.VelocityTextures[1])
 	};
+	FRDGTextureRef MacVelocityUTextures[2] = {};
+	FRDGTextureRef MacVelocityVTextures[2] = {};
+	FRDGTextureRef MacVelocityWTextures[2] = {};
+	if (bUseMacProjection)
+	{
+		MacVelocityUTextures[0] = GraphBuilder.RegisterExternalTexture(State.MacVelocityUTextures[0]);
+		MacVelocityUTextures[1] = GraphBuilder.RegisterExternalTexture(State.MacVelocityUTextures[1]);
+		MacVelocityVTextures[0] = GraphBuilder.RegisterExternalTexture(State.MacVelocityVTextures[0]);
+		MacVelocityVTextures[1] = GraphBuilder.RegisterExternalTexture(State.MacVelocityVTextures[1]);
+		MacVelocityWTextures[0] = GraphBuilder.RegisterExternalTexture(State.MacVelocityWTextures[0]);
+		MacVelocityWTextures[1] = GraphBuilder.RegisterExternalTexture(State.MacVelocityWTextures[1]);
+	}
 	FRDGTextureRef PressureTextures[2] =
 	{
 		GraphBuilder.RegisterExternalTexture(State.PressureTextures[0]),
@@ -953,6 +1281,12 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		GraphBuilder.RegisterExternalBuffer(State.VortexParticleBuffers[0], TEXT("TimeThiefSmoke.VortexParticles0")),
 		GraphBuilder.RegisterExternalBuffer(State.VortexParticleBuffers[1], TEXT("TimeThiefSmoke.VortexParticles1"))
 	};
+	int32 SimulationEventCount = 0;
+	FRDGBufferRef SimulationEventBuffer = CreateSmokeEventBuffer(
+		GraphBuilder,
+		State.PendingEvents,
+		SimulationEventCount,
+		TEXT("TimeThiefSmoke.SimulationEvents"));
 
 	if (State.bCarrierParticlesNeedUpload)
 	{
@@ -972,7 +1306,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 
 	const int32 CarrierReadIndex = State.CurrentCarrierParticleIndex;
 	const int32 CarrierWriteIndex = 1 - State.CurrentCarrierParticleIndex;
-	AddCarrierParticleUpdatePass(GraphBuilder, State, CarrierParticleBuffers[CarrierReadIndex], CarrierParticleBuffers[CarrierWriteIndex], State.PendingEvents, DeltaSeconds);
+	AddCarrierParticleUpdatePass(GraphBuilder, State, CarrierParticleBuffers[CarrierReadIndex], CarrierParticleBuffers[CarrierWriteIndex], SimulationEventBuffer, SimulationEventCount, DeltaSeconds);
 	State.CurrentCarrierParticleIndex = CarrierWriteIndex;
 
 	if (State.bNeedsInit)
@@ -1003,7 +1337,8 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		BulletCutoutTextures[BulletWriteIndex],
 		BulletSinkTextures[BulletWriteIndex],
 		BulletImpulseTexture,
-		State.PendingEvents,
+		SimulationEventBuffer,
+		SimulationEventCount,
 		DeltaSeconds);
 	State.CurrentBulletFieldIndex = BulletWriteIndex;
 
@@ -1013,7 +1348,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 
 	const int32 WarpReadIndex = State.CurrentWarpIndex;
 	const int32 WarpWriteIndex = 1 - State.CurrentWarpIndex;
-	AddWarpPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], WarpTextures[WarpReadIndex], WarpTextures[WarpWriteIndex], State.PendingEvents, DeltaSeconds);
+	AddWarpPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], WarpTextures[WarpReadIndex], WarpTextures[WarpWriteIndex], SimulationEventBuffer, SimulationEventCount, DeltaSeconds);
 	State.CurrentWarpIndex = WarpWriteIndex;
 
 	if (!State.PendingEvents.IsEmpty())
@@ -1024,7 +1359,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			const int32 EventReadVelocityIndex = State.CurrentVelocityIndex;
 			const int32 EventWriteDensityIndex = 1 - State.CurrentDensityIndex;
 			const int32 EventWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
-			AddApplyEventsPass(GraphBuilder, State, DensityTextures[EventReadDensityIndex], VelocityTextures[EventReadVelocityIndex], DensityTextures[EventWriteDensityIndex], VelocityTextures[EventWriteVelocityIndex], State.PendingEvents, DeltaSeconds);
+			AddApplyEventsPass(GraphBuilder, State, DensityTextures[EventReadDensityIndex], VelocityTextures[EventReadVelocityIndex], DensityTextures[EventWriteDensityIndex], VelocityTextures[EventWriteVelocityIndex], SimulationEventBuffer, SimulationEventCount, DeltaSeconds);
 			State.CurrentDensityIndex = EventWriteDensityIndex;
 			State.CurrentVelocityIndex = EventWriteVelocityIndex;
 		}
@@ -1035,7 +1370,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			const int32 ObstacleReadVelocityIndex = State.CurrentVelocityIndex;
 			const int32 ObstacleWriteDensityIndex = 1 - State.CurrentDensityIndex;
 			const int32 ObstacleWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
-			AddDynamicObstaclePass(GraphBuilder, State, DensityTextures[ObstacleReadDensityIndex], VelocityTextures[ObstacleReadVelocityIndex], DensityTextures[ObstacleWriteDensityIndex], VelocityTextures[ObstacleWriteVelocityIndex], State.PendingEvents);
+			AddDynamicObstaclePass(GraphBuilder, State, DensityTextures[ObstacleReadDensityIndex], VelocityTextures[ObstacleReadVelocityIndex], DensityTextures[ObstacleWriteDensityIndex], VelocityTextures[ObstacleWriteVelocityIndex], SimulationEventBuffer, SimulationEventCount);
 			State.CurrentDensityIndex = ObstacleWriteDensityIndex;
 			State.CurrentVelocityIndex = ObstacleWriteVelocityIndex;
 		}
@@ -1052,12 +1387,13 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		VelocityTextures[State.CurrentVelocityIndex],
 		BulletCutoutTextures[State.CurrentBulletFieldIndex],
 		BulletSinkTextures[State.CurrentBulletFieldIndex],
-		State.PendingEvents,
+		SimulationEventBuffer,
+		SimulationEventCount,
 		DeltaSeconds);
 	State.CurrentVortexParticleIndex = VortexParticleWriteIndex;
 
 	const int32 VorticityWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
-	AddVorticityPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex], VelocityTextures[VorticityWriteVelocityIndex], State.PendingEvents, DeltaSeconds);
+	AddVorticityPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex], VelocityTextures[VorticityWriteVelocityIndex], SimulationEventBuffer, SimulationEventCount, DeltaSeconds);
 	State.CurrentVelocityIndex = VorticityWriteVelocityIndex;
 
 	const int32 VortexSplatWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
@@ -1073,19 +1409,107 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	State.CurrentVelocityIndex = VortexSplatWriteVelocityIndex;
 	State.PendingEvents.Reset();
 
-	AddDivergencePass(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex], DivergenceTexture, PressureTextures[0]);
-	int32 CurrentPressureIndex = 0;
-	const int32 PressureIterations = FMath::Clamp(State.Volume.Settings.PressureIterations, 1, 64);
-	for (int32 Iteration = 0; Iteration < PressureIterations; ++Iteration)
+	if (bUseMacProjection)
 	{
-		const int32 NextPressureIndex = 1 - CurrentPressureIndex;
-		AddPressureJacobiPass(GraphBuilder, State, PressureTextures[CurrentPressureIndex], DivergenceTexture, ObstacleTexture, PressureTextures[NextPressureIndex]);
-		CurrentPressureIndex = NextPressureIndex;
+		AddBuildMacVelocityPass(
+			GraphBuilder,
+			State,
+			VelocityTextures[State.CurrentVelocityIndex],
+			MacVelocityUTextures[0],
+			MacVelocityVTextures[0],
+			MacVelocityWTextures[0]);
+		AddMacDivergencePass(
+			GraphBuilder,
+			State,
+			MacVelocityUTextures[0],
+			MacVelocityVTextures[0],
+			MacVelocityWTextures[0],
+			DivergenceTexture,
+			PressureTextures[0]);
+	}
+	else
+	{
+		AddDivergencePass(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex], DivergenceTexture, PressureTextures[0]);
+	}
+
+	FRDGTextureRef PressureForProjection = PressureTextures[0];
+	if (State.Volume.Settings.PressureSolver == ETimeThiefSmokePressureSolver::Multigrid)
+	{
+		PressureForProjection = AddPressureSolvePass(GraphBuilder, State, DivergenceTexture, ObstacleTexture, PressureTextures[0], PressureTextures[1]);
+	}
+	else
+	{
+		const FVector3f CellSize = MakeCellSize(State.Volume, State.AllocatedGridSize);
+		int32 CurrentPressureIndex = 0;
+		const int32 PressureIterations = FMath::Clamp(State.Volume.Settings.PressureIterations, 1, 64);
+		for (int32 Iteration = 0; Iteration < PressureIterations; ++Iteration)
+		{
+			const int32 NextPressureIndex = 1 - CurrentPressureIndex;
+			AddPressureJacobiPass(GraphBuilder, State, State.AllocatedGridSize, CellSize, PressureTextures[CurrentPressureIndex], DivergenceTexture, ObstacleTexture, PressureTextures[NextPressureIndex]);
+			CurrentPressureIndex = NextPressureIndex;
+		}
+		PressureForProjection = PressureTextures[CurrentPressureIndex];
 	}
 
 	const int32 ProjectedVelocityIndex = 1 - State.CurrentVelocityIndex;
-	AddProjectVelocityPass(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex], PressureTextures[CurrentPressureIndex], VelocityTextures[ProjectedVelocityIndex]);
+	if (bUseMacProjection)
+	{
+		AddProjectMacVelocityPass(
+			GraphBuilder,
+			State,
+			MacVelocityUTextures[0],
+			MacVelocityVTextures[0],
+			MacVelocityWTextures[0],
+			PressureForProjection,
+			MacVelocityUTextures[1],
+			MacVelocityVTextures[1],
+			MacVelocityWTextures[1]);
+		AddMacToCollocatedVelocityPass(
+			GraphBuilder,
+			State,
+			MacVelocityUTextures[1],
+			MacVelocityVTextures[1],
+			MacVelocityWTextures[1],
+			VelocityTextures[ProjectedVelocityIndex]);
+	}
+	else
+	{
+		AddProjectVelocityPass(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex], PressureForProjection, VelocityTextures[ProjectedVelocityIndex]);
+	}
 	State.CurrentVelocityIndex = ProjectedVelocityIndex;
+
+	if (State.Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac)
+	{
+		FRDGTextureRef BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
+		FRDGTextureRef BrickActivityTexture = CreateTransientUIntTexture(
+			GraphBuilder,
+			State.AllocatedBrickGridSize,
+			TEXT("TimeThiefSmoke.BrickActivity"));
+		AddBuildBrickOccupancyPass(
+			GraphBuilder,
+			State,
+			DensityTextures[State.CurrentDensityIndex],
+			WarpTextures[State.CurrentWarpIndex],
+			BulletCutoutTextures[State.CurrentBulletFieldIndex],
+			BulletSinkTextures[State.CurrentBulletFieldIndex],
+			BrickActivityTexture);
+		AddExpandBrickOccupancyPass(
+			GraphBuilder,
+			State,
+			BrickActivityTexture,
+			BrickOccupancyTexture);
+		if (!State.bForceDenseComposite)
+		{
+			AddScatterSparseAtlasPass(
+				GraphBuilder,
+				State,
+				DensityTextures[State.CurrentDensityIndex],
+				WarpTextures[State.CurrentWarpIndex],
+				BulletCutoutTextures[State.CurrentBulletFieldIndex],
+				BulletSinkTextures[State.CurrentBulletFieldIndex],
+				BrickOccupancyTexture);
+		}
+	}
 }
 
 void FTimeThiefSmokeViewExtension::AddInitPass(
@@ -1122,27 +1546,12 @@ void FTimeThiefSmokeViewExtension::AddApplyEventsPass(
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef DensityOut,
 	FRDGTextureRef VelocityOut,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events,
+	FRDGBufferRef EventBuffer,
+	int32 EventCount,
 	float DeltaSeconds)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.Events"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
 
 	TShaderMapRef<FTimeThiefSmokeApplyEventsCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeApplyEventsCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeApplyEventsCS::FParameters>();
@@ -1156,12 +1565,12 @@ void FTimeThiefSmokeViewExtension::AddApplyEventsPass(
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->DeltaSeconds = DeltaSeconds;
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.ApplyEvents SmokeId=%d Events=%d", State.Volume.SmokeId, Events.Num()),
+		RDG_EVENT_NAME("TimeThiefSmoke.ApplyEvents SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
 		GroupCount);
@@ -1176,27 +1585,12 @@ void FTimeThiefSmokeViewExtension::AddBulletFieldPass(
 	FRDGTextureRef CutoutOut,
 	FRDGTextureRef SinkOut,
 	FRDGTextureRef BulletImpulseOut,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events,
+	FRDGBufferRef EventBuffer,
+	int32 EventCount,
 	float DeltaSeconds)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.BulletFieldEvents"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
 
 	TShaderMapRef<FTimeThiefSmokeBulletSuppressCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeBulletSuppressCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBulletSuppressCS::FParameters>();
@@ -1217,13 +1611,13 @@ void FTimeThiefSmokeViewExtension::AddBulletFieldPass(
 	PassParameters->BulletWakeSinkStrength = FMath::Max(0.0f, State.Volume.Settings.BulletWakeSinkStrength);
 	PassParameters->BulletWakeImpulseStrength = State.Volume.Settings.BulletWakeImpulseStrength;
 	PassParameters->BulletWakeCutoutFeather = FMath::Max(0.2f, State.Volume.Settings.BulletWakeCutoutFeather);
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 	PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.BulletFields SmokeId=%d Events=%d", State.Volume.SmokeId, Events.Num()),
+		RDG_EVENT_NAME("TimeThiefSmoke.BulletFields SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
 		GroupCount);
@@ -1236,26 +1630,11 @@ void FTimeThiefSmokeViewExtension::AddDynamicObstaclePass(
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef DensityOut,
 	FRDGTextureRef VelocityOut,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events)
+	FRDGBufferRef EventBuffer,
+	int32 EventCount)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.DynamicObstacleEvents"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
 
 	TShaderMapRef<FTimeThiefSmokeDynamicObstacleCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeDynamicObstacleCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeDynamicObstacleCS::FParameters>();
@@ -1268,12 +1647,12 @@ void FTimeThiefSmokeViewExtension::AddDynamicObstaclePass(
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.DynamicObstacle SmokeId=%d Events=%d", State.Volume.SmokeId, Events.Num()),
+		RDG_EVENT_NAME("TimeThiefSmoke.DynamicObstacle SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
 		GroupCount);
@@ -1341,27 +1720,12 @@ void FTimeThiefSmokeViewExtension::AddWarpPass(
 	FRDGTextureRef DensityIn,
 	FRDGTextureRef WarpIn,
 	FRDGTextureRef WarpOut,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events,
+	FRDGBufferRef EventBuffer,
+	int32 EventCount,
 	float DeltaSeconds)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.WarpEvents"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
 
 	TShaderMapRef<FTimeThiefSmokeWarpCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeWarpCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeWarpCS::FParameters>();
@@ -1378,12 +1742,12 @@ void FTimeThiefSmokeViewExtension::AddWarpPass(
 	PassParameters->WarpTrailDecayRate = State.Volume.Settings.WarpTrailDecayRate;
 	PassParameters->WarpTrailRadiusScale = State.Volume.Settings.WarpTrailRadiusScale;
 	PassParameters->WarpTrailLengthScale = State.Volume.Settings.WarpTrailLengthScale;
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.Warp SmokeId=%d Events=%d", State.Volume.SmokeId, Events.Num()),
+		RDG_EVENT_NAME("TimeThiefSmoke.Warp SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
 		GroupCount);
@@ -1395,29 +1759,13 @@ void FTimeThiefSmokeViewExtension::AddVorticityPass(
 	FRDGTextureRef DensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef VelocityOut,
-	const TArray<FTimeThiefSmokeRendererEvent>& Events,
+	FRDGBufferRef EventBuffer,
+	int32 EventCount,
 	float DeltaSeconds)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-	const FVector3f GridSizeFloat(static_cast<float>(GridSize.X), static_cast<float>(GridSize.Y), static_cast<float>(GridSize.Z));
-	const FVector3f CellSize = (FVector3f(State.Volume.BoundsExtent) * 2.0f) / GridSizeFloat;
-
-	TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
-	ShaderEvents.Reserve(Events.Num());
-	for (const FTimeThiefSmokeRendererEvent& Event : Events)
-	{
-		ShaderEvents.Add(ToShaderEvent(Event));
-	}
-	if (ShaderEvents.IsEmpty())
-	{
-		ShaderEvents.AddDefaulted();
-	}
-
-	FRDGBufferRef EventBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeEventShaderData), ShaderEvents.Num()),
-		TEXT("TimeThiefSmoke.VorticityEvents"));
-	GraphBuilder.QueueBufferUpload(EventBuffer, ShaderEvents.GetData(), ShaderEvents.Num() * sizeof(FTimeThiefSmokeEventShaderData));
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
 
 	TShaderMapRef<FTimeThiefSmokeVorticityCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeVorticityCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeVorticityCS::FParameters>();
@@ -1436,12 +1784,12 @@ void FTimeThiefSmokeViewExtension::AddVorticityPass(
 	PassParameters->TurbulenceStrength = State.Volume.Settings.TurbulenceStrength;
 	PassParameters->AirInteractionStrength = State.Volume.Settings.AirInteractionStrength;
 	PassParameters->EventVortexStrength = State.Volume.Settings.EventVortexStrength;
-	PassParameters->EventCount = Events.Num();
+	PassParameters->EventCount = EventCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.Vorticity SmokeId=%d Events=%d", State.Volume.SmokeId, Events.Num()),
+		RDG_EVENT_NAME("TimeThiefSmoke.Vorticity SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
 		GroupCount);
@@ -1456,8 +1804,7 @@ void FTimeThiefSmokeViewExtension::AddDivergencePass(
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-	const FVector3f GridSizeFloat(static_cast<float>(GridSize.X), static_cast<float>(GridSize.Y), static_cast<float>(GridSize.Z));
-	const FVector3f CellSize = (FVector3f(State.Volume.BoundsExtent) * 2.0f) / GridSizeFloat;
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
 
 	TShaderMapRef<FTimeThiefSmokeDivergenceCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeDivergenceCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeDivergenceCS::FParameters>();
@@ -1477,18 +1824,291 @@ void FTimeThiefSmokeViewExtension::AddDivergencePass(
 		GroupCount);
 }
 
+void FTimeThiefSmokeViewExtension::AddBuildBrickOccupancyPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef DensityTexture,
+	FRDGTextureRef WarpTexture,
+	FRDGTextureRef BulletCutoutTexture,
+	FRDGTextureRef BulletSinkTexture,
+	FRDGTextureRef BrickActivityTexture)
+{
+	const int32 BrickSize = FMath::Clamp(State.Volume.Settings.SmokeBrickSize, 4, 32);
+	const FIntVector BrickGridSize = MakeBrickGridSize(State.AllocatedGridSize, BrickSize);
+	const FIntVector GroupCount = BrickGridSize;
+
+	TShaderMapRef<FTimeThiefSmokeBuildBrickOccupancyCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeBuildBrickOccupancyCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildBrickOccupancyCS::FParameters>();
+	PassParameters->GridResolution = State.AllocatedGridSize;
+	PassParameters->BrickGridResolution = BrickGridSize;
+	PassParameters->SmokeBrickSize = BrickSize;
+	PassParameters->DensityTexture = DensityTexture;
+	PassParameters->WarpTexture = WarpTexture;
+	PassParameters->BulletCutoutTexture = BulletCutoutTexture;
+	PassParameters->BulletSinkTexture = BulletSinkTexture;
+	PassParameters->OutBrickOccupancy = GraphBuilder.CreateUAV(BrickActivityTexture);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.BuildBrickOccupancy SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddExpandBrickOccupancyPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef BrickActivityTexture,
+	FRDGTextureRef BrickOccupancyTexture)
+{
+	const FIntVector BrickGridSize = State.AllocatedBrickGridSize;
+	const FIntVector GroupCount = MakeGroupCount(BrickGridSize);
+
+	TShaderMapRef<FTimeThiefSmokeExpandBrickOccupancyCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FRDGBufferRef BrickAllocatorBuffer = GraphBuilder.CreateBuffer(
+		FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32), 1),
+		TEXT("TimeThiefSmoke.BrickAllocator"));
+	FRDGBufferUAVRef BrickAllocatorUAV = GraphBuilder.CreateUAV(BrickAllocatorBuffer);
+	AddClearUAVPass(GraphBuilder, BrickAllocatorUAV, 0u);
+
+	FTimeThiefSmokeExpandBrickOccupancyCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeExpandBrickOccupancyCS::FParameters>();
+	PassParameters->BrickGridResolution = BrickGridSize;
+	PassParameters->MaxActiveSmokeBricks = FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1);
+	PassParameters->BrickActivityTexture = BrickActivityTexture;
+	PassParameters->BrickAllocator = BrickAllocatorUAV;
+	PassParameters->OutBrickOccupancy = GraphBuilder.CreateUAV(BrickOccupancyTexture);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.ExpandBrickOccupancy SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+
+	if (!State.ActiveBrickCountReadback.IsValid())
+	{
+		State.ActiveBrickCountReadback = MakeShared<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.ActiveBrickCountReadback"));
+	}
+	if (!State.bActiveBrickCountReadbackPending)
+	{
+		AddEnqueueCopyPass(GraphBuilder, State.ActiveBrickCountReadback.Get(), BrickAllocatorBuffer, sizeof(uint32));
+		State.bActiveBrickCountReadbackPending = true;
+	}
+}
+
+void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef DensityTexture,
+	FRDGTextureRef WarpTexture,
+	FRDGTextureRef BulletCutoutTexture,
+	FRDGTextureRef BulletSinkTexture,
+	FRDGTextureRef BrickOccupancyTexture)
+{
+	const int32 BrickSize = FMath::Clamp(State.Volume.Settings.SmokeBrickSize, 4, 32);
+	const FIntVector GridSize = State.AllocatedGridSize;
+	const FIntVector GroupCount = MakeGroupCount(GridSize);
+
+	TShaderMapRef<FTimeThiefSmokeScatterSparseAtlasCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeScatterSparseAtlasCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeScatterSparseAtlasCS::FParameters>();
+	PassParameters->GridResolution = GridSize;
+	PassParameters->BrickGridResolution = State.AllocatedBrickGridSize;
+	PassParameters->SparseAtlasBrickGridResolution = State.AllocatedSparseAtlasBrickGridSize;
+	PassParameters->SmokeBrickSize = BrickSize;
+	PassParameters->MaxActiveSmokeBricks = FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1);
+	PassParameters->DensityTexture = DensityTexture;
+	PassParameters->WarpTexture = WarpTexture;
+	PassParameters->BulletCutoutTexture = BulletCutoutTexture;
+	PassParameters->BulletSinkTexture = BulletSinkTexture;
+	PassParameters->BrickOccupancyTexture = BrickOccupancyTexture;
+	PassParameters->OutSparseDensityAtlas = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.SparseDensityAtlasTexture));
+	PassParameters->OutSparseWarpAtlas = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.SparseWarpAtlasTexture));
+	PassParameters->OutSparseBulletCutoutAtlas = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.SparseBulletCutoutAtlasTexture));
+	PassParameters->OutSparseBulletSinkAtlas = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.SparseBulletSinkAtlasTexture));
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.ScatterSparseAtlas SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddBuildMacVelocityPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef VelocityIn,
+	FRDGTextureRef FaceVelocityUOut,
+	FRDGTextureRef FaceVelocityVOut,
+	FRDGTextureRef FaceVelocityWOut)
+{
+	const FIntVector GridSize = State.AllocatedGridSize;
+	const FIntVector GroupCount = MakeGroupCount(GridSize);
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
+
+	TShaderMapRef<FTimeThiefSmokeBuildMacVelocityCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeBuildMacVelocityCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildMacVelocityCS::FParameters>();
+	PassParameters->GridResolution = GridSize;
+	PassParameters->CellSize = CellSize;
+	PassParameters->VelocityIn = VelocityIn;
+	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
+	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	PassParameters->OutFaceVelocityU = GraphBuilder.CreateUAV(FaceVelocityUOut);
+	PassParameters->OutFaceVelocityV = GraphBuilder.CreateUAV(FaceVelocityVOut);
+	PassParameters->OutFaceVelocityW = GraphBuilder.CreateUAV(FaceVelocityWOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.BuildMacVelocity SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddMacDivergencePass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef FaceVelocityUIn,
+	FRDGTextureRef FaceVelocityVIn,
+	FRDGTextureRef FaceVelocityWIn,
+	FRDGTextureRef DivergenceOut,
+	FRDGTextureRef PressureOut)
+{
+	const FIntVector GridSize = State.AllocatedGridSize;
+	const FIntVector GroupCount = MakeGroupCount(GridSize);
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
+
+	TShaderMapRef<FTimeThiefSmokeMacDivergenceCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeMacDivergenceCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeMacDivergenceCS::FParameters>();
+	PassParameters->GridResolution = GridSize;
+	PassParameters->CellSize = CellSize;
+	PassParameters->FaceVelocityUIn = FaceVelocityUIn;
+	PassParameters->FaceVelocityVIn = FaceVelocityVIn;
+	PassParameters->FaceVelocityWIn = FaceVelocityWIn;
+	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
+	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	PassParameters->OutDivergence = GraphBuilder.CreateUAV(DivergenceOut);
+	PassParameters->OutPressure = GraphBuilder.CreateUAV(PressureOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.MacDivergence SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+FRDGTextureRef FTimeThiefSmokeViewExtension::AddPressureSolvePass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef DivergenceIn,
+	FRDGTextureRef ObstacleTexture,
+	FRDGTextureRef PressureA,
+	FRDGTextureRef PressureB)
+{
+	FIntVector LevelGridSizes[MultigridMaxLevelCount] = {};
+	FVector3f LevelCellSizes[MultigridMaxLevelCount] = {};
+	FRDGTextureRef LevelDivergences[MultigridMaxLevelCount] = {};
+	FRDGTextureRef LevelPressures[MultigridMaxLevelCount][2] = {};
+	FRDGTextureRef LevelResiduals[MultigridMaxLevelCount - 1] = {};
+
+	LevelGridSizes[0] = State.AllocatedGridSize;
+	LevelCellSizes[0] = MakeCellSize(State.Volume, LevelGridSizes[0]);
+	LevelDivergences[0] = DivergenceIn;
+	LevelPressures[0][0] = PressureA;
+	LevelPressures[0][1] = PressureB;
+
+	int32 LevelCount = 1;
+	while (LevelCount < MultigridMaxLevelCount)
+	{
+		const FIntVector NextGridSize = MakeCoarseGridSize(LevelGridSizes[LevelCount - 1]);
+		if (NextGridSize == LevelGridSizes[LevelCount - 1])
+		{
+			break;
+		}
+
+		LevelGridSizes[LevelCount] = NextGridSize;
+		LevelCellSizes[LevelCount] = MakeCellSize(State.Volume, NextGridSize);
+		LevelDivergences[LevelCount] = CreateTransientScalarTexture(GraphBuilder, NextGridSize, TEXT("TimeThiefSmoke.MultigridDivergence"));
+		LevelPressures[LevelCount][0] = CreateTransientScalarTexture(GraphBuilder, NextGridSize, TEXT("TimeThiefSmoke.MultigridPressureA"));
+		LevelPressures[LevelCount][1] = CreateTransientScalarTexture(GraphBuilder, NextGridSize, TEXT("TimeThiefSmoke.MultigridPressureB"));
+		++LevelCount;
+	}
+
+	for (int32 Level = 0; Level < LevelCount - 1; ++Level)
+	{
+		LevelResiduals[Level] = CreateTransientScalarTexture(GraphBuilder, LevelGridSizes[Level], TEXT("TimeThiefSmoke.MultigridResidual"));
+	}
+
+	FRDGTextureRef CurrentPressure[MultigridMaxLevelCount] = {};
+	FRDGTextureRef AlternatePressure[MultigridMaxLevelCount] = {};
+	CurrentPressure[0] = LevelPressures[0][0];
+	AlternatePressure[0] = LevelPressures[0][1];
+
+	if (LevelCount == 1)
+	{
+		for (int32 Iteration = 0; Iteration < MultigridCoarsestSmoothPassCount; ++Iteration)
+		{
+			AddPressureJacobiPass(GraphBuilder, State, LevelGridSizes[0], LevelCellSizes[0], CurrentPressure[0], LevelDivergences[0], ObstacleTexture, AlternatePressure[0]);
+			Swap(CurrentPressure[0], AlternatePressure[0]);
+		}
+		return CurrentPressure[0];
+	}
+
+	for (int32 Cycle = 0; Cycle < MultigridCycleCount; ++Cycle)
+	{
+		for (int32 Level = 0; Level < LevelCount - 1; ++Level)
+		{
+			for (int32 Iteration = 0; Iteration < MultigridPreSmoothPassCount; ++Iteration)
+			{
+				AddPressureJacobiPass(GraphBuilder, State, LevelGridSizes[Level], LevelCellSizes[Level], CurrentPressure[Level], LevelDivergences[Level], ObstacleTexture, AlternatePressure[Level]);
+				Swap(CurrentPressure[Level], AlternatePressure[Level]);
+			}
+
+			AddPressureResidualPass(GraphBuilder, State, LevelGridSizes[Level], LevelCellSizes[Level], CurrentPressure[Level], LevelDivergences[Level], ObstacleTexture, LevelResiduals[Level]);
+			AddPressureRestrictPass(GraphBuilder, LevelGridSizes[Level], LevelGridSizes[Level + 1], LevelResiduals[Level], LevelDivergences[Level + 1]);
+
+			CurrentPressure[Level + 1] = LevelPressures[Level + 1][0];
+			AlternatePressure[Level + 1] = LevelPressures[Level + 1][1];
+			AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(CurrentPressure[Level + 1]), 0.0f);
+			AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(AlternatePressure[Level + 1]), 0.0f);
+		}
+
+		const int32 CoarsestLevel = LevelCount - 1;
+		for (int32 Iteration = 0; Iteration < MultigridCoarsestSmoothPassCount; ++Iteration)
+		{
+			AddPressureJacobiPass(GraphBuilder, State, LevelGridSizes[CoarsestLevel], LevelCellSizes[CoarsestLevel], CurrentPressure[CoarsestLevel], LevelDivergences[CoarsestLevel], ObstacleTexture, AlternatePressure[CoarsestLevel]);
+			Swap(CurrentPressure[CoarsestLevel], AlternatePressure[CoarsestLevel]);
+		}
+
+		for (int32 Level = CoarsestLevel - 1; Level >= 0; --Level)
+		{
+			AddPressureProlongateAddPass(GraphBuilder, LevelGridSizes[Level], LevelGridSizes[Level + 1], CurrentPressure[Level], CurrentPressure[Level + 1], AlternatePressure[Level]);
+			Swap(CurrentPressure[Level], AlternatePressure[Level]);
+
+			for (int32 Iteration = 0; Iteration < MultigridPostSmoothPassCount; ++Iteration)
+			{
+				AddPressureJacobiPass(GraphBuilder, State, LevelGridSizes[Level], LevelCellSizes[Level], CurrentPressure[Level], LevelDivergences[Level], ObstacleTexture, AlternatePressure[Level]);
+				Swap(CurrentPressure[Level], AlternatePressure[Level]);
+			}
+		}
+	}
+
+	return CurrentPressure[0];
+}
+
 void FTimeThiefSmokeViewExtension::AddPressureJacobiPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
+	const FIntVector& GridSize,
+	const FVector3f& CellSize,
 	FRDGTextureRef PressureIn,
 	FRDGTextureRef DivergenceIn,
 	FRDGTextureRef ObstacleTexture,
 	FRDGTextureRef PressureOut)
 {
-	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-	const FVector3f GridSizeFloat(static_cast<float>(GridSize.X), static_cast<float>(GridSize.Y), static_cast<float>(GridSize.Z));
-	const FVector3f CellSize = (FVector3f(State.Volume.BoundsExtent) * 2.0f) / GridSizeFloat;
 
 	TShaderMapRef<FTimeThiefSmokePressureJacobiCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokePressureJacobiCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokePressureJacobiCS::FParameters>();
@@ -1508,6 +2128,87 @@ void FTimeThiefSmokeViewExtension::AddPressureJacobiPass(
 		GroupCount);
 }
 
+void FTimeThiefSmokeViewExtension::AddPressureResidualPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	const FIntVector& GridSize,
+	const FVector3f& CellSize,
+	FRDGTextureRef PressureIn,
+	FRDGTextureRef DivergenceIn,
+	FRDGTextureRef ObstacleTexture,
+	FRDGTextureRef ResidualOut)
+{
+	const FIntVector GroupCount = MakeGroupCount(GridSize);
+
+	TShaderMapRef<FTimeThiefSmokePressureResidualCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokePressureResidualCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokePressureResidualCS::FParameters>();
+	PassParameters->GridResolution = GridSize;
+	PassParameters->CellSize = CellSize;
+	PassParameters->PressureIn = PressureIn;
+	PassParameters->DivergenceIn = DivergenceIn;
+	PassParameters->ObstacleTexture = ObstacleTexture;
+	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	PassParameters->OutDivergence = GraphBuilder.CreateUAV(ResidualOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.PressureResidual SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddPressureRestrictPass(
+	FRDGBuilder& GraphBuilder,
+	const FIntVector& FineGridSize,
+	const FIntVector& CoarseGridSize,
+	FRDGTextureRef FineDivergenceIn,
+	FRDGTextureRef CoarseDivergenceOut)
+{
+	const FIntVector GroupCount = MakeGroupCount(CoarseGridSize);
+
+	TShaderMapRef<FTimeThiefSmokePressureRestrictCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokePressureRestrictCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokePressureRestrictCS::FParameters>();
+	PassParameters->GridResolution = CoarseGridSize;
+	PassParameters->FineGridResolution = FineGridSize;
+	PassParameters->DivergenceIn = FineDivergenceIn;
+	PassParameters->OutDivergence = GraphBuilder.CreateUAV(CoarseDivergenceOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.PressureRestrict"),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddPressureProlongateAddPass(
+	FRDGBuilder& GraphBuilder,
+	const FIntVector& FineGridSize,
+	const FIntVector& CoarseGridSize,
+	FRDGTextureRef FinePressureIn,
+	FRDGTextureRef CoarsePressureIn,
+	FRDGTextureRef FinePressureOut)
+{
+	const FIntVector GroupCount = MakeGroupCount(FineGridSize);
+
+	TShaderMapRef<FTimeThiefSmokePressureProlongateAddCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokePressureProlongateAddCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokePressureProlongateAddCS::FParameters>();
+	PassParameters->GridResolution = FineGridSize;
+	PassParameters->CoarseGridResolution = CoarseGridSize;
+	PassParameters->PressureIn = FinePressureIn;
+	PassParameters->CoarsePressureIn = CoarsePressureIn;
+	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	PassParameters->OutPressure = GraphBuilder.CreateUAV(FinePressureOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.PressureProlongateAdd"),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
 void FTimeThiefSmokeViewExtension::AddProjectVelocityPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
@@ -1517,8 +2218,7 @@ void FTimeThiefSmokeViewExtension::AddProjectVelocityPass(
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
-	const FVector3f GridSizeFloat(static_cast<float>(GridSize.X), static_cast<float>(GridSize.Y), static_cast<float>(GridSize.Z));
-	const FVector3f CellSize = (FVector3f(State.Volume.BoundsExtent) * 2.0f) / GridSizeFloat;
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
 
 	TShaderMapRef<FTimeThiefSmokeProjectVelocityCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeProjectVelocityCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeProjectVelocityCS::FParameters>();
@@ -1533,6 +2233,74 @@ void FTimeThiefSmokeViewExtension::AddProjectVelocityPass(
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
 		RDG_EVENT_NAME("TimeThiefSmoke.ProjectVelocity SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddProjectMacVelocityPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef FaceVelocityUIn,
+	FRDGTextureRef FaceVelocityVIn,
+	FRDGTextureRef FaceVelocityWIn,
+	FRDGTextureRef PressureIn,
+	FRDGTextureRef FaceVelocityUOut,
+	FRDGTextureRef FaceVelocityVOut,
+	FRDGTextureRef FaceVelocityWOut)
+{
+	const FIntVector GridSize = State.AllocatedGridSize;
+	const FIntVector GroupCount = MakeGroupCount(GridSize);
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
+
+	TShaderMapRef<FTimeThiefSmokeProjectMacVelocityCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeProjectMacVelocityCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeProjectMacVelocityCS::FParameters>();
+	PassParameters->GridResolution = GridSize;
+	PassParameters->CellSize = CellSize;
+	PassParameters->FaceVelocityUIn = FaceVelocityUIn;
+	PassParameters->FaceVelocityVIn = FaceVelocityVIn;
+	PassParameters->FaceVelocityWIn = FaceVelocityWIn;
+	PassParameters->PressureIn = PressureIn;
+	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
+	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	PassParameters->OutFaceVelocityU = GraphBuilder.CreateUAV(FaceVelocityUOut);
+	PassParameters->OutFaceVelocityV = GraphBuilder.CreateUAV(FaceVelocityVOut);
+	PassParameters->OutFaceVelocityW = GraphBuilder.CreateUAV(FaceVelocityWOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.ProjectMacVelocity SmokeId=%d", State.Volume.SmokeId),
+		ComputeShader,
+		PassParameters,
+		GroupCount);
+}
+
+void FTimeThiefSmokeViewExtension::AddMacToCollocatedVelocityPass(
+	FRDGBuilder& GraphBuilder,
+	FRenderSmokeState& State,
+	FRDGTextureRef FaceVelocityUIn,
+	FRDGTextureRef FaceVelocityVIn,
+	FRDGTextureRef FaceVelocityWIn,
+	FRDGTextureRef VelocityOut)
+{
+	const FIntVector GridSize = State.AllocatedGridSize;
+	const FIntVector GroupCount = MakeGroupCount(GridSize);
+	const FVector3f CellSize = MakeCellSize(State.Volume, GridSize);
+
+	TShaderMapRef<FTimeThiefSmokeMacToCollocatedVelocityCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeMacToCollocatedVelocityCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeMacToCollocatedVelocityCS::FParameters>();
+	PassParameters->GridResolution = GridSize;
+	PassParameters->CellSize = CellSize;
+	PassParameters->FaceVelocityUIn = FaceVelocityUIn;
+	PassParameters->FaceVelocityVIn = FaceVelocityVIn;
+	PassParameters->FaceVelocityWIn = FaceVelocityWIn;
+	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
+	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
+	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
+
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.MacToCollocatedVelocity SmokeId=%d", State.Volume.SmokeId),
 		ComputeShader,
 		PassParameters,
 		GroupCount);

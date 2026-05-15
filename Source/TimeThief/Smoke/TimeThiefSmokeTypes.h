@@ -23,6 +23,20 @@ enum class ESmokeInteractionShape : uint8
 	LineWake
 };
 
+UENUM(BlueprintType)
+enum class ESmokeSimulationBackend : uint8
+{
+	DenseLegacy,
+	SparseMac
+};
+
+UENUM(BlueprintType)
+enum class ESmokePressureSolver : uint8
+{
+	JacobiLegacy,
+	Multigrid
+};
+
 USTRUCT(BlueprintType)
 struct FTimeThiefSmokeInteractionEvent
 {
@@ -129,14 +143,32 @@ struct FTimeThiefSmokeRuntimeSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bounds Cells", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ExplosionBoundsShiftScale;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "192", UIMax = "192"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
+	ESmokeSimulationBackend SimulationBackend;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
+	ESmokePressureSolver PressureSolver;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "512", UIMax = "512"))
 	int32 SmokeGridResolution;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "1", UIMin = "1", ClampMax = "64", UIMax = "64"))
 	int32 PressureIterations;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "192", UIMax = "192"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "512", UIMax = "512"))
 	int32 RenderStepCount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "4", UIMin = "4", ClampMax = "32", UIMax = "32"))
+	int32 SmokeBrickSize;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "1", UIMin = "1"))
+	int32 MaxActiveSmokeBricks;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "1024", UIMax = "1024"))
+	int32 RenderMaxStepCount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "0.1", UIMin = "0.1", ClampMax = "4.0", UIMax = "4.0"))
+	float RenderStepVoxelScale;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float Extinction;

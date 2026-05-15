@@ -39,12 +39,32 @@ namespace TimeThiefSmoke
 		}
 	}
 
+	ETimeThiefSmokeSimulationBackend ToRendererBackend(ESmokeSimulationBackend Backend)
+	{
+		return Backend == ESmokeSimulationBackend::DenseLegacy
+			? ETimeThiefSmokeSimulationBackend::DenseLegacy
+			: ETimeThiefSmokeSimulationBackend::SparseMac;
+	}
+
+	ETimeThiefSmokePressureSolver ToRendererPressureSolver(ESmokePressureSolver Solver)
+	{
+		return Solver == ESmokePressureSolver::JacobiLegacy
+			? ETimeThiefSmokePressureSolver::JacobiLegacy
+			: ETimeThiefSmokePressureSolver::Multigrid;
+	}
+
 	FTimeThiefSmokeRendererSettings ToRendererSettings(const FTimeThiefSmokeRuntimeSettings& Settings)
 	{
 		FTimeThiefSmokeRendererSettings RendererSettings;
+		RendererSettings.SimulationBackend = ToRendererBackend(Settings.SimulationBackend);
+		RendererSettings.PressureSolver = ToRendererPressureSolver(Settings.PressureSolver);
 		RendererSettings.SmokeGridResolution = Settings.SmokeGridResolution;
 		RendererSettings.PressureIterations = Settings.PressureIterations;
 		RendererSettings.RenderStepCount = Settings.RenderStepCount;
+		RendererSettings.SmokeBrickSize = Settings.SmokeBrickSize;
+		RendererSettings.MaxActiveSmokeBricks = Settings.MaxActiveSmokeBricks;
+		RendererSettings.RenderMaxStepCount = Settings.RenderMaxStepCount;
+		RendererSettings.RenderStepVoxelScale = Settings.RenderStepVoxelScale;
 		RendererSettings.Extinction = Settings.Extinction;
 		RendererSettings.ScatteringAlbedo = Settings.ScatteringAlbedo;
 		RendererSettings.ScatteringAnisotropy = Settings.ScatteringAnisotropy;
@@ -310,8 +330,9 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
 		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
 		RendererVolume.NaturalBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
+		RendererVolume.SimulationBoundsExtent = RendererVolume.NaturalBoundsExtent;
 		RendererVolume.RenderBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeRenderBoundsExtent());
-		RendererVolume.BoundsExtent = RendererVolume.RenderBoundsExtent;
+		RendererVolume.BoundsExtent = RendererVolume.SimulationBoundsExtent;
 		RendererVolume.AgeSeconds = SmokeVolume->GetSmokeAgeSeconds();
 		RendererVolume.DurationSeconds = Settings.SmokeDuration;
 		RendererVolume.ObstacleMaskResolution = SmokeVolume->GetObstacleMaskResolution();

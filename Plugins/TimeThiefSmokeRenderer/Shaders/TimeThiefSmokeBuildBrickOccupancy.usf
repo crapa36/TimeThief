@@ -1,0 +1,58 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_BRICK_OCCUPANCY_PARAMETERS
+
+groupshared uint SharedActive;
+
+bool IsActiveCell(int3 Coord)
+{
+	const float Density = DensityTexture.Load(int4(Coord, 0));
+	const float Warp = WarpTexture.Load(int4(Coord, 0));
+	const float Cutout = BulletCutoutTexture.Load(int4(Coord, 0));
+	const float Sink = BulletSinkTexture.Load(int4(Coord, 0));
+	return Density > 0.001 || Warp > 0.001 || Cutout > 0.001 || Sink > 0.001;
+}
+
+[numthreads(8, 8, 8)]
+void MainCS(uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
+{
+	if (any(int3(GroupId) >= BrickGridResolution))
+	{
+		return;
+	}
+
+	if (all(GroupThreadId == uint3(0, 0, 0)))
+	{
+		SharedActive = 0u;
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	const int BrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickBase = int3(GroupId) * BrickSize;
+
+	[loop]
+	for (int Z = int(GroupThreadId.z); Z < BrickSize; Z += 8)
+	{
+		[loop]
+		for (int Y = int(GroupThreadId.y); Y < BrickSize; Y += 8)
+		{
+			[loop]
+			for (int X = int(GroupThreadId.x); X < BrickSize; X += 8)
+			{
+				const int3 Coord = BrickBase + int3(X, Y, Z);
+				if (all(Coord < GridResolution) && IsActiveCell(Coord))
+				{
+					InterlockedOr(SharedActive, 1u);
+				}
+			}
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (all(GroupThreadId == uint3(0, 0, 0)))
+	{
+		OutBrickOccupancy[GroupId] = SharedActive != 0u ? 1u : 0u;
+	}
+}

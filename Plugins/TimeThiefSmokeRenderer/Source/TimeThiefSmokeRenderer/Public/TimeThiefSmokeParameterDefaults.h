@@ -63,11 +63,15 @@ namespace TimeThiefSmokeParameterDefaults
 	//GPU 격자/렌더링
 
 	//GPU 연막 시뮬레이션 3D 격자 한 축 해상도.
-	constexpr int32 SmokeGridResolution = 128;
+	constexpr int32 SmokeGridResolution = 384;
 	//압력 투영 Jacobi 반복 횟수. 높을수록 속도장 압축 감소.
 	constexpr int32 PressureIterations = 10;
 	//볼륨 레이마칭 샘플 단계 수. 높을수록 품질/비용 증가.
 	constexpr int32 RenderStepCount = 80;
+	constexpr int32 SmokeBrickSize = 16;
+	constexpr int32 MaxActiveSmokeBricks = 4096;
+	constexpr int32 RenderMaxStepCount = 512;
+	constexpr float RenderStepVoxelScale = 0.5f;
 	//연막 내부 빛 흡수/소멸 계수.
 	constexpr float Extinction = 2.25f;
 	//흡수 대비 산란 비율(0~1). 높을수록 밝게 보임.
@@ -82,7 +86,7 @@ namespace TimeThiefSmokeParameterDefaults
 	//초당 속도장 감쇠 비율.
 	constexpr float VelocityDamping = 0.16f;
 	//MacCormack 보정 이류 사용 여부. 켜면 보존력/비용 증가.
-	constexpr bool bUseMacCormackAdvection = false;
+	constexpr bool bUseMacCormackAdvection = true;
 
 	//와류/난류
 

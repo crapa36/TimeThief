@@ -1,0 +1,53 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_PRESSURE_RESIDUAL_PARAMETERS
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+}
+
+float LoadNeighborPressure(int3 Coord, float CenterPressure)
+{
+	return LoadOpen(Coord) > 0.01 ? LoadPressure(Coord) : CenterPressure;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	if (LoadOpen(Coord) <= 0.01)
+	{
+		OutDivergence[DispatchThreadId] = 0.0;
+		return;
+	}
+
+	const float CenterPressure = LoadPressure(Coord);
+	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
+	const float NeighborPressure =
+		(LoadNeighborPressure(Coord + int3(1, 0, 0), CenterPressure) + LoadNeighborPressure(Coord - int3(1, 0, 0), CenterPressure)) * InvCellSizeSq.x +
+		(LoadNeighborPressure(Coord + int3(0, 1, 0), CenterPressure) + LoadNeighborPressure(Coord - int3(0, 1, 0), CenterPressure)) * InvCellSizeSq.y +
+		(LoadNeighborPressure(Coord + int3(0, 0, 1), CenterPressure) + LoadNeighborPressure(Coord - int3(0, 0, 1), CenterPressure)) * InvCellSizeSq.z;
+	const float Denominator = max(2.0 * (InvCellSizeSq.x + InvCellSizeSq.y + InvCellSizeSq.z), 0.000001);
+	const float Laplacian = NeighborPressure - CenterPressure * Denominator;
+	const float Divergence = DivergenceIn.Load(int4(Coord, 0));
+
+	OutDivergence[DispatchThreadId] = Divergence - Laplacian;
+}

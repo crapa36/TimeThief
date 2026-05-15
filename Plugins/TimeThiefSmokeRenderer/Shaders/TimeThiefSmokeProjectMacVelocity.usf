@@ -1,0 +1,75 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_PROJECT_MAC_VELOCITY_PARAMETERS
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	const float CenterOpen = LoadOpen(Coord);
+	const float CenterPressure = LoadPressure(Coord);
+
+	float U = FaceVelocityUIn.Load(int4(Coord, 0));
+	float V = FaceVelocityVIn.Load(int4(Coord, 0));
+	float W = FaceVelocityWIn.Load(int4(Coord, 0));
+
+	if (Coord.x <= 0)
+	{
+		U = 0.0;
+	}
+	else
+	{
+		const int3 LeftCoord = Coord - int3(1, 0, 0);
+		const float FaceOpen = min(CenterOpen, LoadOpen(LeftCoord));
+		U = (U - (CenterPressure - LoadPressure(LeftCoord)) * InvCellSize.x) * FaceOpen;
+	}
+
+	if (Coord.y <= 0)
+	{
+		V = 0.0;
+	}
+	else
+	{
+		const int3 BackCoord = Coord - int3(0, 1, 0);
+		const float FaceOpen = min(CenterOpen, LoadOpen(BackCoord));
+		V = (V - (CenterPressure - LoadPressure(BackCoord)) * InvCellSize.y) * FaceOpen;
+	}
+
+	if (Coord.z <= 0)
+	{
+		W = 0.0;
+	}
+	else
+	{
+		const int3 BottomCoord = Coord - int3(0, 0, 1);
+		const float FaceOpen = min(CenterOpen, LoadOpen(BottomCoord));
+		W = (W - (CenterPressure - LoadPressure(BottomCoord)) * InvCellSize.z) * FaceOpen;
+	}
+
+	OutFaceVelocityU[DispatchThreadId] = U;
+	OutFaceVelocityV[DispatchThreadId] = V;
+	OutFaceVelocityW[DispatchThreadId] = W;
+}

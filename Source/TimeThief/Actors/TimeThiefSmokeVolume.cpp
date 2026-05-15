@@ -205,6 +205,7 @@ void ATimeThiefSmokeVolume::HandleBulletTrace(const FVector& EntryPoint, const F
 	Event.Type = ESmokeInteractionType::BulletWake;
 	Event.Shape = ESmokeInteractionShape::LineWake;
 	Event.Position = (EntryPoint + ExitPoint) * 0.5f;
+	Event.PreviousPosition = Event.Position;
 	Event.Direction = Direction;
 	Event.Rotation = Direction.Rotation().Quaternion();
 	const float VisibleClearRadius = FMath::Max(SmokeSettings.BulletClearRadius, 42.0f);
@@ -224,6 +225,7 @@ void ATimeThiefSmokeVolume::HandleExplosionShock(const FVector& Center, float Ra
 	Event.Type = ESmokeInteractionType::ExplosionShock;
 	Event.Shape = ESmokeInteractionShape::Sphere;
 	Event.Position = Center;
+	Event.PreviousPosition = Event.Position;
 	Event.Direction = (GetActorLocation() - Center).GetSafeNormal(UE_SMALL_NUMBER, FVector::UpVector);
 	Event.Rotation = FQuat::Identity;
 	Event.Radius = FMath::Max(Radius, SmokeSettings.ExplosionShockRadius);

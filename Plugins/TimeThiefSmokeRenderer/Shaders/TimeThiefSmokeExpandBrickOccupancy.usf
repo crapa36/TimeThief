@@ -1,0 +1,57 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_EXPAND_BRICK_OCCUPANCY_PARAMETERS
+
+bool HasActiveNeighbor(int3 BrickCoord)
+{
+	[unroll]
+	for (int Z = -1; Z <= 1; ++Z)
+	{
+		[unroll]
+		for (int Y = -1; Y <= 1; ++Y)
+		{
+			[unroll]
+			for (int X = -1; X <= 1; ++X)
+			{
+				const int3 NeighborCoord = BrickCoord + int3(X, Y, Z);
+				if (all(NeighborCoord >= int3(0, 0, 0)) && all(NeighborCoord < BrickGridResolution))
+				{
+					if (BrickActivityTexture.Load(int4(NeighborCoord, 0)) != 0u)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= BrickGridResolution))
+	{
+		return;
+	}
+
+	uint BrickIndirection = 0u;
+	if (HasActiveNeighbor(int3(DispatchThreadId)))
+	{
+		uint AtlasIndex = 0u;
+		InterlockedAdd(BrickAllocator[0], 1u, AtlasIndex);
+		const uint MaxAtlasBricks = (uint)max(MaxActiveSmokeBricks, 1);
+		if (AtlasIndex < MaxAtlasBricks)
+		{
+			BrickIndirection = AtlasIndex + 1u;
+		}
+		else
+		{
+			BrickIndirection = MaxAtlasBricks + 1u;
+		}
+	}
+
+	OutBrickOccupancy[DispatchThreadId] = BrickIndirection;
+}

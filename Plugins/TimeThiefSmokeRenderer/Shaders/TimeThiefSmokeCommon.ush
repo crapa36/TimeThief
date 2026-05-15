@@ -236,6 +236,14 @@ float TimeThiefSmokeEventSdfAtCenter(FTimeThiefSmokeEventShaderData Event, float
 		const float ShapeRadius = TimeThiefSmokeEventShapeRadius(Event);
 		return TimeThiefSmokeBoxSdf(LocalToEvent, max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35)));
 	}
+	if (Shape == 3u)
+	{
+		const float3 Axis = normalize(Event.DirectionLength.xyz + float3(0.0001, 0.0001, 0.0001));
+		const float HalfLength = max(Event.DirectionLength.w * 0.5, Event.PositionRadius.w);
+		const float3 Delta = WorldPosition - EventCenter;
+		const float Along = clamp(dot(Delta, Axis), -HalfLength, HalfLength);
+		return length(Delta - Axis * Along) - Event.PositionRadius.w;
+	}
 	return length(LocalToEvent) - Event.PositionRadius.w;
 }
 
@@ -300,6 +308,14 @@ float3 TimeThiefSmokeEventNormalAtCenter(FTimeThiefSmokeEventShaderData Event, f
 			}
 		}
 		return normalize(TimeThiefSmokeRotateByQuat(LocalNormal, Event.Rotation) + float3(0.0001, 0.0001, 0.0001));
+	}
+	if (Shape == 3u)
+	{
+		const float3 Axis = normalize(Event.DirectionLength.xyz + float3(0.0001, 0.0001, 0.0001));
+		const float HalfLength = max(Event.DirectionLength.w * 0.5, Event.PositionRadius.w);
+		const float3 Delta = WorldPosition - EventCenter;
+		const float Along = clamp(dot(Delta, Axis), -HalfLength, HalfLength);
+		return normalize(Delta - Axis * Along + float3(0.0001, 0.0001, 0.0001));
 	}
 	return normalize(WorldPosition - EventCenter + float3(0.0001, 0.0001, 0.0001));
 }

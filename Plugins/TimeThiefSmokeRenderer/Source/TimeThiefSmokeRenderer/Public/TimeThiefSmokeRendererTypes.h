@@ -18,13 +18,31 @@ enum class ETimeThiefSmokeRendererInteractionShape : uint8
 	LineWake = 3
 };
 
+enum class ETimeThiefSmokeSimulationBackend : uint8
+{
+	DenseLegacy = 0,
+	SparseMac = 1
+};
+
+enum class ETimeThiefSmokePressureSolver : uint8
+{
+	JacobiLegacy = 0,
+	Multigrid = 1
+};
+
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 {
 	FTimeThiefSmokeRendererSettings();
 
+	ETimeThiefSmokeSimulationBackend SimulationBackend;
+	ETimeThiefSmokePressureSolver PressureSolver;
 	int32 SmokeGridResolution;
 	int32 PressureIterations;
 	int32 RenderStepCount;
+	int32 SmokeBrickSize;
+	int32 MaxActiveSmokeBricks;
+	int32 RenderMaxStepCount;
+	float RenderStepVoxelScale;
 	int32 MaxGPUEventsPerSmokePerFrame;
 	float InitialDensity;
 	float SmokeFadeOutDuration;
@@ -101,6 +119,7 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererVolume
 	int32 SmokeId = INDEX_NONE;
 	FTransform3f LocalToWorld = FTransform3f::Identity;
 	FVector3f BoundsExtent;
+	FVector3f SimulationBoundsExtent;
 	FVector3f NaturalBoundsExtent;
 	FVector3f RenderBoundsExtent;
 	float AgeSeconds = 0.0f;

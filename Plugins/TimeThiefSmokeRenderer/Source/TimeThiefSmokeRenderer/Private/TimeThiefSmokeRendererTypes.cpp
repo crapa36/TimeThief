@@ -14,9 +14,15 @@ namespace
 }
 
 FTimeThiefSmokeRendererSettings::FTimeThiefSmokeRendererSettings()
-	: SmokeGridResolution(TimeThiefSmokeParameterDefaults::SmokeGridResolution)
+	: SimulationBackend(ETimeThiefSmokeSimulationBackend::SparseMac)
+	, PressureSolver(ETimeThiefSmokePressureSolver::Multigrid)
+	, SmokeGridResolution(TimeThiefSmokeParameterDefaults::SmokeGridResolution)
 	, PressureIterations(TimeThiefSmokeParameterDefaults::PressureIterations)
 	, RenderStepCount(TimeThiefSmokeParameterDefaults::RenderStepCount)
+	, SmokeBrickSize(TimeThiefSmokeParameterDefaults::SmokeBrickSize)
+	, MaxActiveSmokeBricks(TimeThiefSmokeParameterDefaults::MaxActiveSmokeBricks)
+	, RenderMaxStepCount(TimeThiefSmokeParameterDefaults::RenderMaxStepCount)
+	, RenderStepVoxelScale(TimeThiefSmokeParameterDefaults::RenderStepVoxelScale)
 	, MaxGPUEventsPerSmokePerFrame(TimeThiefSmokeParameterDefaults::MaxGPUEventsPerSmokePerFrame)
 	, InitialDensity(TimeThiefSmokeParameterDefaults::InitialDensity)
 	, SmokeFadeOutDuration(TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration)
@@ -69,7 +75,8 @@ FTimeThiefSmokeRendererSettings::FTimeThiefSmokeRendererSettings()
 }
 
 FTimeThiefSmokeRendererVolume::FTimeThiefSmokeRendererVolume()
-	: BoundsExtent(GetDefaultRenderBoundsExtent())
+	: BoundsExtent(ToVector3f(TimeThiefSmokeParameterDefaults::GetSmokeBoundsExtent()))
+	, SimulationBoundsExtent(ToVector3f(TimeThiefSmokeParameterDefaults::GetSmokeBoundsExtent()))
 	, NaturalBoundsExtent(ToVector3f(TimeThiefSmokeParameterDefaults::GetSmokeBoundsExtent()))
 	, RenderBoundsExtent(GetDefaultRenderBoundsExtent())
 	, DurationSeconds(TimeThiefSmokeParameterDefaults::SmokeDuration)

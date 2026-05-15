@@ -1,6 +1,7 @@
 #include "/Engine/Public/Platform.ush"
 #include "/Engine/Private/ScreenPass.ush"
 #include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeSparse.ush"
 
 TIME_THIEF_SMOKE_COMPOSITE_PARAMETERS
 
@@ -75,6 +76,158 @@ float ComputeEventDebug(float3 SampleWorld)
 	return saturate(Weight);
 }
 
+float ComputeAnalyticBulletOpen(float3 SampleWorld)
+{
+	float OpenMask = 1.0;
+	const int SafeEventCount = min(EventCount, 128);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		const float Type = Event.TypeShapeAgeSeed.x;
+		if (Type >= 0.5)
+		{
+			continue;
+		}
+
+		const float Radius = max(Event.PositionRadius.w, 1.0);
+		const float Sdf = TimeThiefSmokeEventSweptSdf(Event, SampleWorld);
+		const float AgeFade = 1.0 - saturate(Event.TypeShapeAgeSeed.z);
+		const float Feather = max(Radius * 0.28, 1.0);
+		const float Cutout = (1.0 - smoothstep(-Feather, Feather, Sdf)) * AgeFade;
+		OpenMask = min(OpenMask, 1.0 - Cutout);
+	}
+	return saturate(OpenMask);
+}
+
+int3 ComputeBrickCoord(float3 VolumeUVW)
+{
+	const int3 CellCoord = clamp((int3)floor(saturate(VolumeUVW) * float3(GridResolution)), int3(0, 0, 0), GridResolution - 1);
+	return clamp(CellCoord / max(SmokeBrickSize, 1), int3(0, 0, 0), BrickGridResolution - 1);
+}
+
+bool IsActiveBrick(float3 VolumeUVW)
+{
+	if (bUseSparseAtlas == 0u)
+	{
+		return true;
+	}
+	return BrickOccupancyTexture.Load(int4(ComputeBrickCoord(VolumeUVW), 0)) != 0u;
+}
+
+float LoadCompositeSparseScalarCell(Texture3D<float> DenseTexture, Texture3D<float> SparseAtlasTexture, int3 CellCoord)
+{
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 SafeCellCoord = clamp(CellCoord, int3(0, 0, 0), GridResolution - 1);
+	const int3 BrickCoord = clamp(SafeCellCoord / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	const uint BrickIndirection = BrickOccupancyTexture.Load(int4(BrickCoord, 0));
+	if (BrickIndirection == 0u)
+	{
+		return 0.0;
+	}
+	if (BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
+	{
+		return DenseTexture.Load(int4(SafeCellCoord, 0));
+	}
+
+	const int3 AtlasBrickCoord = TimeThiefSmokeAtlasBrickCoord(BrickIndirection, SparseAtlasBrickGridResolution);
+	const int3 LocalCellCoord = SafeCellCoord - BrickCoord * SafeBrickSize;
+	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
+	return SparseAtlasTexture.Load(int4(AtlasCoord, 0));
+}
+
+float SampleCompositeSparseScalar(Texture3D<float> DenseTexture, Texture3D<float> SparseAtlasTexture, float3 VolumeUVW)
+{
+	const float3 GridPosition = saturate(VolumeUVW) * max(float3(GridResolution), 1.0) - 0.5;
+	const int3 Cell0 = (int3)floor(GridPosition);
+	const float3 CellAlpha = saturate(GridPosition - float3(Cell0));
+	const int3 Cell1 = Cell0 + int3(1, 1, 1);
+
+	const float V000 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell0.y, Cell0.z));
+	const float V100 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell0.y, Cell0.z));
+	const float V010 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell1.y, Cell0.z));
+	const float V110 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell1.y, Cell0.z));
+	const float V001 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell0.y, Cell1.z));
+	const float V101 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell0.y, Cell1.z));
+	const float V011 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell0.x, Cell1.y, Cell1.z));
+	const float V111 = LoadCompositeSparseScalarCell(DenseTexture, SparseAtlasTexture, int3(Cell1.x, Cell1.y, Cell1.z));
+
+	const float X00 = lerp(V000, V100, CellAlpha.x);
+	const float X10 = lerp(V010, V110, CellAlpha.x);
+	const float X01 = lerp(V001, V101, CellAlpha.x);
+	const float X11 = lerp(V011, V111, CellAlpha.x);
+	const float Y0 = lerp(X00, X10, CellAlpha.y);
+	const float Y1 = lerp(X01, X11, CellAlpha.y);
+	return lerp(Y0, Y1, CellAlpha.z);
+}
+
+float SampleDensityField(float3 VolumeUVW)
+{
+	return bUseSparseAtlas != 0u
+		? SampleCompositeSparseScalar(DensityTexture, SparseDensityAtlasTexture, VolumeUVW)
+		: DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
+}
+
+float SampleWarpField(float3 VolumeUVW)
+{
+	return bUseSparseAtlas != 0u
+		? SampleCompositeSparseScalar(WarpTexture, SparseWarpAtlasTexture, VolumeUVW)
+		: WarpTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
+}
+
+float SampleBulletCutoutField(float3 VolumeUVW)
+{
+	return bUseSparseAtlas != 0u
+		? SampleCompositeSparseScalar(BulletCutoutTexture, SparseBulletCutoutAtlasTexture, VolumeUVW)
+		: BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
+}
+
+float SampleBulletSinkField(float3 VolumeUVW)
+{
+	return bUseSparseAtlas != 0u
+		? SampleCompositeSparseScalar(BulletSinkTexture, SparseBulletSinkAtlasTexture, VolumeUVW)
+		: BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
+}
+
+float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
+{
+	const int3 BrickCoord = ComputeBrickCoord(VolumeUVW);
+	const float3 SafeGridResolution = max(float3(GridResolution), 1.0);
+	const float3 BrickMin = (float3(BrickCoord) * max(SmokeBrickSize, 1)) / SafeGridResolution;
+	const float3 BrickMax = min((float3(BrickCoord + 1) * max(SmokeBrickSize, 1)) / SafeGridResolution, 1.0);
+	float DeltaT = 1000000.0;
+
+	if (abs(RayUVWDirection.x) > 0.000001)
+	{
+		const float Boundary = RayUVWDirection.x > 0.0 ? BrickMax.x : BrickMin.x;
+		const float AxisDelta = (Boundary - VolumeUVW.x) / RayUVWDirection.x;
+		if (AxisDelta > 0.000001)
+		{
+			DeltaT = min(DeltaT, AxisDelta);
+		}
+	}
+	if (abs(RayUVWDirection.y) > 0.000001)
+	{
+		const float Boundary = RayUVWDirection.y > 0.0 ? BrickMax.y : BrickMin.y;
+		const float AxisDelta = (Boundary - VolumeUVW.y) / RayUVWDirection.y;
+		if (AxisDelta > 0.000001)
+		{
+			DeltaT = min(DeltaT, AxisDelta);
+		}
+	}
+	if (abs(RayUVWDirection.z) > 0.000001)
+	{
+		const float Boundary = RayUVWDirection.z > 0.0 ? BrickMax.z : BrickMin.z;
+		const float AxisDelta = (Boundary - VolumeUVW.z) / RayUVWDirection.z;
+		if (AxisDelta > 0.000001)
+		{
+			DeltaT = min(DeltaT, AxisDelta);
+		}
+	}
+
+	return max(StepSize, DeltaT + StepSize * 0.25);
+}
+
 void MainPS(
 	in noperspective float4 UVAndScreenPos : TEXCOORD0,
 	float4 SvPosition : SV_POSITION,
@@ -108,13 +261,17 @@ void MainPS(
 		return;
 	}
 
-	const int Steps = clamp(RenderStepCount, 16, 192);
-	const float StepSize = max((TMax - TMin) / Steps, 0.0001);
-	const float3 LocalStep = RayDirection * StepSize * RenderBoundsExtent;
-	const float SimulationStepSize = length(LocalStep / max(BoundsExtent, 1.0));
 	const float LifetimeAlpha = 1.0 - smoothstep(DurationSeconds, DurationSeconds + max(SmokeFadeOutDuration, 0.001), AgeSeconds);
 	const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
 	const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+	const float PhysicalRayLength = length(RayDirection * max(TMax - TMin, 0.0) * RenderBoundsExtent);
+	const float TargetStepLength = max(MaxGridCellSize * max(RenderStepVoxelScale, 0.1), 1.0);
+	const int AdaptiveSteps = (int)ceil(PhysicalRayLength / TargetStepLength);
+	const int Steps = clamp(max(RenderStepCount, AdaptiveSteps), 16, max(RenderMaxStepCount, 16));
+	const float StepSize = max((TMax - TMin) / Steps, 0.0001);
+	const float3 LocalStep = RayDirection * StepSize * RenderBoundsExtent;
+	const float3 RayUVWDirection = RayDirection * RenderBoundsExtent / max(BoundsExtent, 1.0) * 0.5;
+	const float SimulationStepSize = length(LocalStep / max(BoundsExtent, 1.0));
 	const float MaxResolvedBaseNoiseScale = 0.9 / MaxGridCellSize;
 	const float MaxResolvedFineNoiseScale = 1.15 / MaxGridCellSize;
 	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedBaseNoiseScale);
@@ -125,26 +282,53 @@ void MainPS(
 	float Scatter = 0.0;
 	float WarpScatter = 0.0;
 	float DebugValue = 0.0;
+	const float RayJitter = TimeThiefSmokeHash13(float3(SvPosition.xy, AgeSeconds)) - 0.5;
+	float CurrentT = max(TMin, TMin + (0.5 + RayJitter) * StepSize);
 
 	[loop]
-	for (int StepIndex = 0; StepIndex < Steps; ++StepIndex)
+	for (int StepIndex = 0; StepIndex < Steps && CurrentT < TMax; ++StepIndex)
 	{
-		const float T = TMin + (StepIndex + 0.5) * StepSize;
+		const float T = CurrentT;
 		const float3 LocalPosition = LocalNear + RayDirection * T;
 		const float3 SampleLocal = LocalPosition * RenderBoundsExtent;
 		const float3 SimulationLocal = SampleLocal / max(BoundsExtent, 1.0);
 		const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
 		if (!TimeThiefSmokeInsideUVW(VolumeUVW))
 		{
+			if (DebugMode == 9)
+			{
+				DebugValue = max(DebugValue, 0.08);
+			}
+			CurrentT += StepSize;
 			continue;
 		}
 
-		const float RawDensity = max(DensityTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
-		const float RawWarp = max(WarpTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0), 0.0);
+		if (!IsActiveBrick(VolumeUVW))
+		{
+			if (DebugMode == 7)
+			{
+				DebugValue = max(DebugValue, 0.05);
+				CurrentT += StepSize;
+				continue;
+			}
+			else
+			{
+				if (DebugMode != 8 && DebugMode != 9 && DebugMode != 10)
+				{
+					CurrentT += ComputeInactiveBrickSkip(VolumeUVW, RayUVWDirection, StepSize);
+					continue;
+				}
+			}
+		}
+
+		const float RawDensity = max(SampleDensityField(VolumeUVW), 0.0);
+		const float RawWarp = max(SampleWarpField(VolumeUVW), 0.0);
 		const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
-		const float BulletCutout = BulletCutoutTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
-		const float BulletSink = BulletSinkTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
+		const float BulletCutout = SampleBulletCutoutField(VolumeUVW);
+		const float BulletSink = SampleBulletSinkField(VolumeUVW);
 		const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
+		const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
+		const float AnalyticBulletOpen = ComputeAnalyticBulletOpen(SampleWorld);
 		const float ObstacleOpen = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW);
 		float Density = RawDensity * ObstacleOpen;
 		const float Warp = RawWarp * ObstacleOpen * LifetimeAlpha;
@@ -169,7 +353,7 @@ void MainPS(
 		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
 		const float FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
 		const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-		Density *= BulletMasks.Hard * DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain * LifetimeAlpha;
+		Density *= min(BulletMasks.Hard, AnalyticBulletOpen) * DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain * LifetimeAlpha;
 
 		if (DebugMode == 1)
 		{
@@ -189,12 +373,29 @@ void MainPS(
 		}
 		else if (DebugMode == 5)
 		{
-			const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
 			DebugValue = max(DebugValue, ComputeEventDebug(SampleWorld));
 		}
 		else if (DebugMode == 6)
 		{
 			DebugValue = max(DebugValue, saturate(RawWarp));
+		}
+		else if (DebugMode == 7)
+		{
+			DebugValue = 1.0;
+		}
+		else if (DebugMode == 8)
+		{
+			const float DivergenceMagnitude = abs(DivergenceTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0));
+			DebugValue = max(DebugValue, saturate(log2(1.0 + DivergenceMagnitude * 16.0) * 0.25));
+		}
+		else if (DebugMode == 9)
+		{
+			const float BoundsEdge = max(max(abs(SimulationLocal.x), abs(SimulationLocal.y)), abs(SimulationLocal.z));
+			DebugValue = max(DebugValue, smoothstep(0.86, 1.0, BoundsEdge));
+		}
+		else if (DebugMode == 10)
+		{
+			DebugValue = max(DebugValue, 1.0 - AnalyticBulletOpen);
 		}
 
 		const float Absorption = Density * Extinction * SimulationStepSize;
@@ -202,6 +403,7 @@ void MainPS(
 		Scatter += Transmittance * (1.0 - StepTransmittance) * Density;
 		WarpScatter += Transmittance * Warp * SimulationStepSize * 0.85;
 		Transmittance *= StepTransmittance;
+		CurrentT += StepSize;
 
 		if (Transmittance < 0.015)
 		{
@@ -231,6 +433,22 @@ void MainPS(
 		else if (DebugMode == 6)
 		{
 			DebugColor = float3(0.45, 0.95, 1.0);
+		}
+		else if (DebugMode == 7)
+		{
+			DebugColor = float3(0.25, 1.0, 0.35);
+		}
+		else if (DebugMode == 8)
+		{
+			DebugColor = float3(0.15, 0.5, 1.0);
+		}
+		else if (DebugMode == 9)
+		{
+			DebugColor = float3(1.0, 0.95, 0.12);
+		}
+		else if (DebugMode == 10)
+		{
+			DebugColor = float3(0.95, 0.12, 0.35);
 		}
 
 		OutColor = float4(lerp(SceneColor.rgb, DebugColor, saturate(DebugValue * 0.88)), SceneColor.a);
