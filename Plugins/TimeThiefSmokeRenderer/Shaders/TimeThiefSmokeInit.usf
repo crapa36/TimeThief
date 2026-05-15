@@ -13,7 +13,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
 	const float SourceSeed = TimeThiefSmokeSoftSphere(length(LocalPosition), max(PlumeSourceRadius, 1.0));
-	const float3 Ellipsoid = LocalPosition / max(BoundsExtent * float3(0.92, 0.92, 0.84), 1.0);
+	const float3 Ellipsoid = LocalPosition / max(NaturalBoundsExtent * float3(0.92, 0.92, 0.84), 1.0);
 	const float BoundsFade = 1.0 - smoothstep(0.86, 1.0, length(Ellipsoid));
 	const float DensitySeed = InitialDensity * SourceSeed * BoundsFade * 0.45;
 

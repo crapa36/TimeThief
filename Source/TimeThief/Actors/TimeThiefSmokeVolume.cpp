@@ -97,6 +97,8 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(const FTimeThiefSmokeRuntimeSe
 	BoundsClusterLocalOffset = FVector::ZeroVector;
 	ActiveBoundsCells.Reset();
 	ActiveBoundsCellGrid = FIntVector::ZeroValue;
+	PreviousComponentLocations.Reset();
+	ActorWarpDensityAccumulations.Reset();
 
 	SetOwner(InOwnerActor);
 	SetInstigator(InInstigatorPawn);
@@ -332,6 +334,7 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 	if (!bAnyOverlap)
 	{
 		PreviousComponentLocations.Reset();
+		ActorWarpDensityAccumulations.Reset();
 		return;
 	}
 
@@ -379,6 +382,7 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 		const TWeakObjectPtr<UPrimitiveComponent> Component = It.Key();
 		if (!Component.IsValid() || !CurrentDynamicComponents.Contains(Component))
 		{
+			ActorWarpDensityAccumulations.Remove(Component);
 			It.RemoveCurrent();
 		}
 	}
@@ -413,8 +417,12 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 		return;
 	}
 
-	const FVector Velocity = ResolveComponentVelocity(PrimitiveComponent, DeltaTime);
+	FVector PreviousComponentLocation = PrimitiveComponent->GetComponentLocation();
+	const FVector Velocity = ResolveComponentVelocity(PrimitiveComponent, DeltaTime, PreviousComponentLocation);
 	const float Speed = Velocity.Size();
+	const TWeakObjectPtr<UPrimitiveComponent> ComponentKey(PrimitiveComponent);
+	float& WarpAccumulation = ActorWarpDensityAccumulations.FindOrAdd(ComponentKey);
+	WarpAccumulation *= FMath::Exp(-DeltaTime / FMath::Max(0.01f, SmokeSettings.ActorWarpAccumulationDecaySeconds));
 	const float ResponseStartSpeed = FMath::Max(1.0f, SmokeSettings.ActorPushVelocityThreshold * 0.35f);
 	const float FullResponseSpeed = FMath::Max(ResponseStartSpeed + 1.0f, SmokeSettings.ActorPushVelocityThreshold);
 	if (Speed < ResponseStartSpeed)
@@ -432,28 +440,47 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 
 	OutEvent.SmokeId = SmokeId;
 	OutEvent.Type = ESmokeInteractionType::ActorPush;
-	OutEvent.Position = PrimitiveComponent->Bounds.Origin;
+	const FVector CurrentBoundsOrigin = PrimitiveComponent->Bounds.Origin;
+	const FVector CurrentComponentLocation = PrimitiveComponent->GetComponentLocation();
+	const FVector PreviousBoundsOrigin = PreviousComponentLocation + (CurrentBoundsOrigin - CurrentComponentLocation);
+	OutEvent.Position = CurrentBoundsOrigin;
+	OutEvent.PreviousPosition = PreviousBoundsOrigin;
 	OutEvent.Direction = Velocity.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
 	OutEvent.Rotation = PrimitiveComponent->GetComponentQuat();
 	OutEvent.Strength = Strength;
+	OutEvent.Speed = Speed;
 	OutEvent.NormalizedAge = 0.0f;
 	OutEvent.Seed = GetTypeHash(PrimitiveComponent);
 	OutEvent.Shape = ResolvePrimitiveShape(PrimitiveComponent, OutEvent);
+
+	const float CurrentDensity = EstimateWarpDensityAtWorldPosition(CurrentBoundsOrigin);
+	const float PreviousDensity = EstimateWarpDensityAtWorldPosition(PreviousBoundsOrigin);
+	const float MidDensity = EstimateWarpDensityAtWorldPosition((CurrentBoundsOrigin + PreviousBoundsOrigin) * 0.5);
+	const float PathDensity = FMath::Clamp((CurrentDensity + PreviousDensity + MidDensity) / 3.0f, 0.0f, 1.0f);
+	const float TravelDistance = FVector::Dist(CurrentBoundsOrigin, PreviousBoundsOrigin);
+	const float TravelGate = TimeThiefSmokeVolume::SmoothStep01(TravelDistance / FMath::Max(OutEvent.Radius * 0.65f, 8.0f));
+	const float Deposit = PathDensity * TravelGate * FMath::Lerp(0.35f, 1.0f, Strength);
+	WarpAccumulation = FMath::Clamp(WarpAccumulation + Deposit * FMath::Max(0.0f, SmokeSettings.ActorWarpDensityAccumulationScale), 0.0f, 1.0f);
+	OutEvent.WarpBudget = WarpAccumulation;
+	WarpAccumulation *= FMath::Clamp(SmokeSettings.ActorWarpEmissionRemainder, 0.0f, 1.0f);
 }
 
-FVector ATimeThiefSmokeVolume::ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime)
+FVector ATimeThiefSmokeVolume::ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FVector& OutPreviousLocation)
 {
 	if (!PrimitiveComponent)
 	{
+		OutPreviousLocation = FVector::ZeroVector;
 		return FVector::ZeroVector;
 	}
 
 	FVector Velocity = PrimitiveComponent->GetComponentVelocity();
 	const FVector CurrentLocation = PrimitiveComponent->GetComponentLocation();
+	OutPreviousLocation = CurrentLocation;
 
-	if (Velocity.IsNearlyZero() && DeltaTime > KINDA_SMALL_NUMBER)
+	if (const FVector* PreviousLocation = PreviousComponentLocations.Find(PrimitiveComponent))
 	{
-		if (const FVector* PreviousLocation = PreviousComponentLocations.Find(PrimitiveComponent))
+		OutPreviousLocation = *PreviousLocation;
+		if (Velocity.IsNearlyZero() && DeltaTime > KINDA_SMALL_NUMBER)
 		{
 			Velocity = (CurrentLocation - *PreviousLocation) / DeltaTime;
 		}
@@ -461,6 +488,24 @@ FVector ATimeThiefSmokeVolume::ResolveComponentVelocity(UPrimitiveComponent* Pri
 
 	PreviousComponentLocations.FindOrAdd(PrimitiveComponent) = CurrentLocation;
 	return Velocity;
+}
+
+float ATimeThiefSmokeVolume::EstimateWarpDensityAtWorldPosition(const FVector& WorldPosition) const
+{
+	const FTransform SmokeTransform = GetActorTransform();
+	const FVector LocalPosition = SmokeTransform.InverseTransformPosition(WorldPosition);
+	const FVector NaturalExtent = GetCurrentSmokeBoundsExtent().ComponentMax(FVector(1.0f));
+	const FVector RenderExtent = GetCurrentSmokeRenderBoundsExtent().ComponentMax(NaturalExtent).ComponentMax(FVector(1.0f));
+	const FVector NaturalNormalized = LocalPosition / NaturalExtent;
+	const FVector RenderNormalized = LocalPosition / RenderExtent;
+	const float NaturalDistance = FVector(NaturalNormalized.X, NaturalNormalized.Y, NaturalNormalized.Z / 0.86f).Size();
+	const float RenderDistance = FVector(RenderNormalized.X, RenderNormalized.Y, RenderNormalized.Z / 0.9f).Size();
+	const float NaturalDensity = 1.0f - TimeThiefSmokeVolume::SmoothStep01((NaturalDistance - 0.18f) / 0.78f);
+	const float RenderFade = 1.0f - TimeThiefSmokeVolume::SmoothStep01((RenderDistance - 0.86f) / 0.16f);
+	const float EmissionAlpha = TimeThiefSmokeVolume::SmoothStep01(SmokeAgeSeconds / 0.35f);
+	const float LifetimeAlpha = 1.0f - TimeThiefSmokeVolume::SmoothStep01((SmokeAgeSeconds - SmokeSettings.SmokeDuration) / FMath::Max(SmokeSettings.SmokeFadeOutDuration, 0.001f));
+	const float DensityScale = FMath::Clamp(SmokeSettings.InitialDensity / 3.2f, 0.0f, 1.0f);
+	return FMath::Clamp(NaturalDensity * RenderFade * EmissionAlpha * LifetimeAlpha * DensityScale * 1.35f, 0.0f, 1.0f);
 }
 
 ESmokeInteractionShape ATimeThiefSmokeVolume::ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const
@@ -532,7 +577,8 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 	ObstacleMask.Init(0, CellCount);
 	ObstacleMaskResolution = Resolution;
 
-	const FVector BoundsExtent = GetCurrentSmokeBoundsExtent().ComponentMax(FVector(1.0f));
+	const FVector NaturalBoundsExtent = GetCurrentSmokeBoundsExtent().ComponentMax(FVector(1.0f));
+	const FVector BoundsExtent = GetCurrentSmokeRenderBoundsExtent().ComponentMax(NaturalBoundsExtent);
 	const FVector CellExtent = (BoundsExtent / static_cast<float>(Resolution)) + FVector(FMath::Max(0.0f, SmokeSettings.ObstacleMaskInflation));
 	const FTransform SmokeTransform = GetActorTransform();
 
@@ -541,7 +587,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeObstacleMask), false);
 	QueryParams.AddIgnoredActor(this);
-	BuildActiveBoundsCells(BoundsExtent, SmokeTransform, ObjectQueryParams, QueryParams);
+	BuildActiveBoundsCells(NaturalBoundsExtent, SmokeTransform, ObjectQueryParams, QueryParams);
 
 	for (int32 Z = 0; Z < Resolution; ++Z)
 	{
@@ -569,7 +615,11 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 					continue;
 				}
 
-				const float ActiveOpen = ComputeLocalActiveBoundsOpen(LocalPosition, BoundsExtent);
+				float ActiveOpen = 1.0f;
+				if ((LocalPosition.GetAbs() - NaturalBoundsExtent).GetMax() <= 0.0f)
+				{
+					ActiveOpen = ComputeLocalActiveBoundsOpen(LocalPosition, NaturalBoundsExtent);
+				}
 				ObstacleMask[Index] = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt((1.0f - ActiveOpen) * 255.0f), 0, 255));
 			}
 		}

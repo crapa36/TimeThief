@@ -11,12 +11,20 @@ struct FTimeThiefSmokeEventShaderData
 	FVector4f ExtentsStrength = FVector4f::Zero();
 	FVector4f Rotation = FVector4f::Zero();
 	FVector4f TypeShapeAgeSeed = FVector4f::Zero();
+	FVector4f PreviousPositionSpeed = FVector4f::Zero();
 };
 
 struct FTimeThiefSmokeCarrierParticleShaderData
 {
 	FVector4f LocalPositionRadius = FVector4f::Zero();
 	FVector4f VelocityPhase = FVector4f::Zero();
+};
+
+struct FTimeThiefSmokeVortexParticleShaderData
+{
+	FVector4f LocalPositionLife = FVector4f::Zero();
+	FVector4f VelocityStrength = FVector4f::Zero();
+	FVector4f AxisSeed = FVector4f(0.0f, 0.0f, 1.0f, 0.0f);
 };
 
 class FTimeThiefSmokeInitCS : public FGlobalShader
@@ -93,6 +101,28 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_VORTICITY_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeUpdateVortexParticlesCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeUpdateVortexParticlesCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeUpdateVortexParticlesCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_UPDATE_VORTEX_PARTICLES_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeSplatVortexParticlesCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeSplatVortexParticlesCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeSplatVortexParticlesCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_SPLAT_VORTEX_PARTICLES_CS_PARAMETERS
 	END_SHADER_PARAMETER_STRUCT()
 };
 

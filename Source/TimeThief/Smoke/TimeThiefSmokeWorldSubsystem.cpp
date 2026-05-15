@@ -55,11 +55,25 @@ namespace TimeThiefSmoke
 		RendererSettings.TurbulenceStrength = Settings.TurbulenceStrength;
 		RendererSettings.AirInteractionStrength = Settings.AirInteractionStrength;
 		RendererSettings.EventVortexStrength = Settings.EventVortexStrength;
+		RendererSettings.VortexParticleCount = Settings.VortexParticleCount;
+		RendererSettings.VortexParticleLifeSeconds = Settings.VortexParticleLifeSeconds;
+		RendererSettings.VortexParticleStrength = Settings.VortexParticleStrength;
+		RendererSettings.VortexParticleSplatRadius = Settings.VortexParticleSplatRadius;
+		RendererSettings.VortexParticleCoreRadius = Settings.VortexParticleCoreRadius;
+		RendererSettings.VortexDensityGradientScale = Settings.VortexDensityGradientScale;
 		RendererSettings.WarpTrailIntensity = Settings.WarpTrailIntensity;
 		RendererSettings.WarpTrailDecayRate = Settings.WarpTrailDecayRate;
 		RendererSettings.WarpTrailRadiusScale = Settings.WarpTrailRadiusScale;
 		RendererSettings.WarpTrailLengthScale = Settings.WarpTrailLengthScale;
+		RendererSettings.ActorWarpDensityAccumulationScale = Settings.ActorWarpDensityAccumulationScale;
+		RendererSettings.ActorWarpAccumulationDecaySeconds = Settings.ActorWarpAccumulationDecaySeconds;
+		RendererSettings.ActorWarpEmissionRemainder = Settings.ActorWarpEmissionRemainder;
 		RendererSettings.BulletWakeMaxVisibleLife = Settings.BulletWakeMaxVisibleLife;
+		RendererSettings.BulletWakeReleaseDuration = Settings.BulletWakeReleaseDuration;
+		RendererSettings.BulletWakeSinkLife = Settings.BulletWakeSinkLife;
+		RendererSettings.BulletWakeSinkStrength = Settings.BulletWakeSinkStrength;
+		RendererSettings.BulletWakeImpulseStrength = Settings.BulletWakeImpulseStrength;
+		RendererSettings.BulletWakeCutoutFeather = Settings.BulletWakeCutoutFeather;
 		RendererSettings.bUseMacCormackAdvection = Settings.bUseMacCormackAdvection;
 		RendererSettings.CarrierParticleCount = Settings.CarrierParticleCount;
 		RendererSettings.CarrierParticleRadius = Settings.CarrierParticleRadius;
@@ -72,6 +86,13 @@ namespace TimeThiefSmoke
 		RendererSettings.PlumeSourceRadius = Settings.PlumeSourceRadius;
 		RendererSettings.PlumeExpansionVelocity = Settings.PlumeExpansionVelocity;
 		RendererSettings.PlumeRiseVelocity = Settings.PlumeRiseVelocity;
+		RendererSettings.RenderNoiseScale = Settings.RenderNoiseScale;
+		RendererSettings.RenderNoiseStrength = Settings.RenderNoiseStrength;
+		RendererSettings.RenderNoiseTimeScale = Settings.RenderNoiseTimeScale;
+		RendererSettings.RenderFilamentScale = Settings.RenderFilamentScale;
+		RendererSettings.RenderFilamentStrength = Settings.RenderFilamentStrength;
+		RendererSettings.RenderFilamentContrast = Settings.RenderFilamentContrast;
+		RendererSettings.RenderFilamentWarpStrength = Settings.RenderFilamentWarpStrength;
 		return RendererSettings;
 	}
 
@@ -82,12 +103,15 @@ namespace TimeThiefSmoke
 		RendererEvent.Type = ToRendererType(Event.Type);
 		RendererEvent.Shape = ToRendererShape(Event.Shape);
 		RendererEvent.Position = FVector3f(Event.Position);
+		RendererEvent.PreviousPosition = FVector3f(Event.PreviousPosition);
 		RendererEvent.Direction = FVector3f(Event.Direction);
 		RendererEvent.Rotation = FQuat4f(Event.Rotation);
 		RendererEvent.Extents = FVector3f(Event.Extents);
 		RendererEvent.Radius = Event.Radius;
 		RendererEvent.Length = Event.Length;
 		RendererEvent.Strength = Event.Strength;
+		RendererEvent.Speed = Event.Speed;
+		RendererEvent.WarpBudget = Event.WarpBudget;
 		RendererEvent.NormalizedAge = Event.NormalizedAge;
 		RendererEvent.Seed = Event.Seed;
 		return RendererEvent;
@@ -285,8 +309,9 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		FTimeThiefSmokeRendererVolume RendererVolume;
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
 		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
-		RendererVolume.BoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
+		RendererVolume.NaturalBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
 		RendererVolume.RenderBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeRenderBoundsExtent());
+		RendererVolume.BoundsExtent = RendererVolume.RenderBoundsExtent;
 		RendererVolume.AgeSeconds = SmokeVolume->GetSmokeAgeSeconds();
 		RendererVolume.DurationSeconds = Settings.SmokeDuration;
 		RendererVolume.ObstacleMaskResolution = SmokeVolume->GetObstacleMaskResolution();

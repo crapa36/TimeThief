@@ -18,7 +18,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float3 Velocity = Particle.VelocityPhase.xyz;
 	float Radius = max(Particle.LocalPositionRadius.w, 1.0);
 	float Phase = Particle.VelocityPhase.w + SafeDeltaSeconds * 0.9;
-	const float3 ParticleBounds = max(BoundsExtent * float3(0.84, 0.84, 0.82), 1.0);
+	const float3 ParticleBounds = max(NaturalBoundsExtent * float3(0.84, 0.84, 0.82), 1.0);
 
 	const float3 Wander = normalize(float3(
 		sin(Phase + LocalPosition.y * 0.006),

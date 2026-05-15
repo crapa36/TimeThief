@@ -27,86 +27,35 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	for (int EventIndex = 0; EventIndex < EventCount; ++EventIndex)
 	{
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
-		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
-		const uint EventShape = (uint)round(Event.TypeShapeAgeSeed.y);
+		if ((uint)round(Event.TypeShapeAgeSeed.x) != 1u)
+		{
+			continue;
+		}
+
 		const float Age = saturate(Event.TypeShapeAgeSeed.z);
 		const float Seed = Event.TypeShapeAgeSeed.w;
 		const float3 EventPosition = Event.PositionRadius.xyz;
 		const float Radius = max(Event.PositionRadius.w, 1.0);
-		const float3 Direction = normalize(Event.DirectionLength.xyz + 0.0001);
-		const float Length = max(Event.DirectionLength.w, 1.0);
 		const float Strength = max(Event.ExtentsStrength.w, 0.0);
 		const float3 ToCell = WorldPosition - EventPosition;
+		const float Distance = length(ToCell);
+		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
+		const float FrontRadius = Radius * lerp(0.12, 1.08, Age);
+		const float FrontThickness = max(Radius * 0.16, 1.0);
+		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
+		const float EvacuatedCore = (1.0 - smoothstep(max(FrontRadius * 0.35, 1.0), max(FrontRadius * 0.92, 2.0), Distance)) *
+			(1.0 - smoothstep(0.72, 1.0, Age));
+		const float3 Radial = normalize(ToCell + float3(0.0001, 0.0001, 0.0001));
+		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
+		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
+		const float ClearStrength = saturate(Event.ExtentsStrength.y);
+		const float PressureWeight = saturate(ShockShell + EvacuatedCore * 0.28);
+		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
 
-		if (EventType == 0)
-		{
-			const float Along = clamp(dot(ToCell, Direction), -Length * 0.5, Length * 0.5);
-			const float3 Closest = EventPosition + Direction * Along;
-			const float WakeDistance = length(WorldPosition - Closest);
-			const float Pocket = TimeThiefSmokeSoftSphere(WakeDistance, Radius);
-			const float BrokenMask = lerp(0.58, 1.08, TimeThiefSmokeHash13(WorldPosition * 0.017 + Seed));
-			const float AgeFade = 1.0 - smoothstep(0.0, 1.0, Age);
-			const float Weight = saturate(Pocket * BrokenMask * AgeFade);
-			const float HoleWeight = pow(Weight, 1.25);
-			const float FullClearWeight = smoothstep(0.48, 0.74, Pocket) * AgeFade;
-			const float ShellWeight = saturate((1.0 - abs(WakeDistance - Radius * 0.88) / max(Radius * 0.42, 1.0)) * Weight);
-			const float3 Side = normalize(cross(Direction, abs(Direction.z) < 0.9 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0)));
-			const float CurlSign = TimeThiefSmokeHash13(WorldPosition * 0.021 + Seed * 1.7) > 0.5 ? 1.0 : -1.0;
-
-			Density *= 1.0 - saturate(FullClearWeight);
-			Density *= 1.0 - saturate(HoleWeight * lerp(0.65, 1.0, Strength));
-			Density = min(3.2, Density + ShellWeight * Strength * 0.018 * smoothstep(0.35, 0.95, Age));
-			Velocity += Direction * Weight * Strength * 760.0;
-			Velocity += Side * CurlSign * Weight * Strength * 240.0;
-		}
-		else if (EventType == 1)
-		{
-			const float Distance = length(ToCell);
-			const float CoreWeight = 1.0 - smoothstep(Radius * 0.12, Radius, Distance);
-			const float ShellWeight = 1.0 - abs(saturate(Distance / Radius) * 2.0 - 1.0);
-			const float3 Radial = normalize(ToCell + float3(0.0, 0.0, 35.0));
-			const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
-			const float TimedStrength = Strength;
-			const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
-			const float ClearStrength = saturate(Event.ExtentsStrength.y);
-
-			Density = max(0.0, Density - CoreWeight * TimedStrength * lerp(0.12, 0.32, ClearStrength));
-			Density = min(3.2, Density + ShellWeight * TimedStrength * 0.18);
-			Velocity += Radial * CoreWeight * TimedStrength * OutwardStrength;
-			Velocity += Curl * (CoreWeight + ShellWeight * 0.35) * TimedStrength * 230.0;
-		}
-		else
-		{
-			const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
-			const float3 LocalToActor = TimeThiefSmokeInverseRotateByQuat(ToCell, Event.Rotation);
-			float ShapeSdf = length(ToCell) - ShapeRadius;
-			if (EventShape == 1)
-			{
-				ShapeSdf = TimeThiefSmokeCapsuleSdf(LocalToActor, max(Radius, 1.0), max(Length, Radius * 2.0));
-			}
-			else if (EventShape == 2)
-			{
-				ShapeSdf = TimeThiefSmokeBoxSdf(LocalToActor, max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35)));
-			}
-
-			const float ShapeWeight = TimeThiefSmokeSdfWeight(ShapeSdf, ShapeRadius * 0.45) * Strength;
-			const float Along = dot(ToCell, Direction);
-			const float FrontWeight = TimeThiefSmokeSoftSphere(length(ToCell - Direction * ShapeRadius * 0.65), ShapeRadius * 1.35) * saturate(smoothstep(-ShapeRadius * 0.3, ShapeRadius, Along)) * Strength;
-			const float TrailWeight = TimeThiefSmokeSoftSphere(length(ToCell + Direction * ShapeRadius * 1.15), ShapeRadius * 1.85) * (1.0 - smoothstep(-ShapeRadius * 0.1, ShapeRadius * 1.6, Along)) * Strength;
-			const float TrailLength = ShapeRadius * 5.0;
-			const float BackAlong = clamp(-Along, 0.0, TrailLength);
-			const float3 TrailClosest = EventPosition - Direction * BackAlong;
-			const float TrailRadial = length(WorldPosition - TrailClosest);
-			const float LongTrailWeight = TimeThiefSmokeSoftSphere(TrailRadial, ShapeRadius * 1.05) * (1.0 - smoothstep(ShapeRadius * 0.35, TrailLength, BackAlong)) * saturate(-Along / max(ShapeRadius, 1.0)) * Strength;
-			const float RimWeight = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.42, 1.0)) * Strength);
-			const float SideNoise = TimeThiefSmokeHash13(WorldPosition * 0.018 + Seed * 2.3);
-			const float3 Side = normalize(cross(Direction, abs(Direction.z) < 0.9 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0)));
-			const float CurlSign = SideNoise > 0.5 ? 1.0 : -1.0;
-
-			Density = min(3.2, Density * (1.0 + LongTrailWeight * 0.035) + RimWeight * 0.025);
-			Velocity += Direction * (ShapeWeight * 270.0 + TrailWeight * 400.0 + LongTrailWeight * 650.0 + FrontWeight * 170.0);
-			Velocity += Side * CurlSign * (TrailWeight + LongTrailWeight + FrontWeight + RimWeight * 0.4) * 220.0;
-		}
+		Density *= 1.0 - saturate(EvacuatedCore * Strength * ClearStrength * SafeDeltaSeconds * 3.5);
+		Density = min(3.2, Density * (1.0 + ShockShell * Strength * SafeDeltaSeconds * 0.35));
+		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
+		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
 	}
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);

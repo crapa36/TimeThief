@@ -36,9 +36,15 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 	const float3 EventPosition = Event.PositionRadius.xyz;
 	const float Radius = max(Event.PositionRadius.w, 1.0);
 	const float Strength = saturate(Event.ExtentsStrength.w);
+	const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
+	if (WarpBudget <= 0.01)
+	{
+		return 0.0;
+	}
+
 	const float3 Direction = SafeNormalize(Event.DirectionLength.xyz);
 	const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
-	const float TrailLength = max(ShapeRadius * max(WarpTrailLengthScale, 0.1) * lerp(0.75, 1.2, Strength), ShapeRadius * 2.0);
+	const float TrailLength = max(ShapeRadius * max(WarpTrailLengthScale, 0.1) * lerp(0.42, 1.0, WarpBudget) * lerp(0.75, 1.2, Strength), ShapeRadius * 2.0);
 	const float3 ToCell = WorldPosition - EventPosition;
 	const float Along = dot(ToCell, Direction);
 	const float BackAlong = clamp(-Along, 0.0, TrailLength);
@@ -52,23 +58,29 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 	const float3 Radial = WorldPosition - TrailClosest;
 	const float3 Side = MakeSideAxis(Direction);
 	const float3 Up = SafeNormalize(cross(Side, Direction));
-	const float ThreadRadius = clamp(ShapeRadius * max(WarpTrailRadiusScale, 0.01), 4.0, max(ShapeRadius * 0.38, 4.0));
+	const float ThreadRadius = clamp(ShapeRadius * max(WarpTrailRadiusScale, 0.01), 2.0, max(ShapeRadius * 0.16, 2.0));
 	const float AxialFade =
 		(1.0 - smoothstep(TrailLength * 0.48, TrailLength, BackAlong)) *
 		saturate(BackAlong / max(ThreadRadius * 1.3, 1.0));
 	const float Strand =
 		max(
-			ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius, Seed, 0.0),
 			max(
-				ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.82, Seed + 37.0, 1.0),
-				ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.66, Seed + 71.0, 2.0)));
+				ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius, Seed, 0.0),
+				ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.78, Seed + 37.0, 1.0)),
+			max(
+				max(
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.66, Seed + 71.0, 2.0),
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.58, Seed + 113.0, 3.0)),
+				max(
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.52, Seed + 149.0, 4.0),
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.47, Seed + 191.0, 5.0))));
 	const float Halo = 1.0 - smoothstep(ThreadRadius * 0.8, ThreadRadius * 2.6, length(Radial));
 	const float Breakup = lerp(
 		0.45,
 		1.15,
 		TimeThiefSmokeValueNoise(float3(BackAlong * 0.035, Seed * 0.009, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
 	const float DensityFactor = saturate(Density * 0.82);
-	return saturate((Strand * 0.96 + Halo * 0.16) * AxialFade * BehindMask * Breakup * DensityFactor * Strength * max(WarpTrailIntensity, 0.0));
+	return saturate((Strand * 1.08 + Halo * 0.04) * AxialFade * BehindMask * Breakup * DensityFactor * Strength * WarpBudget * max(WarpTrailIntensity, 0.0));
 }
 
 [numthreads(4, 4, 4)]

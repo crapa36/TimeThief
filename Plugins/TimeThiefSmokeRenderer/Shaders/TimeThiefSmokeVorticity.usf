@@ -117,34 +117,43 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float DensityMask, float3 C
 			const float Distance = length(ToCell);
 			const float3 RadialDirection = SafeNormalize(ToCell);
 			const float ExpandingShell = Radius * lerp(0.22, 1.12, Age);
-			const float Shell = 1.0 - smoothstep(Radius * 0.05, Radius * 0.55, abs(Distance - ExpandingShell));
-			const float Core = 1.0 - smoothstep(Radius * 0.08, Radius * 0.9, Distance);
+			const float Shell = 1.0 - smoothstep(Radius * 0.04, Radius * 0.24, abs(Distance - ExpandingShell));
+			const float Core = (1.0 - smoothstep(Radius * 0.08, max(ExpandingShell * 0.72, Radius * 0.16), Distance)) *
+				(1.0 - smoothstep(0.72, 1.0, Age));
 			const float3 Tangent = SafeNormalize(cross(RadialDirection, CurlNoise));
 			const float Fade = 1.0 - smoothstep(0.65, 1.0, Age);
 			Force += Tangent * Shell * Strength * Fade * 760.0;
-			Force += CurlNoise * (Core + Shell * 0.55) * Strength * Fade * 320.0;
+			Force += CurlNoise * (Shell * 0.85 + Core * 0.18) * Strength * Fade * 320.0;
 		}
 		else
 		{
+			const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
+			const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);
+			const float SurfaceBand = saturate((1.0 - smoothstep(ShapeRadius * 0.02, ShapeRadius * 0.72, abs(ShapeSdf))) * Strength);
+			const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
+			const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
+			const float3 SurfaceTangent = SafeNormalize(Direction - SurfaceNormal * dot(Direction, SurfaceNormal));
+			const float3 RollAxis = SafeNormalize(cross(SurfaceNormal, SurfaceTangent) + CurlNoise * 0.42);
+			const float3 RollForce = SafeNormalize(cross(RollAxis, SurfaceNormal));
 			const float Along = dot(ToCell, Direction);
 			const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 8.5);
 			const float3 TrailClosest = EventPosition - Direction * BackAlong;
 			const float3 TrailRadial = WorldPosition - TrailClosest;
 			const float TrailDistance = length(TrailRadial);
-			const float3 TrailRadialDirection = SafeNormalize(TrailRadial);
 			const float Trail =
-				TimeThiefSmokeSoftSphere(TrailDistance, ShapeRadius * 1.45) *
+				TimeThiefSmokeSoftSphere(TrailDistance, ShapeRadius * 1.35) *
 				(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 8.5, BackAlong)) *
 				saturate(-Along / max(ShapeRadius * 0.65, 1.0));
 			const float Front =
 				TimeThiefSmokeSoftSphere(length(ToCell - Direction * ShapeRadius * 0.55), ShapeRadius * 1.75) *
 				saturate(smoothstep(-ShapeRadius * 0.25, ShapeRadius * 1.25, Along));
-			const float3 Tangent = SafeNormalize(cross(Direction, TrailRadialDirection));
-			const float3 SideSpill = SafeNormalize(TrailRadialDirection - Direction * dot(TrailRadialDirection, Direction));
-			const float SpinBreakup = lerp(0.45, 1.0, TimeThiefSmokeValueNoise(float3(BackAlong * 0.035, Seed * 0.011, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
-			Force += Tangent * Trail * SpinBreakup * Strength * 920.0;
-			Force += SideSpill * Front * Strength * 380.0;
-			Force += CurlNoise * (Trail + Front * 0.35) * Strength * 240.0;
+			const float SpinBreakup = lerp(0.45, 1.0, TimeThiefSmokeRidgedFBM(float3(BackAlong * 0.035, Seed * 0.011, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
+			const float ShearStrength = SurfaceBand * lerp(0.65, 1.45, saturate(ActorSpeed / 900.0));
+			Force += RollForce * ShearStrength * SpinBreakup * Strength * 860.0;
+			Force += SurfaceTangent * SurfaceBand * Strength * ActorSpeed * 0.52;
+			Force += CurlNoise * SurfaceBand * Strength * 260.0;
+			Force += RollForce * Trail * SpinBreakup * Strength * lerp(420.0, 920.0, WarpBudget);
+			Force += Direction * Front * Strength * ActorSpeed * 0.34;
 		}
 	}
 	return Force * DensityMask;
@@ -184,11 +193,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float BoundaryDamping = 1.0 - smoothstep(0.82, 1.08, length(Centered / float3(1.0, 1.0, 0.88)));
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.23);
 	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * 24.0;
-	const float TurbulenceBand = lerp(90.0, 280.0, saturate(CurlMagnitude * 0.18));
+	const float TurbulenceBand = lerp(180.0, 460.0, saturate(CurlMagnitude * 0.18));
 	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * DensityMask * TurbulenceBand;
+	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * 95.0;
 	const float3 AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
 	const float3 EventForce = ComputeEventVortexForce(WorldPosition, DensityMask, CurlNoise);
-	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
+	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AmbientAirForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
 	const float MaxDeltaSpeed = max(160.0, 420.0 * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
 	const float DeltaSpeed = length(DeltaVelocity);
 	if (DeltaSpeed > MaxDeltaSpeed)

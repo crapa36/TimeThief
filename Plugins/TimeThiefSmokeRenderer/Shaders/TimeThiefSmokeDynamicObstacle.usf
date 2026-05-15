@@ -27,59 +27,30 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			continue;
 		}
 
-		const uint EventShape = (uint)round(Event.TypeShapeAgeSeed.y);
-		const float3 EventPosition = Event.PositionRadius.xyz;
 		const float Radius = max(Event.PositionRadius.w, 1.0);
 		const float3 Direction = normalize(Event.DirectionLength.xyz + 0.0001);
-		const float Length = max(Event.DirectionLength.w, Radius * 2.0);
 		const float Strength = saturate(Event.ExtentsStrength.w);
-		const float3 ToCell = WorldPosition - EventPosition;
-		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
-		const float3 LocalToActor = TimeThiefSmokeInverseRotateByQuat(ToCell, Event.Rotation);
-		float ShapeSdf = length(ToCell) - ShapeRadius;
-		if (EventShape == 1)
-		{
-			ShapeSdf = TimeThiefSmokeCapsuleSdf(LocalToActor, Radius, Length);
-		}
-		else if (EventShape == 2)
-		{
-			ShapeSdf = TimeThiefSmokeBoxSdf(LocalToActor, max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35)));
-		}
+		const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
+		const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
+		const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);
+		const float3 SolidVelocity = Direction * max(Event.PreviousPositionSpeed.w, 0.0);
+		const float SolidSpeed = length(SolidVelocity);
+		const float Inside = 1.0 - smoothstep(-ShapeRadius * 0.08, ShapeRadius * 0.02, ShapeSdf);
+		const float Outside = 1.0 - saturate(Inside);
+		const float BoundaryLayer = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.72, 1.0)) * Strength);
+		const float SurfaceBand = saturate((1.0 - smoothstep(ShapeRadius * 0.02, ShapeRadius * 0.55, abs(ShapeSdf))) * Strength);
+		const float FrontMask = saturate(dot(SurfaceNormal, Direction) * 0.5 + 0.5);
+		const float3 Tangent = normalize(Direction - SurfaceNormal * dot(Direction, SurfaceNormal) + float3(0.0001, 0.0001, 0.0001));
+		const float ApproachSpeed = max(dot(SolidVelocity - Velocity, SurfaceNormal), 0.0);
+		const float3 TangentialSolidVelocity = SolidVelocity - SurfaceNormal * dot(SolidVelocity, SurfaceNormal);
+		const float3 BoundaryDrag = (TangentialSolidVelocity - Velocity) * BoundaryLayer * 0.32;
+		const float3 BowWave = SurfaceNormal * ApproachSpeed * SurfaceBand * FrontMask * 0.55;
+		const float3 WakePull = -Direction * SolidSpeed * BoundaryLayer * (1.0 - FrontMask) * 0.22;
+		const float3 ShearRoll = Tangent * SolidSpeed * SurfaceBand * 0.16;
 
-		const float Inside = 1.0 - smoothstep(-ShapeRadius * 0.18, ShapeRadius * 0.18, ShapeSdf);
-		const float Boundary = saturate((1.0 - abs(ShapeSdf) / max(ShapeRadius * 0.55, 1.0)) * Strength);
-		const float Along = dot(ToCell, Direction);
-		const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 5.2);
-		const float3 TrailClosest = EventPosition - Direction * BackAlong;
-		const float TrailRadial = length(WorldPosition - TrailClosest);
-		const float Trail = TimeThiefSmokeSoftSphere(TrailRadial, ShapeRadius * 1.08) *
-			(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 5.2, BackAlong)) *
-			saturate(-Along / max(ShapeRadius, 1.0)) * Strength;
-		const float FilamentBackAlong = clamp(-Along, 0.0, ShapeRadius * 8.5);
-		const float Seed = Event.TypeShapeAgeSeed.w;
-		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.018 + Seed * 0.001, FilamentBackAlong * 0.012);
-		const float3 LateralCurl = Curl - Direction * dot(Curl, Direction);
-		const float3 StrandDirection = normalize(LateralCurl + float3(0.0001, 0.0001, 0.0001));
-		const float StrandOffset = lerp(0.12, 0.48, TimeThiefSmokeHash13(float3(FilamentBackAlong * 0.019, Seed * 0.007, 3.17))) * ShapeRadius;
-		const float3 FilamentClosest = EventPosition - Direction * FilamentBackAlong + StrandDirection * StrandOffset;
-		const float FilamentRadial = length(WorldPosition - FilamentClosest);
-		const float FilamentLength =
-			(1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 8.5, FilamentBackAlong)) *
-			saturate(-Along / max(ShapeRadius * 0.65, 1.0));
-		const float FilamentBreakup = smoothstep(
-			0.2,
-			0.92,
-			TimeThiefSmokeValueNoise(float3(FilamentBackAlong * 0.028, Seed * 0.013, dot(WorldPosition, float3(0.004, 0.007, 0.011)))));
-		const float Filament = (1.0 - smoothstep(ShapeRadius * 0.05, ShapeRadius * 0.23, FilamentRadial)) *
-			FilamentLength *
-			FilamentBreakup *
-			Strength;
-
-		Density *= 1.0 - Inside * Strength * 0.78;
-		Density = min(3.2, Density + Boundary * 0.022 + Trail * 0.018 + Filament * 0.07);
-		Velocity = lerp(Velocity, Direction * max(length(Velocity), 180.0), Inside * Strength * 0.42);
-		Velocity += Direction * Trail * 520.0;
-		Velocity += Direction * Filament * 760.0 + StrandDirection * Filament * 140.0;
+		Density *= Outside;
+		Velocity *= Outside;
+		Velocity += (BoundaryDrag + BowWave + WakePull + ShearRoll) * Outside;
 	}
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);

@@ -41,6 +41,9 @@ struct FTimeThiefSmokeInteractionEvent
 	FVector Position = FVector::ZeroVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
+	FVector PreviousPosition = FVector::ZeroVector;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	FVector Direction = FVector::ForwardVector;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
@@ -57,6 +60,12 @@ struct FTimeThiefSmokeInteractionEvent
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	float Strength = 1.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
+	float Speed = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
+	float WarpBudget = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	float NormalizedAge = 0.0f;
@@ -120,13 +129,13 @@ struct FTimeThiefSmokeRuntimeSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bounds Cells", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ExplosionBoundsShiftScale;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "128", UIMax = "128"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "192", UIMax = "192"))
 	int32 SmokeGridResolution;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "1", UIMin = "1", ClampMax = "64", UIMax = "64"))
 	int32 PressureIterations;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "128", UIMax = "128"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "16", UIMin = "16", ClampMax = "192", UIMax = "192"))
 	int32 RenderStepCount;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "0.0", UIMin = "0.0"))
@@ -159,6 +168,24 @@ struct FTimeThiefSmokeRuntimeSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float EventVortexStrength;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Vortex Particles", meta = (ClampMin = "1", UIMin = "1", ClampMax = "128", UIMax = "128"))
+	int32 VortexParticleCount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Vortex Particles", meta = (ClampMin = "0.05", UIMin = "0.05"))
+	float VortexParticleLifeSeconds;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Vortex Particles")
+	float VortexParticleStrength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Vortex Particles", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float VortexParticleSplatRadius;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Vortex Particles", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float VortexParticleCoreRadius;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Vortex Particles", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float VortexDensityGradientScale;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Warp", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float WarpTrailIntensity;
 
@@ -170,6 +197,15 @@ struct FTimeThiefSmokeRuntimeSettings
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Warp", meta = (ClampMin = "0.1", UIMin = "0.1"))
 	float WarpTrailLengthScale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Warp", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ActorWarpDensityAccumulationScale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Warp", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float ActorWarpAccumulationDecaySeconds;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Warp", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	float ActorWarpEmissionRemainder;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
 	bool bUseMacCormackAdvection;
@@ -198,6 +234,21 @@ struct FTimeThiefSmokeRuntimeSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bullet", meta = (ClampMin = "0.05", UIMin = "0.05"))
 	float BulletWakeMaxVisibleLife;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bullet", meta = (ClampMin = "0.05", UIMin = "0.05"))
+	float BulletWakeReleaseDuration;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bullet", meta = (ClampMin = "0.05", UIMin = "0.05"))
+	float BulletWakeSinkLife;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bullet", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float BulletWakeSinkStrength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bullet")
+	float BulletWakeImpulseStrength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Bullet", meta = (ClampMin = "0.2", UIMin = "0.2"))
+	float BulletWakeCutoutFeather;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Explosion", meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float ExplosionShockRadius;
 
@@ -218,6 +269,27 @@ struct FTimeThiefSmokeRuntimeSettings
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Actor", meta = (ClampMin = "1", UIMin = "1"))
 	int32 MaxActorInteractionEventsPerTick;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float RenderNoiseScale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float RenderNoiseStrength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise")
+	float RenderNoiseTimeScale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float RenderFilamentScale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float RenderFilamentStrength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise", meta = (ClampMin = "0.1", UIMin = "0.1"))
+	float RenderFilamentContrast;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Render Noise", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float RenderFilamentWarpStrength;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|Debug")
 	bool bDrawDebugBounds;

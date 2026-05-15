@@ -1,0 +1,69 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_SPLAT_VORTEX_PARTICLES_PARAMETERS
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float Density = max(DensityIn.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * OpenMask;
+	const float Cutout = BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0);
+	const float Sink = BulletSinkTexture.SampleLevel(VolumeSampler, UVW, 0.0);
+	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Cutout, Sink);
+	float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+
+	if (OpenMask <= 0.01 || BulletMasks.Detail <= 0.01 || Density <= 0.001)
+	{
+		OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+		return;
+	}
+
+	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+	const float SafeRadius = max(VortexParticleSplatRadius, 1.0);
+	const float SafeCore = clamp(VortexParticleCoreRadius, 1.0, SafeRadius);
+	float3 SplatVelocity = float3(0.0, 0.0, 0.0);
+
+	[loop]
+	for (int ParticleIndex = 0; ParticleIndex < min(VortexParticleCount, 128); ++ParticleIndex)
+	{
+		const FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticles[ParticleIndex];
+		if (Particle.LocalPositionLife.w <= 0.0 || Particle.VelocityStrength.w <= 0.0)
+		{
+			continue;
+		}
+
+		const float3 Offset = LocalPosition - Particle.LocalPositionLife.xyz;
+		const float Distance = length(Offset);
+		if (Distance > SafeRadius)
+		{
+			continue;
+		}
+
+		const float Shell = 1.0 - smoothstep(SafeCore, SafeRadius, Distance);
+		const float Core = 1.0 - smoothstep(0.0, SafeCore, Distance);
+		const float LifeMask = saturate(Particle.LocalPositionLife.w / 0.35);
+		const float DensityMask = saturate(Density * 0.82);
+		const float Weight = saturate(max(Shell, Core * 0.65) * LifeMask * DensityMask * BulletMasks.Detail);
+		const float3 Axis = normalize(Particle.AxisSeed.xyz + 0.0001);
+		const float3 Radial = Offset / max(Distance, 1.0);
+		const float3 Tangent = normalize(cross(Axis, Radial) + 0.0001);
+		SplatVelocity += (Tangent * Particle.VelocityStrength.w + Particle.VelocityStrength.xyz * 0.35) * Weight;
+	}
+
+	Velocity += SplatVelocity;
+	const float MaxSpeed = 2600.0;
+	const float Speed = length(Velocity);
+	if (Speed > MaxSpeed)
+	{
+		Velocity *= MaxSpeed / max(Speed, 0.0001);
+	}
+
+	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+}

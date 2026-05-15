@@ -7,6 +7,8 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeDynamicObstacleCS, "/TimeThiefSmokeShader
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeCarrierUpdateCS, "/TimeThiefSmokeShaders/TimeThiefSmokeCarrierUpdate.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeSimulateCS, "/TimeThiefSmokeShaders/TimeThiefSmokeSimulate.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeVorticityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeVorticity.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeUpdateVortexParticlesCS, "/TimeThiefSmokeShaders/TimeThiefSmokeUpdateVortexParticles.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeSplatVortexParticlesCS, "/TimeThiefSmokeShaders/TimeThiefSmokeSplatVortexParticles.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeWarpCS, "/TimeThiefSmokeShaders/TimeThiefSmokeWarp.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeDivergenceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeDivergence.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePressureJacobiCS, "/TimeThiefSmokeShaders/TimeThiefSmokePressureJacobi.usf", "MainCS", SF_Compute);
