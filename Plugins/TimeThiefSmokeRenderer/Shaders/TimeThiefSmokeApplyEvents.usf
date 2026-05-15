@@ -38,6 +38,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Radius = max(Event.PositionRadius.w, 1.0);
 		const float Strength = max(Event.ExtentsStrength.w, 0.0);
 		const float3 ToCell = WorldPosition - EventPosition;
+		const float MaxInfluenceRadius = Radius * 1.35;
+		if (dot(ToCell, ToCell) > MaxInfluenceRadius * MaxInfluenceRadius)
+		{
+			continue;
+		}
+
 		const float Distance = length(ToCell);
 		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
 		const float FrontRadius = Radius * lerp(0.12, 1.08, Age);

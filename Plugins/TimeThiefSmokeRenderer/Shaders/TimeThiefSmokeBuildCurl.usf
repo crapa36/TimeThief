@@ -1,0 +1,49 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_CURL_PARAMETERS
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+}
+
+float3 LoadOpenVelocity(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return LoadOpen(SafeCoord) > 0.01 ? VelocityIn.Load(int4(SafeCoord, 0)).xyz : float3(0.0, 0.0, 0.0);
+}
+
+float3 ComputeCurl(int3 Coord)
+{
+	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	const float3 VX0 = LoadOpenVelocity(Coord - int3(1, 0, 0));
+	const float3 VX1 = LoadOpenVelocity(Coord + int3(1, 0, 0));
+	const float3 VY0 = LoadOpenVelocity(Coord - int3(0, 1, 0));
+	const float3 VY1 = LoadOpenVelocity(Coord + int3(0, 1, 0));
+	const float3 VZ0 = LoadOpenVelocity(Coord - int3(0, 0, 1));
+	const float3 VZ1 = LoadOpenVelocity(Coord + int3(0, 0, 1));
+	const float3 DVX = (VX1 - VX0) * 0.5 * InvCellSize.x;
+	const float3 DVY = (VY1 - VY0) * 0.5 * InvCellSize.y;
+	const float3 DVZ = (VZ1 - VZ0) * 0.5 * InvCellSize.z;
+	return float3(DVY.z - DVZ.y, DVZ.x - DVX.z, DVX.y - DVY.x);
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float3 Curl = ComputeCurl(Coord);
+	OutCurl[DispatchThreadId] = float4(Curl, length(Curl));
+}

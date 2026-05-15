@@ -242,6 +242,15 @@ struct FTimeThiefSmokeRuntimeSettings
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
 	bool bUseMacCormackAdvection;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
+	bool bUseAdaptiveMacCormack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
+	bool bUseCarrierFieldTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU")
+	bool bUseVortexBrickBins;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Smoke|GPU", meta = (ClampMin = "1", UIMin = "1"))
 	int32 MaxGPUEventsPerSmokePerFrame;
 

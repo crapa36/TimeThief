@@ -113,6 +113,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticlesIn[ParticleIndex];
 	const float SafeLife = max(VortexParticleLifeSeconds, 0.001);
+	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
+	const float SafeSelfWobbleParticleScale = max(SelfWobbleParticleScale, 0.0);
 	if (Particle.LocalPositionLife.w > 0.0)
 	{
 		const float3 UVW = Particle.LocalPositionLife.xyz / max(BoundsExtent, 1.0) * 0.5 + 0.5;
@@ -131,17 +133,17 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 CellVelocity = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0).xyz;
 		const float3 NextWorldPosition = WorldPosition + CellVelocity * DeltaSeconds;
 		const float3 NextLocalPosition = mul(float4(NextWorldPosition, 1.0), WorldToLocal).xyz;
-		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.017 + Particle.AxisSeed.xyz * 1.7, AgeSeconds * 0.19 + Particle.AxisSeed.w);
+		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.017 + Particle.AxisSeed.xyz * 1.7, AgeSeconds * 0.18 * SafeSelfWobbleTimeScale + Particle.AxisSeed.w);
 		Particle.LocalPositionLife.xyz = NextLocalPosition;
 		Particle.LocalPositionLife.w = max(0.0, Particle.LocalPositionLife.w - DeltaSeconds);
-		Particle.VelocityStrength.xyz = lerp(Particle.VelocityStrength.xyz, CellVelocity + Curl * Particle.VelocityStrength.w * 0.18, saturate(DeltaSeconds * 2.4));
+		Particle.VelocityStrength.xyz = lerp(Particle.VelocityStrength.xyz, CellVelocity + Curl * Particle.VelocityStrength.w * 0.18 * SafeSelfWobbleParticleScale, saturate(DeltaSeconds * 2.4 * SafeSelfWobbleParticleScale));
 		Particle.VelocityStrength.w *= exp2(-DeltaSeconds / SafeLife);
-		Particle.AxisSeed.xyz = normalize(lerp(Particle.AxisSeed.xyz, Curl, saturate(DeltaSeconds * 1.8)) + 0.0001);
+		Particle.AxisSeed.xyz = normalize(lerp(Particle.AxisSeed.xyz, Curl, saturate(DeltaSeconds * 1.8 * SafeSelfWobbleParticleScale)) + 0.0001);
 		OutVortexParticles[ParticleIndex] = Particle;
 		return;
 	}
 
-	const float SpawnStep = floor(AgeSeconds * 28.0);
+	const float SpawnStep = floor(AgeSeconds * 36.0 * SafeSelfWobbleTimeScale);
 	const float3 Random = TimeThiefSmokeHash33(float3((float)ParticleIndex * 13.17, SpawnStep * 7.31 + 5.0, (float)VortexParticleCount * 0.113));
 	const float3 CandidateUVW = saturate(Random * 0.96 + 0.02);
 	const float3 CandidateLocal = (CandidateUVW * 2.0 - 1.0) * BoundsExtent;
@@ -165,11 +167,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-	const float3 Curl = TimeThiefSmokeCurlNoise(CandidateWorld * 0.018 + Gradient * 3.1, AgeSeconds * 0.23 + SpawnRoll);
+	const float3 Curl = TimeThiefSmokeCurlNoise(CandidateWorld * 0.018 + Gradient * 3.1, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale + SpawnRoll);
 	const float3 Axis = normalize(cross(normalize(Gradient + 0.0001), Curl) + ActorDirection * ActorWake + 0.0001);
 	FTimeThiefSmokeVortexParticleShaderData OutParticle;
 	OutParticle.LocalPositionLife = float4(CandidateLocal, SafeLife * lerp(0.55, 1.0, Random.z));
-	OutParticle.VelocityStrength = float4(Curl * VortexParticleStrength * 0.24 + normalize(CandidateVelocity + 0.0001) * VortexParticleStrength * SurfaceShear * 0.42 + ActorDirection * VortexParticleStrength * ActorWake, VortexParticleStrength * SpawnChance);
+	OutParticle.VelocityStrength = float4(Curl * VortexParticleStrength * 0.24 * SafeSelfWobbleParticleScale + normalize(CandidateVelocity + 0.0001) * VortexParticleStrength * SurfaceShear * 0.48 * SafeSelfWobbleParticleScale + ActorDirection * VortexParticleStrength * ActorWake, VortexParticleStrength * SpawnChance);
 	OutParticle.AxisSeed = float4(Axis, SpawnRoll);
 	OutVortexParticles[ParticleIndex] = OutParticle;
 }

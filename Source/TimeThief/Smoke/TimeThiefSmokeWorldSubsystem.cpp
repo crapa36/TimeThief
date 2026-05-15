@@ -8,6 +8,55 @@
 namespace TimeThiefSmoke
 {
 	constexpr int32 MaxBulletTracesPerSmokePerTick = 18;
+	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = 16;
+
+	float ComputeInteractionEventPriority(const FTimeThiefSmokeInteractionEvent& Event, const float Age, const float Duration)
+	{
+		const float NormalizedAge = Duration > KINDA_SMALL_NUMBER ? FMath::Clamp(Age / Duration, 0.0f, 1.0f) : 1.0f;
+		const float AgeWeight = FMath::Max(1.0f - NormalizedAge, 0.05f);
+		const float Strength = FMath::Max(Event.Strength, 0.01f);
+		const float RadiusWeight = FMath::Clamp(Event.Radius / 200.0f, 0.5f, 4.0f);
+		return Strength * RadiusWeight * AgeWeight;
+	}
+
+	bool AddPrioritizedActiveImpulse(TArray<FTimeThiefActiveSmokeImpulse>& ActiveImpulses, const FTimeThiefActiveSmokeImpulse& NewImpulse)
+	{
+		int32 MatchingCount = 0;
+		int32 LowestPriorityIndex = INDEX_NONE;
+		float LowestPriority = TNumericLimits<float>::Max();
+
+		for (int32 Index = 0; Index < ActiveImpulses.Num(); ++Index)
+		{
+			FTimeThiefActiveSmokeImpulse& ActiveImpulse = ActiveImpulses[Index];
+			if (ActiveImpulse.SmokeVolume.Get() != NewImpulse.SmokeVolume.Get() || ActiveImpulse.Event.Type != NewImpulse.Event.Type)
+			{
+				continue;
+			}
+
+			++MatchingCount;
+			const float Priority = ComputeInteractionEventPriority(ActiveImpulse.Event, ActiveImpulse.Age, ActiveImpulse.Duration);
+			if (Priority < LowestPriority)
+			{
+				LowestPriority = Priority;
+				LowestPriorityIndex = Index;
+			}
+		}
+
+		if (MatchingCount < MaxActiveExplosionImpulsesPerSmoke)
+		{
+			ActiveImpulses.Add(NewImpulse);
+			return true;
+		}
+
+		const float NewPriority = ComputeInteractionEventPriority(NewImpulse.Event, NewImpulse.Age, NewImpulse.Duration);
+		if (LowestPriorityIndex != INDEX_NONE && NewPriority > LowestPriority)
+		{
+			ActiveImpulses[LowestPriorityIndex] = NewImpulse;
+			return true;
+		}
+
+		return false;
+	}
 
 	ETimeThiefSmokeRendererInteractionType ToRendererType(ESmokeInteractionType Type)
 	{
@@ -95,6 +144,9 @@ namespace TimeThiefSmoke
 		RendererSettings.BulletWakeImpulseStrength = Settings.BulletWakeImpulseStrength;
 		RendererSettings.BulletWakeCutoutFeather = Settings.BulletWakeCutoutFeather;
 		RendererSettings.bUseMacCormackAdvection = Settings.bUseMacCormackAdvection;
+		RendererSettings.bUseAdaptiveMacCormack = Settings.bUseAdaptiveMacCormack;
+		RendererSettings.bUseCarrierFieldTexture = Settings.bUseCarrierFieldTexture;
+		RendererSettings.bUseVortexBrickBins = Settings.bUseVortexBrickBins;
 		RendererSettings.CarrierParticleCount = Settings.CarrierParticleCount;
 		RendererSettings.CarrierParticleRadius = Settings.CarrierParticleRadius;
 		RendererSettings.CarrierParticleDriftSpeed = Settings.CarrierParticleDriftSpeed;
@@ -271,14 +323,15 @@ void UTimeThiefSmokeWorldSubsystem::AddTimedInteractionEvent(ATimeThiefSmokeVolu
 		return;
 	}
 
-	SmokeVolume->ApplyInteractionEvent(Event);
-
 	FTimeThiefActiveSmokeImpulse ActiveImpulse;
 	ActiveImpulse.SmokeVolume = SmokeVolume;
 	ActiveImpulse.Event = Event;
 	ActiveImpulse.Age = 0.0f;
 	ActiveImpulse.Duration = FMath::Max(0.01f, Duration);
-	ActiveImpulses.Add(ActiveImpulse);
+	if (TimeThiefSmoke::AddPrioritizedActiveImpulse(ActiveImpulses, ActiveImpulse))
+	{
+		SmokeVolume->ApplyInteractionEvent(Event);
+	}
 }
 
 void UTimeThiefSmokeWorldSubsystem::RecordRendererEvent(const FTimeThiefSmokeInteractionEvent& Event)
@@ -330,8 +383,11 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
 		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
 		RendererVolume.NaturalBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
-		RendererVolume.SimulationBoundsExtent = RendererVolume.NaturalBoundsExtent;
 		RendererVolume.RenderBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeRenderBoundsExtent());
+		RendererVolume.SimulationBoundsExtent = FVector3f(
+			FMath::Max(RendererVolume.RenderBoundsExtent.X, RendererVolume.NaturalBoundsExtent.X),
+			FMath::Max(RendererVolume.RenderBoundsExtent.Y, RendererVolume.NaturalBoundsExtent.Y),
+			FMath::Max(RendererVolume.RenderBoundsExtent.Z, RendererVolume.NaturalBoundsExtent.Z));
 		RendererVolume.BoundsExtent = RendererVolume.SimulationBoundsExtent;
 		RendererVolume.AgeSeconds = SmokeVolume->GetSmokeAgeSeconds();
 		RendererVolume.DurationSeconds = Settings.SmokeDuration;

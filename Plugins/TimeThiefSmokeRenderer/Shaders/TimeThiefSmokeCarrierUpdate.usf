@@ -13,18 +13,20 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
+	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
+	const float SafeSelfWobbleVelocityScale = max(SelfWobbleVelocityScale, 0.0);
 	FTimeThiefSmokeCarrierParticleShaderData Particle = CarrierParticlesIn[ParticleIndex];
 	float3 LocalPosition = Particle.LocalPositionRadius.xyz;
 	float3 Velocity = Particle.VelocityPhase.xyz;
 	float Radius = max(Particle.LocalPositionRadius.w, 1.0);
-	float Phase = Particle.VelocityPhase.w + SafeDeltaSeconds * 0.9;
+	float Phase = Particle.VelocityPhase.w + SafeDeltaSeconds * 0.9 * SafeSelfWobbleTimeScale;
 	const float3 ParticleBounds = max(NaturalBoundsExtent * float3(0.84, 0.84, 0.82), 1.0);
 
 	const float3 Wander = normalize(float3(
 		sin(Phase + LocalPosition.y * 0.006),
 		cos(Phase * 0.73 + LocalPosition.x * 0.005),
 		sin(Phase * 0.41 + LocalPosition.z * 0.004) * 0.38) + 0.0001);
-	Velocity += Wander * max(DriftSpeed, 0.0) * SafeDeltaSeconds;
+	Velocity += Wander * max(DriftSpeed, 0.0) * SafeDeltaSeconds * SafeSelfWobbleVelocityScale;
 
 	const int SafeEventCount = min(EventCount, 128);
 	[loop]

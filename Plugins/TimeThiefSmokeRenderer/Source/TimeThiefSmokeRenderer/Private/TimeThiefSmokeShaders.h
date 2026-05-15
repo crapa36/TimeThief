@@ -71,6 +71,17 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeBuildCarrierFieldCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildCarrierFieldCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildCarrierFieldCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_BUILD_CARRIER_FIELD_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeSimulateCS : public FGlobalShader
 {
 public:
@@ -93,6 +104,17 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeBuildCurlCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildCurlCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildCurlCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_BUILD_CURL_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeUpdateVortexParticlesCS : public FGlobalShader
 {
 public:
@@ -101,6 +123,17 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_UPDATE_VORTEX_PARTICLES_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeBuildVortexBrickMasksCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildVortexBrickMasksCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildVortexBrickMasksCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_BUILD_VORTEX_BRICK_MASKS_CS_PARAMETERS
 	END_SHADER_PARAMETER_STRUCT()
 };
 

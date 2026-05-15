@@ -59,6 +59,10 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float VorticityConfinementStrength;
 	float TurbulenceStrength;
 	float AirInteractionStrength;
+	float SelfWobbleTimeScale;
+	float SelfWobbleVelocityScale;
+	float SelfWobbleForceScale;
+	float SelfWobbleParticleScale;
 	float EventVortexStrength;
 	int32 VortexParticleCount;
 	float VortexParticleLifeSeconds;
@@ -80,6 +84,9 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float BulletWakeImpulseStrength;
 	float BulletWakeCutoutFeather;
 	bool bUseMacCormackAdvection;
+	bool bUseAdaptiveMacCormack;
+	bool bUseCarrierFieldTexture;
+	bool bUseVortexBrickBins;
 	int32 CarrierParticleCount;
 	float CarrierParticleRadius;
 	float CarrierParticleDriftSpeed;

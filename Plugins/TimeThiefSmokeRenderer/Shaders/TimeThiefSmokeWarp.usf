@@ -46,6 +46,12 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 	const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
 	const float TrailLength = max(ShapeRadius * max(WarpTrailLengthScale, 0.1) * lerp(0.42, 1.0, WarpBudget) * lerp(0.75, 1.2, Strength), ShapeRadius * 2.0);
 	const float3 ToCell = WorldPosition - EventPosition;
+	const float InfluenceRadius = TrailLength + ShapeRadius * 2.6;
+	if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
+	{
+		return 0.0;
+	}
+
 	const float Along = dot(ToCell, Direction);
 	const float BackAlong = clamp(-Along, 0.0, TrailLength);
 	const float BehindMask = saturate(-Along / max(ShapeRadius * 0.35, 1.0));

@@ -79,7 +79,7 @@ float ComputeEventDebug(float3 SampleWorld)
 float ComputeAnalyticBulletOpen(float3 SampleWorld)
 {
 	float OpenMask = 1.0;
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(AnalyticBulletEventCount, 128);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -140,12 +140,59 @@ float4 LoadCompositeFieldCell(int3 CellCoord)
 	return SparseFieldAtlasTexture.Load(int4(AtlasCoord, 0));
 }
 
+float4 LoadCompositeAtlasCell(uint BrickIndirection, int3 BrickCoord, int3 SafeCellCoord)
+{
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 AtlasBrickCoord = TimeThiefSmokeAtlasBrickCoord(BrickIndirection, SparseAtlasBrickGridResolution);
+	const int3 LocalCellCoord = SafeCellCoord - BrickCoord * SafeBrickSize;
+	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
+	return SparseFieldAtlasTexture.Load(int4(AtlasCoord, 0));
+}
+
 float4 SampleCompositeSparseFields(float3 VolumeUVW)
 {
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
 	const float3 GridPosition = saturate(VolumeUVW) * max(float3(GridResolution), 1.0) - 0.5;
 	const int3 Cell0 = (int3)floor(GridPosition);
 	const float3 CellAlpha = saturate(GridPosition - float3(Cell0));
 	const int3 Cell1 = Cell0 + int3(1, 1, 1);
+	const int3 SafeCell0 = clamp(Cell0, int3(0, 0, 0), GridResolution - 1);
+	const int3 SafeCell1 = clamp(Cell1, int3(0, 0, 0), GridResolution - 1);
+	const int3 Brick0 = clamp(SafeCell0 / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 Brick1 = clamp(SafeCell1 / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+
+	if (Brick0.x == Brick1.x && Brick0.y == Brick1.y && Brick0.z == Brick1.z)
+	{
+		const uint BrickIndirection = BrickOccupancyTexture.Load(int4(Brick0, 0));
+		if (BrickIndirection == 0u)
+		{
+			return float4(0.0, 0.0, 0.0, 0.0);
+		}
+		if (BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
+		{
+			return float4(
+				DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+				WarpTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+				BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+				BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0));
+		}
+
+		const float4 V000 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell0.y, SafeCell0.z));
+		const float4 V100 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell0.y, SafeCell0.z));
+		const float4 V010 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell1.y, SafeCell0.z));
+		const float4 V110 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell1.y, SafeCell0.z));
+		const float4 V001 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell0.y, SafeCell1.z));
+		const float4 V101 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell0.y, SafeCell1.z));
+		const float4 V011 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell1.y, SafeCell1.z));
+		const float4 V111 = LoadCompositeAtlasCell(BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell1.y, SafeCell1.z));
+		const float4 X00 = lerp(V000, V100, CellAlpha.x);
+		const float4 X10 = lerp(V010, V110, CellAlpha.x);
+		const float4 X01 = lerp(V001, V101, CellAlpha.x);
+		const float4 X11 = lerp(V011, V111, CellAlpha.x);
+		const float4 Y0 = lerp(X00, X10, CellAlpha.y);
+		const float4 Y1 = lerp(X01, X11, CellAlpha.y);
+		return lerp(Y0, Y1, CellAlpha.z);
+	}
 
 	const float4 V000 = LoadCompositeFieldCell(int3(Cell0.x, Cell0.y, Cell0.z));
 	const float4 V100 = LoadCompositeFieldCell(int3(Cell1.x, Cell0.y, Cell0.z));
@@ -212,7 +259,7 @@ float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float S
 		}
 	}
 
-	return max(StepSize, DeltaT + StepSize * 0.25);
+	return max(StepSize, DeltaT + 0.0001);
 }
 
 void MainPS(
@@ -311,15 +358,31 @@ void MainPS(
 		const float4 RawFields = SampleFieldSet(VolumeUVW);
 		const float RawDensity = max(RawFields.x, 0.0);
 		const float RawWarp = max(RawFields.y, 0.0);
+		if (DebugMode == 0 && RawDensity <= 0.0001 && RawWarp <= 0.0001)
+		{
+			CurrentT += StepSize;
+			continue;
+		}
+
 		const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, VolumeUVW, 0.0);
 		const float BulletCutout = RawFields.z;
 		const float BulletSink = RawFields.w;
 		const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
 		const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
-		const float AnalyticBulletOpen = ComputeAnalyticBulletOpen(SampleWorld);
-		const float ObstacleOpen = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, VolumeUVW);
-		float Density = RawDensity * ObstacleOpen;
-		const float Warp = RawWarp * ObstacleOpen * LifetimeAlpha;
+		const float ObstacleOpen = 1.0 - smoothstep(0.25, 0.65, Obstacle);
+		const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
+		const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
+		const float BoundaryMask = 1.0 - smoothstep(0.78, 1.0, EllipsoidDistance + BoundaryNoise);
+		const float AnalyticBulletOpen = AnalyticBulletEventCount > 0 ? ComputeAnalyticBulletOpen(SampleWorld) : 1.0;
+		const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
+		float Density = RawDensity * DensityVisibility;
+		const float Warp = RawWarp * ObstacleOpen * BoundaryMask * LifetimeAlpha;
+		if (DebugMode == 0 && Density <= 0.0001 && Warp <= 0.0001)
+		{
+			CurrentT += StepSize;
+			continue;
+		}
+
 		const float3 NoisePosition = SimulationLocal * max(BoundsExtent, 1.0) * StableRenderNoiseScale;
 		const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
 		const float SmoothNoise = TimeThiefSmokeFBM(NoisePosition + TimeNoise);
@@ -333,7 +396,6 @@ void MainPS(
 		const float FineFilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.42, TimeNoise * 1.34, RenderFilamentContrast * 1.18);
 		const float CombinedFilamentMask = saturate(FilamentMask * 0.72 + FineFilamentMask * 0.42);
 		const float AirPocket = TimeThiefSmokeAirPocketMask(FilamentPosition - FilamentWarp * 0.57, TimeNoise);
-		const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
 		const float EdgeFilamentGate = smoothstep(0.38, 0.98, EllipsoidDistance);
 		const float DenseCoreReject = 1.0 - smoothstep(0.92, 1.85, RawDensity);
 		const float FilamentInfluence = saturate(EdgeFilamentGate * DenseCoreReject);
@@ -341,7 +403,7 @@ void MainPS(
 		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
 		const float FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
 		const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-		Density *= min(BulletMasks.Hard, AnalyticBulletOpen) * DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain * LifetimeAlpha;
+		Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain;
 
 		if (DebugMode == 1)
 		{
@@ -387,7 +449,7 @@ void MainPS(
 		}
 
 		const float Absorption = Density * Extinction * SimulationStepSize;
-		const float StepTransmittance = exp(-Absorption);
+		const float StepTransmittance = exp2(-Absorption * 1.442695);
 		Scatter += Transmittance * (1.0 - StepTransmittance) * Density;
 		WarpScatter += Transmittance * Warp * SimulationStepSize * 0.85;
 		Transmittance *= StepTransmittance;

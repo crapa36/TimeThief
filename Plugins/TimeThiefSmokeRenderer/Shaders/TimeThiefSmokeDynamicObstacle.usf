@@ -31,6 +31,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 Direction = normalize(Event.DirectionLength.xyz + 0.0001);
 		const float Strength = saturate(Event.ExtentsStrength.w);
 		const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
+		const float3 ToCell = WorldPosition - Event.PositionRadius.xyz;
+		const float InfluenceRadius = max(ShapeRadius * 9.0, max(Event.DirectionLength.w, 0.0) + ShapeRadius * 2.0);
+		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
+		{
+			continue;
+		}
+
 		const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
 		const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);
 		const float3 SolidVelocity = Direction * max(Event.PreviousPositionSpeed.w, 0.0);
