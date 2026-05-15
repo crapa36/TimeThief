@@ -15,6 +15,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Network/State/CombatAttackRequest.h"
 #include "Network/MovableNetworkEntityInterface.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/State/CombatNotifyType.h"
 #include "Utils/TimeThiefAimStatics.h"
 
@@ -154,6 +155,14 @@ void UTimeThiefPlayerCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 
 void UTimeThiefPlayerCombatComponent::ApplyUpgradeStatsToActiveWeapon()
 {
+	if (auto* NGIS = GetWorld()->GetGameInstance()->GetSubsystem<UNetworkGameInstanceSubsystem>())
+	{
+		if (NGIS->IsConnected())
+		{
+			return;
+		}
+	}
+	
 	if (!MasterWeaponPtr)
 	{
 		return;
