@@ -160,6 +160,16 @@ void ATimeThiefRocketProjectile::BeginPlay()
 		CollisionComponent->OnComponentHit.AddDynamic(this, &ATimeThiefRocketProjectile::OnProjectileHit);
 	}
 
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		if (NGIS->IsConnected())
+		{
+			// 네트워크 연결된 상태에서는 서버에서 폭발 처리하므로 클라이언트에서의 충돌은 무시한다
+			CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			return;
+		}
+	}
+	
 	if (ProjectileMovementComponent)
 	{
 		ProjectileMovementComponent->OnProjectileStop.AddDynamic(this, &ATimeThiefRocketProjectile::ExplodeOnce);
@@ -191,6 +201,15 @@ void ATimeThiefRocketProjectile::Tick(float DeltaTime)
 
 void ATimeThiefRocketProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		if (NGIS->IsConnected())
+		{
+			// 네트워크 연결된 상태에서는 서버에서 폭발 처리하므로 클라이언트에서의 충돌은 무시한다
+			return;
+		}
+	}
+	
 	if (OtherActor && (OtherActor == CachedOwnerActor.Get() || OtherActor == CachedInstigatorPawn.Get()))
 	{
 		return;

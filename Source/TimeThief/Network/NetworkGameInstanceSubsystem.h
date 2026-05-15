@@ -38,6 +38,7 @@ class PacketSession;
 //
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
 
 UCLASS()
 class TIMETHIEF_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem
@@ -54,6 +55,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnNetworkPlayStateChanged OnPlayStateChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Network|Game")
+	FOnNetworkPlayerGameResult OnPlayerGameResult;
 
 	ENetworkPlayState GetPlayState() const { return PlayState; }
 
@@ -73,6 +77,7 @@ public:
 	void SendSavePointSet(FVector Location);
 	void SendWireLaunch(const FVector& StartPosition, const FVector& Direction);
 	void SendItemPickUp(uint32 ItemEntityId);
+	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
 	
 private:
@@ -111,6 +116,7 @@ public:
 	void HandleGameStart(const se::game::N_GameStart& Pkt);
 	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
 	void HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt);
+	void HandlePlayerGameResult(const se::game::N_PlayerGameResult& Pkt);
 	void HandleMove(const se::game::N_Move& Pkt);
 	void HandleJump(const se::game::N_Jump& pkt);
 	void HandleJumpLand(const se::game::N_JumpLand& pkt);
@@ -148,6 +154,7 @@ public:
 	void HandleHealthChanged(const se::game::N_HealthChanged& Pkt);
 	void HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt);
 	void HandleHealthSnapshot(const se::game::N_HealthSnapshot& Pkt);
+	void HandleSpeedChanged(const se::game::N_SpeedChanged& Pkt);
 	void HandleEntityDied(const se::game::N_EntityDied& Pkt);
 	void HandleEntityRespawned(const se::game::N_EntityRespawned& Pkt);
 	void HandleEntityDestroyed(const se::game::N_EntityDestroyed& Pkt);
@@ -208,6 +215,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
+
+	UFUNCTION(BlueprintCallable, Category = "Network|Room")
+	void RequestRoomLeave();
 	
 	// Testing
 public:

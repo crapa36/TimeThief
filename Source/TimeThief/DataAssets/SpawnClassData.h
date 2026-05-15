@@ -35,4 +35,7 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> ItemClass;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> StoreClass;
+	
 };

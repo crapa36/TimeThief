@@ -334,6 +334,25 @@ bool Handle_N_PlayerInitSetup(PacketSessionRef& session, const se::game::N_Playe
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_PlayerInitSetup: Failed to get NGIS"));
 	return false;
 }
+
+bool Handle_N_PlayerGameResult(PacketSessionRef& session, const se::game::N_PlayerGameResult& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandlePlayerGameResult(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_PlayerGameResult: Failed to get NGIS"));
+	return false;	
+	
+}
 	
 bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 {
@@ -827,7 +846,7 @@ bool Handle_N_EntityHit(PacketSessionRef& session, const se::game::N_EntityHit& 
 	if (!session)
 		return false;
 	
-	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	if (!pkt.has_entity_id())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Handle_N_EntityHit: pkt has no valid entity_id"));
 		return false;
@@ -1282,6 +1301,24 @@ bool Handle_N_HealthSnapshot(PacketSessionRef& session, const se::game::N_Health
 	
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_HealthSnapshot: Failed to get NGIS"));
 	return false;
+}
+
+bool Handle_N_SpeedChanged(PacketSessionRef& session, const se::game::N_SpeedChanged& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleSpeedChanged(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_SpeedChanged: Failed to get NGIS"));
+	return false;	
 }
 	
 bool Handle_N_EntityDied(PacketSessionRef& session, const se::game::N_EntityDied& pkt)

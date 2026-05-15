@@ -1,4 +1,5 @@
 #include "Character/TimeThiefPlayerController.h"
+#include "TimeThief.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
@@ -13,6 +14,102 @@
 #include "Game/TimeThiefGameMode.h"
 #include "TimeThiefGameplayTags.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "HAL/IConsoleManager.h"
+#include "UI/GameResultWidget.h"
+#include "DLSSLibrary.h"
+#include "StreamlineLibraryDLSSG.h"
+#include "StreamlineLibraryReflex.h"
+
+namespace
+{
+void SetIntCVarByCode(const TCHAR* Name, int32 Value)
+{
+	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Name))
+	{
+		CVar->Set(Value, ECVF_SetByCode);
+	}
+}
+
+void SetFloatCVarByCode(const TCHAR* Name, float Value)
+{
+	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Name))
+	{
+		CVar->Set(Value, ECVF_SetByCode);
+	}
+}
+
+int32 GetDLSSGEnableCVarValue(EStreamlineDLSSGMode Mode)
+{
+	switch (Mode)
+	{
+	case EStreamlineDLSSGMode::Off:
+		return 0;
+	case EStreamlineDLSSGMode::Auto:
+		return 2;
+	case EStreamlineDLSSGMode::OnDynamic:
+		return 3;
+	default:
+		return 1;
+	}
+}
+
+int32 GetDLSSGFramesToGenerateCVarValue(EStreamlineDLSSGMode Mode)
+{
+	switch (Mode)
+	{
+	case EStreamlineDLSSGMode::On3X:
+		return 2;
+	case EStreamlineDLSSGMode::On4X:
+		return 3;
+	case EStreamlineDLSSGMode::On5X:
+		return 4;
+	case EStreamlineDLSSGMode::On6X:
+		return 5;
+	default:
+		return 1;
+	}
+}
+
+void SetDLSSGModeByCode(EStreamlineDLSSGMode Mode)
+{
+	SetIntCVarByCode(TEXT("r.Streamline.DLSSG.Enable"), GetDLSSGEnableCVarValue(Mode));
+	SetIntCVarByCode(TEXT("r.Streamline.DLSSG.FramesToGenerate"), GetDLSSGFramesToGenerateCVarValue(Mode));
+}
+
+void SetDLSSSuperResolutionByCode(bool bEnabled, float ScreenPercentage)
+{
+	SetIntCVarByCode(TEXT("r.NGX.DLSS.DenoiserMode"), 0);
+	SetIntCVarByCode(TEXT("r.NGX.DLSS.Enable"), bEnabled ? 1 : 0);
+
+	if (bEnabled)
+	{
+		SetIntCVarByCode(TEXT("r.TemporalAA.Upscaler"), 1);
+		SetIntCVarByCode(TEXT("r.TemporalAA.Upsampling"), 1);
+		SetFloatCVarByCode(TEXT("r.ScreenPercentage"), ScreenPercentage);
+	}
+}
+
+UDLSSMode GetPreferredDLSSSuperResolutionMode()
+{
+	const UDLSSMode PreferredModes[] =
+	{
+		UDLSSMode::Quality,
+		UDLSSMode::Balanced,
+		UDLSSMode::Performance,
+		UDLSSMode::UltraPerformance
+	};
+
+	for (const UDLSSMode Mode : PreferredModes)
+	{
+		if (UDLSSLibrary::IsDLSSModeSupported(Mode))
+		{
+			return Mode;
+		}
+	}
+
+	return UDLSSMode::Off;
+}
+}
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
 {
@@ -25,9 +122,14 @@ void ATimeThiefPlayerController::BeginPlay()
 
 	if (IsLocalPlayerController())
 	{
+		ApplyDLSSSuperResolutionSetting();
+		ApplyNVIDIAReflexSetting();
+		ApplyDLSSFrameGenerationSetting();
+
 		if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 		{
 			NGIS->OnPlayStateChanged.AddUniqueDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
+			NGIS->OnPlayerGameResult.AddUniqueDynamic(this, &ATimeThiefPlayerController::HandlePlayerGameResult);
 		
 			if (NGIS->GetPlayState() == ENetworkPlayState::InLobby)
 			{
@@ -35,6 +137,114 @@ void ATimeThiefPlayerController::BeginPlay()
 			}
 		}
 	}
+}
+
+void ATimeThiefPlayerController::ApplyDLSSSuperResolutionSetting()
+{
+	if (!bEnableDLSSSuperResolution)
+	{
+		SetDLSSSuperResolutionByCode(false, 100.0f);
+		return;
+	}
+
+	if (!UDLSSLibrary::IsDLSSSupported())
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution is not supported on this runtime."));
+		return;
+	}
+
+	const UDLSSMode DLSSMode = GetPreferredDLSSSuperResolutionMode();
+	if (DLSSMode == UDLSSMode::Off)
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution is supported, but no quality mode is available."));
+		return;
+	}
+
+	bool bIsSupported = false;
+	bool bIsFixedScreenPercentage = false;
+	float OptimalScreenPercentage = 100.0f;
+	float MinScreenPercentage = 100.0f;
+	float MaxScreenPercentage = 100.0f;
+	float OptimalSharpness = 0.0f;
+	UDLSSLibrary::GetDLSSModeInformation(
+		DLSSMode,
+		FVector2D::ZeroVector,
+		bIsSupported,
+		OptimalScreenPercentage,
+		bIsFixedScreenPercentage,
+		MinScreenPercentage,
+		MaxScreenPercentage,
+		OptimalSharpness);
+
+	if (!bIsSupported)
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("Selected DLSS Super Resolution mode is not supported."));
+		return;
+	}
+
+	SetDLSSSuperResolutionByCode(true, OptimalScreenPercentage);
+	UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution enabled."));
+}
+
+void ATimeThiefPlayerController::ApplyNVIDIAReflexSetting()
+{
+	if (!bEnableNVIDIAReflex)
+	{
+		UStreamlineLibraryReflex::SetReflexMode(EStreamlineReflexMode::Off);
+		return;
+	}
+
+	if (!UStreamlineLibraryReflex::IsReflexSupported())
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex is not supported on this runtime."));
+		return;
+	}
+
+	const EStreamlineReflexMode ReflexMode = UStreamlineLibraryReflex::GetDefaultReflexMode();
+	if (ReflexMode == EStreamlineReflexMode::Off)
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex is supported, but no default mode is available."));
+		return;
+	}
+
+	UStreamlineLibraryReflex::SetReflexMode(ReflexMode);
+	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex enabled."));
+}
+
+void ATimeThiefPlayerController::ApplyDLSSFrameGenerationSetting()
+{
+	if (!bEnableDLSSFrameGeneration)
+	{
+		SetDLSSGModeByCode(EStreamlineDLSSGMode::Off);
+		return;
+	}
+
+	if (!UStreamlineLibraryDLSSG::IsDLSSGSupported())
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation is not supported on this runtime."));
+		return;
+	}
+
+	const EStreamlineDLSSGMode DefaultMode = UStreamlineLibraryDLSSG::GetDefaultDLSSGMode();
+	if (DefaultMode == EStreamlineDLSSGMode::Off)
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation is supported, but no default mode is available."));
+		return;
+	}
+
+	SetIntCVarByCode(TEXT("r.VSync"), 0);
+	SetDLSSGModeByCode(DefaultMode);
+	UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation enabled."));
+}
+
+void ATimeThiefPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->OnPlayStateChanged.RemoveDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
+		NGIS->OnPlayerGameResult.RemoveDynamic(this, &ATimeThiefPlayerController::HandlePlayerGameResult);
+	}
+
 }
 
 void ATimeThiefPlayerController::ShowMainMenu()
@@ -71,16 +281,70 @@ void ATimeThiefPlayerController::HideMainMenu()
 	SetInputMode(FInputModeGameOnly{});
 }
 
+void ATimeThiefPlayerController::ShowGameResult(int32 Rank, int32 Score, const FString& KillerName)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (GameResultWidget == nullptr)
+	{
+		if (!GameResultWidgetClass)
+		{
+			return;
+		}
+
+		GameResultWidget = CreateWidget<UGameResultWidget>(this, GameResultWidgetClass);
+		if (GameResultWidget == nullptr)
+		{
+			return;
+		}
+
+		GameResultWidget->AddToViewport(50);
+	}
+
+	GameResultWidget->SetGameResult(Rank, Score, KillerName);
+	GameResultWidget->SetLeavePending(false);
+	GameResultWidget->SetVisibility(ESlateVisibility::Visible);
+
+	bShowMouseCursor = true;
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(GameResultWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void ATimeThiefPlayerController::HideGameResult()
+{
+	if (GameResultWidget)
+	{
+		GameResultWidget->RemoveFromParent();
+		GameResultWidget = nullptr;
+	}
+}
+
 void ATimeThiefPlayerController::HandleNetworkPlayStateChanged(ENetworkPlayState NewState)
 {
 	if (NewState == ENetworkPlayState::InLobby)
 	{
+		HideGameResult();
 		ShowMainMenu();
 	}
-	else if (NewState == ENetworkPlayState::MatchingSucc)
+	else if (NewState == ENetworkPlayState::MatchingSucc || NewState == ENetworkPlayState::InRoom)
 	{
 		HideMainMenu();
 	}
+
+	if (GameResultWidget)
+	{
+		GameResultWidget->SetLeavePending(NewState == ENetworkPlayState::LeavingRoom);
+	}
+}
+
+void ATimeThiefPlayerController::HandlePlayerGameResult(int32 Rank, int32 Score, FString KillerName)
+{
+	ShowGameResult(Rank, Score, KillerName);
 }
 
 void ATimeThiefPlayerController::InitializeUI()

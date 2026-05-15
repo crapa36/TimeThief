@@ -141,3 +141,4 @@ Content/Assets/
 # Rider / Visual Studio user settings
 **/*.DotSettings.user
 **/*.sln.DotSettings.user
+/Plugins/NVIDIA

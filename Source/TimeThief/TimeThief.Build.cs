@@ -39,7 +39,13 @@ public class TimeThief : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Sockets",
-			"Networking", "MorphingMesh",
+			"Networking",
+			"Niagara",
+			"MorphingMesh",
+			"DLSSBlueprint",
+			"StreamlineBlueprint",
+			"StreamlineDLSSGBlueprint",
+			"StreamlineReflexBlueprint",
 		});
 
 		PublicIncludePaths.AddRange(new string[] {

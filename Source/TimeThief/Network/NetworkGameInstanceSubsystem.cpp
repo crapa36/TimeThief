@@ -249,6 +249,19 @@ void UNetworkGameInstanceSubsystem::SendItemPickUp(uint32 ItemEntityId)
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendStoreUse(uint32 StoreEntityId, uint32 ItemId)
+{
+	se::game::C_UseStoreReq Request;
+	auto* StoreId = Request.mutable_store_entity_id();
+	StoreId->set_value(StoreEntityId);
+	Request.set_store_item_id(ItemId);
+	
+	UE_LOG(LogTemp, Log, TEXT("[StorePkt] Store Entity Id=%u, Item Id=%u"), StoreEntityId, ItemId);
+	
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::SendChestInteract(uint32 ChestEntityId)
 {
 	se::game::C_ChestInteractReq Request;
@@ -675,6 +688,9 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		SetPlayState(ENetworkPlayState::InRoom);
 		return;
 	}
+	
+	// TODO:
+	// Room State 초기화
 
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
@@ -748,6 +764,12 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
 {
+	check(IsInGameThread());
+	
+	ClearRoomState();
+	SetPlayState(ENetworkPlayState::InLobby);
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room close"));
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
@@ -757,6 +779,7 @@ void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart&
 
 void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt)
 {
+	// TODO: Game End 시 종료에 대한 처리
 }
 
 void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
@@ -771,6 +794,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	const int MaxHealth = Pkt.max_health();
 	const int CurrentHealth = Pkt.current_health();
 	const int TimePoints = Pkt.time_points();
+	const float MoveSpeed = Pkt.move_speed();
 	
 	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
 	if (LocalPlayer == nullptr)
@@ -786,6 +810,12 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	if (auto* TimePointComp = LocalPlayer->FindComponentByClass<UTimePointSystemComponent>())
 	{
 		TimePointComp->SetTimePoints(TimePoints);
+	}
+	
+	if (auto* CMC = LocalPlayer->GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] Setting local player move speed Init: %f"), MoveSpeed);
+		CMC->MaxWalkSpeed = MoveSpeed;
 	}
 	
 	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
@@ -820,6 +850,30 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		
 		WeaponComp->SetWeaponStatForNetwork(StatData);
 	}
+}
+
+void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_PlayerGameResult& Pkt)
+{
+	check(IsInGameThread())
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 Rank = Pkt.rank();
+	const int32 Score = Pkt.score();
+	FString PlayerName = UTF8_TO_TCHAR(Pkt.killer().c_str());
+	if (PlayerName.IsEmpty())
+	{
+		PlayerName = TEXT("You are Victorious!");
+	}
+	
+	// TODO: 게임 결과 화면 표시 (Rank, Score, Killer Name 등)
+	UE_LOG(LogTemp, Log, TEXT("[Network] Game Result - Rank: %u, Score: %d, Killer: %s"), Rank, Score, *PlayerName);
+	
+	
+	OnPlayerGameResult.Broadcast(static_cast<int32>(Rank), Score, PlayerName);
 }
 
 void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
@@ -1365,6 +1419,35 @@ void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes&
 
 void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	// UE_LOG(LogTemp, Log, TEXT("[Network] HandleEntityHit: EntityId=%u"), Pkt.entity_id().value());
+	
+	const FVector HitPosition = FVector(Pkt.hit_position().x(), Pkt.hit_position().y(), Pkt.hit_position().z());
+	
+	const uint32 TargetEntityId = Pkt.entity_id().value();
+	if (TargetEntityId == 0) 
+	{
+		// TODO: Entity가 아니라 벽 같은 것에 맞은 것
+	}
+	else
+	{
+		FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetEntityId);
+		if (TargetEntry == nullptr || TargetEntry->Actor == nullptr)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to find target actor for EntityHit. EntityId=%u"), TargetEntityId);
+			return;
+		}
+	
+		auto* HitActor = TargetEntry->Actor.Get();
+		// TODO: 해당 Actor에 대한 Hit 처리 (Pos에 근사한 위치에 Hit Effect)
+		//		 Damage는 충격량 정도
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleGrenadeMoveSync(const se::game::N_GrenadeMoveSync& Pkt)
@@ -1384,6 +1467,8 @@ void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_
 		return;
 	}
 	
+	// UE_LOG(LogTemp, Log, TEXT("[Network] HandleProjectileExplosion: EntityId=%u"), Pkt.entity_id().value());
+	
 	const uint32 EntityId = Pkt.entity_id().value();
 	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
 	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
@@ -1394,6 +1479,8 @@ void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_
 	
 	if (auto* ProjectileComp = Cast<ATimeThiefRocketProjectile>(EntityEntry->Actor.Get()))
 	{
+		// UE_LOG(LogTemp, Log, TEXT("[Network] ExplodeSyncNetwork: EntityId=%u"), Pkt.entity_id().value());
+		
 		const FVector ExplosionLocation = FVector(Pkt.position().x(), Pkt.position().y(), Pkt.position().z());
 		ProjectileComp->ExplodeSyncNetwork(ExplosionLocation);
 	}
@@ -1856,6 +1943,39 @@ void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_Max
 
 void UNetworkGameInstanceSubsystem::HandleHealthSnapshot(const se::game::N_HealthSnapshot& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	auto* Player = GetLocalPlayerPawn();
+	auto HealthComp = Player ? Player->FindComponentByClass<UTimeThiefHealthComponent>() : nullptr;
+	if (HealthComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Local player has no UTimeThiefHealthComponent"));
+		return;
+	}
+	
+	HealthComp->SetHealth(Pkt.max_health(), Pkt.current_health());
+}
+
+void UNetworkGameInstanceSubsystem::HandleSpeedChanged(const se::game::N_SpeedChanged& Pkt)
+{
+	check(IsInGameThread());
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+	
+	if (auto* CMC = LocalPlayer->GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] HandleSpeedChanged local player move speed: %f"), Pkt.new_speed());
+		CMC->MaxWalkSpeed = Pkt.new_speed();
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt)
@@ -2138,6 +2258,13 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 			return SpawnData->ItemClass;
 		}
 	}
+	else if (EntityState.ObjectType == se::common::OBJ_STORE)
+	{
+		if (SpawnData->StoreClass)
+		{
+			return SpawnData->StoreClass;
+		}
+	}
 	
 	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
 	
@@ -2265,6 +2392,24 @@ void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
 	SendPacket(SendBuffer);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestRoomLeave()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		return;
+	}
+
+	if (PlayState != ENetworkPlayState::InRoom)
+	{
+		return;
+	}
+
+	se::room::C_RoomLeaveReq Request;
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	SetPlayState(ENetworkPlayState::LeavingRoom);
 }
 
 void UNetworkGameInstanceSubsystem::RequestSpawnMonster(FVector Pos, uint32 MonsterType)
