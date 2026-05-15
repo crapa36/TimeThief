@@ -873,6 +873,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_Pla
 	UE_LOG(LogTemp, Log, TEXT("[Network] Game Result - Rank: %u, Score: %d, Killer: %s"), Rank, Score, *PlayerName);
 	
 	
+	OnPlayerGameResult.Broadcast(static_cast<int32>(Rank), Score, PlayerName);
 }
 
 void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
@@ -2391,6 +2392,24 @@ void UNetworkGameInstanceSubsystem::RequestLoadingComplete()
 	SendPacket(SendBuffer);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq to server"));
+}
+
+void UNetworkGameInstanceSubsystem::RequestRoomLeave()
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		return;
+	}
+
+	if (PlayState != ENetworkPlayState::InRoom)
+	{
+		return;
+	}
+
+	se::room::C_RoomLeaveReq Request;
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+	SetPlayState(ENetworkPlayState::LeavingRoom);
 }
 
 void UNetworkGameInstanceSubsystem::RequestSpawnMonster(FVector Pos, uint32 MonsterType)

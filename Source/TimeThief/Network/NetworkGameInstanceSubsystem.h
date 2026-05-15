@@ -38,6 +38,7 @@ class PacketSession;
 //
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
 
 UCLASS()
 class TIMETHIEF_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem
@@ -54,6 +55,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Network")
 	FOnNetworkPlayStateChanged OnPlayStateChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Network|Game")
+	FOnNetworkPlayerGameResult OnPlayerGameResult;
 
 	ENetworkPlayState GetPlayState() const { return PlayState; }
 
@@ -211,6 +215,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestLoadingComplete();
+
+	UFUNCTION(BlueprintCallable, Category = "Network|Room")
+	void RequestRoomLeave();
 	
 	// Testing
 public:

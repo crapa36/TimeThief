@@ -10,6 +10,7 @@ class UInputMappingContext;
 class UTimeThiefInputConfig;
 class UTimeThiefHUDWidget;
 class UMainMenuWidget;
+class UGameResultWidget;
 class UUserWidget;
 
 UENUM(BlueprintType)
@@ -38,12 +39,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|UI")
 	UTimeThiefHUDWidget* GetHUDWidget() const { return MainHUDWidget; }
-	
+
 	uint32 GetLastInteractedStoreId() const { return LastInteractedStoreId; }
 	void SetLastInteractedStoreId(uint32 StoreEntityId) { LastInteractedStoreId = StoreEntityId; }
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 	virtual void SetPawn(APawn* InPawn) override;
 	virtual void OnPossess(APawn* InPawn) override;
@@ -53,9 +55,14 @@ protected:
 
 	void ShowMainMenu();
 	void HideMainMenu();
+	void ShowGameResult(int32 Rank, int32 Score, const FString& KillerName);
+	void HideGameResult();
 
 	UFUNCTION()
 	void HandleNetworkPlayStateChanged(ENetworkPlayState NewState);
+
+	UFUNCTION()
+	void HandlePlayerGameResult(int32 Rank, int32 Score, FString KillerName);
 
 	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<TObjectPtr<UInputMappingContext>> DefaultMappingContexts;
@@ -65,6 +72,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "UI|MainMenu")
 	TSubclassOf<UMainMenuWidget> MainMenuWidgetClass;
+
+	UPROPERTY(EditAnywhere, Category = "UI|GameResult")
+	TSubclassOf<UGameResultWidget> GameResultWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TMap<EWidgetType, TSubclassOf<UUserWidget>> SubWidgetClassMap;
@@ -77,6 +87,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UMainMenuWidget> MainMenuWidget;
+
+	UPROPERTY()
+	TObjectPtr<UGameResultWidget> GameResultWidget;
 
 	bool bUIInitialized = false;
 	

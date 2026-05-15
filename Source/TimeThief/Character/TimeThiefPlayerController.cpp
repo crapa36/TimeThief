@@ -13,6 +13,7 @@
 #include "Game/TimeThiefGameMode.h"
 #include "TimeThiefGameplayTags.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "UI/GameResultWidget.h"
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
 {
@@ -28,6 +29,7 @@ void ATimeThiefPlayerController::BeginPlay()
 		if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 		{
 			NGIS->OnPlayStateChanged.AddUniqueDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
+			NGIS->OnPlayerGameResult.AddUniqueDynamic(this, &ATimeThiefPlayerController::HandlePlayerGameResult);
 		
 			if (NGIS->GetPlayState() == ENetworkPlayState::InLobby)
 			{
@@ -35,6 +37,16 @@ void ATimeThiefPlayerController::BeginPlay()
 			}
 		}
 	}
+}
+
+void ATimeThiefPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->OnPlayStateChanged.RemoveDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
+		NGIS->OnPlayerGameResult.RemoveDynamic(this, &ATimeThiefPlayerController::HandlePlayerGameResult);
+	}
+
 }
 
 void ATimeThiefPlayerController::ShowMainMenu()
@@ -71,16 +83,70 @@ void ATimeThiefPlayerController::HideMainMenu()
 	SetInputMode(FInputModeGameOnly{});
 }
 
+void ATimeThiefPlayerController::ShowGameResult(int32 Rank, int32 Score, const FString& KillerName)
+{
+	if (!IsLocalPlayerController())
+	{
+		return;
+	}
+
+	if (GameResultWidget == nullptr)
+	{
+		if (!GameResultWidgetClass)
+		{
+			return;
+		}
+
+		GameResultWidget = CreateWidget<UGameResultWidget>(this, GameResultWidgetClass);
+		if (GameResultWidget == nullptr)
+		{
+			return;
+		}
+
+		GameResultWidget->AddToViewport(50);
+	}
+
+	GameResultWidget->SetGameResult(Rank, Score, KillerName);
+	GameResultWidget->SetLeavePending(false);
+	GameResultWidget->SetVisibility(ESlateVisibility::Visible);
+
+	bShowMouseCursor = true;
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(GameResultWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void ATimeThiefPlayerController::HideGameResult()
+{
+	if (GameResultWidget)
+	{
+		GameResultWidget->RemoveFromParent();
+		GameResultWidget = nullptr;
+	}
+}
+
 void ATimeThiefPlayerController::HandleNetworkPlayStateChanged(ENetworkPlayState NewState)
 {
 	if (NewState == ENetworkPlayState::InLobby)
 	{
+		HideGameResult();
 		ShowMainMenu();
 	}
-	else if (NewState == ENetworkPlayState::MatchingSucc)
+	else if (NewState == ENetworkPlayState::MatchingSucc || NewState == ENetworkPlayState::InRoom)
 	{
 		HideMainMenu();
 	}
+
+	if (GameResultWidget)
+	{
+		GameResultWidget->SetLeavePending(NewState == ENetworkPlayState::LeavingRoom);
+	}
+}
+
+void ATimeThiefPlayerController::HandlePlayerGameResult(int32 Rank, int32 Score, FString KillerName)
+{
+	ShowGameResult(Rank, Score, KillerName);
 }
 
 void ATimeThiefPlayerController::InitializeUI()
