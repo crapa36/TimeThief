@@ -26,16 +26,17 @@ UTimeThiefPawnCombatComponent::UTimeThiefPawnCombatComponent(const FObjectInitia
 void UTimeThiefPawnCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	if (AActor* Owner = GetOwner())
 	{
 		CachedCombatSyncComponent = Owner->GetComponentByClass<UNetworkCombatSyncComponent>();
 		if (CachedCombatSyncComponent)
 		{
-			CachedCombatSyncComponent->OnRemoteAttackNotify.AddUObject(this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
+			CachedCombatSyncComponent->OnRemoteAttackNotify.AddUObject(
+				this, &UTimeThiefPawnCombatComponent::Remote_AttackRequest);
 		}
 	}
-	
+
 	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 	{
 		if (auto MorphingComp = Character->GetMorphingMeshComponent())
@@ -57,7 +58,7 @@ void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 		CachedCombatSyncComponent->OnRemoteAttackNotify.RemoveAll(this);
 		CachedCombatSyncComponent = nullptr;
 	}
-	
+
 	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 	{
 		if (auto MorphingComp = Character->GetMorphingMeshComponent())
@@ -71,7 +72,7 @@ void UTimeThiefPawnCombatComponent::EndPlay(const EEndPlayReason::Type EndPlayRe
 void UTimeThiefPawnCombatComponent::OnRegister()
 {
 	Super::OnRegister();
-	
+
 	if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 	{
 		MasterWeaponPtr = Character->GetWeaponActor();
@@ -80,17 +81,11 @@ void UTimeThiefPawnCombatComponent::OnRegister()
 
 void UTimeThiefPawnCombatComponent::OnChanged(EMorphTargetType Type)
 {
-
-	GetWorld()->GetTimerManager().SetTimerForNextTick([this, Type]()
+	if (UTimeThiefWeaponComponentBase* CurrentWeapon = MasterWeaponPtr->GetActiveWeaponComponent())
 	{
-		if (UTimeThiefWeaponComponentBase* CurrentWeapon = MasterWeaponPtr->GetActiveWeaponComponent())
-		{
-			MasterWeaponPtr->SetActorHiddenInGame(false);
-			AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());
-		}
-
-		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Morph Target Changed: %s"), *UEnum::GetValueAsString(Type)));
-	});
+		MasterWeaponPtr->SetActorHiddenInGame(false);
+		AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());
+	}
 }
 
 void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
@@ -112,7 +107,7 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 	CurrentEquippedWeaponTag = WeaponTag;
 	MasterWeaponPtr->SetActorHiddenInGame(true);
 	MasterWeaponPtr->SwitchWeapon(WeaponTag);
-	
+
 	UTimeThiefWeaponComponentBase* CurrentWeapon = MasterWeaponPtr->GetActiveWeaponComponent();
 	if (CurrentWeapon)
 	{
@@ -124,8 +119,10 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 				AttachMasterWeaponToCharacter(CurrentWeapon->GetSocketName());
 			}
 		}
-		ACharacter* OwningCharacter = GetPawn<ACharacter>();
-		if (OwningCharacter)
+		
+		const float MontageLength = PlayEquipMontage(CurrentWeapon);
+		
+		if (ACharacter* OwningCharacter = GetPawn<ACharacter>())
 		{
 			if (TSubclassOf<UAnimInstance> AnimLayer = CurrentWeapon->GetEquipAnimLayer())
 			{
@@ -136,22 +133,22 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 					{
 						FPMesh->LinkAnimClassLayers(AnimLayer);
 					}
-					
+
 					if (auto MorphingComp = BaseChar->GetMorphingMeshComponent())
 					{
 						MorphingComp->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(WeaponTag));
+						MorphingComp->MaxMorphingTime = MontageLength;
 					}
 				}
 			}
 		}
-
-		const float MontageLength = PlayEquipMontage(CurrentWeapon);
+		
 		if (MontageLength > 0.0f)
 		{
 			bIsEquippingWeapon = true;
 			if (UWorld* World = GetWorld())
 			{
-				World->GetTimerManager().SetTimer(EquipTimerHandle, this, &UTimeThiefPawnCombatComponent::OnEquipFinished, MontageLength, false);
+				World->GetTimerManager().SetTimer(EquipTimerHandle, this,&UTimeThiefPawnCombatComponent::OnEquipFinished, MontageLength,false);
 			}
 		}
 		else
@@ -208,15 +205,16 @@ void UTimeThiefPawnCombatComponent::AttachMasterWeaponToCharacter(FName SocketNa
 
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
 	if (!OwningCharacter) return;
-	
+
 	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(OwningCharacter))
 	{
 		if (USkeletalMeshComponent* AttachMesh = BaseChar->GetWeaponAttachMesh())
 		{
 			if (auto WeaponComp = BaseChar->GetWeaponActor())
 			{
-				WeaponComp->AttachToComponent(AttachMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
-				
+				WeaponComp->AttachToComponent(AttachMesh, FAttachmentTransformRules::SnapToTargetIncludingScale,
+				                              SocketName);
+
 				// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Attached MasterWeapon to %s at socket %s"), *AttachMesh->GetSkeletalMeshAsset()->GetName(), *SocketName.ToString()));
 			}
 		}
@@ -277,8 +275,13 @@ UTimeThiefWeaponComponentBase* UTimeThiefPawnCombatComponent::GetCharacterCurren
 	return MasterWeaponPtr ? MasterWeaponPtr->GetActiveWeaponComponent() : nullptr;
 }
 
-void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag) {}
-void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag) {}
+void UTimeThiefPawnCombatComponent::HandleInputPressed(FGameplayTag InputTag)
+{
+}
+
+void UTimeThiefPawnCombatComponent::HandleInputReleased(FGameplayTag InputTag)
+{
+}
 
 void UTimeThiefPawnCombatComponent::ApplyCombatStateTag(FGameplayTag WeaponTag)
 {
@@ -329,16 +332,18 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 		if (AttackRequest.WeaponId != 0)
 		{
 			const FGameplayTag PreviousWeaponTag = CurrentEquippedWeaponTag;
-			const FGameplayTag DesiredWeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId);
+			const FGameplayTag DesiredWeaponTag =
+				FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId);
 			if (DesiredWeaponTag.IsValid() && DesiredWeaponTag != CurrentEquippedWeaponTag)
 			{
 				++RemoteFireWeaponCorrectionCount;
-				UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest(Fire): correction=%d/%d from %s to %s (WeaponId=%u)"),
-					RemoteFireWeaponCorrectionCount,
-					RemoteFireNotifyCount,
-					*PreviousWeaponTag.ToString(),
-					*DesiredWeaponTag.ToString(),
-					AttackRequest.WeaponId);
+				UE_LOG(LogTemp, Verbose,
+				       TEXT("Remote_AttackRequest(Fire): correction=%d/%d from %s to %s (WeaponId=%u)"),
+				       RemoteFireWeaponCorrectionCount,
+				       RemoteFireNotifyCount,
+				       *PreviousWeaponTag.ToString(),
+				       *DesiredWeaponTag.ToString(),
+				       AttackRequest.WeaponId);
 				EquipWeapon(DesiredWeaponTag);
 			}
 		}
@@ -351,7 +356,8 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 		}
 		break;
 	case ECombatNotifyType::WeaponChange:
-		if (const FGameplayTag WeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId); WeaponTag.IsValid())
+		if (const FGameplayTag WeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(AttackRequest.WeaponId);
+			WeaponTag.IsValid())
 		{
 			EquipWeapon(WeaponTag);
 		}
@@ -360,7 +366,8 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 		UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest: Throw notify received."));
 		break;
 	default:
-		UE_LOG(LogTemp, Warning, TEXT("Remote_AttackRequest: Unknown NotifyType=%d"), static_cast<int32>(AttackRequest.NotifyType));
+		UE_LOG(LogTemp, Warning, TEXT("Remote_AttackRequest: Unknown NotifyType=%d"),
+		       static_cast<int32>(AttackRequest.NotifyType));
 		break;
 	}
 }
@@ -385,7 +392,8 @@ void UTimeThiefPawnCombatComponent::Remote_SyncAimLocation(const FVector& Origin
 		FVector ViewLocation = FVector::ZeroVector;
 		FVector ViewDirection = FVector::ForwardVector;
 		if (const APawn* OwningPawn = Cast<APawn>(OwningCharacter);
-			OwningPawn && UTimeThiefAimStatics::ResolveAimView(OwningPawn, ViewLocation, ViewDirection) && !ViewDirection.IsNearlyZero())
+			OwningPawn && UTimeThiefAimStatics::ResolveAimView(OwningPawn, ViewLocation, ViewDirection) && !
+			ViewDirection.IsNearlyZero())
 		{
 			CachedRemoteAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(ViewDirection);
 			const FVector FallbackOrigin = Origin.IsNearlyZero() ? ViewLocation : Origin;
@@ -455,5 +463,10 @@ void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 	PlayFireMontage();
 }
 
-void UTimeThiefPawnCombatComponent::OnEquipAnimFinished() {}
-void UTimeThiefPawnCombatComponent::OnUnequipAnimFinished() {}
+void UTimeThiefPawnCombatComponent::OnEquipAnimFinished()
+{
+}
+
+void UTimeThiefPawnCombatComponent::OnUnequipAnimFinished()
+{
+}

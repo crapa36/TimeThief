@@ -37,6 +37,8 @@ void UTimeThiefRocketLauncherComponent::ExecuteFireShot()
 			}
 		}
 	}
+	
+	PlayFireEffects();
 }
 
 void UTimeThiefRocketLauncherComponent::ExecuteRemoteFireShot()
