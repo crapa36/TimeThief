@@ -134,7 +134,8 @@ bool FNavExporter::ExportWorld(UWorld* World)
         ExportData.Meta.AgentHeight = Config.AgentHeight;
         ExportData.Meta.AgentStepHeight = Config.AgentStepHeight;
         // ExportData.Meta.AgentMaxSlope = Config.AgentSlope;
-        ExportData.Meta.AgentMaxSlope = 0.0f;
+        constexpr float ServerAgentMaxSlope = 44.0f;
+        ExportData.Meta.AgentMaxSlope = ServerAgentMaxSlope;
 
         ExportData.Meta.CellSize = RecastNavMesh->GetCellSize(ENavigationDataResolution::Default);
         ExportData.Meta.CellHeight = RecastNavMesh->GetCellHeight(ENavigationDataResolution::Default);
