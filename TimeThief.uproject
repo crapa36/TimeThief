@@ -57,11 +57,13 @@
 		{
 			"Name": "DLSS",
 			"Enabled": true,
+			"Optional": true,
 			"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/product/nvidia-dlss"
 		},
 		{
 			"Name": "StreamlineDLSSG",
 			"Enabled": true,
+			"Optional": true,
 			"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/product/nvidia-dlss"
 		},
 		{

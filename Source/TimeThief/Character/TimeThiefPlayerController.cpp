@@ -16,9 +16,16 @@
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "UI/GameResultWidget.h"
+
+#ifndef TIMETHIEF_WITH_NVIDIA_DLSS
+#define TIMETHIEF_WITH_NVIDIA_DLSS 0
+#endif
+
+#if TIMETHIEF_WITH_NVIDIA_DLSS
 #include "DLSSLibrary.h"
 #include "StreamlineLibraryDLSSG.h"
 #include "StreamlineLibraryReflex.h"
+#endif
 
 namespace
 {
@@ -38,6 +45,7 @@ void SetFloatCVarByCode(const TCHAR* Name, float Value)
 	}
 }
 
+#if TIMETHIEF_WITH_NVIDIA_DLSS
 int32 GetDLSSGEnableCVarValue(EStreamlineDLSSGMode Mode)
 {
 	switch (Mode)
@@ -109,6 +117,7 @@ UDLSSMode GetPreferredDLSSSuperResolutionMode()
 
 	return UDLSSMode::Off;
 }
+#endif
 }
 
 ATimeThiefPlayerController::ATimeThiefPlayerController()
@@ -141,6 +150,7 @@ void ATimeThiefPlayerController::BeginPlay()
 
 void ATimeThiefPlayerController::ApplyDLSSSuperResolutionSetting()
 {
+#if TIMETHIEF_WITH_NVIDIA_DLSS
 	if (!bEnableDLSSSuperResolution)
 	{
 		SetDLSSSuperResolutionByCode(false, 100.0f);
@@ -184,10 +194,14 @@ void ATimeThiefPlayerController::ApplyDLSSSuperResolutionSetting()
 
 	SetDLSSSuperResolutionByCode(true, OptimalScreenPercentage);
 	UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution enabled."));
+#else
+	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA DLSS modules are not available; skipping DLSS Super Resolution."));
+#endif
 }
 
 void ATimeThiefPlayerController::ApplyNVIDIAReflexSetting()
 {
+#if TIMETHIEF_WITH_NVIDIA_DLSS
 	if (!bEnableNVIDIAReflex)
 	{
 		UStreamlineLibraryReflex::SetReflexMode(EStreamlineReflexMode::Off);
@@ -209,10 +223,14 @@ void ATimeThiefPlayerController::ApplyNVIDIAReflexSetting()
 
 	UStreamlineLibraryReflex::SetReflexMode(ReflexMode);
 	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex enabled."));
+#else
+	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA DLSS modules are not available; skipping NVIDIA Reflex."));
+#endif
 }
 
 void ATimeThiefPlayerController::ApplyDLSSFrameGenerationSetting()
 {
+#if TIMETHIEF_WITH_NVIDIA_DLSS
 	if (!bEnableDLSSFrameGeneration)
 	{
 		SetDLSSGModeByCode(EStreamlineDLSSGMode::Off);
@@ -235,6 +253,9 @@ void ATimeThiefPlayerController::ApplyDLSSFrameGenerationSetting()
 	SetIntCVarByCode(TEXT("r.VSync"), 0);
 	SetDLSSGModeByCode(DefaultMode);
 	UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation enabled."));
+#else
+	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA DLSS modules are not available; skipping DLSS Frame Generation."));
+#endif
 }
 
 void ATimeThiefPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
