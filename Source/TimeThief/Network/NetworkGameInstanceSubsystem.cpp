@@ -689,8 +689,6 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		return;
 	}
 	
-	// TODO:
-	// Room State 초기화
 
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
@@ -869,10 +867,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_Pla
 		PlayerName = TEXT("You are Victorious!");
 	}
 	
-	// TODO: 게임 결과 화면 표시 (Rank, Score, Killer Name 등)
 	UE_LOG(LogTemp, Log, TEXT("[Network] Game Result - Rank: %u, Score: %d, Killer: %s"), Rank, Score, *PlayerName);
-	
-	
 	OnPlayerGameResult.Broadcast(static_cast<int32>(Rank), Score, PlayerName);
 }
 
