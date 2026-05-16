@@ -3,11 +3,56 @@
 
 TIME_THIEF_SMOKE_APPLY_EVENTS_PARAMETERS
 
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+uint FlattenBrickCoordForEventBins(int3 BrickCoord)
+{
+	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
+	return (uint)(SafeCoord.x + SafeCoord.y * BrickGridResolution.x + SafeCoord.z * BrickGridResolution.x * BrickGridResolution.y);
+}
+
+uint4 GetEventBrickMask(uint3 CellCoord)
+{
+	if (bUseEventBrickBins == 0u)
+	{
+		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
+}
+
+bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
+{
+	const uint WordIndex = (uint)EventIndex >> 5u;
+	const uint Bit = 1u << ((uint)EventIndex & 31u);
+	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
+	return (Word & Bit) != 0u;
+}
+
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
 	if (any(DispatchThreadId >= GridResolution))
 	{
+		return;
+	}
+
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutDensity[DispatchThreadId] = 0.0;
+		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
 		return;
 	}
 
@@ -23,9 +68,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
+	const int SafeEventCount = min(EventCount, 128);
+	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	[loop]
-	for (int EventIndex = 0; EventIndex < EventCount; ++EventIndex)
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
+		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		{
+			continue;
+		}
+
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		if ((uint)round(Event.TypeShapeAgeSeed.x) != 1u)
 		{

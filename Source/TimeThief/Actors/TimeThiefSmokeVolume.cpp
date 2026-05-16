@@ -208,7 +208,7 @@ void ATimeThiefSmokeVolume::HandleBulletTrace(const FVector& EntryPoint, const F
 	Event.PreviousPosition = Event.Position;
 	Event.Direction = Direction;
 	Event.Rotation = Direction.Rotation().Quaternion();
-	const float VisibleClearRadius = FMath::Max(SmokeSettings.BulletClearRadius, 42.0f);
+	const float VisibleClearRadius = FMath::Max(SmokeSettings.BulletClearRadius, 1.0f);
 	Event.Radius = VisibleClearRadius * RandomStream.FRandRange(0.95f, 1.2f);
 	Event.Length = SegmentLength + Event.Radius * 2.0f;
 	Event.Strength = FMath::Clamp(Strength * RandomStream.FRandRange(0.92f, 1.0f), 0.0f, 1.0f);
@@ -323,6 +323,9 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeActorOverlap), false);
 	QueryParams.AddIgnoredActor(this);
+	const FVector ComponentScale = SmokeBoundsComponent->GetComponentScale();
+	const FVector AbsComponentScale(FMath::Abs(ComponentScale.X), FMath::Abs(ComponentScale.Y), FMath::Abs(ComponentScale.Z));
+	const FVector QueryExtent = GetCurrentSmokeRenderBoundsExtent().ComponentMax(GetCurrentSmokeBoundsExtent()) * AbsComponentScale;
 
 	TArray<FOverlapResult> Overlaps;
 	const bool bAnyOverlap = GetWorld()->OverlapMultiByObjectType(
@@ -330,7 +333,7 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 		SmokeBoundsComponent->GetComponentLocation(),
 		SmokeBoundsComponent->GetComponentQuat(),
 		ObjectQueryParams,
-		FCollisionShape::MakeBox(SmokeBoundsComponent->GetScaledBoxExtent()),
+		FCollisionShape::MakeBox(QueryExtent),
 		QueryParams);
 
 	if (!bAnyOverlap)
@@ -341,8 +344,7 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 	}
 
 	TSet<TWeakObjectPtr<UPrimitiveComponent>> CurrentDynamicComponents;
-	TMap<AActor*, FTimeThiefSmokeInteractionEvent> BestEventsByActor;
-	TArray<FTimeThiefSmokeInteractionEvent> UnownedEvents;
+	TArray<FTimeThiefSmokeInteractionEvent> ActorEvents;
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
 		UPrimitiveComponent* PrimitiveComponent = Overlap.GetComponent();
@@ -360,23 +362,7 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 			continue;
 		}
 
-		AActor* OwnerActor = PrimitiveComponent->GetOwner();
-		if (!OwnerActor)
-		{
-			OwnerActor = PrimitiveComponent->GetTypedOuter<AActor>();
-		}
-
-		if (!OwnerActor)
-		{
-			UnownedEvents.Add(Event);
-			continue;
-		}
-
-		FTimeThiefSmokeInteractionEvent* ExistingEvent = BestEventsByActor.Find(OwnerActor);
-		if (!ExistingEvent || Event.Strength > ExistingEvent->Strength)
-		{
-			BestEventsByActor.FindOrAdd(OwnerActor) = Event;
-		}
+		ActorEvents.Add(Event);
 	}
 
 	for (auto It = PreviousComponentLocations.CreateIterator(); It; ++It)
@@ -389,13 +375,6 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 		}
 	}
 
-	TArray<FTimeThiefSmokeInteractionEvent> ActorEvents;
-	ActorEvents.Reserve(BestEventsByActor.Num() + UnownedEvents.Num());
-	ActorEvents.Append(UnownedEvents);
-	for (const TPair<AActor*, FTimeThiefSmokeInteractionEvent>& Pair : BestEventsByActor)
-	{
-		ActorEvents.Add(Pair.Value);
-	}
 	ActorEvents.Sort([](const FTimeThiefSmokeInteractionEvent& A, const FTimeThiefSmokeInteractionEvent& B)
 	{
 		return A.Strength > B.Strength;
@@ -425,20 +404,6 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	const TWeakObjectPtr<UPrimitiveComponent> ComponentKey(PrimitiveComponent);
 	float& WarpAccumulation = ActorWarpDensityAccumulations.FindOrAdd(ComponentKey);
 	WarpAccumulation *= FMath::Exp(-DeltaTime / FMath::Max(0.01f, SmokeSettings.ActorWarpAccumulationDecaySeconds));
-	const float ResponseStartSpeed = FMath::Max(1.0f, SmokeSettings.ActorPushVelocityThreshold * 0.35f);
-	const float FullResponseSpeed = FMath::Max(ResponseStartSpeed + 1.0f, SmokeSettings.ActorPushVelocityThreshold);
-	if (Speed < ResponseStartSpeed)
-	{
-		return;
-	}
-
-	const float ResponseAlpha = TimeThiefSmokeVolume::SmoothStep01((Speed - ResponseStartSpeed) / FMath::Max(FullResponseSpeed - ResponseStartSpeed, 1.0f));
-	const float SpeedStrength = FMath::Clamp(Speed / 600.0f, 0.0f, 1.0f);
-	const float Strength = FMath::Clamp(ResponseAlpha * SpeedStrength, 0.0f, 1.0f);
-	if (Strength <= KINDA_SMALL_NUMBER)
-	{
-		return;
-	}
 
 	OutEvent.SmokeId = SmokeId;
 	OutEvent.Type = ESmokeInteractionType::ActorPush;
@@ -449,7 +414,6 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	OutEvent.PreviousPosition = PreviousBoundsOrigin;
 	OutEvent.Direction = Velocity.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
 	OutEvent.Rotation = PrimitiveComponent->GetComponentQuat();
-	OutEvent.Strength = Strength;
 	OutEvent.Speed = Speed;
 	OutEvent.NormalizedAge = 0.0f;
 	OutEvent.Seed = GetTypeHash(PrimitiveComponent);
@@ -458,12 +422,48 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	const float CurrentDensity = EstimateWarpDensityAtWorldPosition(CurrentBoundsOrigin);
 	const float PreviousDensity = EstimateWarpDensityAtWorldPosition(PreviousBoundsOrigin);
 	const float MidDensity = EstimateWarpDensityAtWorldPosition((CurrentBoundsOrigin + PreviousBoundsOrigin) * 0.5);
-	const float PathDensity = FMath::Clamp((CurrentDensity + PreviousDensity + MidDensity) / 3.0f, 0.0f, 1.0f);
+	float DensitySum = CurrentDensity + PreviousDensity + MidDensity;
+	float MaxDensity = FMath::Max3(CurrentDensity, PreviousDensity, MidDensity);
+	int32 DensitySampleCount = 3;
+	const FVector ProbeExtent = PrimitiveComponent->Bounds.BoxExtent * 0.55f;
+	const FVector ProbeAxes[3] =
+	{
+		FVector(ProbeExtent.X, 0.0, 0.0),
+		FVector(0.0, ProbeExtent.Y, 0.0),
+		FVector(0.0, 0.0, ProbeExtent.Z)
+	};
+	for (const FVector& ProbeAxis : ProbeAxes)
+	{
+		if (ProbeAxis.SizeSquared() <= 1.0)
+		{
+			continue;
+		}
+
+		const float PositiveDensity = EstimateWarpDensityAtWorldPosition(CurrentBoundsOrigin + ProbeAxis);
+		const float NegativeDensity = EstimateWarpDensityAtWorldPosition(CurrentBoundsOrigin - ProbeAxis);
+		DensitySum += PositiveDensity + NegativeDensity;
+		MaxDensity = FMath::Max(MaxDensity, FMath::Max(PositiveDensity, NegativeDensity));
+		DensitySampleCount += 2;
+	}
+	const float MeanDensity = DensitySum / static_cast<float>(FMath::Max(DensitySampleCount, 1));
+	const float PathDensity = FMath::Clamp(FMath::Max(MeanDensity, MaxDensity * 0.65f), 0.0f, 1.0f);
+	const float ResponseStartSpeed = FMath::Max(1.0f, SmokeSettings.ActorPushVelocityThreshold * 0.35f);
+	const float FullResponseSpeed = FMath::Max(ResponseStartSpeed + 1.0f, SmokeSettings.ActorPushVelocityThreshold);
+	const float ResponseAlpha = TimeThiefSmokeVolume::SmoothStep01((Speed - ResponseStartSpeed) / FMath::Max(FullResponseSpeed - ResponseStartSpeed, 1.0f));
+	const float SpeedStrength = FMath::Clamp(Speed / 600.0f, 0.0f, 1.0f);
+	const float MotionStrength = FMath::Clamp(ResponseAlpha * SpeedStrength, 0.0f, 1.0f);
+	const float OccupancyStrength = PathDensity > 0.015f ? FMath::Lerp(0.12f, 0.32f, PathDensity) : 0.0f;
+	OutEvent.Strength = FMath::Clamp(FMath::Max(MotionStrength, OccupancyStrength), 0.0f, 1.0f);
+	if (OutEvent.Strength <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
 	const float TravelDistance = FVector::Dist(CurrentBoundsOrigin, PreviousBoundsOrigin);
 	const float TravelGate = TimeThiefSmokeVolume::SmoothStep01(TravelDistance / FMath::Max(OutEvent.Radius * 0.65f, 8.0f));
-	const float Deposit = PathDensity * TravelGate * FMath::Lerp(0.35f, 1.0f, Strength);
+	const float Deposit = PathDensity * TravelGate * FMath::Lerp(0.25f, 1.0f, MotionStrength);
 	WarpAccumulation = FMath::Clamp(WarpAccumulation + Deposit * FMath::Max(0.0f, SmokeSettings.ActorWarpDensityAccumulationScale), 0.0f, 1.0f);
-	OutEvent.WarpBudget = WarpAccumulation;
+	OutEvent.WarpBudget = MotionStrength > 0.01f ? WarpAccumulation : 0.0f;
 	WarpAccumulation *= FMath::Clamp(SmokeSettings.ActorWarpEmissionRemainder, 0.0f, 1.0f);
 }
 

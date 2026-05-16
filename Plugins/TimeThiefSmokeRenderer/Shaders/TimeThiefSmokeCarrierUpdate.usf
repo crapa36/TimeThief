@@ -60,9 +60,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		}
 		else
 		{
-			const float Distance = length(ToParticle);
-			const float PushWeight = 1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * 1.65, Distance);
-			const float3 Away = normalize(ToParticle - EventLocalDirection * 0.0001);
+			const float3 ParticleWorldPosition = mul(float4(LocalPosition, 1.0), LocalToWorld).xyz;
+			const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, ParticleWorldPosition);
+			const float3 SurfaceNormalWorld = TimeThiefSmokeEventSweptNormal(Event, ParticleWorldPosition);
+			const float3 SurfaceNormalLocal = normalize(mul(float4(SurfaceNormalWorld, 0.0), WorldToLocal).xyz + 0.0001);
+			const float BoundaryWeight = 1.0 - smoothstep(max(ShapeRadius * 0.08, 1.0), max(ShapeRadius * 0.72, 2.0), abs(ShapeSdf));
+			const float OutsideShape = smoothstep(-max(ShapeRadius * 0.05, 1.0), max(ShapeRadius * 0.12, 1.0), ShapeSdf);
 			const float Along = dot(ToParticle, EventLocalDirection);
 			const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 5.0);
 			const float3 TrailClosest = EventLocalPosition - EventLocalDirection * BackAlong;
@@ -70,8 +73,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			const float TrailWeight =
 				(1.0 - smoothstep(ShapeRadius * 0.8, ShapeRadius * 2.0, TrailDistance)) *
 				(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 5.0, BackAlong));
-			Velocity += Away * PushWeight * 150.0 * Strength * SafeDeltaSeconds;
-			Velocity += EventLocalDirection * TrailWeight * 520.0 * Strength * SafeDeltaSeconds;
+			const float MotionMask = saturate(Event.PreviousPositionSpeed.w / 260.0);
+			Velocity += SurfaceNormalLocal * BoundaryWeight * OutsideShape * 120.0 * Strength * SafeDeltaSeconds;
+			Velocity += EventLocalDirection * TrailWeight * MotionMask * 420.0 * Strength * SafeDeltaSeconds;
 		}
 	}
 

@@ -137,6 +137,15 @@ namespace TimeThiefSmoke
 		RendererSettings.ActorWarpDensityAccumulationScale = Settings.ActorWarpDensityAccumulationScale;
 		RendererSettings.ActorWarpAccumulationDecaySeconds = Settings.ActorWarpAccumulationDecaySeconds;
 		RendererSettings.ActorWarpEmissionRemainder = Settings.ActorWarpEmissionRemainder;
+		RendererSettings.ActorAirflowStrength = Settings.ActorAirflowStrength;
+		RendererSettings.ActorAirflowMinSpeed = Settings.ActorAirflowMinSpeed;
+		RendererSettings.ActorAirflowFullSpeed = Settings.ActorAirflowFullSpeed;
+		RendererSettings.ActorAirflowRadiusScale = Settings.ActorAirflowRadiusScale;
+		RendererSettings.ActorAirflowFrontStrength = Settings.ActorAirflowFrontStrength;
+		RendererSettings.ActorAirflowSideStrength = Settings.ActorAirflowSideStrength;
+		RendererSettings.ActorAirflowWakeStrength = Settings.ActorAirflowWakeStrength;
+		RendererSettings.ActorAirflowVortexStrength = Settings.ActorAirflowVortexStrength;
+		RendererSettings.SparseVelocityActiveThreshold = Settings.SparseVelocityActiveThreshold;
 		RendererSettings.BulletWakeMaxVisibleLife = Settings.BulletWakeMaxVisibleLife;
 		RendererSettings.BulletWakeReleaseDuration = Settings.BulletWakeReleaseDuration;
 		RendererSettings.BulletWakeSinkLife = Settings.BulletWakeSinkLife;

@@ -372,7 +372,7 @@ void MainPS(
 		const float ObstacleOpen = 1.0 - smoothstep(0.25, 0.65, Obstacle);
 		const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
 		const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-		const float BoundaryMask = 1.0 - smoothstep(0.78, 1.0, EllipsoidDistance + BoundaryNoise);
+		const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
 		const float AnalyticBulletOpen = AnalyticBulletEventCount > 0 ? ComputeAnalyticBulletOpen(SampleWorld) : 1.0;
 		const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
 		float Density = RawDensity * DensityVisibility;
@@ -404,9 +404,14 @@ void MainPS(
 			const float3 FilamentPosition = SimulationLocal * max(BoundsExtent, 1.0) * StableRenderFilamentScale;
 			const float3 FilamentWarp = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
 			const float FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
-			const float FineFilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.42, TimeNoise * 1.34, RenderFilamentContrast * 1.18);
-			const float CombinedFilamentMask = saturate(FilamentMask * 0.72 + FineFilamentMask * 0.42);
-			const float AirPocket = TimeThiefSmokeAirPocketMask(FilamentPosition - FilamentWarp * 0.57, TimeNoise);
+			float CombinedFilamentMask = FilamentMask;
+			float AirPocket = 0.5;
+			if (bUseFastFilament == 0u && FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
+			{
+				const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91);
+				CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(RenderFilamentContrast * 0.92, 0.1)) * 0.28);
+				AirPocket = TimeThiefSmokeFBM(FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37);
+			}
 			const float FilamentLow = max(0.38, 1.0 - RenderFilamentStrength * (0.18 + AirPocket * 0.28));
 			const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
 			FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);

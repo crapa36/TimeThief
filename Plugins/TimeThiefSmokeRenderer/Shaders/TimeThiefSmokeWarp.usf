@@ -3,6 +3,44 @@
 
 TIME_THIEF_SMOKE_WARP_PARAMETERS
 
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+uint FlattenBrickCoordForEventBins(int3 BrickCoord)
+{
+	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
+	return (uint)(SafeCoord.x + SafeCoord.y * BrickGridResolution.x + SafeCoord.z * BrickGridResolution.x * BrickGridResolution.y);
+}
+
+uint4 GetEventBrickMask(uint3 CellCoord)
+{
+	if (bUseEventBrickBins == 0u)
+	{
+		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
+}
+
+bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
+{
+	const uint WordIndex = (uint)EventIndex >> 5u;
+	const uint Bit = 1u << ((uint)EventIndex & 31u);
+	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
+	return (Word & Bit) != 0u;
+}
+
 float3 SafeNormalize(float3 Value)
 {
 	return normalize(Value + float3(0.0001, 0.0001, 0.0001));
@@ -52,6 +90,15 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 		return 0.0;
 	}
 
+	const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
+	const float MotionMask = saturate(ActorSpeed / 180.0);
+	if (MotionMask <= 0.0)
+	{
+		return 0.0;
+	}
+
+	const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
+	const float OutsideShape = smoothstep(-max(ShapeRadius * 0.05, 1.0), max(ShapeRadius * 0.16, 1.0), ShapeSdf);
 	const float Along = dot(ToCell, Direction);
 	const float BackAlong = clamp(-Along, 0.0, TrailLength);
 	const float BehindMask = saturate(-Along / max(ShapeRadius * 0.35, 1.0));
@@ -64,7 +111,7 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 	const float3 Radial = WorldPosition - TrailClosest;
 	const float3 Side = MakeSideAxis(Direction);
 	const float3 Up = SafeNormalize(cross(Side, Direction));
-	const float ThreadRadius = clamp(ShapeRadius * max(WarpTrailRadiusScale, 0.01), 2.0, max(ShapeRadius * 0.16, 2.0));
+	const float ThreadRadius = clamp(ShapeRadius * max(WarpTrailRadiusScale, 0.01) * lerp(1.0, 2.1, saturate(BackAlong / max(TrailLength, 1.0))), 2.0, max(ShapeRadius * 0.22, 2.0));
 	const float AxialFade =
 		(1.0 - smoothstep(TrailLength * 0.48, TrailLength, BackAlong)) *
 		saturate(BackAlong / max(ThreadRadius * 1.3, 1.0));
@@ -86,7 +133,7 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 		1.15,
 		TimeThiefSmokeValueNoise(float3(BackAlong * 0.035, Seed * 0.009, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
 	const float DensityFactor = saturate(Density * 0.82);
-	return saturate((Strand * 1.08 + Halo * 0.04) * AxialFade * BehindMask * Breakup * DensityFactor * Strength * WarpBudget * max(WarpTrailIntensity, 0.0));
+	return saturate((Strand * 1.08 + Halo * 0.04) * AxialFade * BehindMask * Breakup * DensityFactor * Strength * WarpBudget * MotionMask * OutsideShape * max(WarpTrailIntensity, 0.0));
 }
 
 [numthreads(4, 4, 4)]
@@ -94,6 +141,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
 	if (any(DispatchThreadId >= GridResolution))
 	{
+		return;
+	}
+
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutWarp[DispatchThreadId] = 0.0;
 		return;
 	}
 
@@ -107,9 +160,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float Source = 0.0;
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
 	const int SafeEventCount = min(EventCount, 128);
+	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
+		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		{
+			continue;
+		}
+
 		Source = max(Source, ComputeActorWarpSource(WorldPosition, Density, Events[EventIndex]));
 	}
 

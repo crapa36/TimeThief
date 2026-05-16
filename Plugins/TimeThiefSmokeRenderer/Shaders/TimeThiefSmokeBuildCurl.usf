@@ -3,6 +3,18 @@
 
 TIME_THIEF_SMOKE_BUILD_CURL_PARAMETERS
 
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
 int3 ClampSmokeCoord(int3 Coord)
 {
 	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
@@ -40,6 +52,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
 	if (any(DispatchThreadId >= GridResolution))
 	{
+		return;
+	}
+
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutCurl[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
 		return;
 	}
 

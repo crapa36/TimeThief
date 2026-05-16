@@ -77,6 +77,15 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float ActorWarpDensityAccumulationScale;
 	float ActorWarpAccumulationDecaySeconds;
 	float ActorWarpEmissionRemainder;
+	float ActorAirflowStrength;
+	float ActorAirflowMinSpeed;
+	float ActorAirflowFullSpeed;
+	float ActorAirflowRadiusScale;
+	float ActorAirflowFrontStrength;
+	float ActorAirflowSideStrength;
+	float ActorAirflowWakeStrength;
+	float ActorAirflowVortexStrength;
+	float SparseVelocityActiveThreshold;
 	float BulletWakeMaxVisibleLife;
 	float BulletWakeReleaseDuration;
 	float BulletWakeSinkLife;

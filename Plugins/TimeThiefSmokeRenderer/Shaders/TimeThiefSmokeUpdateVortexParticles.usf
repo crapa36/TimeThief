@@ -35,8 +35,9 @@ float DenseVortexActorWakeSeed(float3 WorldPosition, out float3 OutDirection)
 	float WakeWeight = 0.0;
 	OutDirection = float3(0.0, 0.0, 0.0);
 
+	const int SafeEventCount = min(EventCount, 128);
 	[loop]
-	for (int EventIndex = 0; EventIndex < EventCount; ++EventIndex)
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		if ((uint)round(Event.TypeShapeAgeSeed.x) != 2u)
@@ -73,8 +74,9 @@ float DenseVortexActorWakeSeed(float3 WorldPosition, out float3 OutDirection)
 float DenseVortexExplosionShellSeed(float3 WorldPosition)
 {
 	float ShellWeight = 0.0;
+	const int SafeEventCount = min(EventCount, 128);
 	[loop]
-	for (int EventIndex = 0; EventIndex < EventCount; ++EventIndex)
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		if ((uint)round(Event.TypeShapeAgeSeed.x) != 1u)

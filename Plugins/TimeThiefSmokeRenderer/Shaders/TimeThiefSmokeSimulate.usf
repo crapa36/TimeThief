@@ -3,6 +3,44 @@
 
 TIME_THIEF_SMOKE_SIMULATE_PARAMETERS
 
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+uint FlattenBrickCoordForEventBins(int3 BrickCoord)
+{
+	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
+	return (uint)(SafeCoord.x + SafeCoord.y * BrickGridResolution.x + SafeCoord.z * BrickGridResolution.x * BrickGridResolution.y);
+}
+
+uint4 GetEventBrickMask(uint3 CellCoord)
+{
+	if (bUseEventBrickBins == 0u)
+	{
+		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
+}
+
+bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
+{
+	const uint WordIndex = (uint)EventIndex >> 5u;
+	const uint Bit = 1u << ((uint)EventIndex & 31u);
+	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
+	return (Word & Bit) != 0u;
+}
+
 void ComputeCarrierField(float3 LocalPosition, out float OutVoid, out float OutShell)
 {
 	float VoidWeight = 0.0;
@@ -85,6 +123,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutDensity[DispatchThreadId] = 0.0;
+		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		OutCutout[DispatchThreadId] = 0.0;
+		OutSink[DispatchThreadId] = 0.0;
+		return;
+	}
+
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
 	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
@@ -103,9 +150,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	BulletSink *= exp2(-DeltaSeconds / max(BulletWakeSinkLife, 0.001));
 
 	float3 BulletImpulse = float3(0.0, 0.0, 0.0);
+	const int SafeEventCount = min(EventCount, 128);
+	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	[loop]
-	for (int EventIndex = 0; EventIndex < EventCount; ++EventIndex)
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
+		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		{
+			continue;
+		}
+
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		if ((uint)round(Event.TypeShapeAgeSeed.x) != 0u)
 		{
@@ -228,8 +282,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	SourceWeight = saturate(SourceWeight * SourceNoise) * OpenMask;
 
 	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007) - 0.5) * 0.04;
-	const float SimulationEllipsoidDistance = length((LocalPosition / max(BoundsExtent, 1.0)) / float3(1.0, 1.0, 0.86));
-	const float BoundaryDamping = 1.0 - smoothstep(0.78, 1.0, SimulationEllipsoidDistance + BoundaryNoise);
+	const float3 SimulationLocalForBoundary = LocalPosition / max(BoundsExtent, 1.0);
+	const float BoundaryDamping = TimeThiefSmokeRenderBoundaryMask(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
 	Density += SourceWeight * Emission * InitialDensity * DeltaSeconds * 1.95 * BulletMasks.Source;
 	const float CloudBillow = 0.5 + 0.5 * sin(
 		dot(WorldPosition, float3(0.021, 0.017, 0.013)) +

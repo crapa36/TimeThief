@@ -1,0 +1,826 @@
+#include "/Engine/Public/Platform.ush"
+#include "/Engine/Private/ScreenPass.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeSparse.ush"
+
+struct FTimeThiefSmokeCompositeDescriptorShaderData
+{
+	float4 LocalToWorld0;
+	float4 LocalToWorld1;
+	float4 LocalToWorld2;
+	float4 LocalToWorld3;
+	float4 WorldToLocal0;
+	float4 WorldToLocal1;
+	float4 WorldToLocal2;
+	float4 WorldToLocal3;
+	float4 BoundsExtent_RenderStepVoxelScale;
+	float4 RenderBoundsExtent_Extinction;
+	float4 ScatterNoise;
+	float4 NoiseFilamentA;
+	float4 FilamentAge;
+	float4 GridResolution_UseSparse;
+	float4 BrickGridResolution_SmokeBrickSize;
+	float4 SparseAtlasBrickGridResolution_MaxActive;
+	float4 RenderSteps_Events;
+	float4 AnalyticEvents;
+	float4 RenderQuality;
+};
+
+struct FTimeThiefSmokeCompositeTileRangeShaderData
+{
+	float4 OffsetCount;
+};
+
+Texture2D SceneColorTexture;
+Texture2D<float> SceneDepthTexture;
+Texture3D<float> DensityTexture0;
+Texture3D<float> DensityTexture1;
+Texture3D<float> DensityTexture2;
+Texture3D<float> DensityTexture3;
+Texture3D<float> DensityTexture4;
+Texture3D<float> DensityTexture5;
+Texture3D<float> DensityTexture6;
+Texture3D<float> DensityTexture7;
+Texture3D<float> WarpTexture0;
+Texture3D<float> WarpTexture1;
+Texture3D<float> WarpTexture2;
+Texture3D<float> WarpTexture3;
+Texture3D<float> WarpTexture4;
+Texture3D<float> WarpTexture5;
+Texture3D<float> WarpTexture6;
+Texture3D<float> WarpTexture7;
+Texture3D<float> ObstacleTexture0;
+Texture3D<float> ObstacleTexture1;
+Texture3D<float> ObstacleTexture2;
+Texture3D<float> ObstacleTexture3;
+Texture3D<float> ObstacleTexture4;
+Texture3D<float> ObstacleTexture5;
+Texture3D<float> ObstacleTexture6;
+Texture3D<float> ObstacleTexture7;
+Texture3D<float> BulletCutoutTexture0;
+Texture3D<float> BulletCutoutTexture1;
+Texture3D<float> BulletCutoutTexture2;
+Texture3D<float> BulletCutoutTexture3;
+Texture3D<float> BulletCutoutTexture4;
+Texture3D<float> BulletCutoutTexture5;
+Texture3D<float> BulletCutoutTexture6;
+Texture3D<float> BulletCutoutTexture7;
+Texture3D<float> BulletSinkTexture0;
+Texture3D<float> BulletSinkTexture1;
+Texture3D<float> BulletSinkTexture2;
+Texture3D<float> BulletSinkTexture3;
+Texture3D<float> BulletSinkTexture4;
+Texture3D<float> BulletSinkTexture5;
+Texture3D<float> BulletSinkTexture6;
+Texture3D<float> BulletSinkTexture7;
+Texture3D<uint> BrickOccupancyTexture0;
+Texture3D<uint> BrickOccupancyTexture1;
+Texture3D<uint> BrickOccupancyTexture2;
+Texture3D<uint> BrickOccupancyTexture3;
+Texture3D<uint> BrickOccupancyTexture4;
+Texture3D<uint> BrickOccupancyTexture5;
+Texture3D<uint> BrickOccupancyTexture6;
+Texture3D<uint> BrickOccupancyTexture7;
+Texture3D<float4> SparseFieldAtlasTexture0;
+Texture3D<float4> SparseFieldAtlasTexture1;
+Texture3D<float4> SparseFieldAtlasTexture2;
+Texture3D<float4> SparseFieldAtlasTexture3;
+Texture3D<float4> SparseFieldAtlasTexture4;
+Texture3D<float4> SparseFieldAtlasTexture5;
+Texture3D<float4> SparseFieldAtlasTexture6;
+Texture3D<float4> SparseFieldAtlasTexture7;
+SamplerState SceneColorSampler;
+SamplerState VolumeSampler;
+StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData> CompositeSmokeDescriptors;
+StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData> TileSmokeRanges;
+StructuredBuffer<uint> TileSmokeIndices;
+StructuredBuffer<FTimeThiefSmokeEventShaderData> Events;
+float4 SceneColorUVScaleBias;
+int4 ViewRect;
+int2 TileRectMin;
+int2 TileGridSize;
+int CompositeTileSize;
+int SmokeSlotCount;
+float4x4 InvViewProjection;
+
+float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
+{
+	const float2 ViewSize = max(float2(ViewRect.zw - ViewRect.xy), 1.0);
+	const float2 UV = (PixelPosition - float2(ViewRect.xy)) / ViewSize;
+	const float2 NDC = float2(UV.x * 2.0 - 1.0, 1.0 - UV.y * 2.0);
+	float4 World = mul(float4(NDC, DeviceZ, 1.0), InvViewProjection);
+	const float SafeW = abs(World.w) > 0.000001 ? World.w : (World.w < 0.0 ? -0.000001 : 0.000001);
+	return World.xyz / SafeW;
+}
+
+bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float TMax)
+{
+	const float3 DirectionSign = lerp(float3(-1.0, -1.0, -1.0), float3(1.0, 1.0, 1.0), step(float3(0.0, 0.0, 0.0), Direction));
+	const float3 InvDirection = 1.0 / (Direction + DirectionSign * 0.000001);
+	const float3 T0 = (-1.0 - Origin) * InvDirection;
+	const float3 T1 = (1.0 - Origin) * InvDirection;
+	const float3 TSmall = min(T0, T1);
+	const float3 TBig = max(T0, T1);
+	TMin = max(max(TSmall.x, TSmall.y), TSmall.z);
+	TMax = min(min(TBig.x, TBig.y), TBig.z);
+	return TMax >= max(TMin, 0.0);
+}
+
+float4x4 MakeMatrix(float4 Row0, float4 Row1, float4 Row2, float4 Row3)
+{
+	return float4x4(
+		Row0.x, Row0.y, Row0.z, Row0.w,
+		Row1.x, Row1.y, Row1.z, Row1.w,
+		Row2.x, Row2.y, Row2.z, Row2.w,
+		Row3.x, Row3.y, Row3.z, Row3.w);
+}
+
+float4x4 GetLocalToWorld(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return MakeMatrix(Desc.LocalToWorld0, Desc.LocalToWorld1, Desc.LocalToWorld2, Desc.LocalToWorld3);
+}
+
+float4x4 GetWorldToLocal(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return MakeMatrix(Desc.WorldToLocal0, Desc.WorldToLocal1, Desc.WorldToLocal2, Desc.WorldToLocal3);
+}
+
+int3 GetGridResolution(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return max((int3)round(Desc.GridResolution_UseSparse.xyz), int3(1, 1, 1));
+}
+
+int3 GetBrickGridResolution(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return max((int3)round(Desc.BrickGridResolution_SmokeBrickSize.xyz), int3(1, 1, 1));
+}
+
+int3 GetSparseAtlasBrickGridResolution(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return max((int3)round(Desc.SparseAtlasBrickGridResolution_MaxActive.xyz), int3(1, 1, 1));
+}
+
+int GetSmokeBrickSize(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return max((int)round(Desc.BrickGridResolution_SmokeBrickSize.w), 1);
+}
+
+int GetMaxActiveSmokeBricks(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return max((int)round(Desc.SparseAtlasBrickGridResolution_MaxActive.w), 1);
+}
+
+uint UsesSparseAtlas(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return round(Desc.GridResolution_UseSparse.w) > 0.5 ? 1u : 0u;
+}
+
+float SampleDensityTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return DensityTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return DensityTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return DensityTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return DensityTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return DensityTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return DensityTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return DensityTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	default: return DensityTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+}
+
+float SampleWarpTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return WarpTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return WarpTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return WarpTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return WarpTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return WarpTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return WarpTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return WarpTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	default: return WarpTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+}
+
+float SampleObstacleTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return ObstacleTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return ObstacleTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return ObstacleTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return ObstacleTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return ObstacleTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return ObstacleTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return ObstacleTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	default: return ObstacleTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+}
+
+float SampleBulletCutoutTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return BulletCutoutTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return BulletCutoutTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return BulletCutoutTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return BulletCutoutTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return BulletCutoutTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return BulletCutoutTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return BulletCutoutTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	default: return BulletCutoutTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+}
+
+float SampleBulletSinkTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return BulletSinkTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return BulletSinkTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return BulletSinkTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return BulletSinkTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return BulletSinkTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return BulletSinkTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return BulletSinkTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	default: return BulletSinkTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+}
+
+float LoadDensityTexture(int Slot, int3 Coord)
+{
+	switch (Slot)
+	{
+	case 0: return DensityTexture0.Load(int4(Coord, 0));
+	case 1: return DensityTexture1.Load(int4(Coord, 0));
+	case 2: return DensityTexture2.Load(int4(Coord, 0));
+	case 3: return DensityTexture3.Load(int4(Coord, 0));
+	case 4: return DensityTexture4.Load(int4(Coord, 0));
+	case 5: return DensityTexture5.Load(int4(Coord, 0));
+	case 6: return DensityTexture6.Load(int4(Coord, 0));
+	default: return DensityTexture7.Load(int4(Coord, 0));
+	}
+}
+
+float LoadWarpTexture(int Slot, int3 Coord)
+{
+	switch (Slot)
+	{
+	case 0: return WarpTexture0.Load(int4(Coord, 0));
+	case 1: return WarpTexture1.Load(int4(Coord, 0));
+	case 2: return WarpTexture2.Load(int4(Coord, 0));
+	case 3: return WarpTexture3.Load(int4(Coord, 0));
+	case 4: return WarpTexture4.Load(int4(Coord, 0));
+	case 5: return WarpTexture5.Load(int4(Coord, 0));
+	case 6: return WarpTexture6.Load(int4(Coord, 0));
+	default: return WarpTexture7.Load(int4(Coord, 0));
+	}
+}
+
+float LoadBulletCutoutTexture(int Slot, int3 Coord)
+{
+	switch (Slot)
+	{
+	case 0: return BulletCutoutTexture0.Load(int4(Coord, 0));
+	case 1: return BulletCutoutTexture1.Load(int4(Coord, 0));
+	case 2: return BulletCutoutTexture2.Load(int4(Coord, 0));
+	case 3: return BulletCutoutTexture3.Load(int4(Coord, 0));
+	case 4: return BulletCutoutTexture4.Load(int4(Coord, 0));
+	case 5: return BulletCutoutTexture5.Load(int4(Coord, 0));
+	case 6: return BulletCutoutTexture6.Load(int4(Coord, 0));
+	default: return BulletCutoutTexture7.Load(int4(Coord, 0));
+	}
+}
+
+float LoadBulletSinkTexture(int Slot, int3 Coord)
+{
+	switch (Slot)
+	{
+	case 0: return BulletSinkTexture0.Load(int4(Coord, 0));
+	case 1: return BulletSinkTexture1.Load(int4(Coord, 0));
+	case 2: return BulletSinkTexture2.Load(int4(Coord, 0));
+	case 3: return BulletSinkTexture3.Load(int4(Coord, 0));
+	case 4: return BulletSinkTexture4.Load(int4(Coord, 0));
+	case 5: return BulletSinkTexture5.Load(int4(Coord, 0));
+	case 6: return BulletSinkTexture6.Load(int4(Coord, 0));
+	default: return BulletSinkTexture7.Load(int4(Coord, 0));
+	}
+}
+
+uint LoadBrickOccupancyTexture(int Slot, int3 Coord)
+{
+	switch (Slot)
+	{
+	case 0: return BrickOccupancyTexture0.Load(int4(Coord, 0));
+	case 1: return BrickOccupancyTexture1.Load(int4(Coord, 0));
+	case 2: return BrickOccupancyTexture2.Load(int4(Coord, 0));
+	case 3: return BrickOccupancyTexture3.Load(int4(Coord, 0));
+	case 4: return BrickOccupancyTexture4.Load(int4(Coord, 0));
+	case 5: return BrickOccupancyTexture5.Load(int4(Coord, 0));
+	case 6: return BrickOccupancyTexture6.Load(int4(Coord, 0));
+	default: return BrickOccupancyTexture7.Load(int4(Coord, 0));
+	}
+}
+
+float4 LoadSparseFieldAtlasTexture(int Slot, int3 Coord)
+{
+	switch (Slot)
+	{
+	case 0: return SparseFieldAtlasTexture0.Load(int4(Coord, 0));
+	case 1: return SparseFieldAtlasTexture1.Load(int4(Coord, 0));
+	case 2: return SparseFieldAtlasTexture2.Load(int4(Coord, 0));
+	case 3: return SparseFieldAtlasTexture3.Load(int4(Coord, 0));
+	case 4: return SparseFieldAtlasTexture4.Load(int4(Coord, 0));
+	case 5: return SparseFieldAtlasTexture5.Load(int4(Coord, 0));
+	case 6: return SparseFieldAtlasTexture6.Load(int4(Coord, 0));
+	default: return SparseFieldAtlasTexture7.Load(int4(Coord, 0));
+	}
+}
+
+int3 ComputeBrickCoord(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+{
+	const int3 GridResolution = GetGridResolution(Desc);
+	const int3 BrickGridResolution = GetBrickGridResolution(Desc);
+	const int3 CellCoord = clamp((int3)floor(saturate(VolumeUVW) * float3(GridResolution)), int3(0, 0, 0), GridResolution - 1);
+	return clamp(CellCoord / GetSmokeBrickSize(Desc), int3(0, 0, 0), BrickGridResolution - 1);
+}
+
+bool IsActiveBrick(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+{
+	if (UsesSparseAtlas(Desc) == 0u)
+	{
+		return true;
+	}
+	return LoadBrickOccupancyTexture(Slot, ComputeBrickCoord(Desc, VolumeUVW)) != 0u;
+}
+
+float4 LoadCompositeAtlasCell(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, uint BrickIndirection, int3 BrickCoord, int3 SafeCellCoord)
+{
+	const int SafeBrickSize = GetSmokeBrickSize(Desc);
+	const int3 AtlasBrickCoord = TimeThiefSmokeAtlasBrickCoord(BrickIndirection, GetSparseAtlasBrickGridResolution(Desc));
+	const int3 LocalCellCoord = SafeCellCoord - BrickCoord * SafeBrickSize;
+	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
+	return LoadSparseFieldAtlasTexture(Slot, AtlasCoord);
+}
+
+float4 LoadCompositeFieldCell(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, int3 CellCoord)
+{
+	const int3 GridResolution = GetGridResolution(Desc);
+	const int3 BrickGridResolution = GetBrickGridResolution(Desc);
+	const int SafeBrickSize = GetSmokeBrickSize(Desc);
+	const int3 SafeCellCoord = clamp(CellCoord, int3(0, 0, 0), GridResolution - 1);
+	const int3 BrickCoord = clamp(SafeCellCoord / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	const uint BrickIndirection = LoadBrickOccupancyTexture(Slot, BrickCoord);
+	if (BrickIndirection == 0u)
+	{
+		return float4(0.0, 0.0, 0.0, 0.0);
+	}
+	if (BrickIndirection > (uint)GetMaxActiveSmokeBricks(Desc))
+	{
+		return float4(
+			LoadDensityTexture(Slot, SafeCellCoord),
+			LoadWarpTexture(Slot, SafeCellCoord),
+			LoadBulletCutoutTexture(Slot, SafeCellCoord),
+			LoadBulletSinkTexture(Slot, SafeCellCoord));
+	}
+	return LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, BrickCoord, SafeCellCoord);
+}
+
+float4 SampleCompositeSparseFields(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+{
+	const int SafeBrickSize = GetSmokeBrickSize(Desc);
+	const int3 GridResolution = GetGridResolution(Desc);
+	const int3 BrickGridResolution = GetBrickGridResolution(Desc);
+	const float3 GridPosition = saturate(VolumeUVW) * max(float3(GridResolution), 1.0) - 0.5;
+	const int3 Cell0 = (int3)floor(GridPosition);
+	const float3 CellAlpha = saturate(GridPosition - float3(Cell0));
+	const int3 Cell1 = Cell0 + int3(1, 1, 1);
+	const int3 SafeCell0 = clamp(Cell0, int3(0, 0, 0), GridResolution - 1);
+	const int3 SafeCell1 = clamp(Cell1, int3(0, 0, 0), GridResolution - 1);
+	const int3 Brick0 = clamp(SafeCell0 / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 Brick1 = clamp(SafeCell1 / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+
+	if (Brick0.x == Brick1.x && Brick0.y == Brick1.y && Brick0.z == Brick1.z)
+	{
+		const uint BrickIndirection = LoadBrickOccupancyTexture(Slot, Brick0);
+		if (BrickIndirection == 0u)
+		{
+			return float4(0.0, 0.0, 0.0, 0.0);
+		}
+		if (BrickIndirection > (uint)GetMaxActiveSmokeBricks(Desc))
+		{
+			return float4(
+				SampleDensityTexture(Slot, saturate(VolumeUVW)),
+				SampleWarpTexture(Slot, saturate(VolumeUVW)),
+				SampleBulletCutoutTexture(Slot, saturate(VolumeUVW)),
+				SampleBulletSinkTexture(Slot, saturate(VolumeUVW)));
+		}
+
+		const float4 V000 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell0.y, SafeCell0.z));
+		const float4 V100 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell0.y, SafeCell0.z));
+		const float4 V010 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell1.y, SafeCell0.z));
+		const float4 V110 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell1.y, SafeCell0.z));
+		const float4 V001 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell0.y, SafeCell1.z));
+		const float4 V101 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell0.y, SafeCell1.z));
+		const float4 V011 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell0.x, SafeCell1.y, SafeCell1.z));
+		const float4 V111 = LoadCompositeAtlasCell(Slot, Desc, BrickIndirection, Brick0, int3(SafeCell1.x, SafeCell1.y, SafeCell1.z));
+		const float4 X00 = lerp(V000, V100, CellAlpha.x);
+		const float4 X10 = lerp(V010, V110, CellAlpha.x);
+		const float4 X01 = lerp(V001, V101, CellAlpha.x);
+		const float4 X11 = lerp(V011, V111, CellAlpha.x);
+		const float4 Y0 = lerp(X00, X10, CellAlpha.y);
+		const float4 Y1 = lerp(X01, X11, CellAlpha.y);
+		return lerp(Y0, Y1, CellAlpha.z);
+	}
+
+	const float4 V000 = LoadCompositeFieldCell(Slot, Desc, int3(Cell0.x, Cell0.y, Cell0.z));
+	const float4 V100 = LoadCompositeFieldCell(Slot, Desc, int3(Cell1.x, Cell0.y, Cell0.z));
+	const float4 V010 = LoadCompositeFieldCell(Slot, Desc, int3(Cell0.x, Cell1.y, Cell0.z));
+	const float4 V110 = LoadCompositeFieldCell(Slot, Desc, int3(Cell1.x, Cell1.y, Cell0.z));
+	const float4 V001 = LoadCompositeFieldCell(Slot, Desc, int3(Cell0.x, Cell0.y, Cell1.z));
+	const float4 V101 = LoadCompositeFieldCell(Slot, Desc, int3(Cell1.x, Cell0.y, Cell1.z));
+	const float4 V011 = LoadCompositeFieldCell(Slot, Desc, int3(Cell0.x, Cell1.y, Cell1.z));
+	const float4 V111 = LoadCompositeFieldCell(Slot, Desc, int3(Cell1.x, Cell1.y, Cell1.z));
+	const float4 X00 = lerp(V000, V100, CellAlpha.x);
+	const float4 X10 = lerp(V010, V110, CellAlpha.x);
+	const float4 X01 = lerp(V001, V101, CellAlpha.x);
+	const float4 X11 = lerp(V011, V111, CellAlpha.x);
+	const float4 Y0 = lerp(X00, X10, CellAlpha.y);
+	const float4 Y1 = lerp(X01, X11, CellAlpha.y);
+	return lerp(Y0, Y1, CellAlpha.z);
+}
+
+float4 SampleFieldSet(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+{
+	return UsesSparseAtlas(Desc) != 0u
+		? SampleCompositeSparseFields(Slot, Desc, VolumeUVW)
+		: float4(
+			SampleDensityTexture(Slot, saturate(VolumeUVW)),
+			SampleWarpTexture(Slot, saturate(VolumeUVW)),
+			SampleBulletCutoutTexture(Slot, saturate(VolumeUVW)),
+			SampleBulletSinkTexture(Slot, saturate(VolumeUVW)));
+}
+
+float ComputeInactiveBrickSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
+{
+	const int3 BrickCoord = ComputeBrickCoord(Desc, VolumeUVW);
+	const float3 SafeGridResolution = max(float3(GetGridResolution(Desc)), 1.0);
+	const float SafeBrickSize = max((float)GetSmokeBrickSize(Desc), 1.0);
+	const float3 BrickMin = (float3(BrickCoord) * SafeBrickSize) / SafeGridResolution;
+	const float3 BrickMax = min((float3(BrickCoord + int3(1, 1, 1)) * SafeBrickSize) / SafeGridResolution, 1.0);
+	float DeltaT = 1000000.0;
+	if (abs(RayUVWDirection.x) > 0.000001)
+	{
+		const float Boundary = RayUVWDirection.x > 0.0 ? BrickMax.x : BrickMin.x;
+		const float AxisDelta = (Boundary - VolumeUVW.x) / RayUVWDirection.x;
+		if (AxisDelta > 0.000001)
+		{
+			DeltaT = min(DeltaT, AxisDelta);
+		}
+	}
+	if (abs(RayUVWDirection.y) > 0.000001)
+	{
+		const float Boundary = RayUVWDirection.y > 0.0 ? BrickMax.y : BrickMin.y;
+		const float AxisDelta = (Boundary - VolumeUVW.y) / RayUVWDirection.y;
+		if (AxisDelta > 0.000001)
+		{
+			DeltaT = min(DeltaT, AxisDelta);
+		}
+	}
+	if (abs(RayUVWDirection.z) > 0.000001)
+	{
+		const float Boundary = RayUVWDirection.z > 0.0 ? BrickMax.z : BrickMin.z;
+		const float AxisDelta = (Boundary - VolumeUVW.z) / RayUVWDirection.z;
+		if (AxisDelta > 0.000001)
+		{
+			DeltaT = min(DeltaT, AxisDelta);
+		}
+	}
+	return clamp(max(StepSize, DeltaT + 0.0001), StepSize, StepSize * 8.0);
+}
+
+float ComputeAnalyticBulletOpen(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 SampleWorld)
+{
+	float OpenMask = 1.0;
+	const int EventOffset = (int)round(Desc.RenderSteps_Events.z);
+	const int SafeEventCount = min((int)round(Desc.AnalyticEvents.x), 128);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventOffset + EventIndex];
+		const float Type = Event.TypeShapeAgeSeed.x;
+		if (Type >= 0.5)
+		{
+			continue;
+		}
+
+		const float Radius = max(Event.PositionRadius.w, 1.0);
+		const float Sdf = TimeThiefSmokeEventSweptSdf(Event, SampleWorld);
+		const float AgeFade = 1.0 - saturate(Event.TypeShapeAgeSeed.z);
+		const float Feather = max(Radius * 0.28, 1.0);
+		const float Cutout = (1.0 - smoothstep(-Feather, Feather, Sdf)) * AgeFade;
+		OpenMask = min(OpenMask, 1.0 - Cutout);
+	}
+	return saturate(OpenMask);
+}
+
+float3 SmokeColorFromDescriptor(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	const float ScatteringAlbedo = Desc.ScatterNoise.x;
+	const float ScatteringAnisotropy = Desc.ScatterNoise.y;
+	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
+	return lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
+}
+
+void AccumulateSmokeSample(
+	int Slot,
+	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
+	float3 SampleWorld,
+	float3 WorldRayDirection,
+	float StepSize,
+	inout float Transmittance,
+	inout float Scatter,
+	inout float3 SmokeColorAccum,
+	inout float WarpScatter,
+	inout float3 WarpColorAccum)
+{
+	const float4x4 WorldToLocal = GetWorldToLocal(Desc);
+	const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
+	const float3 SampleLocal = mul(float4(SampleWorld, 1.0), WorldToLocal).xyz;
+	const float3 SimulationLocal = SampleLocal / BoundsExtent;
+	const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
+	if (!TimeThiefSmokeInsideUVW(VolumeUVW) || !IsActiveBrick(Slot, Desc, VolumeUVW))
+	{
+		return;
+	}
+
+	const float4 RawFields = SampleFieldSet(Slot, Desc, VolumeUVW);
+	const float RawDensity = max(RawFields.x, 0.0);
+	const float RawWarp = max(RawFields.y, 0.0);
+	if (RawDensity <= 0.0001 && RawWarp <= 0.0001)
+	{
+		return;
+	}
+
+	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
+	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
+	const float ObstacleOpen = 1.0 - smoothstep(0.25, 0.65, Obstacle);
+	const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
+	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
+	const float3 NaturalBoundsExtent = max(Desc.AnalyticEvents.yzw, 1.0);
+	const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+	const float AgeSeconds = Desc.FilamentAge.y;
+	const float DurationSeconds = Desc.FilamentAge.z;
+	const float SmokeFadeOutDuration = Desc.FilamentAge.w;
+	const float LifetimeAlpha = 1.0 - smoothstep(DurationSeconds, DurationSeconds + max(SmokeFadeOutDuration, 0.001), AgeSeconds);
+	const float AnalyticBulletOpen = Desc.AnalyticEvents.x > 0.5 ? ComputeAnalyticBulletOpen(Desc, SampleWorld) : 1.0;
+	const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
+	float Density = RawDensity * DensityVisibility;
+	const float Warp = RawWarp * ObstacleOpen * BoundaryMask * LifetimeAlpha;
+	if (Density <= 0.0001 && Warp <= 0.0001)
+	{
+		return;
+	}
+
+	const float RenderNoiseScale = Desc.ScatterNoise.z;
+	const float RenderNoiseStrength = Desc.ScatterNoise.w;
+	const float RenderNoiseTimeScale = Desc.NoiseFilamentA.x;
+	const float RenderFilamentScale = Desc.NoiseFilamentA.y;
+	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
+	const float RenderFilamentContrast = Desc.NoiseFilamentA.w;
+	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
+	const bool bUseFastFilament = Desc.RenderQuality.x > 0.5;
+	const int3 GridResolution = GetGridResolution(Desc);
+	const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+	const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+	const float MaxResolvedBaseNoiseScale = 0.9 / MaxGridCellSize;
+	const float MaxResolvedFineNoiseScale = 1.15 / MaxGridCellSize;
+	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedBaseNoiseScale);
+	const float StableRenderFilamentScale = min(max(RenderFilamentScale, 0.0), MaxResolvedBaseNoiseScale);
+	const float FineNoiseMultiplier = min(1.86, MaxResolvedFineNoiseScale / max(StableRenderNoiseScale, 0.0001));
+	const float FineFilamentMultiplier = min(1.9, MaxResolvedFineNoiseScale / max(StableRenderFilamentScale, 0.0001));
+	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
+
+	float DensityNoise = 1.0;
+	if (RenderNoiseStrength > 0.001)
+	{
+		const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
+		const float SmoothNoise = TimeThiefSmokeFBM(NoisePosition + TimeNoise);
+		const float RidgeNoise = TimeThiefSmokeRidgedFBM(NoisePosition * 0.72 - TimeNoise * 0.65);
+		const float FineRidgeNoise = TimeThiefSmokeRidgedFBM(NoisePosition * FineNoiseMultiplier + SmoothNoise * 0.37 + TimeNoise * 0.29);
+		const float ClumpMask = smoothstep(0.34, 0.72, saturate(SmoothNoise * 0.16 + RidgeNoise * 0.50 + FineRidgeNoise * 0.42));
+		DensityNoise = lerp(1.0 - RenderNoiseStrength * 0.64, 1.0 + RenderNoiseStrength * 1.72, ClumpMask);
+	}
+
+	float FilamentGain = 1.0;
+	const float EdgeFilamentGate = smoothstep(0.38, 0.98, EllipsoidDistance);
+	const float FilamentDensityGate = smoothstep(0.025, 0.16, RawDensity) * (1.0 - smoothstep(0.92, 1.85, RawDensity));
+	const float FilamentInfluence = saturate(EdgeFilamentGate * FilamentDensityGate);
+	if (RenderFilamentStrength > 0.001 && FilamentInfluence > 0.015)
+	{
+		const float3 FilamentPosition = SimulationLocal * BoundsExtent * StableRenderFilamentScale;
+		const float3 FilamentWarp = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
+		const float FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
+		float CombinedFilamentMask = FilamentMask;
+		float AirPocket = 0.5;
+		if (!bUseFastFilament && FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
+		{
+			const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91);
+			CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(RenderFilamentContrast * 0.92, 0.1)) * 0.28);
+			AirPocket = TimeThiefSmokeFBM(FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37);
+		}
+		const float FilamentLow = max(0.38, 1.0 - RenderFilamentStrength * (0.18 + AirPocket * 0.28));
+		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
+		FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
+	}
+
+	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
+	Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain;
+	const float3 LocalRayDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz;
+	const float SimulationStepSize = length((LocalRayDirection * StepSize) / BoundsExtent);
+	const float Absorption = Density * Desc.RenderBoundsExtent_Extinction.w * SimulationStepSize;
+	const float StepTransmittance = exp2(-Absorption * 1.442695);
+	const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
+	const float3 SmokeColor = SmokeColorFromDescriptor(Desc);
+	Scatter += SampleWeight * Density;
+	SmokeColorAccum += SampleWeight * SmokeColor;
+	const float WarpWeight = Transmittance * Warp * SimulationStepSize * 0.85;
+	WarpScatter += WarpWeight;
+	WarpColorAccum += WarpWeight * lerp(SmokeColor, float3(0.92, 0.96, 1.0), 0.55);
+	Transmittance *= StepTransmittance;
+}
+
+void MainPS(
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
+	out float4 OutColor : SV_Target0)
+{
+	const float2 SceneUV = SvPosition.xy * SceneColorUVScaleBias.xy + SceneColorUVScaleBias.zw;
+	const float4 SceneColor = SceneColorTexture.SampleLevel(SceneColorSampler, SceneUV, 0.0);
+	const int2 PixelCoord = int2(SvPosition.xy) - TileRectMin;
+	const int2 TileCoord = clamp(PixelCoord / max(CompositeTileSize, 1), int2(0, 0), TileGridSize - 1);
+	const int TileIndex = TileCoord.y * TileGridSize.x + TileCoord.x;
+	const FTimeThiefSmokeCompositeTileRangeShaderData TileRange = TileSmokeRanges[TileIndex];
+	const int TileOffset = (int)round(TileRange.OffsetCount.x);
+	const int TileSmokeCount = min((int)round(TileRange.OffsetCount.y), 8);
+	if (TileSmokeCount <= 0)
+	{
+		OutColor = SceneColor;
+		return;
+	}
+
+	const float SceneDeviceZ = SceneDepthTexture.Load(int3(uint2(SvPosition.xy), 0)).r;
+	const float3 NearWorld = ReconstructWorldPosition(SvPosition.xy, 1.0);
+	const float3 FarWorld = ReconstructWorldPosition(SvPosition.xy, 0.0);
+	const bool bHasOpaqueSceneDepth = SceneDeviceZ > 0.000001;
+	const float3 SceneWorld = bHasOpaqueSceneDepth ? ReconstructWorldPosition(SvPosition.xy, SceneDeviceZ) : FarWorld;
+	const float3 WorldRayDirection = normalize(FarWorld - NearWorld);
+	const float SceneT = max(dot(SceneWorld - NearWorld, WorldRayDirection), 0.0);
+
+	float SmokeTMin[8];
+	float SmokeTMax[8];
+	int SmokeSlots[8];
+	int ActiveSmokeCount = 0;
+	float RayStart = SceneT;
+	float RayEnd = 0.0;
+	float TargetStepLength = 1000000.0;
+	int MinRenderSteps = 8;
+	int MaxRenderSteps = 16;
+
+	[loop]
+	for (int TileSmokeIndex = 0; TileSmokeIndex < TileSmokeCount; ++TileSmokeIndex)
+	{
+		const int Slot = (int)TileSmokeIndices[TileOffset + TileSmokeIndex];
+		if (Slot < 0 || Slot >= SmokeSlotCount || ActiveSmokeCount >= 8)
+		{
+			continue;
+		}
+
+		const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
+		const float4x4 WorldToLocal = GetWorldToLocal(Desc);
+		const float3 RenderBoundsExtent = max(Desc.RenderBoundsExtent_Extinction.xyz, 1.0);
+		const float3 LocalOrigin = mul(float4(NearWorld, 1.0), WorldToLocal).xyz / RenderBoundsExtent;
+		const float3 LocalDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz / RenderBoundsExtent;
+		float TMin = 0.0;
+		float TMax = 0.0;
+		if (!IntersectUnitBox(LocalOrigin, LocalDirection, TMin, TMax))
+		{
+			continue;
+		}
+
+		TMin = max(TMin, 0.0);
+		TMax = min(TMax, SceneT);
+		if (TMax <= TMin)
+		{
+			continue;
+		}
+
+		const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
+		const int3 GridResolution = GetGridResolution(Desc);
+		const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+		const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+		TargetStepLength = min(TargetStepLength, max(MaxGridCellSize * max(Desc.BoundsExtent_RenderStepVoxelScale.w, 0.1), 1.0));
+		MinRenderSteps = max(MinRenderSteps, (int)round(Desc.RenderSteps_Events.x));
+		MaxRenderSteps = max(MaxRenderSteps, (int)round(Desc.RenderSteps_Events.y));
+		SmokeTMin[ActiveSmokeCount] = TMin;
+		SmokeTMax[ActiveSmokeCount] = TMax;
+		SmokeSlots[ActiveSmokeCount] = Slot;
+		++ActiveSmokeCount;
+		RayStart = min(RayStart, TMin);
+		RayEnd = max(RayEnd, TMax);
+	}
+
+	if (ActiveSmokeCount <= 0 || RayEnd <= RayStart)
+	{
+		OutColor = SceneColor;
+		return;
+	}
+
+	const float PhysicalRayLength = max(RayEnd - RayStart, 0.0);
+	const int AdaptiveSteps = (int)ceil(PhysicalRayLength / max(TargetStepLength, 1.0));
+	const int Steps = clamp(max(MinRenderSteps, AdaptiveSteps), 8, max(MaxRenderSteps, 8));
+	const float StepSize = max((RayEnd - RayStart) / Steps, 0.0001);
+	const float RayJitter = TimeThiefSmokeHash13(float3(SvPosition.xy, SceneT)) - 0.5;
+	float CurrentT = max(RayStart, RayStart + (0.5 + RayJitter) * StepSize);
+	float Transmittance = 1.0;
+	float Scatter = 0.0;
+	float3 SmokeColorAccum = float3(0.0, 0.0, 0.0);
+	float WarpScatter = 0.0;
+	float3 WarpColorAccum = float3(0.0, 0.0, 0.0);
+
+	[loop]
+	for (int StepIndex = 0; StepIndex < Steps && CurrentT < RayEnd; ++StepIndex)
+	{
+		const float3 SampleWorld = NearWorld + WorldRayDirection * CurrentT;
+		bool bSawInactiveCandidate = false;
+		bool bSawActiveCandidate = false;
+		float InactiveSkip = StepSize * 8.0;
+		float NextSmokeStart = RayEnd;
+
+		[loop]
+		for (int SmokeIndex = 0; SmokeIndex < ActiveSmokeCount; ++SmokeIndex)
+		{
+			if (CurrentT < SmokeTMin[SmokeIndex])
+			{
+				NextSmokeStart = min(NextSmokeStart, SmokeTMin[SmokeIndex]);
+				continue;
+			}
+			if (CurrentT > SmokeTMax[SmokeIndex])
+			{
+				continue;
+			}
+
+			const int Slot = SmokeSlots[SmokeIndex];
+			const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
+			const float4x4 WorldToLocal = GetWorldToLocal(Desc);
+			const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
+			const float3 SampleLocal = mul(float4(SampleWorld, 1.0), WorldToLocal).xyz;
+			const float3 VolumeUVW = (SampleLocal / BoundsExtent) * 0.5 + 0.5;
+			if (!TimeThiefSmokeInsideUVW(VolumeUVW))
+			{
+				continue;
+			}
+
+			if (!IsActiveBrick(Slot, Desc, VolumeUVW))
+			{
+				const float3 RayUVWDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz / BoundsExtent * 0.5;
+				InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, VolumeUVW, RayUVWDirection, StepSize));
+				bSawInactiveCandidate = true;
+				continue;
+			}
+
+			bSawActiveCandidate = true;
+			AccumulateSmokeSample(Slot, Desc, SampleWorld, WorldRayDirection, StepSize, Transmittance, Scatter, SmokeColorAccum, WarpScatter, WarpColorAccum);
+		}
+
+		if (Transmittance < 0.015)
+		{
+			break;
+		}
+
+		float Advance = StepSize;
+		if (!bSawActiveCandidate && bSawInactiveCandidate)
+		{
+			Advance = max(StepSize, InactiveSkip);
+			if (NextSmokeStart > CurrentT)
+			{
+				Advance = min(Advance, max(StepSize, NextSmokeStart - CurrentT));
+			}
+		}
+		else if (!bSawActiveCandidate && !bSawInactiveCandidate && NextSmokeStart > CurrentT)
+		{
+			Advance = min(StepSize * 8.0, max(StepSize, NextSmokeStart - CurrentT));
+		}
+		CurrentT += Advance;
+	}
+
+	const float Alpha = saturate(1.0 - Transmittance);
+	const float3 AverageSmokeColor = SmokeColorAccum / max(Alpha, 0.0001);
+	const float3 Composited = SceneColor.rgb * Transmittance + AverageSmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
+	const float WarpAlpha = saturate(WarpScatter * 0.62);
+	const float3 AverageWarpColor = WarpColorAccum / max(WarpScatter, 0.0001);
+	OutColor = float4(lerp(Composited, AverageWarpColor, WarpAlpha * 0.42), SceneColor.a);
+}

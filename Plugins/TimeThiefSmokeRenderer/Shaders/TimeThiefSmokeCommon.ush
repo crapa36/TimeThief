@@ -167,6 +167,17 @@ float TimeThiefSmokeSoftSphere(float Distance, float Radius)
 	return 1.0 - smoothstep(SafeRadius * 0.35, SafeRadius, Distance);
 }
 
+float TimeThiefSmokeRenderBoundaryMask(float3 SimulationLocal, float3 BoundsExtent, float3 NaturalBoundsExtent, float BoundaryNoise)
+{
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 SafeNaturalBoundsExtent = max(NaturalBoundsExtent, 1.0);
+	const float3 NaturalCoverage = saturate(SafeNaturalBoundsExtent / SafeBoundsExtent);
+	const float NaturalCoverageMax = max(max(NaturalCoverage.x, NaturalCoverage.y), NaturalCoverage.z);
+	const float FadeStart = clamp(max(0.90, NaturalCoverageMax + 0.04), 0.82, 0.96);
+	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
+	return 1.0 - smoothstep(FadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
+}
+
 float3 TimeThiefSmokeVoxelLocal(uint3 Voxel, int3 GridResolution, float3 BoundsExtent)
 {
 	const float3 UVW = (float3(Voxel) + 0.5) / max(float3(GridResolution), 1.0);
