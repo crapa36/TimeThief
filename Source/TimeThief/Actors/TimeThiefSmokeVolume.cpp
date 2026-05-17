@@ -77,7 +77,7 @@ ATimeThiefSmokeVolume::ATimeThiefSmokeVolume()
 
 	SmokeBoundsComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("SmokeBounds"));
 	SetRootComponent(SmokeBoundsComponent);
-	SmokeBoundsComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SmokeBoundsComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SmokeBoundsComponent->SetCollisionObjectType(ECC_WorldDynamic);
 	SmokeBoundsComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	SmokeBoundsComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
@@ -102,6 +102,10 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(const FTimeThiefSmokeRuntimeSe
 
 	SetOwner(InOwnerActor);
 	SetInstigator(InInstigatorPawn);
+	if (SmokeBoundsComponent)
+	{
+		SmokeBoundsComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 	SetLifeSpan(FMath::Max(0.1f, SmokeSettings.SmokeDuration + SmokeSettings.SmokeFadeOutDuration));
 
 	UpdateSmokeBounds();
@@ -129,7 +133,7 @@ bool ATimeThiefSmokeVolume::IntersectTraceSegment(const FVector& SegmentStart, c
 	const FVector LocalStart = BoundsTransform.InverseTransformPosition(SegmentStart);
 	const FVector LocalEnd = BoundsTransform.InverseTransformPosition(SegmentEnd);
 	const FVector LocalDelta = LocalEnd - LocalStart;
-	const FVector Extent = SmokeBoundsComponent->GetUnscaledBoxExtent();
+	const FVector Extent = GetCurrentSmokeRenderBoundsExtent().ComponentMax(GetCurrentSmokeBoundsExtent()).ComponentMax(FVector(1.0f));
 
 	float TMin = 0.0f;
 	float TMax = 1.0f;
@@ -179,7 +183,7 @@ bool ATimeThiefSmokeVolume::IntersectsExplosion(const FVector& Center, float Rad
 
 	const FTransform BoundsTransform = SmokeBoundsComponent->GetComponentTransform();
 	const FVector LocalCenter = BoundsTransform.InverseTransformPosition(Center);
-	const FVector Extent = SmokeBoundsComponent->GetUnscaledBoxExtent();
+	const FVector Extent = GetCurrentSmokeRenderBoundsExtent().ComponentMax(GetCurrentSmokeBoundsExtent()).ComponentMax(FVector(1.0f));
 	const FVector ClosestLocal(
 		FMath::Clamp(LocalCenter.X, -Extent.X, Extent.X),
 		FMath::Clamp(LocalCenter.Y, -Extent.Y, Extent.Y),
@@ -265,6 +269,11 @@ void ATimeThiefSmokeVolume::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (SmokeBoundsComponent)
+	{
+		SmokeBoundsComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
 	if (SmokeId == INDEX_NONE)
 	{
 		SmokeId = TimeThiefSmokeVolume::GNextSmokeId++;
@@ -348,7 +357,13 @@ void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
 		UPrimitiveComponent* PrimitiveComponent = Overlap.GetComponent();
-		if (!PrimitiveComponent || PrimitiveComponent == SmokeBoundsComponent || PrimitiveComponent->Mobility == EComponentMobility::Static)
+		AActor* OverlapOwner = PrimitiveComponent ? PrimitiveComponent->GetOwner() : nullptr;
+		if (!PrimitiveComponent ||
+			PrimitiveComponent == SmokeBoundsComponent ||
+			!OverlapOwner ||
+			OverlapOwner == this ||
+			OverlapOwner->IsA<ATimeThiefSmokeVolume>() ||
+			PrimitiveComponent->Mobility == EComponentMobility::Static)
 		{
 			continue;
 		}

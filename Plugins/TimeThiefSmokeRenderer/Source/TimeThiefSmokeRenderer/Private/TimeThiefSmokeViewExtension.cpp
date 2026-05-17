@@ -54,8 +54,8 @@ namespace
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeCompositeMode(
 		TEXT("r.TimeThiefSmoke.CompositeMode"),
-		1,
-		TEXT("Custom smoke composite path. 0=legacy per-smoke, 1=tile-list multi-smoke."));
+		2,
+		TEXT("Custom smoke composite path. 0=legacy per-smoke, 1=force tile-list multi-smoke, 2=auto."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeFastFilament(
 		TEXT("r.TimeThiefSmoke.FastFilament"),
@@ -904,11 +904,9 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		TotalTileSmokeIndexCount += Count;
 	}
 	const float AverageTileSmokeCount = static_cast<float>(TotalTileSmokeIndexCount) / static_cast<float>(FMath::Max(TileCount, 1));
-	if (!bUseFullscreenComposite && OverlappedTileCount == 0 && AverageTileSmokeCount < 0.85f)
-	{
-		return CurrentSceneColor;
-	}
-	if (AverageTileSmokeCount < 0.35f)
+	const float OverlappedTileRatio = static_cast<float>(OverlappedTileCount) / static_cast<float>(FMath::Max(TileCount, 1));
+	if (CVarTimeThiefSmokeCompositeMode.GetValueOnRenderThread() == 2 &&
+		(OverlappedTileCount == 0 || AverageTileSmokeCount < 1.1f || OverlappedTileRatio < 0.08f))
 	{
 		return CurrentSceneColor;
 	}
@@ -1106,7 +1104,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		const uint32 CurrentFrame = static_cast<uint32>(GFrameCounterRenderThread);
 		if (ProfileMode > 1 || LastCompositeProfileLogFrame == 0 || CurrentFrame - LastCompositeProfileLogFrame >= 60)
 		{
-			UE_LOG(LogTimeThiefSmokeRenderer, Log, TEXT("SmokeCompositeProfile Mode=Multi VisibleSmokes=%d Tiles=%dx%d DrawRect=%dx%d AvgTileSmokes=%.2f Batches=1"), VisibleSmokes.Num(), TileGridSize.X, TileGridSize.Y, DrawRect.Width(), DrawRect.Height(), AverageTileSmokeCount);
+			UE_LOG(LogTimeThiefSmokeRenderer, Log, TEXT("SmokeCompositeProfile Mode=Multi VisibleSmokes=%d Tiles=%dx%d DrawRect=%dx%d AvgTileSmokes=%.2f OverlapTiles=%d OverlapRatio=%.2f Batches=1"), VisibleSmokes.Num(), TileGridSize.X, TileGridSize.Y, DrawRect.Width(), DrawRect.Height(), AverageTileSmokeCount, OverlappedTileCount, OverlappedTileRatio);
 			LastCompositeProfileLogFrame = CurrentFrame;
 		}
 	}
