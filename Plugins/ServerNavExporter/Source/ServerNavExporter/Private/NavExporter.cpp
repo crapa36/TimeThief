@@ -26,6 +26,18 @@
 
 void FNavExporter::ExportCurrentWorldNavData()
 {
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtReal)=%zu"), sizeof(dtReal));
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtMeshHeader)=%zu"), sizeof(dtMeshHeader));
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtPoly)=%zu"), sizeof(dtPoly));
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtLink)=%zu"), sizeof(dtLink));
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtPolyDetail)=%zu"), sizeof(dtPolyDetail));
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtBVNode)=%zu"), sizeof(dtBVNode));
+	UE_LOG(LogTemp, Log, TEXT("sizeof(dtOffMeshConnection)=%zu"), sizeof(dtOffMeshConnection));
+	
+	UE_LOG(LogTemp, Log, TEXT("DT_LARGE_WORLD_COORDINATES_DISABLED=%d"), DT_LARGE_WORLD_COORDINATES_DISABLED);
+	UE_LOG(LogTemp, Log, TEXT("WITH_NAVMESH_SEGMENT_LINKS=%d"), WITH_NAVMESH_SEGMENT_LINKS);
+	UE_LOG(LogTemp, Log, TEXT("WITH_NAVMESH_CLUSTER_LINKS=%d"), WITH_NAVMESH_CLUSTER_LINKS);
+
 	UWorld* World = GetEditorWorld();
 	if (World == nullptr)
 	{
