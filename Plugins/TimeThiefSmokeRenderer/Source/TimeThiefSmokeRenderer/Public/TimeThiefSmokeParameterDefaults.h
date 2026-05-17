@@ -64,7 +64,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 그리드/렌더마치
 
 	// 연막 시뮬레이션 3D 격자 축 해상도. 높을수록 품질과 비용 크게 증가.
-	constexpr int32 SmokeGridResolution = 256;
+	constexpr int32 SmokeGridResolution = 128;
 	// 압력 투영 Jacobi 반복 횟수. 높을수록 압력 품질과 비용 증가.
 	constexpr int32 PressureIterations = 4;
 	// 기본 압력 단계에서 멀티그리드 사용 여부. 켜면 품질/성능 균형 개선 가능.
@@ -72,19 +72,19 @@ namespace TimeThiefSmokeParameterDefaults
 	// 기본 렌더 raymarch 샘플 단계 수. 높을수록 렌더 품질과 비용 증가.
 	constexpr int32 RenderStepCount = 16;
 	// sparse 인덱스 브릭 한 변 크기. 높을수록 관리 비용 감소, 세밀도 감소 가능.
-	constexpr int32 SmokeBrickSize = 16;
+	constexpr int32 SmokeBrickSize = 32;
 	// sparse가 보관할 활성 연막 브릭 최대 개수. 높을수록 품질과 VRAM 비용 증가.
-	constexpr int32 MaxActiveSmokeBricks = 2048;
+	constexpr int32 MaxActiveSmokeBricks = 1024;
 	// 적응형 raymarch가 사용할 수 있는 최대 샘플 단계 수. 높을수록 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCount = 128;
 	// 렌더 raymarch 목표 스텝 길이의 보셀 크기 배율. 높을수록 비용 감소, 품질 감소.
 	constexpr float RenderStepVoxelScale = 1.25f;
 	// 연막 내부 빛 흡수/소멸 계수. 높을수록 더 어둡고 짙게 보임.
-	constexpr float Extinction = 2.15f;
+	constexpr float Extinction = 3.0f;
 	// 흡수 대비 산란 비율(0~1). 높을수록 밝게 보임.
-	constexpr float ScatteringAlbedo = 0.9f;
+	constexpr float ScatteringAlbedo = 0.75f;
 	// 전방 산란 방향성(-1~1). 높을수록 빛 방향 산란이 강해짐.
-	constexpr float ScatteringAnisotropy = 0.35f;
+	constexpr float ScatteringAnisotropy = 0.2f;
 
 	// 밀도/속도 시뮬레이션
 
@@ -112,11 +112,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 주변 공기 흐름이 속도장에 주는 강도. 높을수록 자연 흐름과 비용 증가.
 	constexpr float AirInteractionStrength = 0.5f;
 	// 자체 노이즈 애니메이션 속도 배율. 높을수록 더 빠르게 꿀렁임.
-	constexpr float SelfWobbleTimeScale = 0.05f;
+	constexpr float SelfWobbleTimeScale = 0.025f;
 	// 자체 컬/캐리어 와류 속도 배율. 높을수록 움직임과 비용 증가.
 	constexpr float SelfWobbleVelocityScale = 0.25f;
 	// 이벤트 외 와류, 주변 공기 힘 배율. 높을수록 움직임과 비용 증가.
-	constexpr float SelfWobbleForceScale = 0.25f;
+	constexpr float SelfWobbleForceScale = 0.5f;
 	// 와류 입자 컬 반응과 생성 후 이동 배율. 높을수록 움직임과 비용 증가.
 	constexpr float SelfWobbleParticleScale = 0.25f;
 	// 총알/폭발/액터 이벤트 주변 국소 와류 강도. 높을수록 반응과 비용 증가.
@@ -137,11 +137,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 워프 꼬리
 
 	// 액터 통과 워프 꼬리 초기 강도. 높을수록 시각 디테일과 비용 증가.
-	constexpr float WarpTrailIntensity = 1.5f;
+	constexpr float WarpTrailIntensity = 3.0f;
 	// 워프 초당 감쇠율. 높을수록 더 빨리 사라져 비용 감소.
-	constexpr float WarpTrailDecayRate = 1.0f;
+	constexpr float WarpTrailDecayRate = 0.75f;
 	// 액터 반경 대비 워프 꼬리 두께 배율. 높을수록 범위와 비용 증가.
-	constexpr float WarpTrailRadiusScale = 0.05f;
+	constexpr float WarpTrailRadiusScale = 0.1f;
 	// 액터 속도/반경 대비 워프 꼬리 길이 배율. 높을수록 범위와 비용 증가.
 	constexpr float WarpTrailLengthScale = 7.0f;
 	// 액터 워프 밀도 누적 배율. 높을수록 흔적 지속과 비용 증가.
@@ -153,19 +153,19 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터가 지나갈 때 공기 흐름을 속도장에 반영하는 전체 강도. 높을수록 반응과 비용 증가.
 	constexpr float ActorAirflowStrength = 1.0f;
 	// 액터 공기 흐름이 시작되는 최소 속도(cm/s). 높을수록 반응 빈도와 비용 감소.
-	constexpr float ActorAirflowMinSpeed = 24.0f;
+	constexpr float ActorAirflowMinSpeed = 10.0f;
 	// 액터 공기 흐름이 최대 반응에 도달하는 속도(cm/s). 높을수록 강한 반응이 늦어짐.
 	constexpr float ActorAirflowFullSpeed = 320.0f;
 	// 액터 크기 대비 공기 흐름 영향 반경 배율. 높을수록 범위와 비용 증가.
-	constexpr float ActorAirflowRadiusScale = 3.8f;
+	constexpr float ActorAirflowRadiusScale = 1.0f;
 	// 액터 전방 압축 공기 흐름 강도. 높을수록 앞쪽 반응과 비용 증가.
-	constexpr float ActorAirflowFrontStrength = 0.42f;
+	constexpr float ActorAirflowFrontStrength = 2.0f;
 	// 액터 측면으로 빠져나가는 공기 흐름 강도. 높을수록 측면 반응과 비용 증가.
-	constexpr float ActorAirflowSideStrength = 0.26f;
+	constexpr float ActorAirflowSideStrength = 0.3f;
 	// 액터 후방으로 끌려가는 공기 흐름 강도. 높을수록 뒤쪽 흔적과 비용 증가.
-	constexpr float ActorAirflowWakeStrength = 0.34f;
+	constexpr float ActorAirflowWakeStrength = 0.7f;
 	// 액터 이동 공기 흐름이 추가로 만드는 와류 강도. 높을수록 회전 반응과 비용 증가.
-	constexpr float ActorAirflowVortexStrength = 0.18f;
+	constexpr float ActorAirflowVortexStrength = 0.3f;
 
 	// 그래픽 이벤트 제한
 
@@ -190,7 +190,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 통과 시 연막 제거 반경(cm). 높을수록 구멍 크기와 비용 증가.
 	constexpr float BulletClearRadius = 40.0f;
 	// 총알 웨이크 렌더 최대 가시 시간(초). 높을수록 흔적 지속과 비용 증가.
-	constexpr float BulletWakeMaxVisibleLife = 1.0f;
+	constexpr float BulletWakeMaxVisibleLife = 0.5f;
 	// 총알 웨이크 구멍 해제 페이드 시간(초). 높을수록 복귀가 느리고 비용 증가.
 	constexpr float BulletWakeReleaseDuration = 2.0f;
 	// 총알 웨이크 주변 자유 공간 억제 시간(초). 높을수록 구멍 유지와 비용 증가.
@@ -216,25 +216,25 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 상호작용
 
 	// 액터-연막 충돌/통과 이벤트 초당 샘플 빈도. 높을수록 반응 품질과 CPU/GPU 비용 증가.
-	constexpr float ActorInteractionHz = 10.0f;
+	constexpr float ActorInteractionHz = 30.0f;
 	// 액터 밀림 이벤트 인정 최소 속도(cm/s). 높을수록 비용 감소, 약한 반응 감소.
 	constexpr float ActorPushVelocityThreshold = 10.0f;
 	// 틱당 액터 상호작용 이벤트 최대 생성 개수. 높을수록 반응 품질과 비용 증가.
-	constexpr int32 MaxActorInteractionEventsPerTick = 32;
+	constexpr int32 MaxActorInteractionEventsPerTick = 64;
 	// 렌더 밀도 노이즈 공간 스케일. 높을수록 패턴이 촘촘하고 비용 유사.
-	constexpr float RenderNoiseScale = 0.05f;
+	constexpr float RenderNoiseScale = 0.1f;
 	// 렌더 밀도 노이즈 강도. 높을수록 디테일과 비용 증가.
-	constexpr float RenderNoiseStrength = 0.5f;
+	constexpr float RenderNoiseStrength = 1.0f;
 	// 렌더 밀도 노이즈 시간 스케일. 높을수록 노이즈 움직임 증가.
-	constexpr float RenderNoiseTimeScale = 0.01f;
+	constexpr float RenderNoiseTimeScale = 0.05f;
 	// 렌더 필라먼트 공간 스케일. 높을수록 패턴이 촘촘하고 비용 유사.
-	constexpr float RenderFilamentScale = 0.1f;
+	constexpr float RenderFilamentScale = 1.0f;
 	// 렌더 필라먼트 강도. 높을수록 디테일과 비용 증가.
-	constexpr float RenderFilamentStrength = 1.2f;
+	constexpr float RenderFilamentStrength = 2.0f;
 	// 렌더 필라먼트 대비. 높을수록 선명도와 aliasing 위험 증가.
-	constexpr float RenderFilamentContrast = 4.0f;
+	constexpr float RenderFilamentContrast = 5.0f;
 	// 렌더 필라먼트 휘어짐 강도. 높을수록 디테일과 비용 증가.
-	constexpr float RenderFilamentWarpStrength = 2.8f;
+	constexpr float RenderFilamentWarpStrength = 4.0f;
 
 	// 디버그
 
