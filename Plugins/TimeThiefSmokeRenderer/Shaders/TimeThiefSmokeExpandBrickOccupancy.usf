@@ -46,6 +46,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		if (AtlasIndex < MaxAtlasBricks)
 		{
 			BrickIndirection = AtlasIndex + 1u;
+			OutActiveBricks[AtlasIndex] = uint4(DispatchThreadId, BrickIndirection);
 		}
 		else
 		{

@@ -5,17 +5,37 @@
 TIME_THIEF_SMOKE_SCATTER_SPARSE_ATLAS_PARAMETERS
 
 [numthreads(4, 4, 4)]
-void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+void MainCS(uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 {
-	if (any(DispatchThreadId >= GridResolution))
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const uint ActiveBrickCount = min(ActiveBrickCountBuffer[0], (uint)max(MaxActiveSmokeBricks, 1));
+	const uint GroupsPerBrickAxis = (uint)((SafeBrickSize + 3) / 4);
+	const uint GroupsPerBrick = max(GroupsPerBrickAxis * GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const uint LocalGroupIndex = GroupId.x;
+	const uint ActiveBrickIndex = GroupId.y;
+	if (ActiveBrickIndex >= ActiveBrickCount || LocalGroupIndex >= GroupsPerBrick)
 	{
 		return;
 	}
 
-	const int SafeBrickSize = max(SmokeBrickSize, 1);
-	const int3 CellCoord = int3(DispatchThreadId);
-	const int3 BrickCoord = clamp(CellCoord / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
-	const uint BrickIndirection = BrickOccupancyTexture.Load(int4(BrickCoord, 0));
+	const uint LocalGroupX = LocalGroupIndex % GroupsPerBrickAxis;
+	const uint LocalGroupY = (LocalGroupIndex / GroupsPerBrickAxis) % GroupsPerBrickAxis;
+	const uint LocalGroupZ = LocalGroupIndex / max(GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const int3 LocalCellCoord = int3(LocalGroupX, LocalGroupY, LocalGroupZ) * 4 + int3(GroupThreadId);
+	if (any(LocalCellCoord >= int3(SafeBrickSize, SafeBrickSize, SafeBrickSize)))
+	{
+		return;
+	}
+
+	const uint4 ActiveBrick = ActiveBricks[ActiveBrickIndex];
+	const int3 BrickCoord = clamp(int3(ActiveBrick.xyz), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 CellCoord = BrickCoord * SafeBrickSize + LocalCellCoord;
+	if (any(CellCoord >= GridResolution))
+	{
+		return;
+	}
+
+	const uint BrickIndirection = ActiveBrick.w;
 	if (BrickIndirection == 0u || BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
 	{
 		return;
@@ -27,7 +47,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-	const int3 LocalCellCoord = CellCoord - BrickCoord * SafeBrickSize;
 	const int3 AtlasCoord = AtlasBrickCoord * SafeBrickSize + LocalCellCoord;
 
 	OutSparseFieldAtlas[AtlasCoord] = float4(

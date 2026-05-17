@@ -50,11 +50,6 @@ namespace
 		0,
 		TEXT("Logs custom smoke grid, active brick, fallback, pass, VRAM, and render step estimates. 1=once per 60 frames, 2=every frame."));
 
-	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeCompositeMode(
-		TEXT("r.TimeThiefSmoke.CompositeMode"),
-		2,
-		TEXT("Custom smoke composite path. 0=legacy per-smoke, 1=force tile-list multi-smoke, 2=auto."));
-
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeFastFilament(
 		TEXT("r.TimeThiefSmoke.FastFilament"),
 		1,
@@ -268,6 +263,9 @@ namespace
 			break;
 		case ETimeThiefSmokeRendererInteractionType::ActorPush:
 			TypeWeight = 1.2f;
+			break;
+		case ETimeThiefSmokeRendererInteractionType::PlumeSource:
+			TypeWeight = 1.35f;
 			break;
 		case ETimeThiefSmokeRendererInteractionType::BulletWake:
 			TypeWeight = 1.1f;
@@ -686,8 +684,10 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 				UE_LOG(
 					LogTimeThiefSmokeRenderer,
 					Log,
-					TEXT("SmokeProfile Id=%d Grid=%dx%dx%d ActiveBricks=%u DenseFallback=%d Passes~%d VRAM~%.2fMB RenderSteps=%d MaxSteps=%d StepScale=%.2f"),
+					TEXT("SmokeProfile Id=%d Cluster=%d/%d Grid=%dx%dx%d ActiveBricks=%u DenseFallback=%d Passes~%d VRAM~%.2fMB RenderSteps=%d MaxSteps=%d StepScale=%.2f"),
 					State.Volume.SmokeId,
+					State.Volume.ClusterId,
+					State.Volume.ClusterSourceCount,
 					State.AllocatedGridSize.X,
 					State.AllocatedGridSize.Y,
 					State.AllocatedGridSize.Z,
@@ -733,16 +733,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	const bool bUseOverrideOutput = bAllowOverrideOutput &&
 		Inputs.OverrideOutput.IsValid() &&
 		Inputs.OverrideOutput.Texture != CurrentSceneColor.Texture;
-	const FScreenPassRenderTarget Output = bUseOverrideOutput
-		? Inputs.OverrideOutput
-		: FScreenPassRenderTarget::CreateFromInput(GraphBuilder, CurrentSceneColor, ERenderTargetLoadAction::ELoad, TEXT("TimeThiefSmoke.CompositeMulti"));
-	if (!Output.IsValid())
-	{
-		return CurrentSceneColor;
-	}
-
 	const FScreenPassViewInfo ViewInfo(View);
-	const FIntRect ViewRect = Output.ViewRect;
+	const FIntRect ViewRect = bUseOverrideOutput ? Inputs.OverrideOutput.ViewRect : CurrentSceneColor.ViewRect;
 
 	struct FCompositeVisibleSmoke
 	{
@@ -794,6 +786,84 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		FMath::Max(1, FMath::DivideAndRoundUp(DrawRect.Width(), CompositeTileSize)),
 		FMath::Max(1, FMath::DivideAndRoundUp(DrawRect.Height(), CompositeTileSize)));
 	const int32 TileCount = TileGridSize.X * TileGridSize.Y;
+
+	TArray<int32> TileSmokeCounts;
+	TileSmokeCounts.Init(0, TileCount);
+	for (int32 SmokeSlot = 0; SmokeSlot < VisibleSmokes.Num(); ++SmokeSlot)
+	{
+		const FIntRect& SmokeRect = VisibleSmokes[SmokeSlot].Rect;
+		const int32 MinTileX = FMath::Clamp((SmokeRect.Min.X - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
+		const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
+		const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
+		const int32 MaxTileY = FMath::Clamp((FMath::Max(SmokeRect.Max.Y - 1, SmokeRect.Min.Y) - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
+		for (int32 TileY = MinTileY; TileY <= MaxTileY; ++TileY)
+		{
+			for (int32 TileX = MinTileX; TileX <= MaxTileX; ++TileX)
+			{
+				++TileSmokeCounts[TileY * TileGridSize.X + TileX];
+			}
+		}
+	}
+
+	TArray<FTimeThiefSmokeCompositeTileRangeShaderData> TileRanges;
+	TArray<uint32> TileIndices;
+	TileRanges.SetNum(TileCount);
+	TArray<int32> TileWriteOffsets;
+	TileWriteOffsets.SetNum(TileCount);
+	int32 TotalTileSmokeIndexCount = 0;
+	int32 OverlappedTileCount = 0;
+	for (int32 TileIndex = 0; TileIndex < TileCount; ++TileIndex)
+	{
+		const int32 Count = TileSmokeCounts[TileIndex];
+		OverlappedTileCount += Count > 1 ? 1 : 0;
+		TileWriteOffsets[TileIndex] = TotalTileSmokeIndexCount;
+		TileRanges[TileIndex].OffsetCount = FVector4f(static_cast<float>(TotalTileSmokeIndexCount), static_cast<float>(Count), 0.0f, 0.0f);
+		TotalTileSmokeIndexCount += Count;
+	}
+	const float AverageTileSmokeCount = static_cast<float>(TotalTileSmokeIndexCount) / static_cast<float>(FMath::Max(TileCount, 1));
+	const float OverlappedTileRatio = static_cast<float>(OverlappedTileCount) / static_cast<float>(FMath::Max(TileCount, 1));
+	if (OverlappedTileCount == 0)
+	{
+		return CurrentSceneColor;
+	}
+
+	const FScreenPassRenderTarget Output = bUseOverrideOutput
+		? Inputs.OverrideOutput
+		: FScreenPassRenderTarget::CreateFromInput(GraphBuilder, CurrentSceneColor, ERenderTargetLoadAction::ELoad, TEXT("TimeThiefSmoke.CompositeMulti"));
+	if (!Output.IsValid())
+	{
+		return CurrentSceneColor;
+	}
+
+	if (!bUseFullscreenComposite && Output.Texture != CurrentSceneColor.Texture)
+	{
+		AddDrawTexturePass(GraphBuilder, ViewInfo, CurrentSceneColor, Output);
+	}
+
+	if (TotalTileSmokeIndexCount > 0)
+	{
+		TileIndices.SetNumUninitialized(TotalTileSmokeIndexCount);
+		for (int32 SmokeSlot = 0; SmokeSlot < VisibleSmokes.Num(); ++SmokeSlot)
+		{
+			const FIntRect& SmokeRect = VisibleSmokes[SmokeSlot].Rect;
+			const int32 MinTileX = FMath::Clamp((SmokeRect.Min.X - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
+			const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
+			const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
+			const int32 MaxTileY = FMath::Clamp((FMath::Max(SmokeRect.Max.Y - 1, SmokeRect.Min.Y) - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
+			for (int32 TileY = MinTileY; TileY <= MaxTileY; ++TileY)
+			{
+				for (int32 TileX = MinTileX; TileX <= MaxTileX; ++TileX)
+				{
+					const int32 TileIndex = TileY * TileGridSize.X + TileX;
+					TileIndices[TileWriteOffsets[TileIndex]++] = static_cast<uint32>(SmokeSlot);
+				}
+			}
+		}
+	}
+	else
+	{
+		TileIndices.Add(0u);
+	}
 
 	TArray<FTimeThiefSmokeCompositeDescriptorShaderData> Descriptors;
 	TArray<FTimeThiefSmokeEventShaderData> PackedEvents;
@@ -849,72 +919,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	if (PackedEvents.IsEmpty())
 	{
 		PackedEvents.AddDefaulted();
-	}
-
-	TArray<int32> TileSmokeCounts;
-	TileSmokeCounts.Init(0, TileCount);
-	for (int32 SmokeSlot = 0; SmokeSlot < VisibleSmokes.Num(); ++SmokeSlot)
-	{
-		const FIntRect& SmokeRect = VisibleSmokes[SmokeSlot].Rect;
-		const int32 MinTileX = FMath::Clamp((SmokeRect.Min.X - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
-		const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
-		const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
-		const int32 MaxTileY = FMath::Clamp((FMath::Max(SmokeRect.Max.Y - 1, SmokeRect.Min.Y) - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
-		for (int32 TileY = MinTileY; TileY <= MaxTileY; ++TileY)
-		{
-			for (int32 TileX = MinTileX; TileX <= MaxTileX; ++TileX)
-			{
-				++TileSmokeCounts[TileY * TileGridSize.X + TileX];
-			}
-		}
-	}
-
-	TArray<FTimeThiefSmokeCompositeTileRangeShaderData> TileRanges;
-	TArray<uint32> TileIndices;
-	TileRanges.SetNum(TileCount);
-	TArray<int32> TileWriteOffsets;
-	TileWriteOffsets.SetNum(TileCount);
-	int32 TotalTileSmokeIndexCount = 0;
-	int32 OverlappedTileCount = 0;
-	for (int32 TileIndex = 0; TileIndex < TileCount; ++TileIndex)
-	{
-		const int32 Count = TileSmokeCounts[TileIndex];
-		OverlappedTileCount += Count > 1 ? 1 : 0;
-		TileWriteOffsets[TileIndex] = TotalTileSmokeIndexCount;
-		TileRanges[TileIndex].OffsetCount = FVector4f(static_cast<float>(TotalTileSmokeIndexCount), static_cast<float>(Count), 0.0f, 0.0f);
-		TotalTileSmokeIndexCount += Count;
-	}
-	const float AverageTileSmokeCount = static_cast<float>(TotalTileSmokeIndexCount) / static_cast<float>(FMath::Max(TileCount, 1));
-	const float OverlappedTileRatio = static_cast<float>(OverlappedTileCount) / static_cast<float>(FMath::Max(TileCount, 1));
-	if (CVarTimeThiefSmokeCompositeMode.GetValueOnRenderThread() == 2 &&
-		OverlappedTileCount == 0)
-	{
-		return CurrentSceneColor;
-	}
-
-	if (TotalTileSmokeIndexCount > 0)
-	{
-		TileIndices.SetNumUninitialized(TotalTileSmokeIndexCount);
-		for (int32 SmokeSlot = 0; SmokeSlot < VisibleSmokes.Num(); ++SmokeSlot)
-		{
-			const FIntRect& SmokeRect = VisibleSmokes[SmokeSlot].Rect;
-			const int32 MinTileX = FMath::Clamp((SmokeRect.Min.X - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
-			const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
-			const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / CompositeTileSize, 0, TileGridSize.X - 1);
-			const int32 MaxTileY = FMath::Clamp((FMath::Max(SmokeRect.Max.Y - 1, SmokeRect.Min.Y) - DrawRect.Min.Y) / CompositeTileSize, 0, TileGridSize.Y - 1);
-			for (int32 TileY = MinTileY; TileY <= MaxTileY; ++TileY)
-			{
-				for (int32 TileX = MinTileX; TileX <= MaxTileX; ++TileX)
-				{
-					const int32 TileIndex = TileY * TileGridSize.X + TileX;
-					TileIndices[TileWriteOffsets[TileIndex]++] = static_cast<uint32>(SmokeSlot);
-				}
-			}
-		}
-	}
-	else
-	{
-		TileIndices.Add(0u);
 	}
 
 	FRDGBufferRef DescriptorBuffer = GraphBuilder.CreateBuffer(FRDGBufferDesc::CreateStructuredDesc(sizeof(FTimeThiefSmokeCompositeDescriptorShaderData), Descriptors.Num()), TEXT("TimeThiefSmoke.CompositeMultiDescriptors"));
@@ -1049,35 +1053,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	}
 	PassParameters->RenderTargets[0] = Output.GetRenderTargetBinding();
 
-	if (!bUseFullscreenComposite && Output.Texture != CurrentSceneColor.Texture)
-	{
-		const FIntPoint SourceExtent = CurrentSceneColor.Texture->Desc.Extent;
-		const FIntPoint DestExtent = Output.Texture->Desc.Extent;
-		const FIntPoint CopySize(
-			FMath::Max(0, FMath::Min(
-				FMath::Min(CurrentSceneColor.ViewRect.Width(), Output.ViewRect.Width()),
-				FMath::Min(SourceExtent.X - CurrentSceneColor.ViewRect.Min.X, DestExtent.X - Output.ViewRect.Min.X))),
-			FMath::Max(0, FMath::Min(
-				FMath::Min(CurrentSceneColor.ViewRect.Height(), Output.ViewRect.Height()),
-				FMath::Min(SourceExtent.Y - CurrentSceneColor.ViewRect.Min.Y, DestExtent.Y - Output.ViewRect.Min.Y))));
-		if (CopySize.X > 0 && CopySize.Y > 0)
-		{
-			AddDrawTexturePass(
-				GraphBuilder,
-				ViewInfo,
-				CurrentSceneColor.Texture,
-				Output.Texture,
-				CurrentSceneColor.ViewRect.Min,
-				CopySize,
-				Output.ViewRect.Min,
-				CopySize);
-		}
-		else
-		{
-			return CurrentSceneColor;
-		}
-	}
-
 	const int32 ProfileMode = CVarTimeThiefSmokeProfile.GetValueOnRenderThread();
 	static uint32 LastCompositeProfileLogFrame = 0;
 	if (ProfileMode != 0)
@@ -1118,6 +1093,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 	{
 		return Inputs.ReturnUntouchedSceneColorForPostProcessing(GraphBuilder);
 	}
+	const FRDGTextureRef OriginalSceneColorTexture = CurrentSceneColor.Texture;
 
 	const FScreenPassViewInfo ViewInfo(View);
 	const FMatrix44f InvViewProjection(View.ViewMatrices.GetInvViewProjectionMatrix());
@@ -1146,19 +1122,49 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		return Inputs.ReturnUntouchedSceneColorForPostProcessing(GraphBuilder);
 	}
 
+	const auto ReturnCurrentOrOverrideOutput = [&]() -> FScreenPassTexture
+	{
+		const bool bNoSmokePassEmitted =
+			CurrentSceneColor.Texture == OriginalSceneColorTexture &&
+			(!Inputs.OverrideOutput.IsValid() || Inputs.OverrideOutput.Texture != CurrentSceneColor.Texture);
+		if (bNoSmokePassEmitted)
+		{
+			return Inputs.ReturnUntouchedSceneColorForPostProcessing(GraphBuilder);
+		}
+		if (Inputs.OverrideOutput.IsValid() && Inputs.OverrideOutput.Texture != CurrentSceneColor.Texture)
+		{
+			AddDrawTexturePass(GraphBuilder, ViewInfo, CurrentSceneColor, Inputs.OverrideOutput);
+			return Inputs.OverrideOutput;
+		}
+		return CurrentSceneColor;
+	};
+
+	struct FCompositeCandidate
+	{
+		FRenderSmokeState* State = nullptr;
+		FIntRect Rect;
+		bool bValid = false;
+	};
+
+	TArray<FCompositeCandidate> Candidates;
+	Candidates.SetNum(RenderStates.Num());
+	bool bHasVisibleSmoke = false;
+	for (int32 StateIndex = 0; StateIndex < RenderStates.Num(); ++StateIndex)
+	{
+		Candidates[StateIndex].State = RenderStates[StateIndex];
+		Candidates[StateIndex].bValid = ComputeSmokeScreenRect(View, RenderStates[StateIndex]->Volume, CurrentSceneColor.ViewRect, Candidates[StateIndex].Rect);
+		bHasVisibleSmoke |= Candidates[StateIndex].bValid;
+	}
+	if (!bHasVisibleSmoke)
+	{
+		return ReturnCurrentOrOverrideOutput();
+	}
+
 	TArray<uint8> bHandledByMulti;
 	bHandledByMulti.Init(0, RenderStates.Num());
-	if (CVarTimeThiefSmokeCompositeMode.GetValueOnRenderThread() != 0 &&
-		DebugMode == 0 &&
+	if (DebugMode == 0 &&
 		RenderStates.Num() > 1)
 	{
-		struct FCompositeCandidate
-		{
-			FRenderSmokeState* State = nullptr;
-			FIntRect Rect;
-			bool bValid = false;
-		};
-
 		const auto RectsOverlap = [](const FIntRect& A, const FIntRect& B)
 		{
 			return A.Min.X < B.Max.X &&
@@ -1166,14 +1172,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 				A.Min.Y < B.Max.Y &&
 				A.Max.Y > B.Min.Y;
 		};
-
-		TArray<FCompositeCandidate> Candidates;
-		Candidates.SetNum(RenderStates.Num());
-		for (int32 StateIndex = 0; StateIndex < RenderStates.Num(); ++StateIndex)
-		{
-			Candidates[StateIndex].State = RenderStates[StateIndex];
-			Candidates[StateIndex].bValid = ComputeSmokeScreenRect(View, RenderStates[StateIndex]->Volume, CurrentSceneColor.ViewRect, Candidates[StateIndex].Rect);
-		}
 
 		TArray<uint8> bVisited;
 		bVisited.Init(0, RenderStates.Num());
@@ -1199,11 +1197,13 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 						continue;
 					}
 
-					if (RectsOverlap(Candidates[CurrentIndex].Rect, Candidates[CandidateIndex].Rect))
+					if (!RectsOverlap(Candidates[CurrentIndex].Rect, Candidates[CandidateIndex].Rect))
 					{
-						GroupIndices.Add(CandidateIndex);
-						bVisited[CandidateIndex] = 1;
+						continue;
 					}
+
+					GroupIndices.Add(CandidateIndex);
+					bVisited[CandidateIndex] = 1;
 				}
 			}
 
@@ -1240,20 +1240,14 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		}
 	}
 
-	bool bHasLegacySmoke = false;
-	for (int32 StateIndex = 0; StateIndex < RenderStates.Num(); ++StateIndex)
+	struct FLegacyCompositeEntry
 	{
-		if (!bHandledByMulti[StateIndex])
-		{
-			bHasLegacySmoke = true;
-			break;
-		}
-	}
-	if (!bHasLegacySmoke)
-	{
-		return CurrentSceneColor;
-	}
+		int32 StateIndex = INDEX_NONE;
+		FIntRect SmokeRect;
+	};
 
+	TArray<FLegacyCompositeEntry> LegacyEntries;
+	LegacyEntries.Reserve(RenderStates.Num());
 	for (int32 StateIndex = 0; StateIndex < RenderStates.Num(); ++StateIndex)
 	{
 		if (bHandledByMulti[StateIndex])
@@ -1261,61 +1255,48 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 			continue;
 		}
 
-		FRenderSmokeState& State = *RenderStates[StateIndex];
-		bool bIsLastSmoke = true;
-		for (int32 NextStateIndex = StateIndex + 1; NextStateIndex < RenderStates.Num(); ++NextStateIndex)
+		FLegacyCompositeEntry Entry;
+		Entry.StateIndex = StateIndex;
+		if (!Candidates[StateIndex].bValid)
 		{
-			if (!bHandledByMulti[NextStateIndex])
-			{
-				bIsLastSmoke = false;
-				break;
-			}
+			continue;
 		}
-		const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
+		Entry.SmokeRect = bUseScissor ? Candidates[StateIndex].Rect : CurrentSceneColor.ViewRect;
+		LegacyEntries.Add(Entry);
+	}
+	if (LegacyEntries.IsEmpty())
+	{
+		return ReturnCurrentOrOverrideOutput();
+	}
 
-		FScreenPassRenderTarget Output = bIsLastSmoke && Inputs.OverrideOutput.IsValid()
+	for (int32 EntryIndex = 0; EntryIndex < LegacyEntries.Num(); ++EntryIndex)
+	{
+		const int32 StateIndex = LegacyEntries[EntryIndex].StateIndex;
+		FRenderSmokeState& State = *RenderStates[StateIndex];
+		const bool bIsLastSmoke = EntryIndex == LegacyEntries.Num() - 1;
+		const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
+		const bool bUseOverrideOutput = bIsLastSmoke &&
+			Inputs.OverrideOutput.IsValid() &&
+			Inputs.OverrideOutput.Texture != CurrentSceneColor.Texture;
+
+		FScreenPassRenderTarget Output = bUseOverrideOutput
 			? Inputs.OverrideOutput
 			: FScreenPassRenderTarget::CreateFromInput(GraphBuilder, CurrentSceneColor, ERenderTargetLoadAction::ELoad, TEXT("TimeThiefSmoke.Composite"));
 
-		FIntRect SmokeRect = Output.ViewRect;
-		if (bUseScissor && !ComputeSmokeScreenRect(View, State.Volume, Output.ViewRect, SmokeRect))
+		FIntRect SmokeRect = bUseScissor ? LegacyEntries[EntryIndex].SmokeRect : Output.ViewRect;
+		SmokeRect.Min.X = FMath::Clamp(SmokeRect.Min.X, Output.ViewRect.Min.X, Output.ViewRect.Max.X);
+		SmokeRect.Min.Y = FMath::Clamp(SmokeRect.Min.Y, Output.ViewRect.Min.Y, Output.ViewRect.Max.Y);
+		SmokeRect.Max.X = FMath::Clamp(SmokeRect.Max.X, Output.ViewRect.Min.X, Output.ViewRect.Max.X);
+		SmokeRect.Max.Y = FMath::Clamp(SmokeRect.Max.Y, Output.ViewRect.Min.Y, Output.ViewRect.Max.Y);
+		if (SmokeRect.Width() <= 0 || SmokeRect.Height() <= 0)
 		{
 			continue;
 		}
 
 		const bool bUseFullscreenComposite = ShouldUseFullscreenComposite(SmokeRect, Output.ViewRect);
-		if (bUseFullscreenComposite)
+		if (bUseFullscreenComposite || Output.Texture != CurrentSceneColor.Texture)
 		{
 			SmokeRect = Output.ViewRect;
-		}
-
-		if (!bUseFullscreenComposite && Output.Texture != CurrentSceneColor.Texture)
-		{
-			const FIntPoint SourceExtent = CurrentSceneColor.Texture->Desc.Extent;
-			const FIntPoint DestExtent = Output.Texture->Desc.Extent;
-			const FIntPoint CopySize(
-				FMath::Max(0, FMath::Min(
-					FMath::Min(CurrentSceneColor.ViewRect.Width(), Output.ViewRect.Width()),
-					FMath::Min(SourceExtent.X - CurrentSceneColor.ViewRect.Min.X, DestExtent.X - Output.ViewRect.Min.X))),
-				FMath::Max(0, FMath::Min(
-					FMath::Min(CurrentSceneColor.ViewRect.Height(), Output.ViewRect.Height()),
-					FMath::Min(SourceExtent.Y - CurrentSceneColor.ViewRect.Min.Y, DestExtent.Y - Output.ViewRect.Min.Y))));
-			if (CopySize.X > 0 && CopySize.Y > 0)
-			{
-				AddDrawTexturePass(
-					GraphBuilder,
-					ViewInfo,
-					CurrentSceneColor.Texture,
-					Output.Texture,
-					CurrentSceneColor.ViewRect.Min,
-					CopySize,
-					Output.ViewRect.Min,
-					CopySize);
-			}
-			else
-			{
-				continue;
-			}
 		}
 
 		TArray<FTimeThiefSmokeEventShaderData> ShaderEvents;
@@ -1435,7 +1416,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		CurrentSceneColor = MoveTemp(Output);
 	}
 
-	return CurrentSceneColor;
+	return ReturnCurrentOrOverrideOutput();
 }
 
 void FTimeThiefSmokeViewExtension::EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State)
@@ -1940,13 +1921,27 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		GraphBuilder.RegisterExternalBuffer(State.VortexParticleBuffers[1], TEXT("TimeThiefSmoke.VortexParticles1"))
 	};
 	int32 BulletEventCount = 0;
-	FRDGBufferRef BulletEventBuffer = CreateTypedSmokeEventBuffer(
+	TArray<FTimeThiefSmokeRendererEvent> AdvectionEvents = State.PendingEvents;
+	for (const FTimeThiefSmokeRendererEvent& SourceEvent : State.Volume.SourceEvents)
+	{
+		AdvectionEvents.Add(SourceEvent);
+	}
+
+	for (const FTimeThiefSmokeRendererEvent& Event : AdvectionEvents)
+	{
+		if (Event.Type == ETimeThiefSmokeRendererInteractionType::BulletWake)
+		{
+			++BulletEventCount;
+		}
+	}
+	BulletEventCount = FMath::Min(BulletEventCount, MaxSimulationBulletEventCount);
+	int32 AdvectionEventCount = 0;
+	FRDGBufferRef AdvectionEventBuffer = CreatePrioritizedSmokeEventBuffer(
 		GraphBuilder,
-		State.PendingEvents,
-		ETimeThiefSmokeRendererInteractionType::BulletWake,
-		MaxSimulationBulletEventCount,
-		BulletEventCount,
-		TEXT("TimeThiefSmoke.BulletEvents"));
+		AdvectionEvents,
+		MaxShaderEventCount,
+		AdvectionEventCount,
+		TEXT("TimeThiefSmoke.AdvectionEvents"));
 	int32 ExplosionEventCount = 0;
 	FRDGBufferRef ExplosionEventBuffer = CreateTypedSmokeEventBuffer(
 		GraphBuilder,
@@ -1973,24 +1968,18 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	int32 SparseMaskEventCount = 0;
 	FRDGBufferRef SparseMaskEventBuffer = CreatePrioritizedSmokeEventBuffer(
 		GraphBuilder,
-		State.PendingEvents,
+		AdvectionEvents,
 		MaxShaderEventCount,
 		SparseMaskEventCount,
 		TEXT("TimeThiefSmoke.SparseMaskEvents"));
 	const bool bNeedsInitThisFrame = State.bNeedsInit;
 	const bool bHasExplosionEvent = ExplosionEventCount > 0;
 	const bool bHasActorEvent = ActorEventCount > 0;
-	const bool bHasSimulationEvent = BulletEventCount > 0 || ExplosionEventCount > 0 || ActorEventCount > 0 || ForceEventCount > 0;
+	const bool bHasSimulationEvent = AdvectionEventCount > 0 || ExplosionEventCount > 0 || ActorEventCount > 0 || ForceEventCount > 0;
 	State.bUseSparseSimulationMaskThisFrame = State.Volume.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
 		!bNeedsInitThisFrame &&
 		(State.LastActiveBrickCount > 0u || bHasSimulationEvent) &&
 		State.AllocatedBrickGridSize != FIntVector(1, 1, 1);
-	FRDGBufferRef BulletEventBrickMasksBuffer = AddBuildEventBrickMasksPass(
-		GraphBuilder,
-		State,
-		BulletEventBuffer,
-		BulletEventCount,
-		TEXT("TimeThiefSmoke.BulletEventBrickMasks"));
 	FRDGBufferRef ExplosionEventBrickMasksBuffer = AddBuildEventBrickMasksPass(
 		GraphBuilder,
 		State,
@@ -2031,7 +2020,8 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			GraphBuilder,
 			State,
 			BrickActivityTexture,
-			BrickOccupancyTexture);
+			BrickOccupancyTexture,
+			false);
 	}
 	if (bHasActorEvent)
 	{
@@ -2123,9 +2113,14 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		VelocityTextures[ReadVelocityIndex],
 		BulletCutoutTextures[BulletReadIndex],
 		BulletSinkTextures[BulletReadIndex],
-		BulletEventBuffer,
-		BulletEventBrickMasksBuffer,
-		BulletEventCount,
+		AdvectionEventBuffer,
+		AddBuildEventBrickMasksPass(
+			GraphBuilder,
+			State,
+			AdvectionEventBuffer,
+			AdvectionEventCount,
+			TEXT("TimeThiefSmoke.AdvectionEventBrickMasks")),
+		AdvectionEventCount,
 		DensityTextures[WriteDensityIndex],
 		VelocityTextures[WriteVelocityIndex],
 		BulletCutoutTextures[BulletWriteIndex],
@@ -2319,11 +2314,12 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			SparseMaskEventBuffer,
 			SparseMaskEventCount,
 			BrickActivityTexture);
-		AddExpandBrickOccupancyPass(
+		const FActiveBrickDispatchResources ActiveBrickResources = AddExpandBrickOccupancyPass(
 			GraphBuilder,
 			State,
 			BrickActivityTexture,
-			BrickOccupancyTexture);
+			BrickOccupancyTexture,
+			true);
 		if (!State.bForceDenseComposite)
 		{
 			AddScatterSparseAtlasPass(
@@ -2333,7 +2329,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 				WarpTextures[State.CurrentWarpIndex],
 				BulletCutoutTextures[State.CurrentBulletFieldIndex],
 				BulletSinkTextures[State.CurrentBulletFieldIndex],
-				BrickOccupancyTexture);
+				ActiveBrickResources);
 		}
 	}
 }
@@ -2354,7 +2350,7 @@ void FTimeThiefSmokeViewExtension::AddInitPass(
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);
-	PassParameters->InitialDensity = State.Volume.Settings.InitialDensity;
+	PassParameters->InitialDensity = State.Volume.SourceEvents.Num() > 0 ? 0.0f : State.Volume.Settings.InitialDensity;
 	PassParameters->PlumeSourceRadius = State.Volume.Settings.PlumeSourceRadius;
 
 	FComputeShaderUtils::AddPass(
@@ -2501,6 +2497,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 	PassParameters->SmokeBrickSize = FMath::Clamp(State.Volume.Settings.SmokeBrickSize, 4, 32);
 	PassParameters->bUseSparseSimulationMask = State.bUseSparseSimulationMaskThisFrame ? 1u : 0u;
 	PassParameters->bUseEventBrickBins = EventCount > 0 ? 1u : 0u;
+	PassParameters->bUseClusterSourceEvents = State.Volume.SourceEvents.Num() > 0 ? 1u : 0u;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);
 	PassParameters->DeltaSeconds = DeltaSeconds;
@@ -2743,14 +2740,17 @@ void FTimeThiefSmokeViewExtension::AddBuildBrickOccupancyPass(
 		GroupCount);
 }
 
-void FTimeThiefSmokeViewExtension::AddExpandBrickOccupancyPass(
+FTimeThiefSmokeViewExtension::FActiveBrickDispatchResources FTimeThiefSmokeViewExtension::AddExpandBrickOccupancyPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef BrickActivityTexture,
-	FRDGTextureRef BrickOccupancyTexture)
+	FRDGTextureRef BrickOccupancyTexture,
+	bool bQueueActiveBrickCountReadback)
 {
+	FActiveBrickDispatchResources Resources;
 	const FIntVector BrickGridSize = State.AllocatedBrickGridSize;
 	const FIntVector GroupCount = MakeGroupCount(BrickGridSize);
+	const int32 MaxActiveSmokeBricks = FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1);
 
 	TShaderMapRef<FTimeThiefSmokeExpandBrickOccupancyCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FRDGBufferRef BrickAllocatorBuffer = GraphBuilder.CreateBuffer(
@@ -2758,12 +2758,16 @@ void FTimeThiefSmokeViewExtension::AddExpandBrickOccupancyPass(
 		TEXT("TimeThiefSmoke.BrickAllocator"));
 	FRDGBufferUAVRef BrickAllocatorUAV = GraphBuilder.CreateUAV(BrickAllocatorBuffer);
 	AddClearUAVPass(GraphBuilder, BrickAllocatorUAV, 0u);
+	FRDGBufferRef ActiveBricksBuffer = GraphBuilder.CreateBuffer(
+		FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32) * 4, MaxActiveSmokeBricks),
+		TEXT("TimeThiefSmoke.ActiveBricks"));
 
 	FTimeThiefSmokeExpandBrickOccupancyCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeExpandBrickOccupancyCS::FParameters>();
 	PassParameters->BrickGridResolution = BrickGridSize;
-	PassParameters->MaxActiveSmokeBricks = FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1);
+	PassParameters->MaxActiveSmokeBricks = MaxActiveSmokeBricks;
 	PassParameters->BrickActivityTexture = BrickActivityTexture;
 	PassParameters->BrickAllocator = BrickAllocatorUAV;
+	PassParameters->OutActiveBricks = GraphBuilder.CreateUAV(ActiveBricksBuffer);
 	PassParameters->OutBrickOccupancy = GraphBuilder.CreateUAV(BrickOccupancyTexture);
 
 	FComputeShaderUtils::AddPass(
@@ -2773,15 +2777,19 @@ void FTimeThiefSmokeViewExtension::AddExpandBrickOccupancyPass(
 		PassParameters,
 		GroupCount);
 
-	if (!State.ActiveBrickCountReadback.IsValid())
+	if (bQueueActiveBrickCountReadback && !State.ActiveBrickCountReadback.IsValid())
 	{
 		State.ActiveBrickCountReadback = MakeShared<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.ActiveBrickCountReadback"));
 	}
-	if (!State.bActiveBrickCountReadbackPending)
+	if (bQueueActiveBrickCountReadback && !State.bActiveBrickCountReadbackPending)
 	{
 		AddEnqueueCopyPass(GraphBuilder, State.ActiveBrickCountReadback.Get(), BrickAllocatorBuffer, sizeof(uint32));
 		State.bActiveBrickCountReadbackPending = true;
 	}
+
+	Resources.ActiveBrickCountBuffer = BrickAllocatorBuffer;
+	Resources.ActiveBricksBuffer = ActiveBricksBuffer;
+	return Resources;
 }
 
 void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
@@ -2791,11 +2799,22 @@ void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
 	FRDGTextureRef WarpTexture,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
-	FRDGTextureRef BrickOccupancyTexture)
+	const FActiveBrickDispatchResources& ActiveBrickResources)
 {
 	const int32 BrickSize = FMath::Clamp(State.Volume.Settings.SmokeBrickSize, 4, 32);
 	const FIntVector GridSize = State.AllocatedGridSize;
-	const FIntVector GroupCount = MakeGroupCount(GridSize);
+	if (!ActiveBrickResources.ActiveBrickCountBuffer ||
+		!ActiveBrickResources.ActiveBricksBuffer ||
+		!State.SparseFieldAtlasTexture.IsValid() ||
+		FMath::Min3(State.AllocatedSparseAtlasBrickGridSize.X, State.AllocatedSparseAtlasBrickGridSize.Y, State.AllocatedSparseAtlasBrickGridSize.Z) <= 0 ||
+		FMath::Min3(State.AllocatedSparseAtlasGridSize.X, State.AllocatedSparseAtlasGridSize.Y, State.AllocatedSparseAtlasGridSize.Z) <= 0)
+	{
+		return;
+	}
+	const int32 SparseScatterGroupsPerBrickAxis = FMath::DivideAndRoundUp(BrickSize, static_cast<int32>(SmokeThreadGroupSize));
+	const int32 SparseScatterGroupsPerBrick = FMath::Max(1, SparseScatterGroupsPerBrickAxis * SparseScatterGroupsPerBrickAxis * SparseScatterGroupsPerBrickAxis);
+	const int32 SparseDispatchBrickSlots = FMath::Clamp(FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1), 1, 65535);
+	const FIntVector GroupCount(SparseScatterGroupsPerBrick, SparseDispatchBrickSlots, 1);
 
 	TShaderMapRef<FTimeThiefSmokeScatterSparseAtlasCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeScatterSparseAtlasCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeScatterSparseAtlasCS::FParameters>();
@@ -2804,12 +2823,18 @@ void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
 	PassParameters->SparseAtlasBrickGridResolution = State.AllocatedSparseAtlasBrickGridSize;
 	PassParameters->SmokeBrickSize = BrickSize;
 	PassParameters->MaxActiveSmokeBricks = FMath::Max(State.Volume.Settings.MaxActiveSmokeBricks, 1);
+	PassParameters->ActiveBrickCountBuffer = GraphBuilder.CreateSRV(ActiveBrickResources.ActiveBrickCountBuffer);
+	PassParameters->ActiveBricks = GraphBuilder.CreateSRV(ActiveBrickResources.ActiveBricksBuffer);
 	PassParameters->DensityTexture = DensityTexture;
 	PassParameters->WarpTexture = WarpTexture;
 	PassParameters->BulletCutoutTexture = BulletCutoutTexture;
 	PassParameters->BulletSinkTexture = BulletSinkTexture;
-	PassParameters->BrickOccupancyTexture = BrickOccupancyTexture;
-	PassParameters->OutSparseFieldAtlas = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.SparseFieldAtlasTexture));
+	FRDGTextureRef SparseFieldAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseFieldAtlasTexture);
+	if (!SparseFieldAtlasTexture)
+	{
+		return;
+	}
+	PassParameters->OutSparseFieldAtlas = GraphBuilder.CreateUAV(SparseFieldAtlasTexture);
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,

@@ -24,7 +24,7 @@ float EventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 	{
 		return Radius * 1.55;
 	}
-	return max(ShapeRadius * 9.0, max(Length + ShapeRadius * 2.0, ShapeRadius * max(ActorAirflowRadiusScale, 0.1)));
+	return TimeThiefSmokeEventInfluenceRadius(Event, ActorAirflowRadiusScale);
 }
 
 float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)
@@ -59,6 +59,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		if (Event.ExtentsStrength.w <= 0.001)
+		{
+			continue;
+		}
+
 		const float InfluenceRadius = EventInfluenceRadius(Event) + BrickRadius;
 		const float3 ToBrick = CenterWorld - Event.PositionRadius.xyz;
 		if (dot(ToBrick, ToBrick) > InfluenceRadius * InfluenceRadius)

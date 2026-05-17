@@ -10,6 +10,293 @@ namespace TimeThiefSmoke
 {
 	constexpr int32 MaxBulletTracesPerSmokePerTick = TimeThiefSmokeParameterDefaults::MaxBulletTracesPerSmokePerTick;
 	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = TimeThiefSmokeParameterDefaults::MaxActiveExplosionImpulsesPerSmoke;
+	constexpr float SmokeClusterBoundsExpansionRatio = 0.10f;
+	constexpr float SmokeClusterMinExpansionCm = 120.0f;
+	constexpr float SmokeClusterReleaseBoundsExpansionRatio = 0.26f;
+	constexpr float SmokeClusterReleaseMinExpansionCm = 320.0f;
+
+	struct FPendingRendererSmokeVolume
+	{
+		FTimeThiefSmokeRendererVolume Volume;
+		FBox ClusterBounds = FBox(EForceInit::ForceInit);
+	};
+
+	FBox MakeSmokeWorldBounds(const FTimeThiefSmokeRendererVolume& Volume, const FVector3f& Extent)
+	{
+		const FVector3f SafeExtent = FVector3f(
+			FMath::Max(Extent.X, 1.0f),
+			FMath::Max(Extent.Y, 1.0f),
+			FMath::Max(Extent.Z, 1.0f));
+		FBox Bounds(EForceInit::ForceInit);
+
+		for (int32 Z = -1; Z <= 1; Z += 2)
+		{
+			for (int32 Y = -1; Y <= 1; Y += 2)
+			{
+				for (int32 X = -1; X <= 1; X += 2)
+				{
+					const FVector3f LocalCorner(SafeExtent.X * static_cast<float>(X), SafeExtent.Y * static_cast<float>(Y), SafeExtent.Z * static_cast<float>(Z));
+					const FVector3f WorldCorner = Volume.LocalToWorld.TransformPosition(LocalCorner);
+					Bounds += FVector(WorldCorner.X, WorldCorner.Y, WorldCorner.Z);
+				}
+			}
+		}
+
+		return Bounds;
+	}
+
+	FBox MakeSmokeClusterWorldBounds(const FTimeThiefSmokeRendererVolume& Volume)
+	{
+		return MakeSmokeWorldBounds(Volume, Volume.NaturalBoundsExtent);
+	}
+
+	FBox ExpandSmokeClusterBounds(const FBox& Bounds, const float ExpansionRatio, const float MinExpansionCm)
+	{
+		const FVector Extent = Bounds.GetExtent();
+		const FVector Padding(
+			FMath::Max(Extent.X * ExpansionRatio, MinExpansionCm),
+			FMath::Max(Extent.Y * ExpansionRatio, MinExpansionCm),
+			FMath::Max(Extent.Z * ExpansionRatio, MinExpansionCm));
+		return Bounds.ExpandBy(Padding);
+	}
+
+	uint64 MakeSmokePairKey(const int32 SmokeIdA, const int32 SmokeIdB)
+	{
+		const uint32 Low = static_cast<uint32>(FMath::Min(SmokeIdA, SmokeIdB));
+		const uint32 High = static_cast<uint32>(FMath::Max(SmokeIdA, SmokeIdB));
+		return (static_cast<uint64>(Low) << 32) | static_cast<uint64>(High);
+	}
+
+	bool HasSolidObstacleMask(const FTimeThiefSmokeRendererVolume& Volume)
+	{
+		if (Volume.ObstacleMaskResolution <= 1 || Volume.ObstacleMask.IsEmpty())
+		{
+			return false;
+		}
+
+		for (const uint8 Voxel : Volume.ObstacleMask)
+		{
+			if (Voxel != 0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool AreSmokeVolumesClusterCompatible(const FTimeThiefSmokeRendererVolume& A, const FTimeThiefSmokeRendererVolume& B)
+	{
+		return A.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
+			B.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
+			A.Settings.PressureSolver == B.Settings.PressureSolver &&
+			A.Settings.SmokeGridResolution == B.Settings.SmokeGridResolution &&
+			A.Settings.SmokeBrickSize == B.Settings.SmokeBrickSize &&
+			A.Settings.MaxActiveSmokeBricks == B.Settings.MaxActiveSmokeBricks &&
+			!HasSolidObstacleMask(A) &&
+			!HasSolidObstacleMask(B);
+	}
+
+	int32 FindClusterRoot(TArray<int32>& Parents, const int32 Index)
+	{
+		if (!Parents.IsValidIndex(Index))
+		{
+			return INDEX_NONE;
+		}
+
+		int32 Root = Index;
+		while (Parents.IsValidIndex(Root) && Parents[Root] != Root)
+		{
+			Root = Parents[Root];
+		}
+
+		int32 Current = Index;
+		while (Parents.IsValidIndex(Current) && Parents[Current] != Root)
+		{
+			const int32 Next = Parents[Current];
+			Parents[Current] = Root;
+			Current = Next;
+		}
+
+		return Root;
+	}
+
+	void UnionSmokeClusters(TArray<int32>& Parents, const int32 A, const int32 B)
+	{
+		const int32 RootA = FindClusterRoot(Parents, A);
+		const int32 RootB = FindClusterRoot(Parents, B);
+		if (RootA != INDEX_NONE && RootB != INDEX_NONE && RootA != RootB)
+		{
+			Parents[RootB] = RootA;
+		}
+	}
+
+	void AssignSmokeClusters(TArray<FPendingRendererSmokeVolume>& PendingVolumes, TSet<uint64>& PersistentClusterLinks)
+	{
+		TArray<int32> Parents;
+		Parents.SetNumUninitialized(PendingVolumes.Num());
+		for (int32 Index = 0; Index < Parents.Num(); ++Index)
+		{
+			Parents[Index] = Index;
+			PendingVolumes[Index].Volume.ClusterId = PendingVolumes[Index].Volume.SmokeId;
+			PendingVolumes[Index].Volume.ClusterSourceCount = 1;
+		}
+
+		if (PendingVolumes.Num() <= 1)
+		{
+			PersistentClusterLinks.Reset();
+			return;
+		}
+
+		TArray<FBox> ExpandedClusterBounds;
+		ExpandedClusterBounds.Reserve(PendingVolumes.Num());
+		TArray<FBox> ReleaseClusterBounds;
+		ReleaseClusterBounds.Reserve(PendingVolumes.Num());
+		for (const FPendingRendererSmokeVolume& PendingVolume : PendingVolumes)
+		{
+			ExpandedClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, SmokeClusterBoundsExpansionRatio, SmokeClusterMinExpansionCm));
+			ReleaseClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, SmokeClusterReleaseBoundsExpansionRatio, SmokeClusterReleaseMinExpansionCm));
+		}
+
+		TSet<uint64> NextPersistentClusterLinks;
+		for (int32 A = 0; A < PendingVolumes.Num(); ++A)
+		{
+			for (int32 B = A + 1; B < PendingVolumes.Num(); ++B)
+			{
+				if (!AreSmokeVolumesClusterCompatible(PendingVolumes[A].Volume, PendingVolumes[B].Volume))
+				{
+					continue;
+				}
+
+				const uint64 PairKey = MakeSmokePairKey(PendingVolumes[A].Volume.SmokeId, PendingVolumes[B].Volume.SmokeId);
+				const bool bJoinNow = ExpandedClusterBounds[A].Intersect(ExpandedClusterBounds[B]);
+				const bool bKeepExisting = PersistentClusterLinks.Contains(PairKey) &&
+					ReleaseClusterBounds[A].Intersect(ReleaseClusterBounds[B]);
+				if (bJoinNow || bKeepExisting)
+				{
+					UnionSmokeClusters(Parents, A, B);
+					NextPersistentClusterLinks.Add(PairKey);
+				}
+			}
+		}
+		PersistentClusterLinks = MoveTemp(NextPersistentClusterLinks);
+
+		TMap<int32, int32> ClusterIdsByRoot;
+		TMap<int32, int32> ClusterCountsByRoot;
+		for (int32 Index = 0; Index < PendingVolumes.Num(); ++Index)
+		{
+			const int32 Root = FindClusterRoot(Parents, Index);
+			if (Root == INDEX_NONE)
+			{
+				continue;
+			}
+
+			int32& ClusterId = ClusterIdsByRoot.FindOrAdd(Root, PendingVolumes[Index].Volume.SmokeId);
+			ClusterId = FMath::Min(ClusterId, PendingVolumes[Index].Volume.SmokeId);
+			int32& ClusterSourceCount = ClusterCountsByRoot.FindOrAdd(Root);
+			++ClusterSourceCount;
+		}
+
+		for (int32 Index = 0; Index < PendingVolumes.Num(); ++Index)
+		{
+			const int32 Root = FindClusterRoot(Parents, Index);
+			if (const int32* ClusterId = ClusterIdsByRoot.Find(Root))
+			{
+				PendingVolumes[Index].Volume.ClusterId = *ClusterId;
+			}
+			if (const int32* ClusterSourceCount = ClusterCountsByRoot.Find(Root))
+			{
+				PendingVolumes[Index].Volume.ClusterSourceCount = FMath::Max(*ClusterSourceCount, 1);
+			}
+		}
+	}
+
+	FVector3f MakeExtentAroundCenter(const FBox& Bounds, const FVector& Center)
+	{
+		if (!Bounds.IsValid)
+		{
+			return FVector3f::ZeroVector;
+		}
+
+		const FVector MinDelta = (Bounds.Min - Center).GetAbs();
+		const FVector MaxDelta = (Bounds.Max - Center).GetAbs();
+		return FVector3f(
+			static_cast<float>(FMath::Max(MinDelta.X, MaxDelta.X)),
+			static_cast<float>(FMath::Max(MinDelta.Y, MaxDelta.Y)),
+			static_cast<float>(FMath::Max(MinDelta.Z, MaxDelta.Z)));
+	}
+
+	FTimeThiefSmokeRendererEvent MakeClusterSourceEvent(const FTimeThiefSmokeRendererVolume& Volume, const int32 ClusterSmokeId)
+	{
+		FTimeThiefSmokeRendererEvent SourceEvent;
+		SourceEvent.SmokeId = ClusterSmokeId;
+		SourceEvent.Type = ETimeThiefSmokeRendererInteractionType::PlumeSource;
+		SourceEvent.Shape = ETimeThiefSmokeRendererInteractionShape::Sphere;
+		SourceEvent.Position = Volume.LocalToWorld.GetLocation();
+		SourceEvent.PreviousPosition = SourceEvent.Position;
+		SourceEvent.Direction = Volume.LocalToWorld.TransformVector(FVector3f(0.0f, 0.0f, 1.0f)).GetSafeNormal();
+		SourceEvent.Radius = FMath::Max(Volume.Settings.PlumeSourceRadius, 1.0f);
+		SourceEvent.Length = SourceEvent.Radius * 2.0f;
+		SourceEvent.NormalizedAge = Volume.Settings.PlumeEmissionDuration > KINDA_SMALL_NUMBER
+			? Volume.AgeSeconds / Volume.Settings.PlumeEmissionDuration
+			: 1.0f;
+		SourceEvent.Strength = SourceEvent.NormalizedAge <= 1.25f ? 1.0f : 0.0f;
+		SourceEvent.Seed = Volume.SmokeId;
+		return SourceEvent;
+	}
+
+	FTimeThiefSmokeRendererVolume MakeClusterVolume(const TArray<FPendingRendererSmokeVolume*>& ClusterMembers)
+	{
+		check(!ClusterMembers.IsEmpty());
+
+		const FTimeThiefSmokeRendererVolume& FirstVolume = ClusterMembers[0]->Volume;
+		FTimeThiefSmokeRendererVolume ClusterVolume = FirstVolume;
+		ClusterVolume.SmokeId = FirstVolume.ClusterId;
+		ClusterVolume.ClusterId = FirstVolume.ClusterId;
+		ClusterVolume.ClusterSourceCount = ClusterMembers.Num();
+		ClusterVolume.AgeSeconds = FirstVolume.AgeSeconds;
+		ClusterVolume.DurationSeconds = FirstVolume.DurationSeconds;
+		ClusterVolume.ObstacleMaskResolution = 0;
+		ClusterVolume.ObstacleMaskRevision = 0;
+		ClusterVolume.ObstacleMask.Reset();
+		ClusterVolume.SourceEvents.Reset();
+		ClusterVolume.SourceEvents.Reserve(ClusterMembers.Num());
+
+		FBox NaturalBounds(EForceInit::ForceInit);
+		FBox RenderBounds(EForceInit::ForceInit);
+		FBox SimulationBounds(EForceInit::ForceInit);
+		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
+		{
+			const FTimeThiefSmokeRendererVolume& Volume = Member->Volume;
+			NaturalBounds += MakeSmokeWorldBounds(Volume, Volume.NaturalBoundsExtent);
+			RenderBounds += MakeSmokeWorldBounds(Volume, Volume.RenderBoundsExtent);
+			SimulationBounds += MakeSmokeWorldBounds(Volume, Volume.SimulationBoundsExtent);
+			ClusterVolume.AgeSeconds = FMath::Min(ClusterVolume.AgeSeconds, Volume.AgeSeconds);
+			ClusterVolume.DurationSeconds = FMath::Max(ClusterVolume.DurationSeconds, Volume.DurationSeconds);
+		}
+
+		FBox ClusterBounds(EForceInit::ForceInit);
+		ClusterBounds += NaturalBounds;
+		ClusterBounds += RenderBounds;
+		ClusterBounds += SimulationBounds;
+		const FVector ClusterCenter = ClusterBounds.GetCenter();
+		const FVector3f ClusterCenterFloat(
+			static_cast<float>(ClusterCenter.X),
+			static_cast<float>(ClusterCenter.Y),
+			static_cast<float>(ClusterCenter.Z));
+		ClusterVolume.LocalToWorld = FTransform3f(FQuat4f::Identity, ClusterCenterFloat, FVector3f(1.0f, 1.0f, 1.0f));
+		ClusterVolume.NaturalBoundsExtent = MakeExtentAroundCenter(NaturalBounds, ClusterCenter);
+		ClusterVolume.RenderBoundsExtent = MakeExtentAroundCenter(RenderBounds, ClusterCenter);
+		ClusterVolume.SimulationBoundsExtent = MakeExtentAroundCenter(SimulationBounds, ClusterCenter);
+		ClusterVolume.BoundsExtent = ClusterVolume.SimulationBoundsExtent;
+
+		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
+		{
+			ClusterVolume.SourceEvents.Add(MakeClusterSourceEvent(Member->Volume, ClusterVolume.SmokeId));
+		}
+
+		return ClusterVolume;
+	}
 
 	float ComputeInteractionEventPriority(const FTimeThiefSmokeInteractionEvent& Event, const float Age, const float Duration)
 	{
@@ -209,6 +496,7 @@ void UTimeThiefSmokeWorldSubsystem::Deinitialize()
 	ActiveSmokeVolumes.Reset();
 	ActiveImpulses.Reset();
 	PendingRendererEvents.Reset();
+	PersistentClusterLinks.Reset();
 	Super::Deinitialize();
 }
 
@@ -379,6 +667,8 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 	Frame.Volumes.Reserve(ActiveSmokeVolumes.Num());
 	Frame.Events.Reserve(PendingRendererEvents.Num());
 
+	TArray<TimeThiefSmoke::FPendingRendererSmokeVolume> PendingVolumes;
+	PendingVolumes.Reserve(ActiveSmokeVolumes.Num());
 	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
 	{
 		const ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
@@ -404,12 +694,46 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.ObstacleMaskRevision = SmokeVolume->GetObstacleMaskRevision();
 		RendererVolume.ObstacleMask = SmokeVolume->GetObstacleMask();
 		RendererVolume.Settings = TimeThiefSmoke::ToRendererSettings(Settings);
-		Frame.Volumes.Add(RendererVolume);
+
+		TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume = PendingVolumes.AddDefaulted_GetRef();
+		PendingVolume.Volume = MoveTemp(RendererVolume);
+		PendingVolume.ClusterBounds = TimeThiefSmoke::MakeSmokeClusterWorldBounds(PendingVolume.Volume);
+	}
+
+	TimeThiefSmoke::AssignSmokeClusters(PendingVolumes, PersistentClusterLinks);
+	TMap<int32, TArray<TimeThiefSmoke::FPendingRendererSmokeVolume*>> ClusterMembersById;
+	TMap<int32, int32> SmokeIdToPublishedSmokeId;
+	for (TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume : PendingVolumes)
+	{
+		ClusterMembersById.FindOrAdd(PendingVolume.Volume.ClusterId).Add(&PendingVolume);
+		SmokeIdToPublishedSmokeId.Add(PendingVolume.Volume.SmokeId, PendingVolume.Volume.ClusterId);
+	}
+
+	for (TPair<int32, TArray<TimeThiefSmoke::FPendingRendererSmokeVolume*>>& ClusterPair : ClusterMembersById)
+	{
+		TArray<TimeThiefSmoke::FPendingRendererSmokeVolume*>& ClusterMembers = ClusterPair.Value;
+		if (ClusterMembers.Num() <= 1)
+		{
+			TimeThiefSmoke::FPendingRendererSmokeVolume* Member = ClusterMembers.IsEmpty() ? nullptr : ClusterMembers[0];
+			if (Member)
+			{
+				Member->Volume.SourceEvents.Reset();
+				Frame.Volumes.Add(MoveTemp(Member->Volume));
+			}
+			continue;
+		}
+
+		Frame.Volumes.Add(TimeThiefSmoke::MakeClusterVolume(ClusterMembers));
 	}
 
 	for (const FTimeThiefSmokeInteractionEvent& Event : PendingRendererEvents)
 	{
-		Frame.Events.Add(TimeThiefSmoke::ToRendererEvent(Event));
+		FTimeThiefSmokeRendererEvent RendererEvent = TimeThiefSmoke::ToRendererEvent(Event);
+		if (const int32* PublishedSmokeId = SmokeIdToPublishedSmokeId.Find(RendererEvent.SmokeId))
+		{
+			RendererEvent.SmokeId = *PublishedSmokeId;
+		}
+		Frame.Events.Add(RendererEvent);
 	}
 
 	RendererSubsystem->SubmitFrame(Frame);

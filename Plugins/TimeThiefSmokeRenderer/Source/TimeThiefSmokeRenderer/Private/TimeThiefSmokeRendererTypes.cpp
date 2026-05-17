@@ -90,6 +90,8 @@ FTimeThiefSmokeRendererVolume::FTimeThiefSmokeRendererVolume()
 	, SimulationBoundsExtent(GetDefaultRenderBoundsExtent())
 	, NaturalBoundsExtent(ToVector3f(TimeThiefSmokeParameterDefaults::GetSmokeBoundsExtent()))
 	, RenderBoundsExtent(GetDefaultRenderBoundsExtent())
+	, ClusterId(INDEX_NONE)
+	, ClusterSourceCount(1)
 	, DurationSeconds(TimeThiefSmokeParameterDefaults::SmokeDuration)
 {
 }

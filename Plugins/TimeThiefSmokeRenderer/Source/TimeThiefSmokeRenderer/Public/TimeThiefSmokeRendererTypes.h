@@ -7,7 +7,8 @@ enum class ETimeThiefSmokeRendererInteractionType : uint8
 {
 	BulletWake = 0,
 	ExplosionShock = 1,
-	ActorPush = 2
+	ActorPush = 2,
+	PlumeSource = 3
 };
 
 enum class ETimeThiefSmokeRendererInteractionShape : uint8
@@ -133,11 +134,14 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererVolume
 	FVector3f SimulationBoundsExtent;
 	FVector3f NaturalBoundsExtent;
 	FVector3f RenderBoundsExtent;
+	int32 ClusterId = INDEX_NONE;
+	int32 ClusterSourceCount = 1;
 	float AgeSeconds = 0.0f;
 	float DurationSeconds;
 	int32 ObstacleMaskResolution = 0;
 	uint32 ObstacleMaskRevision = 0;
 	TArray<uint8> ObstacleMask;
+	TArray<FTimeThiefSmokeRendererEvent> SourceEvents;
 	FTimeThiefSmokeRendererSettings Settings;
 };
 

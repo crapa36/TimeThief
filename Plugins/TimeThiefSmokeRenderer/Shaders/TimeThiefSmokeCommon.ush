@@ -232,6 +232,19 @@ float TimeThiefSmokeEventShapeRadius(FTimeThiefSmokeEventShaderData Event)
 	return max(Event.PositionRadius.w, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
 }
 
+float TimeThiefSmokeEventContactRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	return max(Event.PositionRadius.w, 1.0);
+}
+
+float TimeThiefSmokeEventInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float RadiusScale)
+{
+	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
+	const float ContactRadius = TimeThiefSmokeEventContactRadius(Event);
+	const float TravelDistance = length(Event.PositionRadius.xyz - Event.PreviousPositionSpeed.xyz);
+	return ShapeRadius + TravelDistance + ContactRadius * max(RadiusScale, 0.1) + 2.0;
+}
+
 float TimeThiefSmokeEventSdfAtCenter(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition, float3 EventCenter)
 {
 	const uint Shape = (uint)round(Event.TypeShapeAgeSeed.y);
@@ -332,7 +345,11 @@ float3 TimeThiefSmokeEventNormalAtCenter(FTimeThiefSmokeEventShaderData Event, f
 
 float3 TimeThiefSmokeEventSweptNormal(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition)
 {
-	return TimeThiefSmokeEventNormalAtCenter(Event, WorldPosition, TimeThiefSmokeEventSweptCenter(Event, WorldPosition));
+	const float3 CurrentCenter = Event.PositionRadius.xyz;
+	const float3 SweptCenter = TimeThiefSmokeEventSweptCenter(Event, WorldPosition);
+	const float CurrentSdf = TimeThiefSmokeEventSdfAtCenter(Event, WorldPosition, CurrentCenter);
+	const float SweptSdf = TimeThiefSmokeEventSdfAtCenter(Event, WorldPosition, SweptCenter);
+	return TimeThiefSmokeEventNormalAtCenter(Event, WorldPosition, CurrentSdf <= SweptSdf ? CurrentCenter : SweptCenter);
 }
 
 float TimeThiefSmokeSdfWeight(float Sdf, float Feather)

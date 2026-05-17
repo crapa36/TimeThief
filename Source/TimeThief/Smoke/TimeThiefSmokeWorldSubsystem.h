@@ -57,5 +57,7 @@ private:
 	UPROPERTY()
 	TArray<FTimeThiefSmokeInteractionEvent> PendingRendererEvents;
 
+	TSet<uint64> PersistentClusterLinks;
+
 	TMap<ATimeThiefSmokeVolume*, int32> BulletTraceCountsThisTick;
 };

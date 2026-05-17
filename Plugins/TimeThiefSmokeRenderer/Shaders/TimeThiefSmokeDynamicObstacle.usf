@@ -91,7 +91,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Strength = saturate(Event.ExtentsStrength.w);
 		const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
 		const float3 ToCell = WorldPosition - Event.PositionRadius.xyz;
-		const float InfluenceRadius = max(ShapeRadius * 9.0, max(Event.DirectionLength.w, 0.0) + ShapeRadius * 2.0);
+		const float InfluenceRadius = TimeThiefSmokeEventInfluenceRadius(Event, ActorAirflowRadiusScale);
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;

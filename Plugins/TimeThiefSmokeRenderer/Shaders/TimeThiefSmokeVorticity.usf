@@ -124,7 +124,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
 		const float InfluenceRadius = EventType == 0
 			? max(Length * 0.5 + Radius * 2.4, ShapeRadius * 2.4)
-			: (EventType == 1 ? Radius * 1.45 : max(ShapeRadius * 9.0, Length + ShapeRadius * 2.0));
+			: (EventType == 1 ? Radius * 1.45 : TimeThiefSmokeEventInfluenceRadius(Event, ActorAirflowRadiusScale));
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;
