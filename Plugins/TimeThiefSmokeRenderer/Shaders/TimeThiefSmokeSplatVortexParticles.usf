@@ -65,7 +65,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	if (!IsSparseSimulationCellActive(DispatchThreadId))
 	{
-		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		OutVelocity[DispatchThreadId] = VelocityIn.Load(int4(int3(DispatchThreadId), 0));
 		return;
 	}
 

@@ -3,12 +3,13 @@
 #include "Actors/TimeThiefSmokeVolume.h"
 #include "Engine/Engine.h"
 #include "Stats/Stats.h"
+#include "TimeThiefSmokeParameterDefaults.h"
 #include "TimeThiefSmokeRendererSubsystem.h"
 
 namespace TimeThiefSmoke
 {
-	constexpr int32 MaxBulletTracesPerSmokePerTick = 18;
-	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = 16;
+	constexpr int32 MaxBulletTracesPerSmokePerTick = TimeThiefSmokeParameterDefaults::MaxBulletTracesPerSmokePerTick;
+	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = TimeThiefSmokeParameterDefaults::MaxActiveExplosionImpulsesPerSmoke;
 
 	float ComputeInteractionEventPriority(const FTimeThiefSmokeInteractionEvent& Event, const float Age, const float Duration)
 	{
@@ -123,6 +124,10 @@ namespace TimeThiefSmoke
 		RendererSettings.VorticityConfinementStrength = Settings.VorticityConfinementStrength;
 		RendererSettings.TurbulenceStrength = Settings.TurbulenceStrength;
 		RendererSettings.AirInteractionStrength = Settings.AirInteractionStrength;
+		RendererSettings.SelfWobbleTimeScale = Settings.SelfWobbleTimeScale;
+		RendererSettings.SelfWobbleVelocityScale = Settings.SelfWobbleVelocityScale;
+		RendererSettings.SelfWobbleForceScale = Settings.SelfWobbleForceScale;
+		RendererSettings.SelfWobbleParticleScale = Settings.SelfWobbleParticleScale;
 		RendererSettings.EventVortexStrength = Settings.EventVortexStrength;
 		RendererSettings.VortexParticleCount = Settings.VortexParticleCount;
 		RendererSettings.VortexParticleLifeSeconds = Settings.VortexParticleLifeSeconds;
@@ -154,12 +159,7 @@ namespace TimeThiefSmoke
 		RendererSettings.BulletWakeCutoutFeather = Settings.BulletWakeCutoutFeather;
 		RendererSettings.bUseMacCormackAdvection = Settings.bUseMacCormackAdvection;
 		RendererSettings.bUseAdaptiveMacCormack = Settings.bUseAdaptiveMacCormack;
-		RendererSettings.bUseCarrierFieldTexture = Settings.bUseCarrierFieldTexture;
 		RendererSettings.bUseVortexBrickBins = Settings.bUseVortexBrickBins;
-		RendererSettings.CarrierParticleCount = Settings.CarrierParticleCount;
-		RendererSettings.CarrierParticleRadius = Settings.CarrierParticleRadius;
-		RendererSettings.CarrierParticleDriftSpeed = Settings.CarrierParticleDriftSpeed;
-		RendererSettings.CarrierParticleInteractionStrength = Settings.CarrierParticleInteractionStrength;
 		RendererSettings.MaxGPUEventsPerSmokePerFrame = Settings.MaxGPUEventsPerSmokePerFrame;
 		RendererSettings.InitialDensity = Settings.InitialDensity;
 		RendererSettings.SmokeFadeOutDuration = Settings.SmokeFadeOutDuration;

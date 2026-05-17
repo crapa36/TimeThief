@@ -14,12 +14,6 @@ struct FTimeThiefSmokeEventShaderData
 	FVector4f PreviousPositionSpeed = FVector4f::Zero();
 };
 
-struct FTimeThiefSmokeCarrierParticleShaderData
-{
-	FVector4f LocalPositionRadius = FVector4f::Zero();
-	FVector4f VelocityPhase = FVector4f::Zero();
-};
-
 struct FTimeThiefSmokeVortexParticleShaderData
 {
 	FVector4f LocalPositionLife = FVector4f::Zero();
@@ -85,28 +79,6 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_DYNAMIC_OBSTACLE_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FTimeThiefSmokeCarrierUpdateCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeCarrierUpdateCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeCarrierUpdateCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_CARRIER_UPDATE_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FTimeThiefSmokeBuildCarrierFieldCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildCarrierFieldCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildCarrierFieldCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_BUILD_CARRIER_FIELD_CS_PARAMETERS
 	END_SHADER_PARAMETER_STRUCT()
 };
 

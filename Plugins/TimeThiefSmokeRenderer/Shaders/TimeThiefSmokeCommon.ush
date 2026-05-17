@@ -10,12 +10,6 @@ struct FTimeThiefSmokeEventShaderData
 	float4 PreviousPositionSpeed;
 };
 
-struct FTimeThiefSmokeCarrierParticleShaderData
-{
-	float4 LocalPositionRadius;
-	float4 VelocityPhase;
-};
-
 struct FTimeThiefSmokeVortexParticleShaderData
 {
 	float4 LocalPositionLife;
@@ -199,10 +193,15 @@ bool TimeThiefSmokeInsideUVW(float3 UVW)
 	return all(UVW >= 0.0) && all(UVW <= 1.0);
 }
 
+float TimeThiefSmokeObstacleOpenFromValue(float Obstacle)
+{
+	return 1.0 - smoothstep(0.45, 0.85, Obstacle);
+}
+
 float TimeThiefSmokeObstacleOpen(Texture3D<float> ObstacleTexture, SamplerState VolumeSampler, float3 UVW)
 {
 	const float Obstacle = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
-	return 1.0 - smoothstep(0.25, 0.65, Obstacle);
+	return TimeThiefSmokeObstacleOpenFromValue(Obstacle);
 }
 
 float3 TimeThiefSmokeRotateByQuat(float3 Vector, float4 Quat)

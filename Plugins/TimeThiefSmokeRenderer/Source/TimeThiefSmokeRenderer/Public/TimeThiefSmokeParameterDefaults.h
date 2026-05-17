@@ -9,13 +9,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// 실제 시뮬레이션/충돌 박스 반경(cm).
 	inline FVector GetSmokeBoundsExtent()
 	{
-		return FVector(500.0, 500.0, 500.0);
+		return FVector(400.0, 400.0, 400.0);
 	}
 
 	// 시뮬레이션 박스 밖 렌더 여백(cm).
 	inline FVector GetRenderBoundsPadding()
 	{
-		return FVector(300.0, 300.0, 300.0);
+		return FVector(400.0, 400.0, 400.0);
 	}
 
 	// 수명/기본 밀도
@@ -96,8 +96,6 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr bool bUseMacCormackAdvection = true;
 	// 영향 없는 빈 셀에서 MacCormack 제한 계산 생략 여부. 켜면 비용 감소, 품질 유지.
 	constexpr bool bUseAdaptiveMacCormack = true;
-	// 캐리어 입자 영향을 half-res 3D 텍스처로 선계산할지 여부. 켜면 반복 비용 감소.
-	constexpr bool bUseCarrierFieldTexture = true;
 	// 와류 입자 splat을 브릭 주변으로 제한할지 여부. 켜면 다중 연막 비용 감소.
 	constexpr bool bUseVortexBrickBins = true;
 
@@ -171,24 +169,17 @@ namespace TimeThiefSmokeParameterDefaults
 
 	// 연막당 프레임별 GPU 상호작용 이벤트 최대 개수. 높을수록 반응 품질과 비용 증가.
 	constexpr int32 MaxGPUEventsPerSmokePerFrame = 64;
+	// 틱당 연막 하나가 처리할 총알 궤적 최대 개수. 높을수록 반응 정확도와 비용 증가.
+	constexpr int32 MaxBulletTracesPerSmokePerTick = 18;
+	// 연막 하나가 동시에 유지할 폭발 충격 이벤트 최대 개수. 높을수록 중첩 반응과 비용 증가.
+	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = 16;
 	// sparse brick 활성화에 쓰는 최소 속도(cm/s). 높을수록 비용 감소, 저속 움직임 감소.
 	constexpr float SparseVelocityActiveThreshold = 120.0f;
-
-	// 캐리어 입자
-
-	// 내부 흐름 보조 캐리어 입자 개수. 높을수록 흐름 품질과 비용 증가.
-	constexpr int32 CarrierParticleCount = 20;
-	// 캐리어 입자 영향 반경(cm). 높을수록 범위와 비용 증가.
-	constexpr float CarrierParticleRadius = 90.0f;
-	// 캐리어 입자 자체 유영 기준 속도(cm/s). 높을수록 내부 움직임 증가.
-	constexpr float CarrierParticleDriftSpeed = 16.0f;
-	// 캐리어 입자 밀도/속도 영향 배율. 높을수록 반응과 비용 증가.
-	constexpr float CarrierParticleInteractionStrength = 1.0f;
 
 	// 총알 웨이크
 
 	// 총알 통과 시 연막 제거 반경(cm). 높을수록 구멍 크기와 비용 증가.
-	constexpr float BulletClearRadius = 40.0f;
+	constexpr float BulletClearRadius = 30.0f;
 	// 총알 웨이크 렌더 최대 가시 시간(초). 높을수록 흔적 지속과 비용 증가.
 	constexpr float BulletWakeMaxVisibleLife = 0.5f;
 	// 총알 웨이크 구멍 해제 페이드 시간(초). 높을수록 복귀가 느리고 비용 증가.

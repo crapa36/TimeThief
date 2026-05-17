@@ -94,12 +94,7 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float BulletWakeCutoutFeather;
 	bool bUseMacCormackAdvection;
 	bool bUseAdaptiveMacCormack;
-	bool bUseCarrierFieldTexture;
 	bool bUseVortexBrickBins;
-	int32 CarrierParticleCount;
-	float CarrierParticleRadius;
-	float CarrierParticleDriftSpeed;
-	float CarrierParticleInteractionStrength;
 	float RenderNoiseScale;
 	float RenderNoiseStrength;
 	float RenderNoiseTimeScale;

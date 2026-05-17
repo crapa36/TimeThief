@@ -56,8 +56,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	if (!IsSparseSimulationCellActive(DispatchThreadId))
 	{
-		OutDensity[DispatchThreadId] = 0.0;
-		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		const int3 Coord = int3(DispatchThreadId);
+		OutDensity[DispatchThreadId] = DensityIn.Load(int4(Coord, 0));
+		OutVelocity[DispatchThreadId] = VelocityIn.Load(int4(Coord, 0));
 		return;
 	}
 
@@ -129,6 +130,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 5.0, BackAlong)) *
 			saturate(SolidSpeed / 260.0) * RearMask;
 		const float MotionMask = smoothstep(SafeAirflowMinSpeed, SafeAirflowFullSpeed, SolidSpeed) * saturate(Strength + 0.25);
+		const float3 LocalSurfaceNormal = SafeNormalize(mul(float4(SurfaceNormal, 0.0), WorldToLocal).xyz);
+		const float DonorDistance = max(ShapeRadius * 0.24, 8.0);
+		const float3 DonorUVW = saturate(UVW - LocalSurfaceNormal * DonorDistance / max(BoundsExtent * 2.0, 1.0));
+		const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW);
+		const float DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
+		const float RedistributeWeight = saturate((SurfaceBand * (0.45 + FrontMask * 0.55) + WakeMask * 0.28) * BoundaryStrength * (0.35 + MotionMask * 0.65));
 		const float ShapeDistance = max(ShapeSdf, 0.0);
 		const float AirEnvelope =
 			(1.0 - smoothstep(ShapeRadius * 0.42, ShapeRadius * SafeAirflowRadiusScale, ShapeDistance)) *
@@ -153,6 +160,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			SurfaceNormal * SolidSpeed * (FrontAir * ActorAirflowFrontStrength * 0.72 + SideAir * ActorAirflowSideStrength) +
 			Tangent * SolidSpeed * WakeAir * 0.10;
 		const float FrontCompression = FrontMask * SurfaceBand * saturate(ApproachSpeed / 420.0);
+		Density = max(Density, DonorDensity * RedistributeWeight);
 		const float SmokeInteractionMask = smoothstep(0.0005, 0.035, Density);
 		const float InteractionMask = max(Outside, SurfaceBand) * SmokeInteractionMask;
 		const float3 InteriorEscape = SurfaceNormal * Inside * BoundaryStrength * max(80.0, SolidSpeed * 0.34) * SmokeInteractionMask;

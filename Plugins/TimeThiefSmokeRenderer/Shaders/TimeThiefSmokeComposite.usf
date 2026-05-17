@@ -28,21 +28,6 @@ bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float
 	return TMax >= max(TMin, 0.0);
 }
 
-float ComputeCarrierDebug(float3 SampleLocal)
-{
-	float Weight = 0.0;
-	const int SafeParticleCount = min(CarrierParticleCount, 128);
-	[loop]
-	for (int ParticleIndex = 0; ParticleIndex < SafeParticleCount; ++ParticleIndex)
-	{
-		const FTimeThiefSmokeCarrierParticleShaderData Particle = CarrierParticles[ParticleIndex];
-		const float Distance = length(SampleLocal - Particle.LocalPositionRadius.xyz);
-		const float Radius = max(Particle.LocalPositionRadius.w, 1.0);
-		Weight = max(Weight, 1.0 - smoothstep(Radius * 0.22, Radius * 0.72, Distance));
-	}
-	return saturate(Weight);
-}
-
 float ComputeEventDebug(float3 SampleWorld)
 {
 	float Weight = 0.0;
@@ -369,7 +354,7 @@ void MainPS(
 		const float BulletSink = RawFields.w;
 		const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
 		const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
-		const float ObstacleOpen = 1.0 - smoothstep(0.25, 0.65, Obstacle);
+		const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromValue(Obstacle);
 		const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
 		const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
 		const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
@@ -431,10 +416,6 @@ void MainPS(
 		{
 			DebugValue = max(DebugValue, saturate(max(BulletCutout, BulletSink)));
 		}
-		else if (DebugMode == 4)
-		{
-			DebugValue = max(DebugValue, ComputeCarrierDebug(SampleLocal));
-		}
 		else if (DebugMode == 5)
 		{
 			DebugValue = max(DebugValue, ComputeEventDebug(SampleWorld));
@@ -485,10 +466,6 @@ void MainPS(
 		else if (DebugMode == 3)
 		{
 			DebugColor = float3(1.0, 0.62, 0.08);
-		}
-		else if (DebugMode == 4)
-		{
-			DebugColor = float3(0.1, 0.8, 1.0);
 		}
 		else if (DebugMode == 5)
 		{

@@ -51,8 +51,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	if (!IsSparseSimulationCellActive(DispatchThreadId))
 	{
-		OutDensity[DispatchThreadId] = 0.0;
-		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		const int3 Coord = int3(DispatchThreadId);
+		OutDensity[DispatchThreadId] = DensityIn.Load(int4(Coord, 0));
+		OutVelocity[DispatchThreadId] = VelocityIn.Load(int4(Coord, 0));
 		return;
 	}
 
@@ -109,8 +110,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float ClearStrength = saturate(Event.ExtentsStrength.y);
 		const float PressureWeight = saturate(ShockShell + EvacuatedCore * 0.28);
 		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
+		const float3 LocalRadial = normalize(mul(float4(Radial, 0.0), WorldToLocal).xyz + float3(0.0001, 0.0001, 0.0001));
+		const float DonorDistance = max(Radius * 0.18, 8.0);
+		const float3 DonorUVW = saturate(UVW - LocalRadial * DonorDistance / max(BoundsExtent * 2.0, 1.0));
+		const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW);
+		const float DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
+		const float RedistributeWeight = saturate((ShockShell * 0.85 + EvacuatedCore * 0.35) * Strength * ShockFade);
 
 		Density *= 1.0 - saturate(EvacuatedCore * Strength * ClearStrength * SafeDeltaSeconds * 3.5);
+		Density = max(Density, DonorDensity * RedistributeWeight);
 		Density = min(3.2, Density * (1.0 + ShockShell * Strength * SafeDeltaSeconds * 0.35));
 		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
 		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;

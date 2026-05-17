@@ -68,6 +68,13 @@ namespace TimeThiefSmokeVolume
 		return T * T * (3.0f - 2.0f * T);
 	}
 
+	FVector MakeObstacleMaskQueryExtent(const FVector& CellHalfExtent, float Inflation)
+	{
+		const FVector QuantizationSlack = CellHalfExtent * 0.2f;
+		const float SafeInflation = FMath::Max(1.0f, Inflation);
+		return FVector(SafeInflation, SafeInflation, SafeInflation).ComponentMax(QuantizationSlack);
+	}
+
 }
 
 ATimeThiefSmokeVolume::ATimeThiefSmokeVolume()
@@ -596,7 +603,8 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 
 	const FVector NaturalBoundsExtent = GetCurrentSmokeBoundsExtent().ComponentMax(FVector(1.0f));
 	const FVector BoundsExtent = GetCurrentSmokeRenderBoundsExtent().ComponentMax(NaturalBoundsExtent);
-	const FVector CellExtent = (BoundsExtent / static_cast<float>(Resolution)) + FVector(FMath::Max(0.0f, SmokeSettings.ObstacleMaskInflation));
+	const FVector CellHalfExtent = BoundsExtent / static_cast<float>(Resolution);
+	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeObstacleMaskQueryExtent(CellHalfExtent, FMath::Max(0.0f, SmokeSettings.ObstacleMaskInflation));
 	const FTransform SmokeTransform = GetActorTransform();
 
 	FCollisionObjectQueryParams ObjectQueryParams;
@@ -622,7 +630,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 					WorldPosition,
 					SmokeTransform.GetRotation(),
 					ObjectQueryParams,
-					FCollisionShape::MakeBox(CellExtent),
+					FCollisionShape::MakeBox(ObstacleQueryExtent),
 					QueryParams);
 
 				const int32 Index = X + Y * Resolution + Z * Resolution * Resolution;
@@ -663,10 +671,11 @@ void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
 	BlockedCells.Init(0, CellCount);
 	ActiveBoundsCells.Init(0, CellCount);
 
-	const FVector CellExtent(
+	const FVector CellHalfExtent(
 		BoundsExtent.X / static_cast<float>(ActiveBoundsCellGrid.X),
 		BoundsExtent.Y / static_cast<float>(ActiveBoundsCellGrid.Y),
 		BoundsExtent.Z / static_cast<float>(ActiveBoundsCellGrid.Z));
+	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeObstacleMaskQueryExtent(CellHalfExtent, FMath::Max(0.0f, SmokeSettings.ObstacleMaskInflation));
 
 	UWorld* World = GetWorld();
 	if (!World)
@@ -687,7 +696,7 @@ void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
 					SmokeTransform.TransformPosition(LocalCenter),
 					SmokeTransform.GetRotation(),
 					ObjectQueryParams,
-					FCollisionShape::MakeBox(CellExtent * 0.48f),
+					FCollisionShape::MakeBox(ObstacleQueryExtent),
 					QueryParams));
 
 				if (bBlocked)
