@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-struct FExportedNavData;
+#include "CoreMinimal.h"
+
 class dtNavMesh;
 class UWorld;
 
@@ -12,6 +13,6 @@ public:
 private:
 	static UWorld* GetEditorWorld();
 	static bool ExportWorld(UWorld* World);
-	static bool SaveBinary(const FString& FilePath, const dtNavMesh* DetourNavMesh, const FExportedNavData& ExportData);
+	static bool SaveBinary(const FString& FilePath, const dtNavMesh* DetourNavMesh);
 	
 };
