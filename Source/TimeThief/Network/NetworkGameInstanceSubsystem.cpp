@@ -919,7 +919,13 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 		break;
 	case se::common::ObjectType::OBJ_MONSTER:
 		{
+			if (!Pkt.has_monster_movement())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMove: Missing monster_movement for monster entity"));
+				return;
+			}
 			
+			const auto& MonsterMovement = Pkt.monster_movement();
 		}
 		break;
 	case se::common::ObjectType::OBJ_ITEM:
@@ -2260,6 +2266,16 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 			return SpawnData->StoreClass;
 		}
 	}
+	else if (EntityState.ObjectType == se::common::OBJ_MONSTER)
+	{
+		// TODO: 몬스터는 TemplateId에 따라서도 달라질 수 있으므로, ObjectType이 몬스터일 때는 TemplateId도 같이 고려하여 클래스를 결정하는 로직 필요
+		//		 그리고 아래 Test Monster 부분 제거
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Monster spawn logic is not implemented yet. Using TestMonsterClass for all monsters."));
+		if (SpawnData->TestMonster)
+		{
+			return SpawnData->TestMonster;
+		}
+	}
 	
 	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
 	
@@ -2734,8 +2750,11 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	{
 		SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform, SpawnParams);
 	}
-	if (SpawnedActor == nullptr) return nullptr;
-
+	if (SpawnedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] spawn Failed"));
+		return nullptr;
+	}
 	
 	EntityEntry->Actor = SpawnedActor;
 	

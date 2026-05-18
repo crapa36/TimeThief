@@ -369,7 +369,7 @@ void UNetworkMoveComponent::TickServer(float DeltaTime)
 		return;
 	}
 	
-	ApplyRemoteInterpolation(DeltaTime);
+	ApplyServerInterpolation(DeltaTime);
 }
 
 void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
@@ -440,6 +440,53 @@ void UNetworkMoveComponent::ApplyRemoteInterpolation(float DeltaTime)
 
 	const FVector2D NewVelocity = BuildSyntheticVelocity2D(CurrentPosition, NewPosition, DeltaTime, TargetVelocity);
 	Movable->SetNetworkVelocity2D(NewVelocity);
+}
+
+void UNetworkMoveComponent::ApplyServerInterpolation(float DeltaTime)
+{
+	AActor* Owner = GetOwner();
+	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
+	APawn* Pawn = Cast<APawn>(Owner);
+
+	if (Owner == nullptr || Movable == nullptr || Pawn == nullptr)
+	{
+		return;
+	}
+
+	const FVector CurrentPosition = Movable->GetNetworkLocation();
+
+	const bool bCloseEnoughPosition = IsCloseEnoughPosition(CurrentPosition);
+	if (bCloseEnoughPosition)
+	{
+		SnapToTarget();
+		return;
+	}
+
+	InterpElapsed += DeltaTime;
+	// const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.0f, 1.0f);
+	const float Alpha = FMath::Clamp(InterpElapsed / 0.2f, 0.0f, 1.0f);
+
+	const FVector NewPosition = FMath::Lerp(
+		InterpStartPosition,
+		InterpTargetPosition,
+		Alpha
+	);
+
+	if (DeltaTime > 0.0f)
+	{
+		MoveStep = (NewPosition - CurrentPosition) / DeltaTime;
+
+		Movable->SetNetworkLocation(NewPosition);
+
+		const FVector2D NewVelocity = BuildSyntheticVelocity2D(
+			CurrentPosition,
+			NewPosition,
+			DeltaTime,
+			TargetVelocity
+		);
+
+		Movable->SetNetworkVelocity2D(NewVelocity);
+	}
 }
 
 void UNetworkMoveComponent::SnapToTarget()
