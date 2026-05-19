@@ -99,12 +99,14 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	if (CachedHealthComponent.IsValid())
 	{
 		CachedHealthComponent->OnHealthChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnHealthUpdated);
-		OnHealthUpdated(CachedHealthComponent.Get(), 100, 100, nullptr);
+		// OnHealthUpdated(CachedHealthComponent.Get(), 100, 100, nullptr);
+		OnHealthUpdated(CachedHealthComponent.Get(), CachedHealthComponent->GetCurrentHealth(), CachedHealthComponent->GetCurrentHealth(), nullptr);
 	}
 	
 	if (CachedTimePointSystemComponent.IsValid())
 	{
 		CachedTimePointSystemComponent->OnTimePointsChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnTimePointUpdated);
+		OnTimePointUpdated(CachedTimePointSystemComponent->GetTimePoints());
 	}
 
 	if (CachedCombatComponent.IsValid())
