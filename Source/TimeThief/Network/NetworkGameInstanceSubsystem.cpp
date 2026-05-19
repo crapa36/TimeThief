@@ -273,6 +273,16 @@ void UNetworkGameInstanceSubsystem::SendChestInteract(uint32 ChestEntityId)
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
+{
+	se::game::C_UseItemReq Request;
+	Request.set_item_id(Itemid);
+	
+	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Use Item Id=%u"), Itemid);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::ConnectToServer()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));

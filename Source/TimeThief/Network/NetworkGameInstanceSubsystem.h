@@ -79,6 +79,7 @@ public:
 	void SendItemPickUp(uint32 ItemEntityId);
 	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
+	void SendUseItem(uint32 Itemid);
 	
 private:
 	void ConnectToServer();
