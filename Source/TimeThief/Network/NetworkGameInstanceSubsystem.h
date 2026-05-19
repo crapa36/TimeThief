@@ -204,6 +204,10 @@ private:
 	ATimeThiefPlayerCharacter* GetLocalPlayerPawn();
 	
 public:
+	void ResetLoadingGate();
+	void SetLocalPlayerInputEnabled(bool bCond);
+	
+public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")
 	void RequestSetNickname(const FString& Nickname);
 	
@@ -218,6 +222,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestRoomLeave();
+	
+	void TrySendLoadingComplete();
 	
 	// Testing
 public:
@@ -282,5 +288,11 @@ private:
 	FRoomState RoomState;
 	
 	TMap<uint32, FEntityRuntimeEntry> EntityEntries;
+	
+private:
+	bool bReceivedRoomEnterRes = false;
+	bool bReceivedEntitiesSpawn = false;
+	bool bReceivedPlayerInitSetup = false;
+	bool bSentLoadingComplete = false;
 	
 };
