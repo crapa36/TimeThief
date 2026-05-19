@@ -151,6 +151,13 @@ bool FNavExporter::SaveBinary(const FString& FilePath, const dtNavMesh* DetourNa
 	}
 
 	FServerNavBinaryHeader Header;
+	Header.WalkableHeight = Params->walkableHeight;
+	Header.WalkableRadius = Params->walkableRadius;
+	Header.WalkableClimb = Params->walkableClimb;
+	for (int i = 0; i < DT_RESOLUTION_COUNT; ++i)
+	{
+		Header.ResolutionParams[i] = Params->resolutionParams[i];
+	}
 	Header.Orig[0] = Params->orig[0];
 	Header.Orig[1] = Params->orig[1];
 	Header.Orig[2] = Params->orig[2];

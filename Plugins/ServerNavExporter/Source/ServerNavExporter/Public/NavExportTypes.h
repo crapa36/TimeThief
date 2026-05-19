@@ -11,9 +11,15 @@ struct FServerNavBinaryHeader
 	uint32 Magic = SERVER_NAV_MAGIC;
 	uint32 Version = SERVER_NAV_VERSION;
 
-	float Orig[3] = {};
-	float TileWidth = 0.0f;
-	float TileHeight = 0.0f;
+	dtReal WalkableHeight = 0.0f;
+	dtReal WalkableRadius = 0.0f;
+	dtReal WalkableClimb = 0.0f;
+	
+	dtNavMeshResParams ResolutionParams[DT_RESOLUTION_COUNT];
+	
+	dtReal Orig[3] = {};
+	dtReal TileWidth = 0.0f;
+	dtReal TileHeight = 0.0f;
 
 	int32 MaxTiles = 0;
 	int32 MaxPolys = 0;
