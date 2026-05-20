@@ -41,11 +41,20 @@ bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
 	return (Word & Bit) != 0u;
 }
 
-void ComputeAdvectionLimiterBounds(float3 UVW, out float DensityMin, out float DensityMax, out float3 VelocityMin, out float3 VelocityMax)
+void ComputeAdvectionLimiterBounds(
+	float3 UVW,
+	out float DensityMin,
+	out float DensityMax,
+	out float DisplacedDensityMin,
+	out float DisplacedDensityMax,
+	out float3 VelocityMin,
+	out float3 VelocityMax)
 {
 	const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
 	DensityMin = 999999.0;
 	DensityMax = -999999.0;
+	DisplacedDensityMin = 999999.0;
+	DisplacedDensityMax = -999999.0;
 	VelocityMin = float3(999999.0, 999999.0, 999999.0);
 	VelocityMax = float3(-999999.0, -999999.0, -999999.0);
 
@@ -60,9 +69,12 @@ void ComputeAdvectionLimiterBounds(float3 UVW, out float DensityMin, out float D
 			{
 				const float3 SampleUVW = saturate(UVW + float3(X, Y, Z) * Texel);
 				const float SampleDensity = DensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
+				const float SampleDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
 				const float3 SampleVelocity = VelocityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0).xyz;
 				DensityMin = min(DensityMin, SampleDensity);
 				DensityMax = max(DensityMax, SampleDensity);
+				DisplacedDensityMin = min(DisplacedDensityMin, SampleDisplacedDensity);
+				DisplacedDensityMax = max(DisplacedDensityMax, SampleDisplacedDensity);
 				VelocityMin = min(VelocityMin, SampleVelocity);
 				VelocityMax = max(VelocityMax, SampleVelocity);
 			}
@@ -88,6 +100,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Cutout = BulletCutoutTexture.Load(int4(Coord, 0));
 		const float Sink = BulletSinkTexture.Load(int4(Coord, 0));
 		OutDensity[DispatchThreadId] = max(DensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
+		OutDisplacedDensity[DispatchThreadId] = max(DisplacedDensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
 		OutVelocity[DispatchThreadId] = float4(VelocityIn.Load(int4(Coord, 0)).xyz * VelocityDecay, 0.0);
 		OutCutout[DispatchThreadId] = Cutout > 1.0
 			? max(1.0, Cutout - DeltaSeconds / max(BulletWakeCutoutLife, 0.001))
@@ -206,6 +219,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const bool bBulletInfluence = BulletCutout > 0.001 || BulletSink > 0.001 || dot(BulletImpulse, BulletImpulse) > 0.001;
 
 	float Density = 0.0;
+	float DisplacedDensity = 0.0;
 	float3 AdvectedVelocity = float3(0.0, 0.0, 0.0);
 	const float PreviousOpenMask = TimeThiefSmokeInsideUVW(PreviousUVW)
 		? TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, PreviousUVW)
@@ -213,18 +227,22 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	if (PreviousOpenMask > 0.01)
 	{
 		Density = DensityIn.SampleLevel(VolumeSampler, PreviousUVW, 0.0);
+		DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, PreviousUVW, 0.0);
 		AdvectedVelocity = VelocityIn.SampleLevel(VolumeSampler, PreviousUVW, 0.0).xyz;
 	}
 
 	const float CurrentDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+	const float CurrentDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	const float SourceInfluenceRadius = max(PlumeSourceRadius * 1.1, 1.0);
 	const bool bDefaultSourceInfluence = bUseClusterSourceEvents == 0u &&
 		AgeSeconds < max(PlumeEmissionDuration + 0.25, 0.01) &&
 		dot(WorldPosition - SmokeOrigin, WorldPosition - SmokeOrigin) < SourceInfluenceRadius * SourceInfluenceRadius;
 	const bool bSourceInfluence = bDefaultSourceInfluence || bEventSourceInfluence;
+	const float CurrentTotalDensity = CurrentDensity + CurrentDisplacedDensity;
+	const float AdvectedTotalDensity = Density + DisplacedDensity;
 	const bool bUseLimiterForCell = bUseAdaptiveMacCormack == 0 ||
-		CurrentDensity > 0.001 ||
-		Density > 0.001 ||
+		CurrentTotalDensity > 0.001 ||
+		AdvectedTotalDensity > 0.001 ||
 		dot(Velocity, Velocity) > 1.0 ||
 		bBulletInfluence ||
 		bSourceInfluence;
@@ -236,14 +254,19 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		if (TimeThiefSmokeInsideUVW(ForwardUVW) && TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, ForwardUVW) > 0.01)
 		{
 			const float BackDensity = DensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
+			const float BackDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
 			const float CorrectedDensity = Density + 0.5 * (CurrentDensity - BackDensity);
+			const float CorrectedDisplacedDensity = DisplacedDensity + 0.5 * (CurrentDisplacedDensity - BackDisplacedDensity);
 			const float3 CorrectedVelocity = AdvectedVelocity + 0.5 * (Velocity - VelocityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0).xyz);
 			float DensityMin = 0.0;
 			float DensityMax = 0.0;
+			float DisplacedDensityMin = 0.0;
+			float DisplacedDensityMax = 0.0;
 			float3 VelocityMin = float3(0.0, 0.0, 0.0);
 			float3 VelocityMax = float3(0.0, 0.0, 0.0);
-			ComputeAdvectionLimiterBounds(PreviousUVW, DensityMin, DensityMax, VelocityMin, VelocityMax);
+			ComputeAdvectionLimiterBounds(PreviousUVW, DensityMin, DensityMax, DisplacedDensityMin, DisplacedDensityMax, VelocityMin, VelocityMax);
 			Density = clamp(CorrectedDensity, max(DensityMin, 0.0), min(DensityMax, 3.2));
+			DisplacedDensity = clamp(CorrectedDisplacedDensity, max(DisplacedDensityMin, 0.0), min(DisplacedDensityMax, 3.2));
 			AdvectedVelocity = clamp(CorrectedVelocity, VelocityMin, VelocityMax);
 		}
 	}
@@ -253,20 +276,20 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	{
 		const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
 		NeighborDensity =
-			(DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0) +
-			DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0) +
-			DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0) +
-			DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0) +
-			DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0) +
-			DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0)) / 6.0;
+			(DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0) +
+			DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0) +
+			DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0) +
+			DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0) +
+			DensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0) +
+			DensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0)) / 6.0;
 	}
 
 	const float FadeOutAlpha = saturate(max(AgeSeconds - DurationSeconds, 0.0) / max(SmokeFadeOutDuration, 0.001));
 	const float EffectiveDissipation = DensityDissipation + FadeOutAlpha * (1.0 + DensityDissipation);
 	Density *= exp2(-max(EffectiveDissipation, 0.0) * DeltaSeconds);
+	DisplacedDensity *= exp2(-max(EffectiveDissipation, 0.0) * DeltaSeconds);
 	const float ReentryDensity = NeighborDensity * BulletMasks.Sink;
-	Density = lerp(Density, max(Density, ReentryDensity * 0.97), saturate(DeltaSeconds * 1.35));
-	Density = lerp(Density, ReentryDensity, saturate(DeltaSeconds * 0.025));
+	DisplacedDensity = lerp(DisplacedDensity, max(DisplacedDensity, ReentryDensity * 0.35), saturate(DeltaSeconds * 0.35));
 
 	float SourceDensityInjection = EventSourceDensity;
 	float3 SourceVelocityInjection = EventSourceVelocity;
@@ -290,6 +313,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007) - 0.5) * 0.04;
 	const float3 SimulationLocalForBoundary = LocalPosition / max(BoundsExtent, 1.0);
 	const float BoundaryDamping = TimeThiefSmokeRenderBoundaryMask(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+	const float NaturalBoundsMask = TimeThiefSmokeNaturalBoundsMask(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+	SourceDensityInjection *= NaturalBoundsMask;
+	SourceVelocityInjection *= NaturalBoundsMask;
 	Density += SourceDensityInjection * DeltaSeconds * 1.95 * BulletMasks.Source;
 	const float CloudBillow = 0.5 + 0.5 * sin(
 		dot(WorldPosition, float3(0.021, 0.017, 0.013)) +
@@ -297,22 +323,34 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float ChunkNoise = TimeThiefSmokeValueNoise(WorldPosition * 0.018);
 	const float CloudCohesion = lerp(0.72, 1.38, saturate(CloudBillow * 0.58 + ChunkNoise * 0.42));
 	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
-	Density *= BulletMasks.Hard;
 	Density *= BoundaryDamping;
+	DisplacedDensity *= BoundaryDamping;
+	const float NaturalEscape = Density * (1.0 - NaturalBoundsMask);
+	Density -= NaturalEscape;
+	DisplacedDensity += NaturalEscape;
 
 	const float NoiseA = TimeThiefSmokeHash13(WorldPosition * 0.006 + DeltaSeconds);
 	const float NoiseB = TimeThiefSmokeHash13(WorldPosition * 0.009 + 17.0);
 	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
 	const float SafeSelfWobbleVelocityScale = max(SelfWobbleVelocityScale, 0.0);
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.16 * SafeSelfWobbleTimeScale);
-	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale;
+	const float TotalDensity = Density + DisplacedDensity;
+	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
 	const float Damping = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
 	AdvectedVelocity = AdvectedVelocity * Damping + Swirl + BulletImpulse * BulletMasks.Detail;
 	AdvectedVelocity += SourceVelocityInjection * DeltaSeconds * 2.0;
-	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * Density * 4.0 * SafeSelfWobbleVelocityScale;
+	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
+	const float NaturalContainment = 1.0 - NaturalBoundsMask;
+	if (NaturalContainment > 0.001)
+	{
+		const float3 NaturalNormal = TimeThiefSmokeNaturalBoundsNormal(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent);
+		const float OutwardSpeed = max(dot(AdvectedVelocity, NaturalNormal), 0.0);
+		AdvectedVelocity -= NaturalNormal * OutwardSpeed * saturate(NaturalContainment * 0.85);
+	}
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 
 	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 2.8);
+	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, 2.8);
 	OutVelocity[DispatchThreadId] = float4(AdvectedVelocity * OpenMask, 0.0);
 	OutCutout[DispatchThreadId] = BulletCutout;
 	OutSink[DispatchThreadId] = BulletSink;

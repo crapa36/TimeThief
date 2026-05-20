@@ -76,7 +76,7 @@ bool IsEventActiveBrick(int3 BrickCoord)
 
 bool IsActiveCell(int3 Coord)
 {
-	const float Density = DensityTexture.Load(int4(Coord, 0));
+	const float Density = DensityTexture.Load(int4(Coord, 0)) + DisplacedDensityTexture.Load(int4(Coord, 0));
 	const float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
 	const float Warp = WarpTexture.Load(int4(Coord, 0));
 	const float Cutout = BulletCutoutTexture.Load(int4(Coord, 0));

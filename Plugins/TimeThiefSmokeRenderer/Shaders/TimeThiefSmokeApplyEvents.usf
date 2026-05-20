@@ -53,6 +53,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	{
 		const int3 Coord = int3(DispatchThreadId);
 		OutDensity[DispatchThreadId] = DensityIn.Load(int4(Coord, 0));
+		OutDisplacedDensity[DispatchThreadId] = DisplacedDensityIn.Load(int4(Coord, 0));
 		OutVelocity[DispatchThreadId] = VelocityIn.Load(int4(Coord, 0));
 		return;
 	}
@@ -60,11 +61,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
 	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
-	float Density = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+	float NaturalDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+	float DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
 	if (OpenMask <= 0.01)
 	{
 		OutDensity[DispatchThreadId] = 0.0;
+		OutDisplacedDensity[DispatchThreadId] = 0.0;
 		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
 		return;
 	}
@@ -114,16 +117,22 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float DonorDistance = max(Radius * 0.18, 8.0);
 		const float3 DonorUVW = saturate(UVW - LocalRadial * DonorDistance / max(BoundsExtent * 2.0, 1.0));
 		const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW);
-		const float DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
+		const float DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
 		const float RedistributeWeight = saturate((ShockShell * 0.85 + EvacuatedCore * 0.35) * Strength * ShockFade);
+		const float Evacuation = saturate(EvacuatedCore * Strength * ClearStrength * SafeDeltaSeconds * 3.5);
+		const float NaturalTransfer = NaturalDensity * Evacuation * 0.65;
+		const float DisplacedTransfer = DisplacedDensity * Evacuation * 0.35;
+		NaturalDensity = max(NaturalDensity - NaturalTransfer, 0.0);
+		DisplacedDensity = max(DisplacedDensity - DisplacedTransfer, 0.0) + NaturalTransfer;
 
-		Density *= 1.0 - saturate(EvacuatedCore * Strength * ClearStrength * SafeDeltaSeconds * 3.5);
-		Density = max(Density, DonorDensity * RedistributeWeight);
-		Density = min(3.2, Density * (1.0 + ShockShell * Strength * SafeDeltaSeconds * 0.35));
+		const float TotalDensity = NaturalDensity + DisplacedDensity;
+		DisplacedDensity += max(DonorDensity * RedistributeWeight - TotalDensity, 0.0);
+		DisplacedDensity = min(3.2, DisplacedDensity + TotalDensity * ShockShell * Strength * SafeDeltaSeconds * 0.35);
 		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
 		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
 	}
 
-	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 3.2);
+	OutDensity[DispatchThreadId] = clamp(NaturalDensity * OpenMask, 0.0, 3.2);
+	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, 3.2);
 	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
 }

@@ -32,7 +32,7 @@ namespace
 	constexpr int32 MultigridCoarsestSmoothPassCount = 12;
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
 	constexpr int32 CompositeTileSize = 32;
-	constexpr int32 MaxCompositeSmokeSlots = 8;
+	constexpr int32 MaxCompositeSmokeSlots = 7;
 	constexpr float VortexSubstepIntervalSeconds = 1.0f / 10.0f;
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeDebugView(
@@ -539,6 +539,8 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.AllocatedGridSize = NewGridSize;
 			State.DensityTextures[0].SafeRelease();
 			State.DensityTextures[1].SafeRelease();
+			State.DisplacedDensityTextures[0].SafeRelease();
+			State.DisplacedDensityTextures[1].SafeRelease();
 			State.VelocityTextures[0].SafeRelease();
 			State.VelocityTextures[1].SafeRelease();
 			State.MacVelocityUTextures[0].SafeRelease();
@@ -962,6 +964,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	const auto RegisterMultiSmokeTextures = [&GraphBuilder, PassParameters](const int32 Slot, FRenderSmokeState& State)
 	{
 		FRDGTextureRef DensityTexture = GraphBuilder.RegisterExternalTexture(State.DensityTextures[State.CurrentDensityIndex]);
+		FRDGTextureRef DisplacedDensityTexture = GraphBuilder.RegisterExternalTexture(State.DisplacedDensityTextures[State.CurrentDensityIndex]);
 		FRDGTextureRef WarpTexture = GraphBuilder.RegisterExternalTexture(State.WarpTextures[State.CurrentWarpIndex]);
 		FRDGTextureRef ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 		FRDGTextureRef BulletCutoutTexture = GraphBuilder.RegisterExternalTexture(State.BulletCutoutTextures[State.CurrentBulletFieldIndex]);
@@ -973,6 +976,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		{
 		case 0:
 			PassParameters->DensityTexture0 = DensityTexture;
+			PassParameters->DisplacedDensityTexture0 = DisplacedDensityTexture;
 			PassParameters->WarpTexture0 = WarpTexture;
 			PassParameters->ObstacleTexture0 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture0 = BulletCutoutTexture;
@@ -982,6 +986,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			break;
 		case 1:
 			PassParameters->DensityTexture1 = DensityTexture;
+			PassParameters->DisplacedDensityTexture1 = DisplacedDensityTexture;
 			PassParameters->WarpTexture1 = WarpTexture;
 			PassParameters->ObstacleTexture1 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture1 = BulletCutoutTexture;
@@ -991,6 +996,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			break;
 		case 2:
 			PassParameters->DensityTexture2 = DensityTexture;
+			PassParameters->DisplacedDensityTexture2 = DisplacedDensityTexture;
 			PassParameters->WarpTexture2 = WarpTexture;
 			PassParameters->ObstacleTexture2 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture2 = BulletCutoutTexture;
@@ -1000,6 +1006,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			break;
 		case 3:
 			PassParameters->DensityTexture3 = DensityTexture;
+			PassParameters->DisplacedDensityTexture3 = DisplacedDensityTexture;
 			PassParameters->WarpTexture3 = WarpTexture;
 			PassParameters->ObstacleTexture3 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture3 = BulletCutoutTexture;
@@ -1009,6 +1016,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			break;
 		case 4:
 			PassParameters->DensityTexture4 = DensityTexture;
+			PassParameters->DisplacedDensityTexture4 = DisplacedDensityTexture;
 			PassParameters->WarpTexture4 = WarpTexture;
 			PassParameters->ObstacleTexture4 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture4 = BulletCutoutTexture;
@@ -1018,6 +1026,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			break;
 		case 5:
 			PassParameters->DensityTexture5 = DensityTexture;
+			PassParameters->DisplacedDensityTexture5 = DisplacedDensityTexture;
 			PassParameters->WarpTexture5 = WarpTexture;
 			PassParameters->ObstacleTexture5 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture5 = BulletCutoutTexture;
@@ -1027,21 +1036,13 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			break;
 		case 6:
 			PassParameters->DensityTexture6 = DensityTexture;
+			PassParameters->DisplacedDensityTexture6 = DisplacedDensityTexture;
 			PassParameters->WarpTexture6 = WarpTexture;
 			PassParameters->ObstacleTexture6 = ObstacleTexture;
 			PassParameters->BulletCutoutTexture6 = BulletCutoutTexture;
 			PassParameters->BulletSinkTexture6 = BulletSinkTexture;
 			PassParameters->BrickOccupancyTexture6 = BrickOccupancyTexture;
 			PassParameters->SparseFieldAtlasTexture6 = SparseFieldAtlasTexture;
-			break;
-		default:
-			PassParameters->DensityTexture7 = DensityTexture;
-			PassParameters->WarpTexture7 = WarpTexture;
-			PassParameters->ObstacleTexture7 = ObstacleTexture;
-			PassParameters->BulletCutoutTexture7 = BulletCutoutTexture;
-			PassParameters->BulletSinkTexture7 = BulletSinkTexture;
-			PassParameters->BrickOccupancyTexture7 = BrickOccupancyTexture;
-			PassParameters->SparseFieldAtlasTexture7 = SparseFieldAtlasTexture;
 			break;
 		}
 	};
@@ -1106,6 +1107,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 	{
 		FRenderSmokeState& State = SmokePair.Value;
 		if (State.DensityTextures[State.CurrentDensityIndex].IsValid() &&
+			State.DisplacedDensityTextures[State.CurrentDensityIndex].IsValid() &&
 			State.WarpTextures[State.CurrentWarpIndex].IsValid() &&
 			State.BulletCutoutTextures[State.CurrentBulletFieldIndex].IsValid() &&
 			State.BulletSinkTextures[State.CurrentBulletFieldIndex].IsValid() &&
@@ -1340,6 +1342,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		PassParameters->SceneDepthTexture = Inputs.SceneTextures.SceneTextures->GetParameters()->SceneDepthTexture;
 		PassParameters->SceneColorSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 		PassParameters->DensityTexture = GraphBuilder.RegisterExternalTexture(State.DensityTextures[State.CurrentDensityIndex]);
+		PassParameters->DisplacedDensityTexture = GraphBuilder.RegisterExternalTexture(State.DisplacedDensityTextures[State.CurrentDensityIndex]);
 		PassParameters->DivergenceTexture = GraphBuilder.RegisterExternalTexture(State.DivergenceTexture);
 		PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
 		PassParameters->SparseFieldAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseFieldAtlasTexture);
@@ -1463,6 +1466,12 @@ void FTimeThiefSmokeViewExtension::EnsureResources(FRDGBuilder& GraphBuilder, FR
 		if (!State.DensityTextures[TextureIndex].IsValid())
 		{
 			AllocatePooledTexture(DensityDesc, State.DensityTextures[TextureIndex], TEXT("TimeThiefSmoke.Density"));
+			State.bNeedsInit = true;
+		}
+
+		if (!State.DisplacedDensityTextures[TextureIndex].IsValid())
+		{
+			AllocatePooledTexture(DensityDesc, State.DisplacedDensityTextures[TextureIndex], TEXT("TimeThiefSmoke.DisplacedDensity"));
 			State.bNeedsInit = true;
 		}
 
@@ -1700,6 +1709,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleUpdatePass(
 	FRDGBufferRef VortexIn,
 	FRDGBufferRef VortexOut,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
@@ -1713,6 +1723,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleUpdatePass(
 	PassParameters->VortexParticlesIn = GraphBuilder.CreateSRV(VortexIn);
 	PassParameters->OutVortexParticles = GraphBuilder.CreateUAV(VortexOut);
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->VelocityIn = VelocityIn;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 	PassParameters->BulletCutoutTexture = BulletCutoutTexture;
@@ -1778,6 +1789,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleSplatPass(
 	FRDGBufferRef VortexBuffer,
 	FRDGBufferRef VortexBrickMasksBuffer,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
@@ -1791,6 +1803,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleSplatPass(
 	PassParameters->VortexParticles = GraphBuilder.CreateSRV(VortexBuffer);
 	PassParameters->VortexBrickMasks = GraphBuilder.CreateSRV(VortexBrickMasksBuffer);
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->VelocityIn = VelocityIn;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 	PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
@@ -1874,6 +1887,11 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	{
 		GraphBuilder.RegisterExternalTexture(State.DensityTextures[0]),
 		GraphBuilder.RegisterExternalTexture(State.DensityTextures[1])
+	};
+	FRDGTextureRef DisplacedDensityTextures[2] =
+	{
+		GraphBuilder.RegisterExternalTexture(State.DisplacedDensityTextures[0]),
+		GraphBuilder.RegisterExternalTexture(State.DisplacedDensityTextures[1])
 	};
 	FRDGTextureRef VelocityTextures[2] =
 	{
@@ -2009,6 +2027,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			GraphBuilder,
 			State,
 			DensityTextures[State.CurrentDensityIndex],
+			DisplacedDensityTextures[State.CurrentDensityIndex],
 			VelocityTextures[State.CurrentVelocityIndex],
 			WarpTextures[State.CurrentWarpIndex],
 			BulletCutoutTextures[State.CurrentBulletFieldIndex],
@@ -2057,6 +2076,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 
 	uint64 EstimatedVRAMBytes = 0;
 	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedGridSize, 2) * 2;
+	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedGridSize, 2) * 2;
 	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedGridSize, 16) * 2;
 	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedGridSize, 2) * 2;
 	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedGridSize, 2);
@@ -2084,7 +2104,9 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 
 	if (State.bNeedsInit)
 	{
-		AddInitPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex]);
+		AddInitPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], DisplacedDensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex]);
+		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(DisplacedDensityTextures[0]), 0.0f);
+		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(DisplacedDensityTextures[1]), 0.0f);
 		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(BulletCutoutTextures[0]), 0.0f);
 		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(BulletCutoutTextures[1]), 0.0f);
 		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(BulletSinkTextures[0]), 0.0f);
@@ -2110,6 +2132,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		GraphBuilder,
 		State,
 		DensityTextures[ReadDensityIndex],
+		DisplacedDensityTextures[ReadDensityIndex],
 		VelocityTextures[ReadVelocityIndex],
 		BulletCutoutTextures[BulletReadIndex],
 		BulletSinkTextures[BulletReadIndex],
@@ -2122,6 +2145,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			TEXT("TimeThiefSmoke.AdvectionEventBrickMasks")),
 		AdvectionEventCount,
 		DensityTextures[WriteDensityIndex],
+		DisplacedDensityTextures[WriteDensityIndex],
 		VelocityTextures[WriteVelocityIndex],
 		BulletCutoutTextures[BulletWriteIndex],
 		BulletSinkTextures[BulletWriteIndex],
@@ -2134,7 +2158,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	{
 		const int32 WarpReadIndex = State.CurrentWarpIndex;
 		const int32 WarpWriteIndex = 1 - State.CurrentWarpIndex;
-		AddWarpPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], WarpTextures[WarpReadIndex], WarpTextures[WarpWriteIndex], ActorEventBuffer, ActorEventBrickMasksBuffer, ActorEventCount, DeltaSeconds);
+		AddWarpPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], DisplacedDensityTextures[State.CurrentDensityIndex], WarpTextures[WarpReadIndex], WarpTextures[WarpWriteIndex], ActorEventBuffer, ActorEventBrickMasksBuffer, ActorEventCount, DeltaSeconds);
 		State.CurrentWarpIndex = WarpWriteIndex;
 		State.WarpDecayBudgetSeconds = FMath::Max(0.0f, State.WarpDecayBudgetSeconds - DeltaSeconds);
 		State.bWarpClearPending = !bHasActorEvent && State.WarpDecayBudgetSeconds <= UE_SMALL_NUMBER;
@@ -2153,7 +2177,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			const int32 EventReadVelocityIndex = State.CurrentVelocityIndex;
 			const int32 EventWriteDensityIndex = 1 - State.CurrentDensityIndex;
 			const int32 EventWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
-			AddApplyEventsPass(GraphBuilder, State, DensityTextures[EventReadDensityIndex], VelocityTextures[EventReadVelocityIndex], DensityTextures[EventWriteDensityIndex], VelocityTextures[EventWriteVelocityIndex], ExplosionEventBuffer, ExplosionEventBrickMasksBuffer, ExplosionEventCount, DeltaSeconds);
+			AddApplyEventsPass(GraphBuilder, State, DensityTextures[EventReadDensityIndex], DisplacedDensityTextures[EventReadDensityIndex], VelocityTextures[EventReadVelocityIndex], DensityTextures[EventWriteDensityIndex], DisplacedDensityTextures[EventWriteDensityIndex], VelocityTextures[EventWriteVelocityIndex], ExplosionEventBuffer, ExplosionEventBrickMasksBuffer, ExplosionEventCount, DeltaSeconds);
 			State.CurrentDensityIndex = EventWriteDensityIndex;
 			State.CurrentVelocityIndex = EventWriteVelocityIndex;
 		}
@@ -2164,7 +2188,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			const int32 ObstacleReadVelocityIndex = State.CurrentVelocityIndex;
 			const int32 ObstacleWriteDensityIndex = 1 - State.CurrentDensityIndex;
 			const int32 ObstacleWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
-			AddDynamicObstaclePass(GraphBuilder, State, DensityTextures[ObstacleReadDensityIndex], VelocityTextures[ObstacleReadVelocityIndex], DensityTextures[ObstacleWriteDensityIndex], VelocityTextures[ObstacleWriteVelocityIndex], ActorEventBuffer, ActorEventBrickMasksBuffer, ActorEventCount, DeltaSeconds);
+			AddDynamicObstaclePass(GraphBuilder, State, DensityTextures[ObstacleReadDensityIndex], DisplacedDensityTextures[ObstacleReadDensityIndex], VelocityTextures[ObstacleReadVelocityIndex], DensityTextures[ObstacleWriteDensityIndex], DisplacedDensityTextures[ObstacleWriteDensityIndex], VelocityTextures[ObstacleWriteVelocityIndex], ActorEventBuffer, ActorEventBrickMasksBuffer, ActorEventCount, DeltaSeconds);
 			State.CurrentDensityIndex = ObstacleWriteDensityIndex;
 			State.CurrentVelocityIndex = ObstacleWriteVelocityIndex;
 		}
@@ -2181,6 +2205,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			VortexParticleBuffers[VortexParticleReadIndex],
 			VortexParticleBuffers[VortexParticleWriteIndex],
 			DensityTextures[State.CurrentDensityIndex],
+			DisplacedDensityTextures[State.CurrentDensityIndex],
 			VelocityTextures[State.CurrentVelocityIndex],
 			BulletCutoutTextures[State.CurrentBulletFieldIndex],
 			BulletSinkTextures[State.CurrentBulletFieldIndex],
@@ -2191,7 +2216,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 
 		const int32 VorticityWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
 		AddBuildCurlPass(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex], CurlTexture);
-		AddVorticityPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex], CurlTexture, VelocityTextures[VorticityWriteVelocityIndex], ForceEventBuffer, ForceEventBrickMasksBuffer, ForceEventCount, VortexDeltaSeconds);
+		AddVorticityPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], DisplacedDensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex], CurlTexture, VelocityTextures[VorticityWriteVelocityIndex], ForceEventBuffer, ForceEventBrickMasksBuffer, ForceEventCount, VortexDeltaSeconds);
 		State.CurrentVelocityIndex = VorticityWriteVelocityIndex;
 
 		const int32 VortexSplatWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
@@ -2218,6 +2243,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			VortexParticleBuffers[State.CurrentVortexParticleIndex],
 			VortexBrickMasksBuffer,
 			DensityTextures[State.CurrentDensityIndex],
+			DisplacedDensityTextures[State.CurrentDensityIndex],
 			VelocityTextures[State.CurrentVelocityIndex],
 			BulletCutoutTextures[State.CurrentBulletFieldIndex],
 			BulletSinkTextures[State.CurrentBulletFieldIndex],
@@ -2307,6 +2333,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			GraphBuilder,
 			State,
 			DensityTextures[State.CurrentDensityIndex],
+			DisplacedDensityTextures[State.CurrentDensityIndex],
 			VelocityTextures[State.CurrentVelocityIndex],
 			WarpTextures[State.CurrentWarpIndex],
 			BulletCutoutTextures[State.CurrentBulletFieldIndex],
@@ -2326,6 +2353,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 				GraphBuilder,
 				State,
 				DensityTextures[State.CurrentDensityIndex],
+				DisplacedDensityTextures[State.CurrentDensityIndex],
 				WarpTextures[State.CurrentWarpIndex],
 				BulletCutoutTextures[State.CurrentBulletFieldIndex],
 				BulletSinkTextures[State.CurrentBulletFieldIndex],
@@ -2338,6 +2366,7 @@ void FTimeThiefSmokeViewExtension::AddInitPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityTexture,
+	FRDGTextureRef DisplacedDensityTexture,
 	FRDGTextureRef VelocityTexture)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
@@ -2346,6 +2375,7 @@ void FTimeThiefSmokeViewExtension::AddInitPass(
 	TShaderMapRef<FTimeThiefSmokeInitCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeInitCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeInitCS::FParameters>();
 	PassParameters->OutDensity = GraphBuilder.CreateUAV(DensityTexture);
+	PassParameters->OutDisplacedDensity = GraphBuilder.CreateUAV(DisplacedDensityTexture);
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityTexture);
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
@@ -2365,8 +2395,10 @@ void FTimeThiefSmokeViewExtension::AddApplyEventsPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef DensityOut,
+	FRDGTextureRef DisplacedDensityOut,
 	FRDGTextureRef VelocityOut,
 	FRDGBufferRef EventBuffer,
 	FRDGBufferRef EventBrickMasksBuffer,
@@ -2379,6 +2411,7 @@ void FTimeThiefSmokeViewExtension::AddApplyEventsPass(
 	TShaderMapRef<FTimeThiefSmokeApplyEventsCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeApplyEventsCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeApplyEventsCS::FParameters>();
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->VelocityIn = VelocityIn;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 	PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
@@ -2386,6 +2419,7 @@ void FTimeThiefSmokeViewExtension::AddApplyEventsPass(
 	PassParameters->Events = GraphBuilder.CreateSRV(EventBuffer);
 	PassParameters->EventBrickMasks = GraphBuilder.CreateSRV(EventBrickMasksBuffer);
 	PassParameters->OutDensity = GraphBuilder.CreateUAV(DensityOut);
+	PassParameters->OutDisplacedDensity = GraphBuilder.CreateUAV(DisplacedDensityOut);
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BrickGridResolution = State.AllocatedBrickGridSize;
@@ -2410,8 +2444,10 @@ void FTimeThiefSmokeViewExtension::AddDynamicObstaclePass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef DensityOut,
+	FRDGTextureRef DisplacedDensityOut,
 	FRDGTextureRef VelocityOut,
 	FRDGBufferRef EventBuffer,
 	FRDGBufferRef EventBrickMasksBuffer,
@@ -2424,6 +2460,7 @@ void FTimeThiefSmokeViewExtension::AddDynamicObstaclePass(
 	TShaderMapRef<FTimeThiefSmokeDynamicObstacleCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeDynamicObstacleCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeDynamicObstacleCS::FParameters>();
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->VelocityIn = VelocityIn;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 	PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
@@ -2431,6 +2468,7 @@ void FTimeThiefSmokeViewExtension::AddDynamicObstaclePass(
 	PassParameters->Events = GraphBuilder.CreateSRV(EventBuffer);
 	PassParameters->EventBrickMasks = GraphBuilder.CreateSRV(EventBrickMasksBuffer);
 	PassParameters->OutDensity = GraphBuilder.CreateUAV(DensityOut);
+	PassParameters->OutDisplacedDensity = GraphBuilder.CreateUAV(DisplacedDensityOut);
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BrickGridResolution = State.AllocatedBrickGridSize;
@@ -2462,6 +2500,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
@@ -2469,6 +2508,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 	FRDGBufferRef EventBrickMasksBuffer,
 	int32 EventCount,
 	FRDGTextureRef DensityOut,
+	FRDGTextureRef DisplacedDensityOut,
 	FRDGTextureRef VelocityOut,
 	FRDGTextureRef BulletCutoutOut,
 	FRDGTextureRef BulletSinkOut,
@@ -2480,6 +2520,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 	TShaderMapRef<FTimeThiefSmokeSimulateCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeSimulateCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeSimulateCS::FParameters>();
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->VelocityIn = VelocityIn;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 	PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
@@ -2489,6 +2530,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 	PassParameters->Events = GraphBuilder.CreateSRV(EventBuffer);
 	PassParameters->EventBrickMasks = GraphBuilder.CreateSRV(EventBrickMasksBuffer);
 	PassParameters->OutDensity = GraphBuilder.CreateUAV(DensityOut);
+	PassParameters->OutDisplacedDensity = GraphBuilder.CreateUAV(DisplacedDensityOut);
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
 	PassParameters->OutCutout = GraphBuilder.CreateUAV(BulletCutoutOut);
 	PassParameters->OutSink = GraphBuilder.CreateUAV(BulletSinkOut);
@@ -2538,6 +2580,7 @@ void FTimeThiefSmokeViewExtension::AddWarpPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef WarpIn,
 	FRDGTextureRef WarpOut,
 	FRDGBufferRef EventBuffer,
@@ -2551,6 +2594,7 @@ void FTimeThiefSmokeViewExtension::AddWarpPass(
 	TShaderMapRef<FTimeThiefSmokeWarpCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeWarpCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeWarpCS::FParameters>();
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->WarpIn = WarpIn;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
 	PassParameters->BrickOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.BrickOccupancyTexture);
@@ -2615,6 +2659,7 @@ void FTimeThiefSmokeViewExtension::AddVorticityPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityIn,
+	FRDGTextureRef DisplacedDensityIn,
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef CurlTexture,
 	FRDGTextureRef VelocityOut,
@@ -2630,6 +2675,7 @@ void FTimeThiefSmokeViewExtension::AddVorticityPass(
 	TShaderMapRef<FTimeThiefSmokeVorticityCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	FTimeThiefSmokeVorticityCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeVorticityCS::FParameters>();
 	PassParameters->DensityIn = DensityIn;
+	PassParameters->DisplacedDensityIn = DisplacedDensityIn;
 	PassParameters->VelocityIn = VelocityIn;
 	PassParameters->CurlTexture = CurlTexture;
 	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture);
@@ -2700,6 +2746,7 @@ void FTimeThiefSmokeViewExtension::AddBuildBrickOccupancyPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityTexture,
+	FRDGTextureRef DisplacedDensityTexture,
 	FRDGTextureRef VelocityTexture,
 	FRDGTextureRef WarpTexture,
 	FRDGTextureRef BulletCutoutTexture,
@@ -2719,6 +2766,7 @@ void FTimeThiefSmokeViewExtension::AddBuildBrickOccupancyPass(
 	PassParameters->SmokeBrickSize = BrickSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->DensityTexture = DensityTexture;
+	PassParameters->DisplacedDensityTexture = DisplacedDensityTexture;
 	PassParameters->VelocityIn = VelocityTexture;
 	PassParameters->WarpTexture = WarpTexture;
 	PassParameters->BulletCutoutTexture = BulletCutoutTexture;
@@ -2796,6 +2844,7 @@ void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
 	FRDGTextureRef DensityTexture,
+	FRDGTextureRef DisplacedDensityTexture,
 	FRDGTextureRef WarpTexture,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
@@ -2826,6 +2875,7 @@ void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
 	PassParameters->ActiveBrickCountBuffer = GraphBuilder.CreateSRV(ActiveBrickResources.ActiveBrickCountBuffer);
 	PassParameters->ActiveBricks = GraphBuilder.CreateSRV(ActiveBrickResources.ActiveBricksBuffer);
 	PassParameters->DensityTexture = DensityTexture;
+	PassParameters->DisplacedDensityTexture = DisplacedDensityTexture;
 	PassParameters->WarpTexture = WarpTexture;
 	PassParameters->BulletCutoutTexture = BulletCutoutTexture;
 	PassParameters->BulletSinkTexture = BulletSinkTexture;

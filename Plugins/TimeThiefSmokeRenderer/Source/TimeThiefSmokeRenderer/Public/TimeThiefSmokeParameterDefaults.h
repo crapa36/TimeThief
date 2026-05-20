@@ -9,7 +9,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 실제 시뮬레이션/충돌 박스 반경(cm).
 	inline FVector GetSmokeBoundsExtent()
 	{
-		return FVector(400.0, 400.0, 400.0);
+		return FVector(800.0, 800.0, 800.0);
 	}
 
 	// 시뮬레이션 박스 밖 렌더 여백(cm).
@@ -170,7 +170,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 연막당 프레임별 GPU 상호작용 이벤트 최대 개수. 높을수록 반응 품질과 비용 증가.
 	constexpr int32 MaxGPUEventsPerSmokePerFrame = 64;
 	// 틱당 연막 하나가 처리할 총알 궤적 최대 개수. 높을수록 반응 정확도와 비용 증가.
-	constexpr int32 MaxBulletTracesPerSmokePerTick = 18;
+	constexpr int32 MaxBulletTracesPerSmokePerTick = 16;
 	// 연막 하나가 동시에 유지할 폭발 충격 이벤트 최대 개수. 높을수록 중첩 반응과 비용 증가.
 	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = 16;
 	// sparse brick 활성화에 쓰는 최소 속도(cm/s). 높을수록 비용 감소, 저속 움직임 감소.

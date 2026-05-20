@@ -113,7 +113,7 @@ float4 LoadCompositeFieldCell(int3 CellCoord)
 	if (BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
 	{
 		return float4(
-			DensityTexture.Load(int4(SafeCellCoord, 0)),
+			DensityTexture.Load(int4(SafeCellCoord, 0)) + DisplacedDensityTexture.Load(int4(SafeCellCoord, 0)),
 			WarpTexture.Load(int4(SafeCellCoord, 0)),
 			BulletCutoutTexture.Load(int4(SafeCellCoord, 0)),
 			BulletSinkTexture.Load(int4(SafeCellCoord, 0)));
@@ -156,7 +156,7 @@ float4 SampleCompositeSparseFields(float3 VolumeUVW)
 		if (BrickIndirection > (uint)max(MaxActiveSmokeBricks, 1))
 		{
 			return float4(
-				DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+				DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0) + DisplacedDensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
 				WarpTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
 				BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
 				BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0));
@@ -202,7 +202,7 @@ float4 SampleFieldSet(float3 VolumeUVW)
 	return bUseSparseAtlas != 0u
 		? SampleCompositeSparseFields(VolumeUVW)
 		: float4(
-			DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
+			DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0) + DisplacedDensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
 			WarpTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
 			BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0),
 			BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0));

@@ -70,7 +70,7 @@ float LoadCachedCurlMagnitude(int3 Coord)
 float LoadOpenDensity(int3 Coord)
 {
 	const int3 SafeCoord = ClampSmokeCoord(Coord);
-	return max(DensityIn.Load(int4(SafeCoord, 0)), 0.0) * LoadOpen(SafeCoord);
+	return max(DensityIn.Load(int4(SafeCoord, 0)) + DisplacedDensityIn.Load(int4(SafeCoord, 0)), 0.0) * LoadOpen(SafeCoord);
 }
 
 float3 ComputeDensityGradient(int3 Coord)
@@ -235,7 +235,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
-	const float Density = max(DensityIn.Load(int4(Coord, 0)), 0.0);
+	const float Density = max(DensityIn.Load(int4(Coord, 0)) + DisplacedDensityIn.Load(int4(Coord, 0)), 0.0);
 	float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
 	const float4 CurlPacked = LoadCurlPacked(Coord);

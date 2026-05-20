@@ -18,5 +18,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float DensitySeed = InitialDensity * SourceSeed * BoundsFade * 0.45;
 
 	OutDensity[DispatchThreadId] = DensitySeed;
+	OutDisplacedDensity[DispatchThreadId] = 0.0;
 	OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
 }

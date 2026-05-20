@@ -5,7 +5,9 @@ TIME_THIEF_SMOKE_UPDATE_VORTEX_PARTICLES_PARAMETERS
 
 float DenseVortexDensityAt(float3 UVW)
 {
-	return TimeThiefSmokeInsideUVW(UVW) ? max(DensityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0), 0.0) : 0.0;
+	return TimeThiefSmokeInsideUVW(UVW)
+		? max(DensityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0), 0.0)
+		: 0.0;
 }
 
 float3 DenseVortexDensityGradientAt(float3 UVW)

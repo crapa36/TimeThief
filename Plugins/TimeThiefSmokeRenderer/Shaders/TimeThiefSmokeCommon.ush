@@ -172,6 +172,34 @@ float TimeThiefSmokeRenderBoundaryMask(float3 SimulationLocal, float3 BoundsExte
 	return 1.0 - smoothstep(FadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 }
 
+float TimeThiefSmokeNaturalBoundsMask(float3 SimulationLocal, float3 BoundsExtent, float3 NaturalBoundsExtent, float BoundaryNoise)
+{
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 SafeNaturalBoundsExtent = max(NaturalBoundsExtent, 1.0);
+	const float3 NaturalCoverage = max(saturate(SafeNaturalBoundsExtent / SafeBoundsExtent), 0.001);
+	const float3 NaturalLocal = SimulationLocal / NaturalCoverage;
+	const float BoxDistance = max(max(abs(NaturalLocal.x), abs(NaturalLocal.y)), abs(NaturalLocal.z));
+	return 1.0 - smoothstep(0.92, 1.02, BoxDistance + BoundaryNoise);
+}
+
+float3 TimeThiefSmokeNaturalBoundsNormal(float3 SimulationLocal, float3 BoundsExtent, float3 NaturalBoundsExtent)
+{
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 SafeNaturalBoundsExtent = max(NaturalBoundsExtent, 1.0);
+	const float3 NaturalCoverage = max(saturate(SafeNaturalBoundsExtent / SafeBoundsExtent), 0.001);
+	const float3 NaturalLocal = SimulationLocal / NaturalCoverage;
+	const float3 AbsLocal = abs(NaturalLocal);
+	if (AbsLocal.x >= AbsLocal.y && AbsLocal.x >= AbsLocal.z)
+	{
+		return float3(NaturalLocal.x < 0.0 ? -1.0 : 1.0, 0.0, 0.0);
+	}
+	if (AbsLocal.y >= AbsLocal.z)
+	{
+		return float3(0.0, NaturalLocal.y < 0.0 ? -1.0 : 1.0, 0.0);
+	}
+	return float3(0.0, 0.0, NaturalLocal.z < 0.0 ? -1.0 : 1.0);
+}
+
 float3 TimeThiefSmokeVoxelLocal(uint3 Voxel, int3 GridResolution, float3 BoundsExtent)
 {
 	const float3 UVW = (float3(Voxel) + 0.5) / max(float3(GridResolution), 1.0);

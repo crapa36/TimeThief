@@ -154,7 +154,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
 	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
 	const int3 Coord = int3(DispatchThreadId);
-	const float Density = max(DensityIn.Load(int4(Coord, 0)), 0.0) * OpenMask;
+	const float Density = max(DensityIn.Load(int4(Coord, 0)) + DisplacedDensityIn.Load(int4(Coord, 0)), 0.0) * OpenMask;
 	float Warp = max(WarpIn.Load(int4(Coord, 0)), 0.0) * exp2(-max(WarpTrailDecayRate, 0.0) * SafeDeltaSeconds);
 
 	float Source = 0.0;
