@@ -1280,6 +1280,10 @@ void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
 {
 }
 
+void UNetworkGameInstanceSubsystem::HandleMonsterFire(const se::game::N_MonsterFire& Pkt)
+{
+}
+
 void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt)
 {
 	check(IsInGameThread());

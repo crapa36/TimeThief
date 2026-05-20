@@ -440,6 +440,23 @@ struct N_AttackDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_AttackDefaultTypeInternal _N_Attack_default_instance_;
+PROTOBUF_CONSTEXPR N_MonsterFire::N_MonsterFire(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.entity_id_)*/nullptr
+  , /*decltype(_impl_.start_position_)*/nullptr
+  , /*decltype(_impl_.direction_)*/nullptr
+  , /*decltype(_impl_.attack_type_)*/0u
+  , /*decltype(_impl_.range_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_MonsterFireDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_MonsterFireDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_MonsterFireDefaultTypeInternal() {}
+  union {
+    N_MonsterFire _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_MonsterFireDefaultTypeInternal _N_MonsterFire_default_instance_;
 PROTOBUF_CONSTEXPR C_ThrowGrenadeReq::C_ThrowGrenadeReq(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.start_position_)*/nullptr
@@ -1066,7 +1083,7 @@ struct N_TimeStormChangeDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_TimeStormChangeDefaultTypeInternal _N_TimeStormChange_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[75];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[76];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 
@@ -1312,6 +1329,17 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::N_Attack, _impl_.entity_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_Attack, _impl_.attack_type_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MonsterFire, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MonsterFire, _impl_.entity_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MonsterFire, _impl_.attack_type_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MonsterFire, _impl_.start_position_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MonsterFire, _impl_.direction_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_MonsterFire, _impl_.range_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::C_ThrowGrenadeReq, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -1704,50 +1732,51 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 218, -1, -1, sizeof(::se::game::C_WeaponChangeReq)},
   { 225, -1, -1, sizeof(::se::game::N_WeaponChanged)},
   { 233, -1, -1, sizeof(::se::game::N_Attack)},
-  { 241, -1, -1, sizeof(::se::game::C_ThrowGrenadeReq)},
-  { 250, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
-  { 260, -1, -1, sizeof(::se::game::C_GrenadeMoveSyncReq)},
-  { 269, -1, -1, sizeof(::se::game::N_GrenadeMoveSync)},
-  { 278, -1, -1, sizeof(::se::game::C_GrenadeExplosionReq)},
-  { 286, -1, -1, sizeof(::se::game::N_GrenadeExplosion)},
-  { 294, -1, -1, sizeof(::se::game::N_ProjectileExplosion)},
-  { 303, -1, -1, sizeof(::se::game::N_WeaponStatChanged)},
-  { 311, -1, -1, sizeof(::se::game::N_WeaponStatSnapshot)},
-  { 318, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
-  { 325, -1, -1, sizeof(::se::game::N_UseAbility)},
-  { 333, -1, -1, sizeof(::se::game::N_EntityHit)},
-  { 342, -1, -1, sizeof(::se::game::N_KillPlayer)},
-  { 350, -1, -1, sizeof(::se::game::C_UseItemReq)},
-  { 357, -1, -1, sizeof(::se::game::S_UseItemRes)},
-  { 366, -1, -1, sizeof(::se::game::N_UseItem)},
-  { 374, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
-  { 381, -1, -1, sizeof(::se::game::N_ChestInteracted)},
-  { 389, -1, -1, sizeof(::se::game::C_PickupItemReq)},
-  { 396, -1, -1, sizeof(::se::game::N_PickupItem)},
-  { 404, -1, -1, sizeof(::se::game::C_EquipItemReq)},
-  { 411, -1, -1, sizeof(::se::game::S_EquipItemRes)},
-  { 420, -1, -1, sizeof(::se::game::N_EquipItem)},
-  { 428, -1, -1, sizeof(::se::game::C_UseStoreReq)},
-  { 436, -1, -1, sizeof(::se::game::S_UseStoreRes)},
-  { 447, -1, -1, sizeof(::se::game::N_ItemGained)},
-  { 456, -1, -1, sizeof(::se::game::N_ItemLost)},
-  { 465, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
-  { 472, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
-  { 479, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
-  { 488, -1, -1, sizeof(::se::game::N_HealthChanged)},
-  { 497, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
-  { 506, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
-  { 514, -1, -1, sizeof(::se::game::N_SpeedChanged)},
-  { 521, -1, -1, sizeof(::se::game::N_TimePointChanged)},
-  { 529, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
-  { 536, -1, -1, sizeof(::se::game::N_SkillUnlock)},
-  { 543, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
-  { 551, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
-  { 561, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
-  { 568, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 575, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 583, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 590, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 241, -1, -1, sizeof(::se::game::N_MonsterFire)},
+  { 252, -1, -1, sizeof(::se::game::C_ThrowGrenadeReq)},
+  { 261, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
+  { 271, -1, -1, sizeof(::se::game::C_GrenadeMoveSyncReq)},
+  { 280, -1, -1, sizeof(::se::game::N_GrenadeMoveSync)},
+  { 289, -1, -1, sizeof(::se::game::C_GrenadeExplosionReq)},
+  { 297, -1, -1, sizeof(::se::game::N_GrenadeExplosion)},
+  { 305, -1, -1, sizeof(::se::game::N_ProjectileExplosion)},
+  { 314, -1, -1, sizeof(::se::game::N_WeaponStatChanged)},
+  { 322, -1, -1, sizeof(::se::game::N_WeaponStatSnapshot)},
+  { 329, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
+  { 336, -1, -1, sizeof(::se::game::N_UseAbility)},
+  { 344, -1, -1, sizeof(::se::game::N_EntityHit)},
+  { 353, -1, -1, sizeof(::se::game::N_KillPlayer)},
+  { 361, -1, -1, sizeof(::se::game::C_UseItemReq)},
+  { 368, -1, -1, sizeof(::se::game::S_UseItemRes)},
+  { 377, -1, -1, sizeof(::se::game::N_UseItem)},
+  { 385, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
+  { 392, -1, -1, sizeof(::se::game::N_ChestInteracted)},
+  { 400, -1, -1, sizeof(::se::game::C_PickupItemReq)},
+  { 407, -1, -1, sizeof(::se::game::N_PickupItem)},
+  { 415, -1, -1, sizeof(::se::game::C_EquipItemReq)},
+  { 422, -1, -1, sizeof(::se::game::S_EquipItemRes)},
+  { 431, -1, -1, sizeof(::se::game::N_EquipItem)},
+  { 439, -1, -1, sizeof(::se::game::C_UseStoreReq)},
+  { 447, -1, -1, sizeof(::se::game::S_UseStoreRes)},
+  { 458, -1, -1, sizeof(::se::game::N_ItemGained)},
+  { 467, -1, -1, sizeof(::se::game::N_ItemLost)},
+  { 476, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
+  { 483, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
+  { 490, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
+  { 499, -1, -1, sizeof(::se::game::N_HealthChanged)},
+  { 508, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
+  { 517, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
+  { 525, -1, -1, sizeof(::se::game::N_SpeedChanged)},
+  { 532, -1, -1, sizeof(::se::game::N_TimePointChanged)},
+  { 540, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
+  { 547, -1, -1, sizeof(::se::game::N_SkillUnlock)},
+  { 554, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
+  { 562, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
+  { 572, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
+  { 579, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 586, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 594, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 601, -1, -1, sizeof(::se::game::N_TimeStormChange)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1782,6 +1811,7 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_C_WeaponChangeReq_default_instance_._instance,
   &::se::game::_N_WeaponChanged_default_instance_._instance,
   &::se::game::_N_Attack_default_instance_._instance,
+  &::se::game::_N_MonsterFire_default_instance_._instance,
   &::se::game::_C_ThrowGrenadeReq_default_instance_._instance,
   &::se::game::_N_ThrowGrenade_default_instance_._instance,
   &::se::game::_C_GrenadeMoveSyncReq_default_instance_._instance,
@@ -1900,116 +1930,121 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "_id\030\001 \001(\0132\023.se.common.ObjectId\022\021\n\tweapon"
   "_id\030\002 \001(\r:\r\210\265\030\212 \220\265\030\002\230\265\030\004\"V\n\010N_Attack\022&\n\t"
   "entity_id\030\001 \001(\0132\023.se.common.ObjectId\022\023\n\013"
-  "attack_type\030\002 \001(\r:\r\210\265\030\216 \220\265\030\002\230\265\030\004\"\213\001\n\021C_T"
-  "hrowGrenadeReq\022\024\n\014grenade_type\030\001 \001(\r\022*\n\016"
-  "start_position\030\002 \001(\0132\022.se.common.Vector3"
-  "\022%\n\tdirection\030\003 \001(\0132\022.se.common.Vector3:"
-  "\r\210\265\030\230 \220\265\030\001\230\265\030\004\"\260\001\n\016N_ThrowGrenade\022&\n\tent"
-  "ity_id\030\001 \001(\0132\023.se.common.ObjectId\022\024\n\014gre"
-  "nade_type\030\002 \001(\r\022*\n\016start_position\030\003 \001(\0132"
-  "\022.se.common.Vector3\022%\n\tdirection\030\004 \001(\0132\022"
-  ".se.common.Vector3:\r\210\265\030\231 \220\265\030\002\230\265\030\004\"\231\001\n\024C_"
-  "GrenadeMoveSyncReq\022&\n\tentity_id\030\001 \001(\0132\023."
-  "se.common.ObjectId\022$\n\010position\030\002 \001(\0132\022.s"
-  "e.common.Vector3\022$\n\010velocity\030\003 \001(\0132\022.se."
-  "common.Vector3:\r\210\265\030\232 \220\265\030\001\230\265\030\004\"\226\001\n\021N_Gren"
-  "adeMoveSync\022&\n\tentity_id\030\001 \001(\0132\023.se.comm"
-  "on.ObjectId\022$\n\010position\030\002 \001(\0132\022.se.commo"
-  "n.Vector3\022$\n\010velocity\030\003 \001(\0132\022.se.common."
-  "Vector3:\r\210\265\030\233 \220\265\030\002\230\265\030\004\"t\n\025C_GrenadeExplo"
-  "sionReq\022&\n\tentity_id\030\001 \001(\0132\023.se.common.O"
-  "bjectId\022$\n\010position\030\002 \001(\0132\022.se.common.Ve"
-  "ctor3:\r\210\265\030\234 \220\265\030\001\230\265\030\004\"q\n\022N_GrenadeExplosi"
-  "on\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Object"
-  "Id\022$\n\010position\030\002 \001(\0132\022.se.common.Vector3"
-  ":\r\210\265\030\235 \220\265\030\002\230\265\030\004\"\216\001\n\025N_ProjectileExplosio"
-  "n\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectI"
-  "d\022$\n\010position\030\002 \001(\0132\022.se.common.Vector3\022"
-  "\030\n\020explosion_radius\030\003 \001(\002:\r\210\265\030\236 \220\265\030\002\230\265\030\004"
-  "\"`\n\023N_WeaponStatChanged\022\021\n\tweapon_id\030\001 \001"
-  "(\r\022\'\n\005stats\030\002 \003(\0132\030.se.game.WeaponStatVa"
-  "lue:\r\210\265\030\242 \220\265\030\002\230\265\030\004\"Q\n\024N_WeaponStatSnapsh"
-  "ot\022*\n\005stats\030\002 \003(\0132\033.se.game.WeaponSlotSn"
-  "apshot:\r\210\265\030\243 \220\265\030\002\230\265\030\004\"4\n\017C_UseAbilityReq"
-  "\022\022\n\nability_id\030\001 \001(\r:\r\210\265\030\254 \220\265\030\001\230\265\030\004\"Y\n\014N"
-  "_UseAbility\022&\n\tentity_id\030\001 \001(\0132\023.se.comm"
-  "on.ObjectId\022\022\n\nability_id\030\002 \001(\r:\r\210\265\030\255 \220\265"
-  "\030\002\230\265\030\004\"~\n\013N_EntityHit\022&\n\tentity_id\030\001 \001(\013"
-  "2\023.se.common.ObjectId\022(\n\014hit_position\030\002 "
-  "\001(\0132\022.se.common.Vector3\022\016\n\006damage\030\003 \001(\r:"
-  "\r\210\265\030\266 \220\265\030\002\230\265\030\004\"m\n\014N_KillPlayer\022&\n\tkiller"
-  "_id\030\001 \001(\0132\023.se.common.ObjectId\022&\n\tvictim"
-  "_id\030\002 \001(\0132\023.se.common.ObjectId:\r\210\265\030\336 \220\265\030"
-  "\002\230\265\030\004\".\n\014C_UseItemReq\022\017\n\007item_id\030\001 \001(\r:\r"
-  "\210\265\030\350 \220\265\030\001\230\265\030\004\"b\n\014S_UseItemRes\022\017\n\007success"
-  "\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.Resul"
-  "t\022\017\n\007item_id\030\003 \001(\r:\r\210\265\030\351 \220\265\030\002\230\265\030\004\"S\n\tN_U"
-  "seItem\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Ob"
-  "jectId\022\017\n\007item_id\030\002 \001(\r:\r\210\265\030\352 \220\265\030\002\230\265\030\004\"Q"
-  "\n\022C_ChestInteractReq\022,\n\017chest_entity_id\030"
-  "\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\362 \220\265\030\001\230\265\030"
-  "\004\"x\n\021N_ChestInteracted\022&\n\tentity_id\030\001 \001("
-  "\0132\023.se.common.ObjectId\022,\n\017chest_entity_i"
-  "d\030\002 \001(\0132\023.se.common.ObjectId:\r\210\265\030\363 \220\265\030\002\230"
-  "\265\030\004\"M\n\017C_PickupItemReq\022+\n\016item_entity_id"
-  "\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\374 \220\265\030\001\230\265"
-  "\030\004\"r\n\014N_PickupItem\022&\n\tentity_id\030\001 \001(\0132\023."
-  "se.common.ObjectId\022+\n\016item_entity_id\030\002 \001"
-  "(\0132\023.se.common.ObjectId:\r\210\265\030\375 \220\265\030\002\230\265\030\004\"0"
-  "\n\016C_EquipItemReq\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\206!"
-  "\220\265\030\001\230\265\030\004\"d\n\016S_EquipItemRes\022\017\n\007success\030\001 "
-  "\001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.Result\022\017"
-  "\n\007item_id\030\003 \001(\r:\r\210\265\030\207!\220\265\030\002\230\265\030\004\"U\n\013N_Equi"
-  "pItem\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obj"
-  "ectId\022\017\n\007item_id\030\002 \001(\r:\r\210\265\030\210!\220\265\030\002\230\265\030\004\"c\n"
-  "\rC_UseStoreReq\022,\n\017store_entity_id\030\001 \001(\0132"
-  "\023.se.common.ObjectId\022\025\n\rstore_item_id\030\002 "
-  "\001(\r:\r\210\265\030\220!\220\265\030\001\230\265\030\004\"\221\001\n\rS_UseStoreRes\022\017\n\007"
-  "success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.commo"
-  "n.Result\022\025\n\rstore_item_id\030\003 \001(\r\022\021\n\tnew_p"
-  "rice\030\004 \001(\005\022\023\n\013is_sold_out\030\005 \001(\010:\r\210\265\030\221!\220\265"
-  "\030\002\230\265\030\004\"V\n\014N_ItemGained\022\017\n\007item_id\030\001 \001(\r\022"
-  "\024\n\014new_quantity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:"
-  "\r\210\265\030\232!\220\265\030\002\230\265\030\004\"T\n\nN_ItemLost\022\017\n\007item_id\030"
-  "\001 \001(\r\022\024\n\014new_quantity\030\002 \001(\r\022\020\n\010quantity\030"
-  "\003 \001(\r:\r\210\265\030\233!\220\265\030\002\230\265\030\004\"B\n\016N_ItemSnapshot\022!"
-  "\n\005items\030\001 \003(\0132\022.se.game.ItemStack:\r\210\265\030\234!"
-  "\220\265\030\002\230\265\030\004\"H\n\021C_SetSavePointReq\022$\n\010positio"
-  "n\030\001 \001(\0132\022.se.common.Vector3:\r\210\265\030\302!\220\265\030\001\230\265"
-  "\030\004\"|\n\021S_SetSavePointRes\022\017\n\007success\030\001 \001(\010"
-  "\022!\n\006result\030\002 \001(\0132\021.se.common.Result\022$\n\010p"
-  "osition\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\303!"
-  "\220\265\030\002\230\265\030\004\"k\n\017N_HealthChanged\022&\n\tentity_id"
-  "\030\001 \001(\0132\023.se.common.ObjectId\022\022\n\nnew_healt"
-  "h\030\002 \001(\005\022\r\n\005delta\030\003 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n"
-  "\022N_MaxHealthChanged\022&\n\tentity_id\030\001 \001(\0132\023"
-  ".se.common.ObjectId\022\026\n\016new_max_health\030\002 "
-  "\001(\005\022\032\n\022new_current_health\030\003 \001(\005:\r\210\265\030\315!\220\265"
-  "\030\002\230\265\030\004\"M\n\020N_HealthSnapshot\022\026\n\016current_he"
-  "alth\030\001 \001(\005\022\022\n\nmax_health\030\002 \001(\005:\r\210\265\030\316!\220\265\030"
-  "\002\230\265\030\004\"2\n\016N_SpeedChanged\022\021\n\tnew_speed\030\001 \001"
-  "(\002:\r\210\265\030\321!\220\265\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022"
-  "\027\n\017new_time_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:"
-  "\r\210\265\030\326!\220\265\030\002\230\265\030\004\"9\n\023N_TimePointSnapshot\022\023\n"
-  "\013time_points\030\001 \001(\005:\r\210\265\030\327!\220\265\030\002\230\265\030\004\"0\n\rN_S"
-  "killUnlock\022\020\n\010skill_id\030\001 \001(\r:\r\210\265\030\340!\220\265\030\002\230"
-  "\265\030\004\"F\n\017C_SkillEquipReq\022\020\n\010skill_id\030\001 \001(\r"
-  "\022\022\n\nslot_index\030\002 \001(\r:\r\210\265\030\341!\220\265\030\001\230\265\030\004\"z\n\017S"
-  "_SkillEquipRes\022\017\n\007success\030\001 \001(\010\022!\n\006resul"
-  "t\030\002 \001(\0132\021.se.common.Result\022\020\n\010skill_id\030\003"
-  " \001(\r\022\022\n\nslot_index\030\004 \001(\r:\r\210\265\030\342!\220\265\030\002\230\265\030\004\""
-  "B\n\025N_SkillUnlockSnapshot\022\032\n\022unlocked_ski"
-  "ll_ids\030\001 \003(\r:\r\210\265\030\343!\220\265\030\002\230\265\030\004\"E\n\014N_EntityD"
-  "ied\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
-  "tId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022"
+  "attack_type\030\002 \001(\r:\r\210\265\030\216 \220\265\030\002\230\265\030\004\"\275\001\n\rN_M"
+  "onsterFire\022&\n\tentity_id\030\001 \001(\0132\023.se.commo"
+  "n.ObjectId\022\023\n\013attack_type\030\002 \001(\r\022*\n\016start"
+  "_position\030\003 \001(\0132\022.se.common.Vector3\022%\n\td"
+  "irection\030\004 \001(\0132\022.se.common.Vector3\022\r\n\005ra"
+  "nge\030\005 \001(\002:\r\210\265\030\217 \220\265\030\002\230\265\030\004\"\213\001\n\021C_ThrowGren"
+  "adeReq\022\024\n\014grenade_type\030\001 \001(\r\022*\n\016start_po"
+  "sition\030\002 \001(\0132\022.se.common.Vector3\022%\n\tdire"
+  "ction\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\230 \220\265"
+  "\030\001\230\265\030\004\"\260\001\n\016N_ThrowGrenade\022&\n\tentity_id\030\001"
+  " \001(\0132\023.se.common.ObjectId\022\024\n\014grenade_typ"
+  "e\030\002 \001(\r\022*\n\016start_position\030\003 \001(\0132\022.se.com"
+  "mon.Vector3\022%\n\tdirection\030\004 \001(\0132\022.se.comm"
+  "on.Vector3:\r\210\265\030\231 \220\265\030\002\230\265\030\004\"\231\001\n\024C_GrenadeM"
+  "oveSyncReq\022&\n\tentity_id\030\001 \001(\0132\023.se.commo"
+  "n.ObjectId\022$\n\010position\030\002 \001(\0132\022.se.common"
+  ".Vector3\022$\n\010velocity\030\003 \001(\0132\022.se.common.V"
+  "ector3:\r\210\265\030\232 \220\265\030\001\230\265\030\004\"\226\001\n\021N_GrenadeMoveS"
+  "ync\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
+  "tId\022$\n\010position\030\002 \001(\0132\022.se.common.Vector"
+  "3\022$\n\010velocity\030\003 \001(\0132\022.se.common.Vector3:"
+  "\r\210\265\030\233 \220\265\030\002\230\265\030\004\"t\n\025C_GrenadeExplosionReq\022"
   "&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022"
-  "\'\n\ttransform\030\002 \001(\0132\024.se.common.Transform"
-  ":\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\t"
-  "entity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265"
-  "\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeStormChange\022\"\n\006cen"
-  "ter\030\001 \001(\0132\022.se.common.Vector3\022\016\n\006radius\030"
-  "\002 \001(\002\022\024\n\014waiting_time\030\003 \001(\002\022\026\n\016shrinking"
-  "_time\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
+  "$\n\010position\030\002 \001(\0132\022.se.common.Vector3:\r\210"
+  "\265\030\234 \220\265\030\001\230\265\030\004\"q\n\022N_GrenadeExplosion\022&\n\ten"
+  "tity_id\030\001 \001(\0132\023.se.common.ObjectId\022$\n\010po"
+  "sition\030\002 \001(\0132\022.se.common.Vector3:\r\210\265\030\235 \220"
+  "\265\030\002\230\265\030\004\"\216\001\n\025N_ProjectileExplosion\022&\n\tent"
+  "ity_id\030\001 \001(\0132\023.se.common.ObjectId\022$\n\010pos"
+  "ition\030\002 \001(\0132\022.se.common.Vector3\022\030\n\020explo"
+  "sion_radius\030\003 \001(\002:\r\210\265\030\236 \220\265\030\002\230\265\030\004\"`\n\023N_We"
+  "aponStatChanged\022\021\n\tweapon_id\030\001 \001(\r\022\'\n\005st"
+  "ats\030\002 \003(\0132\030.se.game.WeaponStatValue:\r\210\265\030"
+  "\242 \220\265\030\002\230\265\030\004\"Q\n\024N_WeaponStatSnapshot\022*\n\005st"
+  "ats\030\002 \003(\0132\033.se.game.WeaponSlotSnapshot:\r"
+  "\210\265\030\243 \220\265\030\002\230\265\030\004\"4\n\017C_UseAbilityReq\022\022\n\nabil"
+  "ity_id\030\001 \001(\r:\r\210\265\030\254 \220\265\030\001\230\265\030\004\"Y\n\014N_UseAbil"
+  "ity\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
+  "tId\022\022\n\nability_id\030\002 \001(\r:\r\210\265\030\255 \220\265\030\002\230\265\030\004\"~"
+  "\n\013N_EntityHit\022&\n\tentity_id\030\001 \001(\0132\023.se.co"
+  "mmon.ObjectId\022(\n\014hit_position\030\002 \001(\0132\022.se"
+  ".common.Vector3\022\016\n\006damage\030\003 \001(\r:\r\210\265\030\266 \220\265"
+  "\030\002\230\265\030\004\"m\n\014N_KillPlayer\022&\n\tkiller_id\030\001 \001("
+  "\0132\023.se.common.ObjectId\022&\n\tvictim_id\030\002 \001("
+  "\0132\023.se.common.ObjectId:\r\210\265\030\336 \220\265\030\002\230\265\030\004\".\n"
+  "\014C_UseItemReq\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\350 \220\265\030"
+  "\001\230\265\030\004\"b\n\014S_UseItemRes\022\017\n\007success\030\001 \001(\010\022!"
+  "\n\006result\030\002 \001(\0132\021.se.common.Result\022\017\n\007ite"
+  "m_id\030\003 \001(\r:\r\210\265\030\351 \220\265\030\002\230\265\030\004\"S\n\tN_UseItem\022&"
+  "\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\017"
+  "\n\007item_id\030\002 \001(\r:\r\210\265\030\352 \220\265\030\002\230\265\030\004\"Q\n\022C_Ches"
+  "tInteractReq\022,\n\017chest_entity_id\030\001 \001(\0132\023."
+  "se.common.ObjectId:\r\210\265\030\362 \220\265\030\001\230\265\030\004\"x\n\021N_C"
+  "hestInteracted\022&\n\tentity_id\030\001 \001(\0132\023.se.c"
+  "ommon.ObjectId\022,\n\017chest_entity_id\030\002 \001(\0132"
+  "\023.se.common.ObjectId:\r\210\265\030\363 \220\265\030\002\230\265\030\004\"M\n\017C"
+  "_PickupItemReq\022+\n\016item_entity_id\030\001 \001(\0132\023"
+  ".se.common.ObjectId:\r\210\265\030\374 \220\265\030\001\230\265\030\004\"r\n\014N_"
+  "PickupItem\022&\n\tentity_id\030\001 \001(\0132\023.se.commo"
+  "n.ObjectId\022+\n\016item_entity_id\030\002 \001(\0132\023.se."
+  "common.ObjectId:\r\210\265\030\375 \220\265\030\002\230\265\030\004\"0\n\016C_Equi"
+  "pItemReq\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\206!\220\265\030\001\230\265\030\004"
+  "\"d\n\016S_EquipItemRes\022\017\n\007success\030\001 \001(\010\022!\n\006r"
+  "esult\030\002 \001(\0132\021.se.common.Result\022\017\n\007item_i"
+  "d\030\003 \001(\r:\r\210\265\030\207!\220\265\030\002\230\265\030\004\"U\n\013N_EquipItem\022&\n"
+  "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\017\n"
+  "\007item_id\030\002 \001(\r:\r\210\265\030\210!\220\265\030\002\230\265\030\004\"c\n\rC_UseSt"
+  "oreReq\022,\n\017store_entity_id\030\001 \001(\0132\023.se.com"
+  "mon.ObjectId\022\025\n\rstore_item_id\030\002 \001(\r:\r\210\265\030"
+  "\220!\220\265\030\001\230\265\030\004\"\221\001\n\rS_UseStoreRes\022\017\n\007success\030"
+  "\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.Result"
+  "\022\025\n\rstore_item_id\030\003 \001(\r\022\021\n\tnew_price\030\004 \001"
+  "(\005\022\023\n\013is_sold_out\030\005 \001(\010:\r\210\265\030\221!\220\265\030\002\230\265\030\004\"V"
+  "\n\014N_ItemGained\022\017\n\007item_id\030\001 \001(\r\022\024\n\014new_q"
+  "uantity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210\265\030\232!\220\265"
+  "\030\002\230\265\030\004\"T\n\nN_ItemLost\022\017\n\007item_id\030\001 \001(\r\022\024\n"
+  "\014new_quantity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210"
+  "\265\030\233!\220\265\030\002\230\265\030\004\"B\n\016N_ItemSnapshot\022!\n\005items\030"
+  "\001 \003(\0132\022.se.game.ItemStack:\r\210\265\030\234!\220\265\030\002\230\265\030\004"
+  "\"H\n\021C_SetSavePointReq\022$\n\010position\030\001 \001(\0132"
+  "\022.se.common.Vector3:\r\210\265\030\302!\220\265\030\001\230\265\030\004\"|\n\021S_"
+  "SetSavePointRes\022\017\n\007success\030\001 \001(\010\022!\n\006resu"
+  "lt\030\002 \001(\0132\021.se.common.Result\022$\n\010position\030"
+  "\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\303!\220\265\030\002\230\265\030\004"
+  "\"k\n\017N_HealthChanged\022&\n\tentity_id\030\001 \001(\0132\023"
+  ".se.common.ObjectId\022\022\n\nnew_health\030\002 \001(\005\022"
+  "\r\n\005delta\030\003 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n\022N_MaxHe"
+  "althChanged\022&\n\tentity_id\030\001 \001(\0132\023.se.comm"
+  "on.ObjectId\022\026\n\016new_max_health\030\002 \001(\005\022\032\n\022n"
+  "ew_current_health\030\003 \001(\005:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"M"
+  "\n\020N_HealthSnapshot\022\026\n\016current_health\030\001 \001"
+  "(\005\022\022\n\nmax_health\030\002 \001(\005:\r\210\265\030\316!\220\265\030\002\230\265\030\004\"2\n"
+  "\016N_SpeedChanged\022\021\n\tnew_speed\030\001 \001(\002:\r\210\265\030\321"
+  "!\220\265\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n\017new_t"
+  "ime_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\326!\220\265"
+  "\030\002\230\265\030\004\"9\n\023N_TimePointSnapshot\022\023\n\013time_po"
+  "ints\030\001 \001(\005:\r\210\265\030\327!\220\265\030\002\230\265\030\004\"0\n\rN_SkillUnlo"
+  "ck\022\020\n\010skill_id\030\001 \001(\r:\r\210\265\030\340!\220\265\030\002\230\265\030\004\"F\n\017C"
+  "_SkillEquipReq\022\020\n\010skill_id\030\001 \001(\r\022\022\n\nslot"
+  "_index\030\002 \001(\r:\r\210\265\030\341!\220\265\030\001\230\265\030\004\"z\n\017S_SkillEq"
+  "uipRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132"
+  "\021.se.common.Result\022\020\n\010skill_id\030\003 \001(\r\022\022\n\n"
+  "slot_index\030\004 \001(\r:\r\210\265\030\342!\220\265\030\002\230\265\030\004\"B\n\025N_Ski"
+  "llUnlockSnapshot\022\032\n\022unlocked_skill_ids\030\001"
+  " \003(\r:\r\210\265\030\343!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDied\022&\n\te"
+  "ntity_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030"
+  "\246\"\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespawned\022&\n\tentit"
+  "y_id\030\001 \001(\0132\023.se.common.ObjectId\022\'\n\ttrans"
+  "form\030\002 \001(\0132\024.se.common.Transform:\r\210\265\030\247\"\220"
+  "\265\030\002\230\265\030\004\"J\n\021N_EntityDestroyed\022&\n\tentity_i"
+  "d\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\250\"\220\265\030\002\230"
+  "\265\030\004\"\204\001\n\021N_TimeStormChange\022\"\n\006center\030\001 \001("
+  "\0132\022.se.common.Vector3\022\016\n\006radius\030\002 \001(\002\022\024\n"
+  "\014waiting_time\030\003 \001(\002\022\026\n\016shrinking_time\030\004 "
+  "\001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -2020,9 +2055,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 7234, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 7426, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
-    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 75,
+    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 76,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
     file_level_metadata_game_2fgame_5fmessages_2eproto, file_level_enum_descriptors_game_2fgame_5fmessages_2eproto,
     file_level_service_descriptors_game_2fgame_5fmessages_2eproto,
@@ -8180,6 +8215,370 @@ void N_Attack::InternalSwap(N_Attack* other) {
 
 // ===================================================================
 
+class N_MonsterFire::_Internal {
+ public:
+  static const ::se::common::ObjectId& entity_id(const N_MonsterFire* msg);
+  static const ::se::common::Vector3& start_position(const N_MonsterFire* msg);
+  static const ::se::common::Vector3& direction(const N_MonsterFire* msg);
+};
+
+const ::se::common::ObjectId&
+N_MonsterFire::_Internal::entity_id(const N_MonsterFire* msg) {
+  return *msg->_impl_.entity_id_;
+}
+const ::se::common::Vector3&
+N_MonsterFire::_Internal::start_position(const N_MonsterFire* msg) {
+  return *msg->_impl_.start_position_;
+}
+const ::se::common::Vector3&
+N_MonsterFire::_Internal::direction(const N_MonsterFire* msg) {
+  return *msg->_impl_.direction_;
+}
+void N_MonsterFire::clear_entity_id() {
+  if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
+    delete _impl_.entity_id_;
+  }
+  _impl_.entity_id_ = nullptr;
+}
+void N_MonsterFire::clear_start_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.start_position_ != nullptr) {
+    delete _impl_.start_position_;
+  }
+  _impl_.start_position_ = nullptr;
+}
+void N_MonsterFire::clear_direction() {
+  if (GetArenaForAllocation() == nullptr && _impl_.direction_ != nullptr) {
+    delete _impl_.direction_;
+  }
+  _impl_.direction_ = nullptr;
+}
+N_MonsterFire::N_MonsterFire(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_MonsterFire)
+}
+N_MonsterFire::N_MonsterFire(const N_MonsterFire& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_MonsterFire* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.entity_id_){nullptr}
+    , decltype(_impl_.start_position_){nullptr}
+    , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.attack_type_){}
+    , decltype(_impl_.range_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_entity_id()) {
+    _this->_impl_.entity_id_ = new ::se::common::ObjectId(*from._impl_.entity_id_);
+  }
+  if (from._internal_has_start_position()) {
+    _this->_impl_.start_position_ = new ::se::common::Vector3(*from._impl_.start_position_);
+  }
+  if (from._internal_has_direction()) {
+    _this->_impl_.direction_ = new ::se::common::Vector3(*from._impl_.direction_);
+  }
+  ::memcpy(&_impl_.attack_type_, &from._impl_.attack_type_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.range_) -
+    reinterpret_cast<char*>(&_impl_.attack_type_)) + sizeof(_impl_.range_));
+  // @@protoc_insertion_point(copy_constructor:se.game.N_MonsterFire)
+}
+
+inline void N_MonsterFire::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.entity_id_){nullptr}
+    , decltype(_impl_.start_position_){nullptr}
+    , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.attack_type_){0u}
+    , decltype(_impl_.range_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_MonsterFire::~N_MonsterFire() {
+  // @@protoc_insertion_point(destructor:se.game.N_MonsterFire)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_MonsterFire::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.entity_id_;
+  if (this != internal_default_instance()) delete _impl_.start_position_;
+  if (this != internal_default_instance()) delete _impl_.direction_;
+}
+
+void N_MonsterFire::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_MonsterFire::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_MonsterFire)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
+    delete _impl_.entity_id_;
+  }
+  _impl_.entity_id_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.start_position_ != nullptr) {
+    delete _impl_.start_position_;
+  }
+  _impl_.start_position_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.direction_ != nullptr) {
+    delete _impl_.direction_;
+  }
+  _impl_.direction_ = nullptr;
+  ::memset(&_impl_.attack_type_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.range_) -
+      reinterpret_cast<char*>(&_impl_.attack_type_)) + sizeof(_impl_.range_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_MonsterFire::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.ObjectId entity_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_entity_id(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 attack_type = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.attack_type_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 start_position = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_start_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 direction = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_direction(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float range = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 45)) {
+          _impl_.range_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_MonsterFire::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_MonsterFire)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.ObjectId entity_id = 1;
+  if (this->_internal_has_entity_id()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::entity_id(this),
+        _Internal::entity_id(this).GetCachedSize(), target, stream);
+  }
+
+  // uint32 attack_type = 2;
+  if (this->_internal_attack_type() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_attack_type(), target);
+  }
+
+  // .se.common.Vector3 start_position = 3;
+  if (this->_internal_has_start_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(3, _Internal::start_position(this),
+        _Internal::start_position(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 direction = 4;
+  if (this->_internal_has_direction()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(4, _Internal::direction(this),
+        _Internal::direction(this).GetCachedSize(), target, stream);
+  }
+
+  // float range = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_range = this->_internal_range();
+  uint32_t raw_range;
+  memcpy(&raw_range, &tmp_range, sizeof(tmp_range));
+  if (raw_range != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(5, this->_internal_range(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_MonsterFire)
+  return target;
+}
+
+size_t N_MonsterFire::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_MonsterFire)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.ObjectId entity_id = 1;
+  if (this->_internal_has_entity_id()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.entity_id_);
+  }
+
+  // .se.common.Vector3 start_position = 3;
+  if (this->_internal_has_start_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.start_position_);
+  }
+
+  // .se.common.Vector3 direction = 4;
+  if (this->_internal_has_direction()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.direction_);
+  }
+
+  // uint32 attack_type = 2;
+  if (this->_internal_attack_type() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_attack_type());
+  }
+
+  // float range = 5;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_range = this->_internal_range();
+  uint32_t raw_range;
+  memcpy(&raw_range, &tmp_range, sizeof(tmp_range));
+  if (raw_range != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_MonsterFire::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_MonsterFire::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_MonsterFire::GetClassData() const { return &_class_data_; }
+
+
+void N_MonsterFire::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_MonsterFire*>(&to_msg);
+  auto& from = static_cast<const N_MonsterFire&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_MonsterFire)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_entity_id()) {
+    _this->_internal_mutable_entity_id()->::se::common::ObjectId::MergeFrom(
+        from._internal_entity_id());
+  }
+  if (from._internal_has_start_position()) {
+    _this->_internal_mutable_start_position()->::se::common::Vector3::MergeFrom(
+        from._internal_start_position());
+  }
+  if (from._internal_has_direction()) {
+    _this->_internal_mutable_direction()->::se::common::Vector3::MergeFrom(
+        from._internal_direction());
+  }
+  if (from._internal_attack_type() != 0) {
+    _this->_internal_set_attack_type(from._internal_attack_type());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_range = from._internal_range();
+  uint32_t raw_range;
+  memcpy(&raw_range, &tmp_range, sizeof(tmp_range));
+  if (raw_range != 0) {
+    _this->_internal_set_range(from._internal_range());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_MonsterFire::CopyFrom(const N_MonsterFire& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_MonsterFire)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_MonsterFire::IsInitialized() const {
+  return true;
+}
+
+void N_MonsterFire::InternalSwap(N_MonsterFire* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(N_MonsterFire, _impl_.range_)
+      + sizeof(N_MonsterFire::_impl_.range_)
+      - PROTOBUF_FIELD_OFFSET(N_MonsterFire, _impl_.entity_id_)>(
+          reinterpret_cast<char*>(&_impl_.entity_id_),
+          reinterpret_cast<char*>(&other->_impl_.entity_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_MonsterFire::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[31]);
+}
+
+// ===================================================================
+
 class C_ThrowGrenadeReq::_Internal {
  public:
   static const ::se::common::Vector3& start_position(const C_ThrowGrenadeReq* msg);
@@ -8452,7 +8851,7 @@ void C_ThrowGrenadeReq::InternalSwap(C_ThrowGrenadeReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ThrowGrenadeReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[31]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[32]);
 }
 
 // ===================================================================
@@ -8776,7 +9175,7 @@ void N_ThrowGrenade::InternalSwap(N_ThrowGrenade* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ThrowGrenade::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[32]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[33]);
 }
 
 // ===================================================================
@@ -9074,7 +9473,7 @@ void C_GrenadeMoveSyncReq::InternalSwap(C_GrenadeMoveSyncReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_GrenadeMoveSyncReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[33]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[34]);
 }
 
 // ===================================================================
@@ -9372,7 +9771,7 @@ void N_GrenadeMoveSync::InternalSwap(N_GrenadeMoveSync* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_GrenadeMoveSync::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[34]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[35]);
 }
 
 // ===================================================================
@@ -9623,7 +10022,7 @@ void C_GrenadeExplosionReq::InternalSwap(C_GrenadeExplosionReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_GrenadeExplosionReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[35]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[36]);
 }
 
 // ===================================================================
@@ -9874,7 +10273,7 @@ void N_GrenadeExplosion::InternalSwap(N_GrenadeExplosion* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_GrenadeExplosion::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[36]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[37]);
 }
 
 // ===================================================================
@@ -10163,7 +10562,7 @@ void N_ProjectileExplosion::InternalSwap(N_ProjectileExplosion* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ProjectileExplosion::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[37]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[38]);
 }
 
 // ===================================================================
@@ -10378,7 +10777,7 @@ void N_WeaponStatChanged::InternalSwap(N_WeaponStatChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_WeaponStatChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[38]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[39]);
 }
 
 // ===================================================================
@@ -10566,7 +10965,7 @@ void N_WeaponStatSnapshot::InternalSwap(N_WeaponStatSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_WeaponStatSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[39]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[40]);
 }
 
 // ===================================================================
@@ -10744,7 +11143,7 @@ void C_UseAbilityReq::InternalSwap(C_UseAbilityReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_UseAbilityReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[40]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[41]);
 }
 
 // ===================================================================
@@ -10974,7 +11373,7 @@ void N_UseAbility::InternalSwap(N_UseAbility* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_UseAbility::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[41]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[42]);
 }
 
 // ===================================================================
@@ -11251,7 +11650,7 @@ void N_EntityHit::InternalSwap(N_EntityHit* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityHit::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[42]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[43]);
 }
 
 // ===================================================================
@@ -11502,7 +11901,7 @@ void N_KillPlayer::InternalSwap(N_KillPlayer* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_KillPlayer::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[43]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[44]);
 }
 
 // ===================================================================
@@ -11680,7 +12079,7 @@ void C_UseItemReq::InternalSwap(C_UseItemReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_UseItemReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[44]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[45]);
 }
 
 // ===================================================================
@@ -11938,7 +12337,7 @@ void S_UseItemRes::InternalSwap(S_UseItemRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_UseItemRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[45]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[46]);
 }
 
 // ===================================================================
@@ -12168,7 +12567,7 @@ void N_UseItem::InternalSwap(N_UseItem* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_UseItem::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[46]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[47]);
 }
 
 // ===================================================================
@@ -12367,7 +12766,7 @@ void C_ChestInteractReq::InternalSwap(C_ChestInteractReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ChestInteractReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[47]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[48]);
 }
 
 // ===================================================================
@@ -12618,7 +13017,7 @@ void N_ChestInteracted::InternalSwap(N_ChestInteracted* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ChestInteracted::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[48]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[49]);
 }
 
 // ===================================================================
@@ -12817,7 +13216,7 @@ void C_PickupItemReq::InternalSwap(C_PickupItemReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_PickupItemReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[49]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[50]);
 }
 
 // ===================================================================
@@ -13068,7 +13467,7 @@ void N_PickupItem::InternalSwap(N_PickupItem* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_PickupItem::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[50]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[51]);
 }
 
 // ===================================================================
@@ -13246,7 +13645,7 @@ void C_EquipItemReq::InternalSwap(C_EquipItemReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_EquipItemReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[51]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[52]);
 }
 
 // ===================================================================
@@ -13504,7 +13903,7 @@ void S_EquipItemRes::InternalSwap(S_EquipItemRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_EquipItemRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[52]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[53]);
 }
 
 // ===================================================================
@@ -13734,7 +14133,7 @@ void N_EquipItem::InternalSwap(N_EquipItem* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EquipItem::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[53]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[54]);
 }
 
 // ===================================================================
@@ -13964,7 +14363,7 @@ void C_UseStoreReq::InternalSwap(C_UseStoreReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_UseStoreReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[54]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[55]);
 }
 
 // ===================================================================
@@ -14270,7 +14669,7 @@ void S_UseStoreRes::InternalSwap(S_UseStoreRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_UseStoreRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[55]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[56]);
 }
 
 // ===================================================================
@@ -14505,7 +14904,7 @@ void N_ItemGained::InternalSwap(N_ItemGained* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemGained::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[56]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[57]);
 }
 
 // ===================================================================
@@ -14740,7 +15139,7 @@ void N_ItemLost::InternalSwap(N_ItemLost* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemLost::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[57]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[58]);
 }
 
 // ===================================================================
@@ -14928,7 +15327,7 @@ void N_ItemSnapshot::InternalSwap(N_ItemSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[58]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[59]);
 }
 
 // ===================================================================
@@ -15127,7 +15526,7 @@ void C_SetSavePointReq::InternalSwap(C_SetSavePointReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_SetSavePointReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[59]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[60]);
 }
 
 // ===================================================================
@@ -15404,7 +15803,7 @@ void S_SetSavePointRes::InternalSwap(S_SetSavePointRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_SetSavePointRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[60]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[61]);
 }
 
 // ===================================================================
@@ -15662,7 +16061,7 @@ void N_HealthChanged::InternalSwap(N_HealthChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_HealthChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[61]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[62]);
 }
 
 // ===================================================================
@@ -15920,7 +16319,7 @@ void N_MaxHealthChanged::InternalSwap(N_MaxHealthChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_MaxHealthChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[62]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[63]);
 }
 
 // ===================================================================
@@ -16131,7 +16530,7 @@ void N_HealthSnapshot::InternalSwap(N_HealthSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_HealthSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[63]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[64]);
 }
 
 // ===================================================================
@@ -16321,7 +16720,7 @@ void N_SpeedChanged::InternalSwap(N_SpeedChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SpeedChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[64]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[65]);
 }
 
 // ===================================================================
@@ -16532,7 +16931,7 @@ void N_TimePointChanged::InternalSwap(N_TimePointChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimePointChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[65]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[66]);
 }
 
 // ===================================================================
@@ -16710,7 +17109,7 @@ void N_TimePointSnapshot::InternalSwap(N_TimePointSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimePointSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[66]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[67]);
 }
 
 // ===================================================================
@@ -16888,7 +17287,7 @@ void N_SkillUnlock::InternalSwap(N_SkillUnlock* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SkillUnlock::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[67]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[68]);
 }
 
 // ===================================================================
@@ -17099,7 +17498,7 @@ void C_SkillEquipReq::InternalSwap(C_SkillEquipReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_SkillEquipReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[68]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[69]);
 }
 
 // ===================================================================
@@ -17381,7 +17780,7 @@ void S_SkillEquipRes::InternalSwap(S_SkillEquipRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_SkillEquipRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[69]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[70]);
 }
 
 // ===================================================================
@@ -17574,7 +17973,7 @@ void N_SkillUnlockSnapshot::InternalSwap(N_SkillUnlockSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SkillUnlockSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[70]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[71]);
 }
 
 // ===================================================================
@@ -17773,7 +18172,7 @@ void N_EntityDied::InternalSwap(N_EntityDied* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDied::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[71]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[72]);
 }
 
 // ===================================================================
@@ -18024,7 +18423,7 @@ void N_EntityRespawned::InternalSwap(N_EntityRespawned* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityRespawned::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[72]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[73]);
 }
 
 // ===================================================================
@@ -18223,7 +18622,7 @@ void N_EntityDestroyed::InternalSwap(N_EntityDestroyed* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDestroyed::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[73]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[74]);
 }
 
 // ===================================================================
@@ -18541,7 +18940,7 @@ void N_TimeStormChange::InternalSwap(N_TimeStormChange* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimeStormChange::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[74]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[75]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -18671,6 +19070,10 @@ Arena::CreateMaybeMessage< ::se::game::N_WeaponChanged >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::N_Attack*
 Arena::CreateMaybeMessage< ::se::game::N_Attack >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::N_Attack >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_MonsterFire*
+Arena::CreateMaybeMessage< ::se::game::N_MonsterFire >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_MonsterFire >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::game::C_ThrowGrenadeReq*
 Arena::CreateMaybeMessage< ::se::game::C_ThrowGrenadeReq >(Arena* arena) {

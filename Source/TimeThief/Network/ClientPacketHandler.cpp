@@ -666,6 +666,42 @@ bool Handle_N_Attack(PacketSessionRef& session, const se::game::N_Attack& pkt)
 	
 	return false;	
 }
+
+bool Handle_N_MonsterFire(PacketSessionRef& session, const se::game::N_MonsterFire& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterFire: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (!pkt.has_start_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterFire: pkt has no start_position"));
+		return false;
+	}
+	
+	if (!pkt.has_direction())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterFire: pkt has no direction"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleMonsterFire(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterFire: Failed to get NGIS"));
+	return false;
+}
 	
 bool Handle_N_ThrowGrenade(PacketSessionRef& session, const se::game::N_ThrowGrenade& pkt)
 {
