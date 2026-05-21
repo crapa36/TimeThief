@@ -112,10 +112,12 @@ void UTimeThiefHealthComponent::Heal(float HealAmount, AActor* HealInstigator)
 
 void UTimeThiefHealthComponent::SetHealth(float MaxHP, float NewHP)
 {
+	const float OldHealth = CurrentHealth;
+	
 	MaxHealth = MaxHP;
 	CurrentHealth = FMath::Clamp(NewHP, 0.0f, MaxHealth);
 	
-	OnHealthChanged_Delegate.Broadcast(this, CurrentHealth, CurrentHealth, nullptr);
+	OnHealthChanged_Delegate.Broadcast(this, OldHealth, CurrentHealth, nullptr);
 }
 
 void UTimeThiefHealthComponent::HandleHealthChanged(float NewHealth, float DeltaHealth)

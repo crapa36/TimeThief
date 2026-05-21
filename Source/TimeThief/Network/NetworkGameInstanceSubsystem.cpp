@@ -273,6 +273,16 @@ void UNetworkGameInstanceSubsystem::SendChestInteract(uint32 ChestEntityId)
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
+{
+	se::game::C_UseItemReq Request;
+	Request.set_item_id(Itemid);
+	
+	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Use Item Id=%u"), Itemid);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::ConnectToServer()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));
@@ -611,13 +621,18 @@ void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFou
 	SetPlayState(ENetworkPlayState::MatchingSucc);
 	TryRoomId = RoomId;
 	
-	UE_LOG(LogTemp, Log, TEXT("Match found! RoomId=%u"), RoomId);
+	ResetLoadingGate();
+	
+	SetLocalPlayerInputEnabled(false);
 	
 	se::room::C_RoomEnterReq RoomEnterReq;
 	RoomEnterReq.set_room_id(RoomId);
 	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(RoomEnterReq);
 	SendPacket(Buffer);
+	
+	SetPlayState(ENetworkPlayState::EnteringRoom);
+	UE_LOG(LogTemp, Log, TEXT("Match found! RoomId=%u"), RoomId);
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnterRes& Pkt)
@@ -644,6 +659,7 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Failed to enter room: Missing room snapshot in response"));
 		SetPlayState(ENetworkPlayState::InLobby);
+		SetLocalPlayerInputEnabled(true);
 		return;
 	}
 	
@@ -669,11 +685,13 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 		
 		RoomState.Players.Add(Info);
 	}
-
-	SetPlayState(ENetworkPlayState::InRoom);
+	
+	bReceivedRoomEnterRes = true;
+	SetPlayState(ENetworkPlayState::LoadingRoom);
 
 	UE_LOG(LogTemp, Log, TEXT("[Network] Room enter success. RoomId=%u, LocalEntityId=%u"), RoomState.RoomId, LocalPlayerEntityId);
-	RequestLoadingComplete();	// TEMP
+	// RequestLoadingComplete();	// TEMP
+	TrySendLoadingComplete();
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLeaveRes& Pkt)
@@ -689,8 +707,6 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		return;
 	}
 	
-	// TODO:
-	// Room State 초기화
 
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
@@ -744,11 +760,6 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 {
 	check(IsInGameThread());
 	
-	if (!IsRoomPlayableState(PlayState))
-	{
-		return;
-	}
-	
 	if (Pkt.infos_size() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Network] No room infos in room objects"));
@@ -760,6 +771,9 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 		uint32 EntityId = HandleSpawnInfo(Info);
 		UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawned (batch): EntityId=%u"), EntityId);
 	}
+	
+	bReceivedEntitiesSpawn = true;
+	TrySendLoadingComplete();
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
@@ -774,7 +788,13 @@ void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClose
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
 {
-	// TODO: Game Start 시 플레이어의 Input을 받고 행동할 수 있게 끔
+	check(IsInGameThread());
+
+	SetPlayState(ENetworkPlayState::InRoom);
+
+	SetLocalPlayerInputEnabled(true);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Game started"));
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt)
@@ -785,11 +805,6 @@ void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt
 void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
 {
 	check(IsInGameThread());
-	
-	if (!IsRoomPlayableState(PlayState))
-	{
-		return;
-	}
 	
 	const int MaxHealth = Pkt.max_health();
 	const int CurrentHealth = Pkt.current_health();
@@ -850,6 +865,9 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		
 		WeaponComp->SetWeaponStatForNetwork(StatData);
 	}
+	
+	bReceivedPlayerInitSetup = true;
+	TrySendLoadingComplete();
 }
 
 void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_PlayerGameResult& Pkt)
@@ -869,10 +887,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_Pla
 		PlayerName = TEXT("You are Victorious!");
 	}
 	
-	// TODO: 게임 결과 화면 표시 (Rank, Score, Killer Name 등)
 	UE_LOG(LogTemp, Log, TEXT("[Network] Game Result - Rank: %u, Score: %d, Killer: %s"), Rank, Score, *PlayerName);
-	
-	
 	OnPlayerGameResult.Broadcast(static_cast<int32>(Rank), Score, PlayerName);
 }
 
@@ -924,7 +939,13 @@ void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
 		break;
 	case se::common::ObjectType::OBJ_MONSTER:
 		{
+			if (!Pkt.has_monster_movement())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMove: Missing monster_movement for monster entity"));
+				return;
+			}
 			
+			const auto& MonsterMovement = Pkt.monster_movement();
 		}
 		break;
 	case se::common::ObjectType::OBJ_ITEM:
@@ -2265,6 +2286,16 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 			return SpawnData->StoreClass;
 		}
 	}
+	else if (EntityState.ObjectType == se::common::OBJ_MONSTER)
+	{
+		// TODO: 몬스터는 TemplateId에 따라서도 달라질 수 있으므로, ObjectType이 몬스터일 때는 TemplateId도 같이 고려하여 클래스를 결정하는 로직 필요
+		//		 그리고 아래 Test Monster 부분 제거
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Monster spawn logic is not implemented yet. Using TestMonsterClass for all monsters."));
+		if (SpawnData->TestMonster)
+		{
+			return SpawnData->TestMonster;
+		}
+	}
 	
 	const int32 ObjectTypeValue = static_cast<int32>(EntityState.ObjectType);
 	
@@ -2308,6 +2339,69 @@ ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
 	}
 	
 	return Cast<ATimeThiefPlayerCharacter>(Actor);
+}
+
+void UNetworkGameInstanceSubsystem::ResetLoadingGate()
+{
+	bReceivedRoomEnterRes = false;
+	bReceivedEntitiesSpawn = false;
+	bReceivedPlayerInitSetup = false;
+	bSentLoadingComplete = false;
+}
+
+void UNetworkGameInstanceSubsystem::SetLocalPlayerInputEnabled(bool bEnabled)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+		return;
+
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (!PC)
+		return;
+
+	if (bEnabled)
+	{
+		PC->SetIgnoreMoveInput(false);
+		PC->SetIgnoreLookInput(false);
+
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = false;
+	}
+	else
+	{
+		PC->SetIgnoreMoveInput(true);
+		PC->SetIgnoreLookInput(true);
+
+		// 로딩 UI가 있으면 UIOnly 또는 GameAndUI 사용 가능
+		FInputModeUIOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = true;
+	}
+}
+
+void UNetworkGameInstanceSubsystem::TrySendLoadingComplete()
+{
+	if (bSentLoadingComplete)
+		return;
+
+	if (!bReceivedRoomEnterRes)
+		return;
+
+	if (!bReceivedEntitiesSpawn)
+		return;
+
+	if (!bReceivedPlayerInitSetup)
+		return;
+
+	bSentLoadingComplete = true;
+	SetPlayState(ENetworkPlayState::WaitingGameStart);
+
+	se::game::C_LoadingCompleteReq Req;
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Req);
+	SendPacket(Buffer);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_LoadingCompleteReq"));
 }
 
 void UNetworkGameInstanceSubsystem::RequestSetNickname(const FString& Nickname)
@@ -2739,8 +2833,11 @@ AActor* UNetworkGameInstanceSubsystem::SpawnEntityActor(const FNetworkEntityStat
 	{
 		SpawnedActor = World->SpawnActor<AActor>(ActorClass, SpawnTransform, SpawnParams);
 	}
-	if (SpawnedActor == nullptr) return nullptr;
-
+	if (SpawnedActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] spawn Failed"));
+		return nullptr;
+	}
 	
 	EntityEntry->Actor = SpawnedActor;
 	

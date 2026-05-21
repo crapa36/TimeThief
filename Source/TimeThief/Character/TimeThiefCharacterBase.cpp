@@ -15,6 +15,7 @@
 #include "Animation/AnimSequence.h"
 #include "Animation/TimeThiefAnimInstance.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Skill/SavePointSkillComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -81,6 +82,11 @@ void ATimeThiefCharacterBase::OnDeath()
 {
 	bIsRespawn = false;
 	bIsDead = true;
+	
+	if (UTimeThiefPlayerCombatComponent* CombatComp = FindComponentByClass<UTimeThiefPlayerCombatComponent>())
+	{
+		CombatComp->ForceStopCombatInput();
+	}
 
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{

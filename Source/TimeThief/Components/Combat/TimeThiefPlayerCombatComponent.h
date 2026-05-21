@@ -41,6 +41,8 @@ public:
 	void Server_SyncAim(float InAimYaw, float InAimPitch, float InCharacterYaw);
 	
     int TurnDirection = 0;
+	
+	void ForceStopCombatInput();
 
 protected:
 	virtual void OnEquipFinished() override;
