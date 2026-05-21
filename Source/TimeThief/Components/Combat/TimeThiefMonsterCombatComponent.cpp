@@ -47,6 +47,6 @@ void UTimeThiefMonsterCombatComponent::Remote_AttackRequest(const FRemoteAttackN
 		return;
 	}
 
-	Monster->HandleRemoteAttackRequest(AttackRequest);
+	Monster->HandleRemoteCombatRequest(AttackRequest);
 }
 

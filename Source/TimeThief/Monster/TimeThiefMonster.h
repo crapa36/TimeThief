@@ -8,6 +8,8 @@
 #include "Components/Combat/TimeThiefMonsterCombatComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Network/State/RemoteAttackNotify.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 
 #include "TimeThiefMonster.generated.h"
 
@@ -82,10 +84,18 @@ public:
 	UNetworkCombatSyncComponent* GetNetworkCombatSyncComponent() const { return NetworkCombatSyncComponent; }
 	
 public:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Combat")
-	void HandleRemoteAttackRequest(const FRemoteAttackNotify& AttackRequest);
+	UFUNCTION(BlueprintCallable, Category="Combat")
+	void HandleRemoteCombatRequest(const FRemoteAttackNotify& AttackRequest);
 	
-	virtual void HandleRemoteAttackRequest_Implementation(const FRemoteAttackNotify& AttackRequest);
+	void RemoteCombat(const FRemoteAttackNotify& AttackNotify);
+	
+	void RemoteFire(const FRemoteAttackNotify& AttackNotify);
+	void RemoteAttack(const FRemoteAttackNotify& AttackNotify);
+	
+	void RemoteHit(const FRemoteAttackNotify& AttackNotify);
+	void RemoteCancelAttack(const FRemoteAttackNotify& AttackNotify);
+	
+	UAnimMontage* GetAttackMontage(int32 AttackType) const;
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Monster", meta=(AllowPrivateAccess="true"))
@@ -115,6 +125,26 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
 	FVector2D CurrentNetworkVelocity = FVector2D::ZeroVector;
 	
+// BP에서 설정 필수 항목 
+// -----------------------------------------------------------------------------------	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	TMap<int32, TObjectPtr<UAnimMontage>> AttackMontageMap;
+	// AttackType(=AttackId)에 따른 몽타주 매핑
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	TObjectPtr<UAnimMontage> HitReactMontage = nullptr;
+	// 피격 리액션 몽타주
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	TObjectPtr<UNiagaraSystem> FireCastFX = nullptr;
+	// 사격 시전 이펙트 (총알 궤적 이펙트)
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
+	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
+// -----------------------------------------------------------------------------------	
+	
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> CurrentAttackMontage = nullptr;
 	
 };

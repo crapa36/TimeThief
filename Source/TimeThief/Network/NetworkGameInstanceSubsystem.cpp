@@ -2292,12 +2292,19 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 	}
 	else if (EntityState.ObjectType == se::common::OBJ_MONSTER)
 	{
-		// TODO: 몬스터는 TemplateId에 따라서도 달라질 수 있으므로, ObjectType이 몬스터일 때는 TemplateId도 같이 고려하여 클래스를 결정하는 로직 필요
-		//		 그리고 아래 Test Monster 부분 제거
-		UE_LOG(LogTemp, Warning, TEXT("[Network] Monster spawn logic is not implemented yet. Using TestMonsterClass for all monsters."));
-		if (SpawnData->TestMonster)
+		switch (EntityState.TemplateId)
 		{
-			return SpawnData->TestMonster;
+		case 2:
+			if (SpawnData->CatMonster)
+			{
+				return SpawnData->CatMonster;
+			}
+			
+		default:
+			if (SpawnData->TestMonster)
+			{
+				return SpawnData->TestMonster;
+			}
 		}
 	}
 	

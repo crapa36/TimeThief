@@ -454,17 +454,22 @@ void UNetworkMoveComponent::ApplyServerInterpolation(float DeltaTime)
 	}
 
 	const FVector CurrentPosition = Movable->GetNetworkLocation();
+	const float CurrentYaw = Movable->GetNetworkCharYaw();
 
 	const bool bCloseEnoughPosition = IsCloseEnoughPosition(CurrentPosition);
-	if (bCloseEnoughPosition)
+	const bool bCloseEnoughYaw = IsCloseEnoughCharYaw(CurrentYaw);
+
+	if (bCloseEnoughPosition && bCloseEnoughYaw)
 	{
 		SnapToTarget();
 		return;
 	}
 
 	InterpElapsed += DeltaTime;
-	// const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.0f, 1.0f);
+
 	const float Alpha = FMath::Clamp(InterpElapsed / 0.2f, 0.0f, 1.0f);
+	// 또는 기존 값 사용
+	// const float Alpha = FMath::Clamp(InterpElapsed / InterpDuration, 0.0f, 1.0f);
 
 	const FVector NewPosition = FMath::Lerp(
 		InterpStartPosition,
@@ -487,6 +492,11 @@ void UNetworkMoveComponent::ApplyServerInterpolation(float DeltaTime)
 
 		Movable->SetNetworkVelocity2D(NewVelocity);
 	}
+
+	// Character Yaw
+	const float DeltaYaw = FMath::FindDeltaAngleDegrees(StartCharYaw, TargetCharYaw);
+	const float NewYaw = FRotator::NormalizeAxis(StartCharYaw + DeltaYaw * Alpha);
+	Movable->SetNetworkCharYaw(NewYaw);
 }
 
 void UNetworkMoveComponent::SnapToTarget()

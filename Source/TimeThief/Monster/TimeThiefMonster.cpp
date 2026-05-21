@@ -174,7 +174,130 @@ uint32 ATimeThiefMonster::GetEntityId() const
 	return NetworkEntityComponent ? NetworkEntityComponent->GetEntityId() : 0;
 }
 
-void ATimeThiefMonster::HandleRemoteAttackRequest_Implementation(const FRemoteAttackNotify& AttackRequest)
+void ATimeThiefMonster::HandleRemoteCombatRequest(const FRemoteAttackNotify& AttackRequest)
 {
+	RemoteCombat(AttackRequest);
 }
 
+void ATimeThiefMonster::RemoteCombat(const FRemoteAttackNotify& AttackNotify)
+{
+	switch (AttackNotify.NotifyType)
+	{
+		case ECombatNotifyType::Fire:
+			RemoteFire(AttackNotify);
+			break;
+		case ECombatNotifyType::Attack:
+			RemoteAttack(AttackNotify);
+			break;
+		
+		case ECombatNotifyType::Hit:
+			RemoteHit(AttackNotify);
+			break;
+		
+		case ECombatNotifyType::Cancel:
+			RemoteCancelAttack(AttackNotify);
+			break;
+		
+		default:
+			break;
+	}
+}
+
+void ATimeThiefMonster::RemoteFire(const FRemoteAttackNotify& AttackNotify)
+{
+	const FVector MuzzleLocation = AttackNotify.Origin;
+	const FVector FireDirection = AttackNotify.Direction;
+	const float FireRange = AttackNotify.Range;
+	
+	const FVector EndLocation = MuzzleLocation + FireDirection * FireRange;
+	
+	UAnimMontage* Montage = GetAttackMontage(AttackNotify.AttackId);
+	if (!Montage)
+		return;
+	
+	// TODO: Fire 애니메이션 재생, 발사 이펙트, 사운드 등등
+	//		 방향 및 조절도 해야 함
+	
+	
+	// Ray / Beam FX
+	if (FireCastFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			FireCastFX,
+			MuzzleLocation,
+			FireDirection.Rotation()
+		);
+	}
+
+	// Impact FX
+	if (FireImpactFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			FireImpactFX,
+			EndLocation,
+			FireDirection.Rotation()
+		);
+	}
+}
+
+void ATimeThiefMonster::RemoteAttack(const FRemoteAttackNotify& AttackNotify)
+{
+	UAnimMontage* Montage = GetAttackMontage(AttackNotify.AttackId);
+	if (!Montage)
+		return;
+	
+	// TODO: Attack 애니메이션 재생, 사운드 등등
+
+	CurrentAttackMontage = Montage;
+	if (MeshComponent)
+	{
+		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
+		{
+			AnimInst->Montage_Play(Montage);
+		}
+	}
+}
+
+void ATimeThiefMonster::RemoteHit(const FRemoteAttackNotify& AttackNotify)
+{
+	// TODO: Hit Animation 재생, Hit Effect, 사운드 등등
+	
+	if (!HitReactMontage)
+		return;
+
+	if (!MeshComponent)
+		return;
+
+	UAnimInstance* AnimInst = MeshComponent->GetAnimInstance();
+	if (!AnimInst)
+		return;
+
+	AnimInst->Montage_Play(HitReactMontage, 1.0f);
+}
+
+void ATimeThiefMonster::RemoteCancelAttack(const FRemoteAttackNotify& AttackNotify)
+{
+	// TODO: Cancel Montage
+	if (MeshComponent)
+	{
+		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
+		{
+			if (CurrentAttackMontage)
+			{
+				AnimInst->Montage_Stop(0.15f, CurrentAttackMontage);
+				CurrentAttackMontage = nullptr;
+			}
+		}
+	}
+}
+
+UAnimMontage* ATimeThiefMonster::GetAttackMontage(int32 AttackType) const
+{
+	if (const TObjectPtr<UAnimMontage>* Found = AttackMontageMap.Find(AttackType))
+	{
+		return Found->Get();
+	}
+	return nullptr;
+}

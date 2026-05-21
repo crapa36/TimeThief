@@ -10,25 +10,27 @@ struct FRemoteAttackNotify
 {
 	GENERATED_BODY()
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	ECombatNotifyType NotifyType = ECombatNotifyType::None;
 	
-	UPROPERTY()
-	uint32 AttackerEntityId = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 AttackerEntityId = 0;
 	
-	UPROPERTY()
-	uint32 WeaponId = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 WeaponId = 0;
 	
-	UPROPERTY()
-	uint32 ShotSeed = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 ShotSeed = 0;
 	
-	UPROPERTY()
-	uint32 AttackId = 0;
+	UPROPERTY(BlueprintReadWrite)
+	int32 AttackId = 0;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	FVector Origin = FVector::ZeroVector;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite)
 	FVector Direction = FVector::ForwardVector;
 	
+	UPROPERTY(BlueprintReadWrite)
+	float Range = 0.0f;
 };
