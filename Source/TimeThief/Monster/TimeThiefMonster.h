@@ -68,6 +68,9 @@ public:
 	virtual FVector GetMoveStep() const override;
 	virtual void ApplyNetworkMovementState(const FNetworkEntityState& EntityState) override;
 	
+	UFUNCTION(BlueprintCallable, Category = "Network")
+	float GetNetworkSpeed() const { return GetMoveStep().Size2D(); }
+	
 	// CombatSyncInterface
 public:
 	virtual class UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
@@ -118,9 +121,6 @@ protected:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UTimeThiefMonsterCombatComponent> MonsterCombatComponent = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
-	float CurrentNetworkSpeed = 0.0f;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Network")
 	FVector2D CurrentNetworkVelocity = FVector2D::ZeroVector;
