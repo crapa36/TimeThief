@@ -1290,7 +1290,8 @@ void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
 	
 	FRemoteAttackNotify Notify{};
 	Notify.AttackerEntityId = EntityId;
-	Notify.NotifyType = ECombatNotifyType::Attack;
+	Notify.NotifyType = ECombatNotifyType::Attack;		// Attack이 아닐 수 있다
+	// TODO: Attack Type 다른 거 올 수 도 있는거 확인하기 
 	Notify.AttackId = AttackType;
 	
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);

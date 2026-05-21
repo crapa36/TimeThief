@@ -211,14 +211,6 @@ void ATimeThiefMonster::RemoteFire(const FRemoteAttackNotify& AttackNotify)
 	
 	const FVector EndLocation = MuzzleLocation + FireDirection * FireRange;
 	
-	UAnimMontage* Montage = GetAttackMontage(AttackNotify.AttackId);
-	if (!Montage)
-		return;
-	
-	// TODO: Fire 애니메이션 재생, 발사 이펙트, 사운드 등등
-	//		 방향 및 조절도 해야 함
-	
-	
 	// Ray / Beam FX
 	if (FireCastFX)
 	{
@@ -236,7 +228,7 @@ void ATimeThiefMonster::RemoteFire(const FRemoteAttackNotify& AttackNotify)
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			GetWorld(),
 			FireImpactFX,
-			EndLocation,
+			MuzzleLocation,
 			FireDirection.Rotation()
 		);
 	}
@@ -248,8 +240,6 @@ void ATimeThiefMonster::RemoteAttack(const FRemoteAttackNotify& AttackNotify)
 	if (!Montage)
 		return;
 	
-	// TODO: Attack 애니메이션 재생, 사운드 등등
-
 	CurrentAttackMontage = Montage;
 	if (MeshComponent)
 	{
