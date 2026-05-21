@@ -4,7 +4,7 @@
 #include "CombatNotifyType.generated.h"
 
 UENUM(BlueprintType)
-enum ECombatNotifyType : uint8
+enum class ECombatNotifyType : uint8
 {
 	None,
 	Fire,

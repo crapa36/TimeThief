@@ -5,11 +5,12 @@
 
 #include "RemoteAttackNotify.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FRemoteAttackNotify
 {
 	GENERATED_BODY()
 	
+	UPROPERTY()
 	ECombatNotifyType NotifyType = ECombatNotifyType::None;
 	
 	UPROPERTY()

@@ -13,7 +13,7 @@ class USoundBase;
 class UStaticMesh;
 class UStaticMeshComponent;
 
-enum ECombatNotifyType : uint8;
+enum class ECombatNotifyType : uint8;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChangedSignature, int32, int32);
 
