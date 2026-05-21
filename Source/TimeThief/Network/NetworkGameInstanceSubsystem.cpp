@@ -1278,10 +1278,45 @@ void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	const uint32 AttackType = Pkt.attack_type();
+	
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Attack;
+	Notify.AttackId = AttackType;
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleMonsterFire(const se::game::N_MonsterFire& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Fire;
+	Notify.AttackId = Pkt.attack_type();
+	const auto& Origin = Pkt.start_position();
+	const auto& Dir = Pkt.direction();
+	Notify.Origin = FVector(Origin.x(), Origin.y(), Origin.z());
+	Notify.Direction = FVector(Dir.x(), Dir.y(), Dir.z());
+	Notify.Range = Pkt.range();
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt)
@@ -1452,26 +1487,20 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 	}
 	
 	// UE_LOG(LogTemp, Log, TEXT("[Network] HandleEntityHit: EntityId=%u"), Pkt.entity_id().value());
-	
+	const uint32 TargetEntityId = Pkt.entity_id().value();
 	const FVector HitPosition = FVector(Pkt.hit_position().x(), Pkt.hit_position().y(), Pkt.hit_position().z());
 	
-	const uint32 TargetEntityId = Pkt.entity_id().value();
 	if (TargetEntityId == 0) 
 	{
 		// TODO: Entity가 아니라 벽 같은 것에 맞은 것
 	}
 	else
 	{
-		FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetEntityId);
-		if (TargetEntry == nullptr || TargetEntry->Actor == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to find target actor for EntityHit. EntityId=%u"), TargetEntityId);
-			return;
-		}
+		FRemoteAttackNotify Notify{};
+		Notify.NotifyType = ECombatNotifyType::Hit;
+		Notify.Origin = HitPosition;
 	
-		auto* HitActor = TargetEntry->Actor.Get();
-		// TODO: 해당 Actor에 대한 Hit 처리 (Pos에 근사한 위치에 Hit Effect)
-		//		 Damage는 충격량 정도
+		ApplyRemoteAttackNotifyToActor(TargetEntityId, Notify);
 	}
 }
 
