@@ -10,10 +10,11 @@ namespace TimeThiefSmoke
 {
 	constexpr int32 MaxBulletTracesPerSmokePerTick = TimeThiefSmokeParameterDefaults::MaxBulletTracesPerSmokePerTick;
 	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = TimeThiefSmokeParameterDefaults::MaxActiveExplosionImpulsesPerSmoke;
-	constexpr float SmokeClusterBoundsExpansionRatio = 0.10f;
-	constexpr float SmokeClusterMinExpansionCm = 120.0f;
-	constexpr float SmokeClusterReleaseBoundsExpansionRatio = 0.26f;
-	constexpr float SmokeClusterReleaseMinExpansionCm = 320.0f;
+	constexpr float SmokeClusterBoundsExpansionRatio = TimeThiefSmokeParameterDefaults::SmokeClusterBoundsExpansionRatio;
+	constexpr float SmokeClusterMinExpansionCm = TimeThiefSmokeParameterDefaults::SmokeClusterMinExpansionCm;
+	constexpr float SmokeClusterReleaseBoundsExpansionRatio = TimeThiefSmokeParameterDefaults::SmokeClusterReleaseBoundsExpansionRatio;
+	constexpr float SmokeClusterReleaseMinExpansionCm = TimeThiefSmokeParameterDefaults::SmokeClusterReleaseMinExpansionCm;
+	constexpr float SmokeSpatialCellSize = TimeThiefSmokeParameterDefaults::SmokeSpatialCellSize;
 
 	struct FPendingRendererSmokeVolume
 	{
@@ -69,20 +70,24 @@ namespace TimeThiefSmoke
 
 	bool HasSolidObstacleMask(const FTimeThiefSmokeRendererVolume& Volume)
 	{
-		if (Volume.ObstacleMaskResolution <= 1 || Volume.ObstacleMask.IsEmpty())
-		{
-			return false;
-		}
+		return Volume.bHasSolidObstacleMask;
+	}
 
-		for (const uint8 Voxel : Volume.ObstacleMask)
-		{
-			if (Voxel != 0)
-			{
-				return true;
-			}
-		}
+	FIntVector WorldToSmokeSpatialCell(const FVector& Position)
+	{
+		const float SafeCellSize = FMath::Max(SmokeSpatialCellSize, 1.0f);
+		return FIntVector(
+			FMath::FloorToInt(Position.X / SafeCellSize),
+			FMath::FloorToInt(Position.Y / SafeCellSize),
+			FMath::FloorToInt(Position.Z / SafeCellSize));
+	}
 
-		return false;
+	FBox MakeTraceQueryBounds(const FVector& TraceStart, const FVector& TraceEnd)
+	{
+		FBox Bounds(EForceInit::ForceInit);
+		Bounds += TraceStart;
+		Bounds += TraceEnd;
+		return Bounds.ExpandBy(1.0f);
 	}
 
 	bool AreSmokeVolumesClusterCompatible(const FTimeThiefSmokeRendererVolume& A, const FTimeThiefSmokeRendererVolume& B)
@@ -259,6 +264,7 @@ namespace TimeThiefSmoke
 		ClusterVolume.ObstacleMaskResolution = 0;
 		ClusterVolume.ObstacleMaskRevision = 0;
 		ClusterVolume.ObstacleMask.Reset();
+		ClusterVolume.bHasSolidObstacleMask = false;
 		ClusterVolume.SourceEvents.Reset();
 		ClusterVolume.SourceEvents.Reserve(ClusterMembers.Num());
 
@@ -376,94 +382,6 @@ namespace TimeThiefSmoke
 		}
 	}
 
-	ETimeThiefSmokeSimulationBackend ToRendererBackend(ESmokeSimulationBackend Backend)
-	{
-		return Backend == ESmokeSimulationBackend::DenseLegacy
-			? ETimeThiefSmokeSimulationBackend::DenseLegacy
-			: ETimeThiefSmokeSimulationBackend::SparseMac;
-	}
-
-	ETimeThiefSmokePressureSolver ToRendererPressureSolver(ESmokePressureSolver Solver)
-	{
-		return Solver == ESmokePressureSolver::JacobiLegacy
-			? ETimeThiefSmokePressureSolver::JacobiLegacy
-			: ETimeThiefSmokePressureSolver::Multigrid;
-	}
-
-	FTimeThiefSmokeRendererSettings ToRendererSettings(const FTimeThiefSmokeRuntimeSettings& Settings)
-	{
-		FTimeThiefSmokeRendererSettings RendererSettings;
-		RendererSettings.SimulationBackend = ToRendererBackend(Settings.SimulationBackend);
-		RendererSettings.PressureSolver = ToRendererPressureSolver(Settings.PressureSolver);
-		RendererSettings.SmokeGridResolution = Settings.SmokeGridResolution;
-		RendererSettings.PressureIterations = Settings.PressureIterations;
-		RendererSettings.RenderStepCount = Settings.RenderStepCount;
-		RendererSettings.SmokeBrickSize = Settings.SmokeBrickSize;
-		RendererSettings.MaxActiveSmokeBricks = Settings.MaxActiveSmokeBricks;
-		RendererSettings.RenderMaxStepCount = Settings.RenderMaxStepCount;
-		RendererSettings.RenderStepVoxelScale = Settings.RenderStepVoxelScale;
-		RendererSettings.Extinction = Settings.Extinction;
-		RendererSettings.ScatteringAlbedo = Settings.ScatteringAlbedo;
-		RendererSettings.ScatteringAnisotropy = Settings.ScatteringAnisotropy;
-		RendererSettings.DensityDissipation = Settings.DensityDissipation;
-		RendererSettings.VelocityDamping = Settings.VelocityDamping;
-		RendererSettings.VorticityStrength = Settings.VorticityStrength;
-		RendererSettings.VorticityConfinementStrength = Settings.VorticityConfinementStrength;
-		RendererSettings.TurbulenceStrength = Settings.TurbulenceStrength;
-		RendererSettings.AirInteractionStrength = Settings.AirInteractionStrength;
-		RendererSettings.SelfWobbleTimeScale = Settings.SelfWobbleTimeScale;
-		RendererSettings.SelfWobbleVelocityScale = Settings.SelfWobbleVelocityScale;
-		RendererSettings.SelfWobbleForceScale = Settings.SelfWobbleForceScale;
-		RendererSettings.SelfWobbleParticleScale = Settings.SelfWobbleParticleScale;
-		RendererSettings.EventVortexStrength = Settings.EventVortexStrength;
-		RendererSettings.VortexParticleCount = Settings.VortexParticleCount;
-		RendererSettings.VortexParticleLifeSeconds = Settings.VortexParticleLifeSeconds;
-		RendererSettings.VortexParticleStrength = Settings.VortexParticleStrength;
-		RendererSettings.VortexParticleSplatRadius = Settings.VortexParticleSplatRadius;
-		RendererSettings.VortexParticleCoreRadius = Settings.VortexParticleCoreRadius;
-		RendererSettings.VortexDensityGradientScale = Settings.VortexDensityGradientScale;
-		RendererSettings.WarpTrailIntensity = Settings.WarpTrailIntensity;
-		RendererSettings.WarpTrailDecayRate = Settings.WarpTrailDecayRate;
-		RendererSettings.WarpTrailRadiusScale = Settings.WarpTrailRadiusScale;
-		RendererSettings.WarpTrailLengthScale = Settings.WarpTrailLengthScale;
-		RendererSettings.ActorWarpDensityAccumulationScale = Settings.ActorWarpDensityAccumulationScale;
-		RendererSettings.ActorWarpAccumulationDecaySeconds = Settings.ActorWarpAccumulationDecaySeconds;
-		RendererSettings.ActorWarpEmissionRemainder = Settings.ActorWarpEmissionRemainder;
-		RendererSettings.ActorAirflowStrength = Settings.ActorAirflowStrength;
-		RendererSettings.ActorAirflowMinSpeed = Settings.ActorAirflowMinSpeed;
-		RendererSettings.ActorAirflowFullSpeed = Settings.ActorAirflowFullSpeed;
-		RendererSettings.ActorAirflowRadiusScale = Settings.ActorAirflowRadiusScale;
-		RendererSettings.ActorAirflowFrontStrength = Settings.ActorAirflowFrontStrength;
-		RendererSettings.ActorAirflowSideStrength = Settings.ActorAirflowSideStrength;
-		RendererSettings.ActorAirflowWakeStrength = Settings.ActorAirflowWakeStrength;
-		RendererSettings.ActorAirflowVortexStrength = Settings.ActorAirflowVortexStrength;
-		RendererSettings.SparseVelocityActiveThreshold = Settings.SparseVelocityActiveThreshold;
-		RendererSettings.BulletWakeMaxVisibleLife = Settings.BulletWakeMaxVisibleLife;
-		RendererSettings.BulletWakeReleaseDuration = Settings.BulletWakeReleaseDuration;
-		RendererSettings.BulletWakeSinkLife = Settings.BulletWakeSinkLife;
-		RendererSettings.BulletWakeSinkStrength = Settings.BulletWakeSinkStrength;
-		RendererSettings.BulletWakeImpulseStrength = Settings.BulletWakeImpulseStrength;
-		RendererSettings.BulletWakeCutoutFeather = Settings.BulletWakeCutoutFeather;
-		RendererSettings.bUseMacCormackAdvection = Settings.bUseMacCormackAdvection;
-		RendererSettings.bUseAdaptiveMacCormack = Settings.bUseAdaptiveMacCormack;
-		RendererSettings.bUseVortexBrickBins = Settings.bUseVortexBrickBins;
-		RendererSettings.MaxGPUEventsPerSmokePerFrame = Settings.MaxGPUEventsPerSmokePerFrame;
-		RendererSettings.InitialDensity = Settings.InitialDensity;
-		RendererSettings.SmokeFadeOutDuration = Settings.SmokeFadeOutDuration;
-		RendererSettings.PlumeEmissionDuration = Settings.PlumeEmissionDuration;
-		RendererSettings.PlumeSourceRadius = Settings.PlumeSourceRadius;
-		RendererSettings.PlumeExpansionVelocity = Settings.PlumeExpansionVelocity;
-		RendererSettings.PlumeRiseVelocity = Settings.PlumeRiseVelocity;
-		RendererSettings.RenderNoiseScale = Settings.RenderNoiseScale;
-		RendererSettings.RenderNoiseStrength = Settings.RenderNoiseStrength;
-		RendererSettings.RenderNoiseTimeScale = Settings.RenderNoiseTimeScale;
-		RendererSettings.RenderFilamentScale = Settings.RenderFilamentScale;
-		RendererSettings.RenderFilamentStrength = Settings.RenderFilamentStrength;
-		RendererSettings.RenderFilamentContrast = Settings.RenderFilamentContrast;
-		RendererSettings.RenderFilamentWarpStrength = Settings.RenderFilamentWarpStrength;
-		return RendererSettings;
-	}
-
 	FTimeThiefSmokeRendererEvent ToRendererEvent(const FTimeThiefSmokeInteractionEvent& Event)
 	{
 		FTimeThiefSmokeRendererEvent RendererEvent;
@@ -497,6 +415,10 @@ void UTimeThiefSmokeWorldSubsystem::Deinitialize()
 	ActiveImpulses.Reset();
 	PendingRendererEvents.Reset();
 	PersistentClusterLinks.Reset();
+	SmokeSpatialEntries.Reset();
+	SmokeSpatialCells.Reset();
+	bSmokeSpatialIndexDirty = true;
+	SmokeSpatialIndexFrame = MAX_uint64;
 	Super::Deinitialize();
 }
 
@@ -534,6 +456,7 @@ void UTimeThiefSmokeWorldSubsystem::Tick(float DeltaTime)
 	PublishRendererFrame(DeltaTime);
 
 	BulletTraceCountsThisTick.Reset();
+	bSmokeSpatialIndexDirty = true;
 }
 
 TStatId UTimeThiefSmokeWorldSubsystem::GetStatId() const
@@ -549,11 +472,13 @@ void UTimeThiefSmokeWorldSubsystem::RegisterSmokeVolume(ATimeThiefSmokeVolume* S
 	}
 
 	ActiveSmokeVolumes.AddUnique(SmokeVolume);
+	MarkSmokeSpatialIndexDirty();
 }
 
 void UTimeThiefSmokeWorldSubsystem::UnregisterSmokeVolume(ATimeThiefSmokeVolume* SmokeVolume)
 {
 	ActiveSmokeVolumes.Remove(SmokeVolume);
+	MarkSmokeSpatialIndexDirty();
 
 	for (int32 Index = ActiveImpulses.Num() - 1; Index >= 0; --Index)
 	{
@@ -573,9 +498,10 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 
 	CompactSmokeVolumes();
 
-	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
+	TArray<ATimeThiefSmokeVolume*> CandidateSmokeVolumes;
+	QuerySmokeSpatialIndex(TimeThiefSmoke::MakeTraceQueryBounds(TraceStart, TraceEnd), CandidateSmokeVolumes);
+	for (ATimeThiefSmokeVolume* SmokeVolume : CandidateSmokeVolumes)
 	{
-		ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
 		if (!SmokeVolume)
 		{
 			continue;
@@ -601,15 +527,17 @@ void UTimeThiefSmokeWorldSubsystem::SubmitExplosion(const FVector& Center, float
 {
 	CompactSmokeVolumes();
 
-	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
+	const float SafeRadius = FMath::Max(1.0f, Radius);
+	TArray<ATimeThiefSmokeVolume*> CandidateSmokeVolumes;
+	QuerySmokeSpatialIndex(FBox(Center - FVector(SafeRadius), Center + FVector(SafeRadius)), CandidateSmokeVolumes);
+	for (ATimeThiefSmokeVolume* SmokeVolume : CandidateSmokeVolumes)
 	{
-		ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
-		if (!SmokeVolume || !SmokeVolume->IntersectsExplosion(Center, Radius))
+		if (!SmokeVolume || !SmokeVolume->IntersectsExplosion(Center, SafeRadius))
 		{
 			continue;
 		}
 
-		SmokeVolume->HandleExplosionShock(Center, Radius, Strength, Seed);
+		SmokeVolume->HandleExplosionShock(Center, SafeRadius, Strength, Seed);
 	}
 }
 
@@ -638,11 +566,113 @@ void UTimeThiefSmokeWorldSubsystem::RecordRendererEvent(const FTimeThiefSmokeInt
 
 void UTimeThiefSmokeWorldSubsystem::CompactSmokeVolumes()
 {
+	bool bRemovedInvalidVolume = false;
 	for (int32 Index = ActiveSmokeVolumes.Num() - 1; Index >= 0; --Index)
 	{
 		if (!ActiveSmokeVolumes[Index].IsValid())
 		{
 			ActiveSmokeVolumes.RemoveAtSwap(Index);
+			bRemovedInvalidVolume = true;
+		}
+	}
+
+	if (bRemovedInvalidVolume)
+	{
+		MarkSmokeSpatialIndexDirty();
+	}
+}
+
+void UTimeThiefSmokeWorldSubsystem::MarkSmokeSpatialIndexDirty()
+{
+	bSmokeSpatialIndexDirty = true;
+}
+
+void UTimeThiefSmokeWorldSubsystem::RebuildSmokeSpatialIndex()
+{
+	const uint64 CurrentFrame = GFrameCounter;
+	if (!bSmokeSpatialIndexDirty && SmokeSpatialIndexFrame == CurrentFrame)
+	{
+		return;
+	}
+
+	SmokeSpatialEntries.Reset();
+	SmokeSpatialCells.Reset();
+
+	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
+	{
+		ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
+		if (!SmokeVolume)
+		{
+			continue;
+		}
+
+		const FBox Bounds = SmokeVolume->GetCurrentSmokeWorldBounds();
+		if (!Bounds.IsValid)
+		{
+			continue;
+		}
+
+		const int32 EntryIndex = SmokeSpatialEntries.Add({ SmokeVolume, Bounds });
+		const FIntVector MinCell = TimeThiefSmoke::WorldToSmokeSpatialCell(Bounds.Min);
+		const FIntVector MaxCell = TimeThiefSmoke::WorldToSmokeSpatialCell(Bounds.Max);
+		for (int32 Z = MinCell.Z; Z <= MaxCell.Z; ++Z)
+		{
+			for (int32 Y = MinCell.Y; Y <= MaxCell.Y; ++Y)
+			{
+				for (int32 X = MinCell.X; X <= MaxCell.X; ++X)
+				{
+					SmokeSpatialCells.FindOrAdd(FIntVector(X, Y, Z)).Add(EntryIndex);
+				}
+			}
+		}
+	}
+
+	SmokeSpatialIndexFrame = CurrentFrame;
+	bSmokeSpatialIndexDirty = false;
+}
+
+void UTimeThiefSmokeWorldSubsystem::QuerySmokeSpatialIndex(const FBox& QueryBounds, TArray<ATimeThiefSmokeVolume*>& OutSmokeVolumes)
+{
+	OutSmokeVolumes.Reset();
+	if (!QueryBounds.IsValid)
+	{
+		return;
+	}
+
+	RebuildSmokeSpatialIndex();
+
+	TSet<int32> CandidateEntryIndices;
+	const FIntVector MinCell = TimeThiefSmoke::WorldToSmokeSpatialCell(QueryBounds.Min);
+	const FIntVector MaxCell = TimeThiefSmoke::WorldToSmokeSpatialCell(QueryBounds.Max);
+	for (int32 Z = MinCell.Z; Z <= MaxCell.Z; ++Z)
+	{
+		for (int32 Y = MinCell.Y; Y <= MaxCell.Y; ++Y)
+		{
+			for (int32 X = MinCell.X; X <= MaxCell.X; ++X)
+			{
+				if (const TArray<int32>* EntryIndices = SmokeSpatialCells.Find(FIntVector(X, Y, Z)))
+				{
+					for (const int32 EntryIndex : *EntryIndices)
+					{
+						CandidateEntryIndices.Add(EntryIndex);
+					}
+				}
+			}
+		}
+	}
+
+	TArray<int32> SortedCandidateEntryIndices = CandidateEntryIndices.Array();
+	SortedCandidateEntryIndices.Sort();
+	for (const int32 EntryIndex : SortedCandidateEntryIndices)
+	{
+		if (!SmokeSpatialEntries.IsValidIndex(EntryIndex) || !SmokeSpatialEntries[EntryIndex].Bounds.Intersect(QueryBounds))
+		{
+			continue;
+		}
+
+		if (ATimeThiefSmokeVolume* SmokeVolume = SmokeSpatialEntries[EntryIndex].SmokeVolume.Get())
+		{
+			OutSmokeVolumes.Add(SmokeVolume);
 		}
 	}
 }
@@ -671,13 +701,13 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 	PendingVolumes.Reserve(ActiveSmokeVolumes.Num());
 	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
 	{
-		const ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
+		ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
 		if (!SmokeVolume)
 		{
 			continue;
 		}
+		SmokeVolume->FlushPendingObstacleMaskRebuild();
 
-		const FTimeThiefSmokeRuntimeSettings& Settings = SmokeVolume->GetSmokeSettings();
 		FTimeThiefSmokeRendererVolume RendererVolume;
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
 		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
@@ -689,11 +719,12 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 			FMath::Max(RendererVolume.RenderBoundsExtent.Z, RendererVolume.NaturalBoundsExtent.Z));
 		RendererVolume.BoundsExtent = RendererVolume.SimulationBoundsExtent;
 		RendererVolume.AgeSeconds = SmokeVolume->GetSmokeAgeSeconds();
-		RendererVolume.DurationSeconds = Settings.SmokeDuration;
+		RendererVolume.DurationSeconds = TimeThiefSmokeParameterDefaults::SmokeDuration;
 		RendererVolume.ObstacleMaskResolution = SmokeVolume->GetObstacleMaskResolution();
 		RendererVolume.ObstacleMaskRevision = SmokeVolume->GetObstacleMaskRevision();
-		RendererVolume.ObstacleMask = SmokeVolume->GetObstacleMask();
-		RendererVolume.Settings = TimeThiefSmoke::ToRendererSettings(Settings);
+		RendererVolume.ObstacleMask = SmokeVolume->GetObstacleMaskSnapshot();
+		RendererVolume.bHasSolidObstacleMask = SmokeVolume->HasSolidObstacleMask();
+		RendererVolume.Settings = FTimeThiefSmokeRendererSettings();
 
 		TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume = PendingVolumes.AddDefaulted_GetRef();
 		PendingVolume.Volume = MoveTemp(RendererVolume);

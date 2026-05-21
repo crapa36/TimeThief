@@ -46,6 +46,9 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr int32 ObstacleMaskResolution = 24;
 	// 장애물 마스크 보정 팽창 거리(cm). 높을수록 장애물 영향 범위 증가.
 	constexpr float ObstacleMaskInflation = 5.0f;
+	constexpr float ObstacleMaskCellFootprintRatio = 0.35f;
+	constexpr float BoundsCellObstacleFootprintRatio = 0.2f;
+	constexpr float ObstacleSourceClearRadiusScale = 1.35f;
 
 	// 활성 셀 범위
 
@@ -227,8 +230,25 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더 필라먼트 휘어짐 강도. 높을수록 디테일과 비용 증가.
 	constexpr float RenderFilamentWarpStrength = 4.0f;
 
+	// Internal smoke clustering and interaction broadphase defaults.
+	constexpr float SmokeClusterBoundsExpansionRatio = 0.10f;
+	constexpr float SmokeClusterMinExpansionCm = 120.0f;
+	constexpr float SmokeClusterReleaseBoundsExpansionRatio = 0.26f;
+	constexpr float SmokeClusterReleaseMinExpansionCm = 320.0f;
+	constexpr float SmokeSpatialCellSize = 2400.0f;
+
+	// Renderer allocation hysteresis defaults.
+	constexpr int32 SmokeGridAllocationQuantum = 32;
+
 	// 디버그
 
 	// 연막 내부/렌더 박스 디버그 표시 여부. 켜면 디버그 가시성과 비용 증가.
 	constexpr bool bDrawDebugBounds = false;
+	constexpr float SmokeDebugRadius = 450.0f;
+	constexpr float SmokeDebugDuration = 12.0f;
+	constexpr int32 SmokeDebugSegments = 32;
+	inline FColor GetSmokeDebugColor()
+	{
+		return FColor::Silver;
+	}
 }

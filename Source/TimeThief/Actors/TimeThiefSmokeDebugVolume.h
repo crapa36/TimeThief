@@ -23,15 +23,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke")
 	TObjectPtr<USceneComponent> SceneRoot;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke", meta = (ClampMin = "1.0", UIMin = "1.0"))
-	float Radius = 450.0f;
+	float Radius;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke", meta = (ClampMin = "0.1", UIMin = "0.1"))
-	float Duration = 12.0f;
+	float Duration;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke", meta = (ClampMin = "4", UIMin = "4"))
-	int32 DebugSegments = 32;
+	int32 DebugSegments;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke")
-	FColor DebugColor = FColor::Silver;
+	FColor DebugColor;
 };

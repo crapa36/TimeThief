@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ItemCommons.h"
-#include "Smoke/TimeThiefSmokeTypes.h"
 #include "Weapon/TimeThiefThrowableTypes.h"
 #include "TimeThiefThrowableProjectile.generated.h"
 
@@ -34,7 +33,6 @@ protected:
 	void ApplyRadialThrowableDamage(const FVector& ExplosionLocation);
 	void PlayDetonationEffects(const FVector& ExplosionLocation);
 	void SpawnSmokeVolume(const FVector& SmokeLocation);
-	FTimeThiefSmokeRuntimeSettings BuildSmokeRuntimeSettings() const;
 	void ApplyProjectileSettings();
 	void PlayCollisionSound(const FHitResult& ImpactResult, const FVector& ImpactVelocity);
 

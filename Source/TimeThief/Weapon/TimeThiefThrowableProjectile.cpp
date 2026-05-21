@@ -11,6 +11,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundBase.h"
+#include "TimeThiefSmokeParameterDefaults.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "TimerManager.h"
 
@@ -212,10 +213,9 @@ void ATimeThiefThrowableProjectile::ExplodeOnce()
 	{
 		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 		{
-			const FTimeThiefSmokeRuntimeSettings SmokeDefaults;
 			SmokeSubsystem->SubmitExplosion(
 				EffectLocation,
-				FMath::Max(SmokeDefaults.ExplosionShockRadius, ActiveSettings.DamageOuterRadius),
+				FMath::Max(TimeThiefSmokeParameterDefaults::ExplosionShockRadius, ActiveSettings.DamageOuterRadius),
 				1.0f,
 				FMath::Rand());
 		}
@@ -294,13 +294,8 @@ void ATimeThiefThrowableProjectile::SpawnSmokeVolume(const FVector& SmokeLocatio
 
 	if (SmokeVolume)
 	{
-		SmokeVolume->InitializeSmokeVolume(BuildSmokeRuntimeSettings(), CachedOwnerActor.Get(), CachedInstigatorPawn.Get());
+		SmokeVolume->InitializeSmokeVolume(CachedOwnerActor.Get(), CachedInstigatorPawn.Get());
 	}
-}
-
-FTimeThiefSmokeRuntimeSettings ATimeThiefThrowableProjectile::BuildSmokeRuntimeSettings() const
-{
-	return FTimeThiefSmokeRuntimeSettings();
 }
 
 void ATimeThiefThrowableProjectile::PlayCollisionSound(const FHitResult& ImpactResult, const FVector& ImpactVelocity)

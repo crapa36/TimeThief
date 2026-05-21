@@ -7,6 +7,12 @@
 
 class ATimeThiefSmokeVolume;
 
+struct FTimeThiefSmokeSpatialEntry
+{
+	TWeakObjectPtr<ATimeThiefSmokeVolume> SmokeVolume;
+	FBox Bounds = FBox(EForceInit::ForceInit);
+};
+
 USTRUCT()
 struct FTimeThiefActiveSmokeImpulse
 {
@@ -46,6 +52,9 @@ public:
 
 private:
 	void CompactSmokeVolumes();
+	void MarkSmokeSpatialIndexDirty();
+	void RebuildSmokeSpatialIndex();
+	void QuerySmokeSpatialIndex(const FBox& QueryBounds, TArray<ATimeThiefSmokeVolume*>& OutSmokeVolumes);
 	void PublishRendererFrame(float DeltaTime);
 
 	UPROPERTY()
@@ -60,4 +69,9 @@ private:
 	TSet<uint64> PersistentClusterLinks;
 
 	TMap<ATimeThiefSmokeVolume*, int32> BulletTraceCountsThisTick;
+
+	TArray<FTimeThiefSmokeSpatialEntry> SmokeSpatialEntries;
+	TMap<FIntVector, TArray<int32>> SmokeSpatialCells;
+	uint64 SmokeSpatialIndexFrame = MAX_uint64;
+	bool bSmokeSpatialIndexDirty = true;
 };

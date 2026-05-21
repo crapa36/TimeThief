@@ -191,13 +191,36 @@ namespace
 			FMath::Max(1, AtlasBrickGridSize.Z * SafeBrickSize));
 	}
 
-	FIntVector MakeStableGridSize(
-		const FTimeThiefSmokeRendererVolume& Volume,
-		int32& OutEffectiveResolution)
+	FIntVector MakeStableGridSize(const FTimeThiefSmokeRendererVolume& Volume)
 	{
 		const int32 RequestedResolution = FMath::Clamp(Volume.Settings.SmokeGridResolution, 16, 512);
-		OutEffectiveResolution = RequestedResolution;
 		return MakeGridSize(RequestedResolution, Volume.BoundsExtent);
+	}
+
+	int32 QuantizeAllocatedGridAxis(const int32 RequiredAxis)
+	{
+		const int32 Quantum = FMath::Max(
+			TimeThiefSmokeParameterDefaults::SmokeGridAllocationQuantum,
+			static_cast<int32>(SmokeThreadGroupSize));
+		return FMath::Clamp(
+			FMath::DivideAndRoundUp(FMath::Max(RequiredAxis, 16), Quantum) * Quantum,
+			16,
+			512);
+	}
+
+	FIntVector MakeAllocatedGridSize(const FIntVector& RequiredGridSize)
+	{
+		return FIntVector(
+			QuantizeAllocatedGridAxis(RequiredGridSize.X),
+			QuantizeAllocatedGridAxis(RequiredGridSize.Y),
+			QuantizeAllocatedGridAxis(RequiredGridSize.Z));
+	}
+
+	bool GridContains(const FIntVector& AllocatedGridSize, const FIntVector& RequiredGridSize)
+	{
+		return AllocatedGridSize.X >= RequiredGridSize.X &&
+			AllocatedGridSize.Y >= RequiredGridSize.Y &&
+			AllocatedGridSize.Z >= RequiredGridSize.Z;
 	}
 
 	FRDGTextureRef CreateTransientScalarTexture(
@@ -527,16 +550,14 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 				State.bWarnedBrickBudgetOverflow = false;
 			}
 		}
-		int32 EffectiveResolution = 0;
-		const FIntVector NewGridSize = MakeStableGridSize(Volume, EffectiveResolution);
+		const FIntVector RequiredGridSize = MakeStableGridSize(Volume);
 		if (!bSparseBackend)
 		{
 			State.bWarnedBrickBudgetOverflow = false;
 		}
-		State.EffectiveSmokeGridResolution = EffectiveResolution;
-		if (State.AllocatedGridSize != NewGridSize)
+		if (!GridContains(State.AllocatedGridSize, RequiredGridSize))
 		{
-			State.AllocatedGridSize = NewGridSize;
+			State.AllocatedGridSize = MakeAllocatedGridSize(RequiredGridSize);
 			State.DensityTextures[0].SafeRelease();
 			State.DensityTextures[1].SafeRelease();
 			State.DisplacedDensityTextures[0].SafeRelease();
@@ -1567,7 +1588,8 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleTexture(FRDGBuilder& GraphBuild
 {
 	const int32 SourceResolution = State.Volume.ObstacleMaskResolution;
 	const int32 SourceVoxelCount = SourceResolution > 0 ? SourceResolution * SourceResolution * SourceResolution : 0;
-	const bool bHasValidMask = SourceResolution > 0 && State.Volume.ObstacleMask.Num() == SourceVoxelCount;
+	const TArray<uint8>* SourceObstacleMask = State.Volume.ObstacleMask.Get();
+	const bool bHasValidMask = SourceResolution > 0 && SourceObstacleMask && SourceObstacleMask->Num() == SourceVoxelCount;
 	const int32 DesiredResolution = bHasValidMask ? FMath::Clamp(SourceResolution, 1, 128) : 1;
 
 	if (!State.ObstacleTexture.IsValid() || State.AllocatedObstacleResolution != DesiredResolution)
@@ -1575,9 +1597,9 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleTexture(FRDGBuilder& GraphBuild
 		State.ObstacleTexture.SafeRelease();
 		const FRDGTextureDesc ObstacleDesc = FRDGTextureDesc::Create3D(
 			FIntVector(DesiredResolution, DesiredResolution, DesiredResolution),
-			PF_G8,
+			PF_R16F,
 			FClearValueBinding::Black,
-			TexCreate_ShaderResource);
+			TexCreate_ShaderResource | TexCreate_UAV);
 		AllocatePooledTexture(ObstacleDesc, State.ObstacleTexture, TEXT("TimeThiefSmoke.ObstacleMask"));
 		State.AllocatedObstacleResolution = DesiredResolution;
 		State.UploadedObstacleMaskRevision = MAX_uint32;
@@ -1612,7 +1634,7 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleTexture(FRDGBuilder& GraphBuild
 		{
 			FMemory::Memcpy(
 				State.ObstacleTargetScratch.GetData(),
-				State.Volume.ObstacleMask.GetData(),
+				SourceObstacleMask->GetData(),
 				DesiredVoxelCount * sizeof(uint8));
 		}
 
@@ -1634,14 +1656,30 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleTexture(FRDGBuilder& GraphBuild
 		State.ObstacleUploadScratch[VoxelIndex] = static_cast<uint8>(FMath::RoundToInt(FMath::Lerp(PreviousValue, TargetValue, BlendAlpha)));
 	}
 
-	const FUpdateTextureRegion3D UpdateRegion(0, 0, 0, 0, 0, 0, DesiredResolution, DesiredResolution, DesiredResolution);
-	GraphBuilder.RHICmdList.UpdateTexture3D(
-		State.ObstacleTexture->GetRHI(),
-		0,
-		UpdateRegion,
-		DesiredResolution * sizeof(uint8),
-		DesiredResolution * DesiredResolution * sizeof(uint8),
-		State.ObstacleUploadScratch.GetData());
+	FRDGTextureRef ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleTexture, TEXT("TimeThiefSmoke.ObstacleMask"));
+	FRDGUploadData<float> UploadData(GraphBuilder, DesiredVoxelCount);
+	for (int32 VoxelIndex = 0; VoxelIndex < DesiredVoxelCount; ++VoxelIndex)
+	{
+		UploadData[VoxelIndex] = static_cast<float>(State.ObstacleUploadScratch[VoxelIndex]) / 255.0f;
+	}
+
+	FRDGBufferRef UploadBuffer = GraphBuilder.CreateBuffer(
+		FRDGBufferDesc::CreateStructuredUploadDesc(sizeof(float), DesiredVoxelCount),
+		TEXT("TimeThiefSmoke.ObstacleMaskUpload"));
+	GraphBuilder.QueueBufferUpload(UploadBuffer, UploadData, ERDGInitialDataFlags::NoCopy);
+
+	FTimeThiefSmokeUploadObstacleMaskCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeUploadObstacleMaskCS::FParameters>();
+	PassParameters->GridResolution = FIntVector(DesiredResolution, DesiredResolution, DesiredResolution);
+	PassParameters->SourceMask = GraphBuilder.CreateSRV(UploadBuffer);
+	PassParameters->OutObstacleTexture = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(ObstacleTexture));
+
+	TShaderMapRef<FTimeThiefSmokeUploadObstacleMaskCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FComputeShaderUtils::AddPass(
+		GraphBuilder,
+		RDG_EVENT_NAME("TimeThiefSmoke.UploadObstacleMask"),
+		ComputeShader,
+		PassParameters,
+		MakeGroupCount(PassParameters->GridResolution));
 
 	State.ObstacleMaskBlendAge += FMath::Max(LastFrameDeltaSeconds, 0.0f);
 	if (State.ObstacleMaskBlendAge >= ObstacleMaskBlendDuration)
@@ -2090,7 +2128,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedBrickGridSize, 4);
 	EstimatedVRAMBytes += EstimateTextureBytes(State.AllocatedSparseAtlasGridSize, 16);
 	const int32 ObstacleResolution = FMath::Max(State.AllocatedObstacleResolution, 1);
-	EstimatedVRAMBytes += static_cast<uint64>(ObstacleResolution) * ObstacleResolution * ObstacleResolution;
+	EstimatedVRAMBytes += static_cast<uint64>(ObstacleResolution) * ObstacleResolution * ObstacleResolution * 2u;
 	EstimatedVRAMBytes += static_cast<uint64>(FMath::Max(State.AllocatedVortexParticleCount, 1)) * sizeof(FTimeThiefSmokeVortexParticleShaderData) * 2;
 	State.LastEstimatedVRAMBytes = EstimatedVRAMBytes;
 
@@ -2549,6 +2587,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 	PassParameters->SmokeFadeOutDuration = State.Volume.Settings.SmokeFadeOutDuration;
 	PassParameters->PlumeEmissionDuration = State.Volume.Settings.PlumeEmissionDuration;
 	PassParameters->PlumeSourceRadius = State.Volume.Settings.PlumeSourceRadius;
+	PassParameters->ObstacleSourceClearRadiusScale = State.Volume.Settings.ObstacleSourceClearRadiusScale;
 	PassParameters->PlumeExpansionVelocity = State.Volume.Settings.PlumeExpansionVelocity;
 	PassParameters->PlumeRiseVelocity = State.Volume.Settings.PlumeRiseVelocity;
 	PassParameters->DensityDissipation = State.Volume.Settings.DensityDissipation;

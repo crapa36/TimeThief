@@ -82,6 +82,13 @@ void ComputeAdvectionLimiterBounds(
 	}
 }
 
+float TimeThiefSmokeSourceObstacleOpen(float SourceDistance, float SourceRadius)
+{
+	const float SafeSourceRadius = max(SourceRadius, 1.0);
+	const float ClearRadius = max(SafeSourceRadius * max(ObstacleSourceClearRadiusScale, 1.0), SafeSourceRadius + 1.0);
+	return 1.0 - smoothstep(SafeSourceRadius, ClearRadius, SourceDistance);
+}
+
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
@@ -129,6 +136,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float3 BulletImpulse = float3(0.0, 0.0, 0.0);
 	float EventSourceDensity = 0.0;
 	float3 EventSourceVelocity = float3(0.0, 0.0, 0.0);
+	float SourceObstacleOpen = 0.0;
 	bool bEventSourceInfluence = false;
 	const int SafeEventCount = min(EventCount, 128);
 	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
@@ -149,16 +157,18 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			const float3 SourceUp = normalize(Event.DirectionLength.xyz + float3(0.0, 0.0, 0.0001));
 			const float3 SourceDelta = WorldPosition - Event.PositionRadius.xyz;
 			const float SourceDistanceSq = dot(SourceDelta, SourceDelta);
-			const float SourceInfluenceRadius = max(SourceRadius * 1.1, 1.0);
+			const float SourceInfluenceRadius = max(SourceRadius * max(ObstacleSourceClearRadiusScale, 1.1), 1.0);
 			if (SourceDistanceSq < SourceInfluenceRadius * SourceInfluenceRadius)
 			{
 				const float SourceDistance = sqrt(SourceDistanceSq);
-				float SourceWeight = 1.0 - smoothstep(SourceRadius * 0.96, SourceRadius * 1.04, SourceDistance);
-				const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021 + Event.TypeShapeAgeSeed.w * 0.0017));
-				SourceWeight = saturate(SourceWeight * SourceNoise) * OpenMask;
 				const float EmissionRamp = saturate((SourceAge + DeltaSeconds) / 0.35);
 				const float EmissionFade = 1.0 - smoothstep(max(PlumeEmissionDuration, 0.01), max(PlumeEmissionDuration, 0.01) + 0.25, SourceAge);
 				const float Emission = EmissionRamp * EmissionFade * max(Event.ExtentsStrength.w, 0.0);
+				const float EventSourceObstacleOpen = Emission > 0.001 ? TimeThiefSmokeSourceObstacleOpen(SourceDistance, SourceRadius) : 0.0;
+				SourceObstacleOpen = max(SourceObstacleOpen, EventSourceObstacleOpen);
+				float SourceWeight = 1.0 - smoothstep(SourceRadius * 0.96, SourceRadius * 1.04, SourceDistance);
+				const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021 + Event.TypeShapeAgeSeed.w * 0.0017));
+				SourceWeight = saturate(SourceWeight * SourceNoise) * max(OpenMask, EventSourceObstacleOpen);
 				const float3 SourceRadial = normalize(SourceDelta + SourceUp * 18.0);
 				const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SourceUp * PlumeRiseVelocity;
 				EventSourceDensity += SourceWeight * Emission * InitialDensity;
@@ -233,7 +243,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	const float CurrentDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	const float CurrentDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
-	const float SourceInfluenceRadius = max(PlumeSourceRadius * 1.1, 1.0);
+	const float SourceInfluenceRadius = max(PlumeSourceRadius * max(ObstacleSourceClearRadiusScale, 1.1), 1.0);
 	const bool bDefaultSourceInfluence = bUseClusterSourceEvents == 0u &&
 		AgeSeconds < max(PlumeEmissionDuration + 0.25, 0.01) &&
 		dot(WorldPosition - SmokeOrigin, WorldPosition - SmokeOrigin) < SourceInfluenceRadius * SourceInfluenceRadius;
@@ -301,9 +311,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Emission = EmissionRamp * EmissionFade;
 		const float SourceDistance = length(WorldPosition - SmokeOrigin);
 		const float SafeSourceRadius = max(PlumeSourceRadius, 1.0);
+		const float DefaultSourceObstacleOpen = Emission > 0.001 ? TimeThiefSmokeSourceObstacleOpen(SourceDistance, SafeSourceRadius) : 0.0;
+		SourceObstacleOpen = max(SourceObstacleOpen, DefaultSourceObstacleOpen);
 		float SourceWeight = 1.0 - smoothstep(SafeSourceRadius * 0.96, SafeSourceRadius * 1.04, SourceDistance);
 		const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021));
-		SourceWeight = saturate(SourceWeight * SourceNoise) * OpenMask;
+		SourceWeight = saturate(SourceWeight * SourceNoise) * max(OpenMask, DefaultSourceObstacleOpen);
 		const float3 SourceRadial = normalize(WorldPosition - SmokeOrigin + SmokeUp * 18.0);
 		const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity;
 		SourceDensityInjection += SourceWeight * Emission * InitialDensity;
@@ -349,9 +361,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 
-	OutDensity[DispatchThreadId] = clamp(Density * OpenMask, 0.0, 2.8);
-	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, 2.8);
-	OutVelocity[DispatchThreadId] = float4(AdvectedVelocity * OpenMask, 0.0);
+	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);
+	OutDensity[DispatchThreadId] = clamp(Density * OutputOpenMask, 0.0, 2.8);
+	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OutputOpenMask, 0.0, 2.8);
+	OutVelocity[DispatchThreadId] = float4(AdvectedVelocity * OutputOpenMask, 0.0);
 	OutCutout[DispatchThreadId] = BulletCutout;
 	OutSink[DispatchThreadId] = BulletSink;
 }

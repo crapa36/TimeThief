@@ -60,6 +60,19 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeUploadObstacleMaskCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeUploadObstacleMaskCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeUploadObstacleMaskCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FIntVector, GridResolution)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float>, SourceMask)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutObstacleTexture)
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeApplyEventsCS : public FGlobalShader
 {
 public:

@@ -49,6 +49,7 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float SmokeFadeOutDuration;
 	float PlumeEmissionDuration;
 	float PlumeSourceRadius;
+	float ObstacleSourceClearRadiusScale;
 	float PlumeExpansionVelocity;
 	float PlumeRiseVelocity;
 	float Extinction;
@@ -140,7 +141,8 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererVolume
 	float DurationSeconds;
 	int32 ObstacleMaskResolution = 0;
 	uint32 ObstacleMaskRevision = 0;
-	TArray<uint8> ObstacleMask;
+	TSharedPtr<const TArray<uint8>, ESPMode::ThreadSafe> ObstacleMask;
+	bool bHasSolidObstacleMask = false;
 	TArray<FTimeThiefSmokeRendererEvent> SourceEvents;
 	FTimeThiefSmokeRendererSettings Settings;
 };

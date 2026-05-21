@@ -59,7 +59,6 @@ private:
 		FIntVector AllocatedBrickGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedSparseAtlasBrickGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedSparseAtlasGridSize = FIntVector::ZeroValue;
-		int32 EffectiveSmokeGridResolution = 0;
 		int32 AllocatedObstacleResolution = 0;
 		uint32 LastActiveBrickCount = 0;
 		uint32 UploadedObstacleMaskRevision = MAX_uint32;

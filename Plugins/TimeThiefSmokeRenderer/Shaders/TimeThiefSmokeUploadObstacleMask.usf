@@ -1,0 +1,21 @@
+#include "/Engine/Public/Platform.ush"
+
+int3 GridResolution;
+StructuredBuffer<float> SourceMask;
+RWTexture3D<float> OutObstacleTexture;
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const uint3 SafeGrid = uint3(GridResolution);
+	const uint Index =
+		DispatchThreadId.x +
+		DispatchThreadId.y * SafeGrid.x +
+		DispatchThreadId.z * SafeGrid.x * SafeGrid.y;
+	OutObstacleTexture[DispatchThreadId] = SourceMask[Index];
+}

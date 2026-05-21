@@ -3,8 +3,13 @@
 #include "Components/SceneComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
+#include "TimeThiefSmokeParameterDefaults.h"
 
 ATimeThiefSmokeDebugVolume::ATimeThiefSmokeDebugVolume()
+	: Radius(TimeThiefSmokeParameterDefaults::SmokeDebugRadius)
+	, Duration(TimeThiefSmokeParameterDefaults::SmokeDebugDuration)
+	, DebugSegments(TimeThiefSmokeParameterDefaults::SmokeDebugSegments)
+	, DebugColor(TimeThiefSmokeParameterDefaults::GetSmokeDebugColor())
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -39,6 +44,6 @@ void ATimeThiefSmokeDebugVolume::Tick(float DeltaTime)
 
 	if (UWorld* World = GetWorld())
 	{
-		DrawDebugSphere(World, GetActorLocation(), Radius, FMath::Max(4, DebugSegments), DebugColor, false, 0.0f, 0, 1.5f);
+		DrawDebugSphere(World, GetActorLocation(), Radius, DebugSegments, DebugColor, false, 0.0f, 0, 1.5f);
 	}
 }
