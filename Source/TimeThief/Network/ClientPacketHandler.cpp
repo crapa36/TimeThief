@@ -1389,8 +1389,6 @@ bool Handle_N_EntityDied(PacketSessionRef& session, const se::game::N_EntityDied
 	
 bool Handle_N_EntityRespawned(PacketSessionRef& session, const se::game::N_EntityRespawned& pkt)
 {
-	UE_LOG(LogTemp, Log, TEXT("Handle_N_EntityRespawned: Received pkt"));
-	
 	if (!session)
 		return false;
 	

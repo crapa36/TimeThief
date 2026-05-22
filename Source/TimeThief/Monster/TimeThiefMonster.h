@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "MonsterVisualState.h"
 #include "GameFramework/Pawn.h"
 #include "Network/CombatSyncInterface.h"
 #include "Network/MovableNetworkEntityInterface.h"
@@ -12,6 +13,8 @@
 #include "NiagaraSystem.h"
 
 #include "TimeThiefMonster.generated.h"
+
+class UNetworkMoveComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefMonster : public APawn
@@ -89,6 +92,12 @@ public:
 public:
 	UFUNCTION(BlueprintCallable, Category="Combat")
 	void HandleRemoteCombatRequest(const FRemoteAttackNotify& AttackRequest);
+
+	UFUNCTION(BlueprintCallable, Category="Combat")
+	void OnDeathNetwork();
+
+	UFUNCTION(BlueprintCallable, Category="Combat")
+	void OnRespawnNetwork(const FVector& SpawnLocation, const FRotator& SpawnRotation);
 	
 	void RemoteCombat(const FRemoteAttackNotify& AttackNotify);
 	
@@ -99,6 +108,19 @@ public:
 	void RemoteCancelAttack(const FRemoteAttackNotify& AttackNotify);
 	
 	UAnimMontage* GetAttackMontage(int32 AttackType) const;
+
+	void StartDeathDisappearEffect();
+	void FinishDeathHide();
+	void PlayRespawnEffect();
+	void FinishRespawn();
+	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
+	void ResetDissolveMaterial();
+	void DisableCombatCollision();
+	void EnableCombatCollision();
+	void StopMovementVisual();
+	
+	void OnDeathMontageFinishedFallback();
 	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Monster", meta=(AllowPrivateAccess="true"))
@@ -134,6 +156,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	TObjectPtr<UAnimMontage> HitReactMontage = nullptr;
 	// 피격 리액션 몽타주
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	TObjectPtr<UAnimMontage> DeathMontage = nullptr;
+	// 사망 몽타주
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
+	// 부활 몽타주
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
 	TObjectPtr<UNiagaraSystem> FireCastFX = nullptr;
@@ -142,9 +172,26 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
 	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
 	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	TObjectPtr<UNiagaraSystem> DeathFX = nullptr;
+	// 사망 후 이펙트
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	TObjectPtr<UNiagaraSystem> RespawnFX = nullptr;
+	// 부활 이펙트
 // -----------------------------------------------------------------------------------	
 	
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> CurrentAttackMontage = nullptr;
+	
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsDead = false;
+	
+	UPROPERTY(BlueprintReadOnly)
+	EMonsterVisualState VisualState = EMonsterVisualState::Alive;
+	
+	FTimerHandle DeathHideTimerHandle;
+	FTimerHandle RespawnFinishTimerHandle;
 	
 };

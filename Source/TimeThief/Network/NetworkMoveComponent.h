@@ -40,6 +40,10 @@ public:
 	
 	FVector GetMoveStep() const { return MoveStep; }
 	
+	void StopVisualMovement();
+	void ResumeVisualMovement();
+	void ResetInterpolationToCurrent();
+	
 public:
 	void HandleActionEvent(const FNetworkActionEvent& ActionEvent);
 	

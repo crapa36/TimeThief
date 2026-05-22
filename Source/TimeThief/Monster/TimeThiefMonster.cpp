@@ -179,8 +179,85 @@ void ATimeThiefMonster::HandleRemoteCombatRequest(const FRemoteAttackNotify& Att
 	RemoteCombat(AttackRequest);
 }
 
+void ATimeThiefMonster::OnDeathNetwork()
+{
+	if (bIsDead)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[NetworkEntity] Already Dead"));
+		return;
+	}
+	
+	bIsDead = true;
+	VisualState = EMonsterVisualState::Dying;
+	
+	SetActorHiddenInGame(false);
+	DisableCombatCollision();
+	StopMovementVisual();
+	
+	if (MeshComponent)
+	{
+		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
+		{
+			if (DeathMontage)
+			{
+				float Duration = AnimInst->Montage_Play(DeathMontage);
+				
+				FOnMontageEnded EndDelegate;
+				EndDelegate.BindUObject(this, &ATimeThiefMonster::OnDeathMontageEnded);
+				AnimInst->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+				return;
+			}
+		}
+	}
+	
+	OnDeathMontageFinishedFallback();
+}
+
+void ATimeThiefMonster::OnRespawnNetwork(const FVector& SpawnLocation, const FRotator& SpawnRotation)
+{
+	GetWorldTimerManager().ClearTimer(DeathHideTimerHandle);
+
+	SetActorLocation(SpawnLocation);
+	SetActorRotation(SpawnRotation);
+	
+	if (NetworkMoveComponent)
+	{
+		NetworkMoveComponent->ResetInterpolationToCurrent();
+		NetworkMoveComponent->ResumeVisualMovement();
+	}
+
+	bIsDead = false;
+	VisualState = EMonsterVisualState::Respawning;
+
+	SetActorHiddenInGame(false);
+	SetActorTickEnabled(true);
+	SetActorEnableCollision(false);
+
+	if (MeshComponent)
+	{
+		MeshComponent->SetVisibility(true, true);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	ResetDissolveMaterial();
+	PlayRespawnEffect();
+
+	GetWorldTimerManager().SetTimer(
+		RespawnFinishTimerHandle,
+		this,
+		&ATimeThiefMonster::FinishRespawn,
+		0.8f,
+		false
+	);
+}
+
 void ATimeThiefMonster::RemoteCombat(const FRemoteAttackNotify& AttackNotify)
 {
+	if (bIsDead || VisualState != EMonsterVisualState::Alive)
+	{
+		return;
+	}
+	
 	switch (AttackNotify.NotifyType)
 	{
 		case ECombatNotifyType::Fire:
@@ -290,4 +367,142 @@ UAnimMontage* ATimeThiefMonster::GetAttackMontage(int32 AttackType) const
 		return Found->Get();
 	}
 	return nullptr;
+}
+
+void ATimeThiefMonster::StartDeathDisappearEffect()
+{
+	const FVector Location = GetActorLocation();
+	const FRotator Rotation = GetActorRotation();
+	
+	// Ray / Beam FX
+	if (DeathFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			DeathFX,
+			Location,
+			Rotation
+		);
+	}
+	
+	GetWorldTimerManager().SetTimer(
+		DeathHideTimerHandle,
+		this,
+		&ATimeThiefMonster::FinishDeathHide,
+		1.0f,
+		false
+		);
+}
+
+void ATimeThiefMonster::FinishDeathHide()
+{
+	VisualState = EMonsterVisualState::DeadHidden;
+
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+
+	if (MeshComponent)
+	{
+		MeshComponent->SetVisibility(false, true);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	// Tick도 꺼도 됨. 단, Respawn 패킷을 Actor가 직접 받는 구조면 Actor 자체 Disable은 조심.
+}
+
+void ATimeThiefMonster::PlayRespawnEffect()
+{
+	const FVector Location = GetActorLocation();
+	const FRotator Rotation = GetActorRotation();
+
+	if (RespawnFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			GetWorld(),
+			RespawnFX,
+			Location,
+			Rotation
+		);
+	}
+}
+
+void ATimeThiefMonster::ResetDissolveMaterial()
+{
+
+}
+
+void ATimeThiefMonster::DisableCombatCollision()
+{
+	SetActorEnableCollision(false);
+
+	if (CapsuleComponent)
+	{
+		CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CapsuleComponent->SetGenerateOverlapEvents(false);
+	}
+
+	if (MeshComponent)
+	{
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
+void ATimeThiefMonster::EnableCombatCollision()
+{
+	// 가장 단순한 복구.
+	
+	if (CapsuleComponent)
+	{
+		CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		CapsuleComponent->SetCollisionResponseToAllChannels(ECR_Block);
+		CapsuleComponent->SetGenerateOverlapEvents(true);
+	}
+
+	if (MeshComponent)
+	{
+		// 보통 캐릭터 Mesh는 충돌을 안 쓰고 Capsule만 씀.
+		// 필요 없다면 NoCollision 유지 추천.
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
+void ATimeThiefMonster::StopMovementVisual()
+{
+	if (NetworkMoveComponent)
+	{
+		NetworkMoveComponent->StopVisualMovement();
+	}
+}
+
+void ATimeThiefMonster::OnDeathMontageFinishedFallback()
+{
+	StartDeathDisappearEffect();
+}
+
+void ATimeThiefMonster::FinishRespawn()
+{
+	VisualState = EMonsterVisualState::Alive;
+	bIsDead = false;
+
+	SetActorHiddenInGame(false);
+	SetActorTickEnabled(true);
+	SetActorEnableCollision(true);
+
+	if (MeshComponent)
+	{
+		MeshComponent->SetVisibility(true, true);
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	EnableCombatCollision();
+}
+
+void ATimeThiefMonster::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != DeathMontage)
+	{
+		return;
+	}
+	
+	StartDeathDisappearEffect();
 }

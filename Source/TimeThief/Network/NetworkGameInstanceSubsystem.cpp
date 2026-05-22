@@ -37,6 +37,7 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Game/ItemPoolWorldSubsystem.h"
 #include "Game/ItemSettings.h"
+#include "Monster/TimeThiefMonster.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
@@ -1853,21 +1854,25 @@ void UNetworkGameInstanceSubsystem::HandleEntityDied(const se::game::N_EntityDie
 		return;
 	}
 	
-	auto TTCharacter = dynamic_cast<ATimeThiefCharacterBase*>(Actor);
-	if (TTCharacter == nullptr)
-	{
-		return;
-	}
-	
-	if (EntityId == LocalPlayerEntityId)
-	{
-		// 로컬 플레이어 사망 처리 후 컨트롤 불가하게
+	if (auto TTCharacter = Cast<ATimeThiefCharacterBase>(Actor))
+	{		// 캐릭터가 죽는 경우에만 OnDeath 호출, 몬스터나 다른 Entity는 별도의 연출이 필요할 수 있음
+		// if (EntityId == LocalPlayerEntityId)
+		// {
+		// 	// 로컬 플레이어 사망 처리 후 컨트롤 불가하게
+		// 	TTCharacter->OnDeath();
+		// }
+		// else
+		// {
+		// 	// 타 플레이어는 사망 연출 진행
+		// 	TTCharacter->OnDeath();
+		// }
+		
 		TTCharacter->OnDeath();
 	}
-	else
+	else if (auto Monster = Cast<ATimeThiefMonster>(Actor))
 	{
-		// 타 플레이어는 사망 연출 진행
-		TTCharacter->OnDeath();
+		// 몬스터 사망 처리
+		Monster->OnDeathNetwork();
 	}
 }
 
@@ -1897,21 +1902,27 @@ void UNetworkGameInstanceSubsystem::HandleEntityRespawned(const se::game::N_Enti
 		return;
 	}
 	
-	auto TTCharacter = dynamic_cast<ATimeThiefCharacterBase*>(Actor);
-	if (TTCharacter == nullptr)
-	{
-		return;
-	}
-	
-	if (EntityId == LocalPlayerEntityId)
-	{
-		// 로컬 플레이어 부활 처리 후 컨트롤 가능하게
+	if (auto TTCharacter = Cast<ATimeThiefCharacterBase>(Actor))
+	{		// 캐릭터가 부활하는 경우에만 OnRespawn 호출, 몬스터나 다른 Entity는 별도의 연출이 필요할 수 있음
+		// if (EntityId == LocalPlayerEntityId)
+		// {
+		// 	// 로컬 플레이어 부활 처리 후 컨트롤 가능하게
+		// 	TTCharacter->HandleRespawnFromServer(RespawnPosition);
+		// }
+		// else
+		// {
+		// 	// 타 플레이어는 부활 연출 진행
+		// 	TTCharacter->HandleRespawnFromServer(RespawnPosition);
+		// }
+		
 		TTCharacter->HandleRespawnFromServer(RespawnPosition);
 	}
-	else
+	else if (auto Monster = Cast<ATimeThiefMonster>(Actor))
 	{
-		// 타 플레이어는 부활 연출 진행
-		TTCharacter->HandleRespawnFromServer(RespawnPosition);
+		FRotator Rotation(0.f, Yaw, 0.f);
+		
+		// 몬스터 부활 처리
+		Monster->OnRespawnNetwork(RespawnPosition, Rotation);
 	}
 }
 

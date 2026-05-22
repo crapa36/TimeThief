@@ -163,6 +163,52 @@ void UNetworkMoveComponent::SetMovementUpdateInterval(float InInterval)
 	SendMoveInterval = InInterval;
 }
 
+void UNetworkMoveComponent::StopVisualMovement()
+{
+	SetComponentTickEnabled(false);
+}
+
+void UNetworkMoveComponent::ResumeVisualMovement()
+{
+	SetComponentTickEnabled(true);
+}
+
+void UNetworkMoveComponent::ResetInterpolationToCurrent()
+{
+	AActor* Owner = GetOwner();
+	IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(Owner);
+	if (Owner == nullptr || Movable == nullptr)
+	{
+		return;
+	}
+
+	const FVector CurrentPosition = Movable->GetNetworkLocation();
+	const float CurrentCharYaw = Movable->GetNetworkCharYaw();
+
+	InterpStartPosition = CurrentPosition;
+	InterpTargetPosition = CurrentPosition;
+
+	StartCharYaw = CurrentCharYaw;
+	TargetCharYaw = CurrentCharYaw;
+
+	TargetVelocity = FVector2D::ZeroVector;
+	MoveStep = FVector::ZeroVector;
+
+	InterpElapsed = 0.0f;
+	SendMoveElapsed = 0.0f;
+
+	Movable->SetNetworkVelocity2D(FVector2D::ZeroVector);
+
+	if (ACharacter* Character = Cast<ACharacter>(Owner))
+	{
+		if (UCharacterMovementComponent* CMC = Character->GetCharacterMovement())
+		{
+			CMC->Velocity = FVector::ZeroVector;
+			CMC->StopMovementImmediately();
+		}
+	}
+}
+
 void UNetworkMoveComponent::HandleActionEvent(const FNetworkActionEvent& ActionEvent)
 {
 	const bool bIsLocalControlled = NetworkEntityComponent && NetworkEntityComponent->IsLocalControlled();
