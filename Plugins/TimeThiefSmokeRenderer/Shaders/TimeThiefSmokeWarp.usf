@@ -62,7 +62,7 @@ float ComputeWarpStrand(float3 Radial, float3 Side, float3 Up, float BackAlong, 
 	return 1.0 - smoothstep(ThreadRadius * 0.24, ThreadRadius, length(Radial - Offset));
 }
 
-float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmokeEventShaderData Event)
+float ComputeActorWarpSource(float3 WorldPosition, float Density, float CellLength, FTimeThiefSmokeEventShaderData Event)
 {
 	const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
 	if (EventType != 2)
@@ -111,6 +111,8 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 	const float3 Radial = WorldPosition - TrailClosest;
 	const float3 Side = MakeSideAxis(Direction);
 	const float3 Up = SafeNormalize(cross(Side, Direction));
+	float3 WakeStreetDirection = Direction;
+	const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, TrailLength, CellLength, WakeStreetDirection);
 	const float ThreadRadius = clamp(ShapeRadius * max(WarpTrailRadiusScale, 0.01) * lerp(1.0, 2.1, saturate(BackAlong / max(TrailLength, 1.0))), 2.0, max(ShapeRadius * 0.22, 2.0));
 	const float AxialFade =
 		(1.0 - smoothstep(TrailLength * 0.48, TrailLength, BackAlong)) *
@@ -128,12 +130,14 @@ float ComputeActorWarpSource(float3 WorldPosition, float Density, FTimeThiefSmok
 					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.52, Seed + 149.0, 4.0),
 					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.47, Seed + 191.0, 5.0))));
 	const float Halo = 1.0 - smoothstep(ThreadRadius * 0.8, ThreadRadius * 2.6, length(Radial));
+	const float WarpEnvelope = max(Strand * 1.08 + Halo * 0.04, WakeStreet * 0.82);
+	const float WakeAxial = max(AxialFade * BehindMask, WakeStreet);
 	const float Breakup = lerp(
 		0.45,
 		1.15,
 		TimeThiefSmokeValueNoise(float3(BackAlong * 0.035, Seed * 0.009, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
-	const float DensityFactor = saturate(Density * 0.82);
-	return saturate((Strand * 1.08 + Halo * 0.04) * AxialFade * BehindMask * Breakup * DensityFactor * Strength * WarpBudget * MotionMask * OutsideShape * max(WarpTrailIntensity, 0.0));
+	const float DensityFactor = lerp(0.18, 1.0, smoothstep(0.0, 0.22, Density));
+	return saturate(WarpEnvelope * WakeAxial * Breakup * DensityFactor * Strength * WarpBudget * MotionMask * OutsideShape * max(WarpTrailIntensity, 0.0));
 }
 
 [numthreads(4, 4, 4)]
@@ -155,10 +159,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
 	const int3 Coord = int3(DispatchThreadId);
 	const float Density = max(DensityIn.Load(int4(Coord, 0)) + DisplacedDensityIn.Load(int4(Coord, 0)), 0.0) * OpenMask;
-	float Warp = max(WarpIn.Load(int4(Coord, 0)), 0.0) * exp2(-max(WarpTrailDecayRate, 0.0) * SafeDeltaSeconds);
+	const float3 WorldVelocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+	const float3 LocalVelocity = mul(float4(WorldVelocity, 0.0), WorldToLocal).xyz;
+	const float3 AdvectedUVW = saturate(UVW - LocalVelocity * SafeDeltaSeconds / max(BoundsExtent * 2.0, 1.0));
+	float Warp = max(WarpIn.SampleLevel(VolumeSampler, AdvectedUVW, 0.0), 0.0) * exp2(-max(WarpTrailDecayRate, 0.0) * SafeDeltaSeconds);
 
 	float Source = 0.0;
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
+	const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+	const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
 	const int SafeEventCount = min(EventCount, 128);
 	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	[loop]
@@ -169,7 +178,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			continue;
 		}
 
-		Source = max(Source, ComputeActorWarpSource(WorldPosition, Density, Events[EventIndex]));
+		Source = max(Source, ComputeActorWarpSource(WorldPosition, Density, MaxGridCellSize, Events[EventIndex]));
 	}
 
 	const float AvailableWarpBudget = 1.0 - saturate(Warp * 0.72);

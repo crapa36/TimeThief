@@ -19,7 +19,7 @@ float BrickEventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 	{
 		return Radius * 1.55;
 	}
-	return TimeThiefSmokeEventInfluenceRadius(Event, ActorAirflowRadiusScale);
+	return TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale);
 }
 
 float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)

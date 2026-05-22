@@ -55,18 +55,34 @@ float DenseVortexActorWakeSeed(float3 WorldPosition, out float3 OutDirection)
 
 		const float3 Direction = normalize(Event.DirectionLength.xyz + 0.0001);
 		const float Radius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
+		const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
+		const float SafeAirflowMinSpeed = max(ActorAirflowMinSpeed, 0.0);
+		const float SafeAirflowFullSpeed = max(ActorAirflowFullSpeed, SafeAirflowMinSpeed + 1.0);
+		const float MotionMask = smoothstep(SafeAirflowMinSpeed, SafeAirflowFullSpeed, ActorSpeed);
+		if (MotionMask <= 0.001)
+		{
+			continue;
+		}
+
+		const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+		const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
 		const float Along = dot(WorldPosition - Event.PositionRadius.xyz, -Direction);
-		const float WakeLength = Radius * 7.5 * lerp(0.42, 1.0, WarpBudget);
-		const float LineRadius = clamp(Radius * 0.055, 0.35, max(Radius * 0.16, 0.5));
+		const float WakeLength = Radius * 7.5 * lerp(0.42, 1.0, WarpBudget) * lerp(0.65, 1.0, MotionMask);
+		const float WakeT = saturate(Along / max(WakeLength, 1.0));
+		const float LineRadius = max(max(Radius * lerp(0.16, 0.42, WakeT), MaxGridCellSize * 1.35), 2.0);
 		const float3 Closest = Event.PositionRadius.xyz - Direction * clamp(Along, 0.0, WakeLength);
 		const float Radial = length(WorldPosition - Closest);
-		const float Wake = (1.0 - smoothstep(LineRadius * 0.35, LineRadius * 1.35, Radial)) *
+		const float CoreWake = (1.0 - smoothstep(LineRadius * 0.32, LineRadius, Radial)) *
 			(1.0 - smoothstep(Radius * 0.35, WakeLength, Along)) *
-			saturate(Event.ExtentsStrength.w) * WarpBudget;
+			saturate(Event.ExtentsStrength.w) * WarpBudget * MotionMask;
+		float3 WakeStreetDirection = Direction;
+		const float StreetWake = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, Radius, WakeLength, MaxGridCellSize, WakeStreetDirection) *
+			saturate(Event.ExtentsStrength.w) * WarpBudget * MotionMask;
+		const float Wake = max(CoreWake * 0.55, StreetWake);
 		if (Wake > WakeWeight)
 		{
 			WakeWeight = Wake;
-			OutDirection = -Direction;
+			OutDirection = StreetWake > CoreWake * 0.55 ? WakeStreetDirection : Direction;
 		}
 	}
 

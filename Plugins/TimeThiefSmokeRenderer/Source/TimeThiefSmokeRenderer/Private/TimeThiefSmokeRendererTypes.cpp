@@ -14,7 +14,7 @@ namespace
 }
 
 FTimeThiefSmokeRendererSettings::FTimeThiefSmokeRendererSettings()
-	: SimulationBackend(ETimeThiefSmokeSimulationBackend::SparseMac)
+	: SimulationBackend(TimeThiefSmokeParameterDefaults::bUseSparseMacSimulationByDefault ? ETimeThiefSmokeSimulationBackend::SparseMac : ETimeThiefSmokeSimulationBackend::DenseLegacy)
 	, PressureSolver(TimeThiefSmokeParameterDefaults::bUseMultigridPressureByDefault ? ETimeThiefSmokePressureSolver::Multigrid : ETimeThiefSmokePressureSolver::JacobiLegacy)
 	, SmokeGridResolution(TimeThiefSmokeParameterDefaults::SmokeGridResolution)
 	, PressureIterations(TimeThiefSmokeParameterDefaults::PressureIterations)

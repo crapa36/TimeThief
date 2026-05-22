@@ -38,7 +38,7 @@ namespace TimeThiefSmokeVolume
 
 	FVector ClampClusterOffset(const FVector& Offset, const FVector& BoundsExtent)
 	{
-		const FVector MaxOffset = BoundsExtent * 0.42f;
+		const FVector MaxOffset = BoundsExtent * TimeThiefSmokeParameterDefaults::BoundsClusterMaxOffsetRatio;
 		return FVector(
 			FMath::Clamp(Offset.X, -MaxOffset.X, MaxOffset.X),
 			FMath::Clamp(Offset.Y, -MaxOffset.Y, MaxOffset.Y),
@@ -302,9 +302,9 @@ void ATimeThiefSmokeVolume::HandleBulletTrace(const FVector& EntryPoint, const F
 	Event.PreviousPosition = Event.Position;
 	Event.Direction = Direction;
 	Event.Rotation = Direction.Rotation().Quaternion();
-	Event.Radius = TimeThiefSmokeParameterDefaults::BulletClearRadius * RandomStream.FRandRange(0.95f, 1.2f);
+	Event.Radius = TimeThiefSmokeParameterDefaults::BulletClearRadius * RandomStream.FRandRange(TimeThiefSmokeParameterDefaults::BulletClearRadiusRandomMin, TimeThiefSmokeParameterDefaults::BulletClearRadiusRandomMax);
 	Event.Length = SegmentLength + Event.Radius * 2.0f;
-	Event.Strength = FMath::Clamp(Strength * RandomStream.FRandRange(0.92f, 1.0f), 0.0f, 1.0f);
+	Event.Strength = FMath::Clamp(Strength * RandomStream.FRandRange(TimeThiefSmokeParameterDefaults::BulletWakeStrengthRandomMin, TimeThiefSmokeParameterDefaults::BulletWakeStrengthRandomMax), 0.0f, 1.0f);
 	Event.NormalizedAge = 0.0f;
 	Event.Seed = RandomStream.RandRange(1, INT32_MAX - 1);
 
@@ -550,13 +550,15 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 		DensitySampleCount += 2;
 	}
 	const float MeanDensity = DensitySum / static_cast<float>(DensitySampleCount);
-	const float PathDensity = FMath::Clamp(FMath::Max(MeanDensity, MaxDensity * 0.65f), 0.0f, 1.0f);
-	const float ResponseStartSpeed = TimeThiefSmokeParameterDefaults::ActorPushVelocityThreshold * 0.35f;
+	const float PathDensity = FMath::Clamp(FMath::Max(MeanDensity, MaxDensity * TimeThiefSmokeParameterDefaults::ActorPushMaxDensityWeight), 0.0f, 1.0f);
+	const float ResponseStartSpeed = TimeThiefSmokeParameterDefaults::ActorPushVelocityThreshold * TimeThiefSmokeParameterDefaults::ActorPushResponseStartSpeedScale;
 	const float FullResponseSpeed = TimeThiefSmokeParameterDefaults::ActorPushVelocityThreshold;
 	const float ResponseAlpha = TimeThiefSmokeVolume::SmoothStep01((Speed - ResponseStartSpeed) / (FullResponseSpeed - ResponseStartSpeed));
-	const float SpeedStrength = FMath::Clamp(Speed / 600.0f, 0.0f, 1.0f);
+	const float SpeedStrength = FMath::Clamp(Speed / TimeThiefSmokeParameterDefaults::ActorPushFullResponseSpeed, 0.0f, 1.0f);
 	const float MotionStrength = FMath::Clamp(ResponseAlpha * SpeedStrength, 0.0f, 1.0f);
-	const float OccupancyStrength = PathDensity > 0.015f ? FMath::Lerp(0.12f, 0.32f, PathDensity) : 0.0f;
+	const float OccupancyStrength = PathDensity > TimeThiefSmokeParameterDefaults::ActorPushOccupancyMinDensity
+		? FMath::Lerp(TimeThiefSmokeParameterDefaults::ActorPushOccupancyMinStrength, TimeThiefSmokeParameterDefaults::ActorPushOccupancyMaxStrength, PathDensity)
+		: 0.0f;
 	OutEvent.Strength = FMath::Clamp(FMath::Max(MotionStrength, OccupancyStrength), 0.0f, 1.0f);
 	if (OutEvent.Strength <= KINDA_SMALL_NUMBER)
 	{
@@ -564,8 +566,8 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	}
 
 	const float TravelDistance = FVector::Dist(CurrentBoundsOrigin, PreviousBoundsOrigin);
-	const float TravelGate = TimeThiefSmokeVolume::SmoothStep01(TravelDistance / FMath::Max(OutEvent.Radius * 0.65f, 8.0f));
-	const float Deposit = PathDensity * TravelGate * FMath::Lerp(0.25f, 1.0f, MotionStrength);
+	const float TravelGate = TimeThiefSmokeVolume::SmoothStep01(TravelDistance / FMath::Max(OutEvent.Radius * TimeThiefSmokeParameterDefaults::ActorPushTravelGateRadiusScale, TimeThiefSmokeParameterDefaults::ActorPushTravelGateMinDistance));
+	const float Deposit = PathDensity * TravelGate * FMath::Lerp(TimeThiefSmokeParameterDefaults::ActorWarpDepositMinStrength, 1.0f, MotionStrength);
 	WarpAccumulation = FMath::Clamp(WarpAccumulation + Deposit * TimeThiefSmokeParameterDefaults::ActorWarpDensityAccumulationScale, 0.0f, 1.0f);
 	OutEvent.WarpBudget = MotionStrength > 0.01f ? WarpAccumulation : 0.0f;
 	WarpAccumulation *= TimeThiefSmokeParameterDefaults::ActorWarpEmissionRemainder;
@@ -604,14 +606,14 @@ float ATimeThiefSmokeVolume::EstimateWarpDensityAtWorldPosition(const FVector& W
 	const FVector RenderExtent = GetCurrentSmokeRenderBoundsExtent();
 	const FVector NaturalNormalized = LocalPosition / NaturalExtent;
 	const FVector RenderNormalized = LocalPosition / RenderExtent;
-	const float NaturalDistance = FVector(NaturalNormalized.X, NaturalNormalized.Y, NaturalNormalized.Z / 0.86f).Size();
-	const float RenderDistance = FVector(RenderNormalized.X, RenderNormalized.Y, RenderNormalized.Z / 0.9f).Size();
-	const float NaturalDensity = 1.0f - TimeThiefSmokeVolume::SmoothStep01((NaturalDistance - 0.18f) / 0.78f);
-	const float RenderFade = 1.0f - TimeThiefSmokeVolume::SmoothStep01((RenderDistance - 0.86f) / 0.16f);
-	const float EmissionAlpha = TimeThiefSmokeVolume::SmoothStep01(SmokeAgeSeconds / 0.35f);
+	const float NaturalDistance = FVector(NaturalNormalized.X, NaturalNormalized.Y, NaturalNormalized.Z / TimeThiefSmokeParameterDefaults::ActorDensityNaturalVerticalScale).Size();
+	const float RenderDistance = FVector(RenderNormalized.X, RenderNormalized.Y, RenderNormalized.Z / TimeThiefSmokeParameterDefaults::ActorDensityRenderVerticalScale).Size();
+	const float NaturalDensity = 1.0f - TimeThiefSmokeVolume::SmoothStep01((NaturalDistance - TimeThiefSmokeParameterDefaults::ActorDensityNaturalFadeStart) / TimeThiefSmokeParameterDefaults::ActorDensityNaturalFadeWidth);
+	const float RenderFade = 1.0f - TimeThiefSmokeVolume::SmoothStep01((RenderDistance - TimeThiefSmokeParameterDefaults::ActorDensityRenderFadeStart) / TimeThiefSmokeParameterDefaults::ActorDensityRenderFadeWidth);
+	const float EmissionAlpha = TimeThiefSmokeVolume::SmoothStep01(SmokeAgeSeconds / TimeThiefSmokeParameterDefaults::ActorDensityEmissionWarmupSeconds);
 	const float LifetimeAlpha = 1.0f - TimeThiefSmokeVolume::SmoothStep01((SmokeAgeSeconds - TimeThiefSmokeParameterDefaults::SmokeDuration) / TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration);
-	const float DensityScale = FMath::Clamp(TimeThiefSmokeParameterDefaults::InitialDensity / 3.2f, 0.0f, 1.0f);
-	return FMath::Clamp(NaturalDensity * RenderFade * EmissionAlpha * LifetimeAlpha * DensityScale * 1.35f, 0.0f, 1.0f);
+	const float DensityScale = FMath::Clamp(TimeThiefSmokeParameterDefaults::InitialDensity / TimeThiefSmokeParameterDefaults::ActorDensityScaleDivisor, 0.0f, 1.0f);
+	return FMath::Clamp(NaturalDensity * RenderFade * EmissionAlpha * LifetimeAlpha * DensityScale * TimeThiefSmokeParameterDefaults::ActorDensitySampleBoost, 0.0f, 1.0f);
 }
 
 ESmokeInteractionShape ATimeThiefSmokeVolume::ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const
@@ -635,13 +637,13 @@ ESmokeInteractionShape ATimeThiefSmokeVolume::ResolvePrimitiveShape(UPrimitiveCo
 	if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(PrimitiveComponent))
 	{
 		OutEvent.Extents = BoxComponent->GetScaledBoxExtent();
-		OutEvent.Radius = OutEvent.Extents.GetMax() * 0.35f;
+		OutEvent.Radius = OutEvent.Extents.GetMax() * TimeThiefSmokeParameterDefaults::ActorPrimitiveRadiusScale;
 		OutEvent.Length = OutEvent.Extents.GetMax();
 		return ESmokeInteractionShape::Box;
 	}
 
 	OutEvent.Extents = PrimitiveComponent->Bounds.BoxExtent;
-	OutEvent.Radius = OutEvent.Extents.GetMax() * 0.35f;
+	OutEvent.Radius = OutEvent.Extents.GetMax() * TimeThiefSmokeParameterDefaults::ActorPrimitiveRadiusScale;
 	OutEvent.Length = OutEvent.Extents.GetMax();
 	return ESmokeInteractionShape::Box;
 }
@@ -977,7 +979,7 @@ float ATimeThiefSmokeVolume::ComputeLocalActiveBoundsOpen(const FVector& LocalPo
 		return 1.0f;
 	}
 
-	const float FeatherCells = 1.35f;
+	const float FeatherCells = TimeThiefSmokeParameterDefaults::ActiveBoundsOpenFeatherCells;
 	return 1.0f - TimeThiefSmokeVolume::SmoothStep01(FMath::Sqrt(NearestDistanceSq) / FeatherCells);
 }
 

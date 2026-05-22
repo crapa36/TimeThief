@@ -124,7 +124,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
 		const float InfluenceRadius = EventType == 0
 			? max(Length * 0.5 + Radius * 2.4, ShapeRadius * 2.4)
-			: (EventType == 1 ? Radius * 1.45 : TimeThiefSmokeEventInfluenceRadius(Event, ActorAirflowRadiusScale));
+			: (EventType == 1 ? Radius * 1.45 : TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale));
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;
@@ -188,6 +188,8 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 				(1.0 - smoothstep(TrailRadius * 0.35, TrailRadius, TrailDistance)) *
 				(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 7.5, BackAlong)) *
 				saturate(-Along / max(ShapeRadius * 0.65, 1.0));
+			float3 WakeStreetDirection = Direction;
+			const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, ShapeRadius * 7.5, CellLength, WakeStreetDirection);
 			const float ShapeDistance = max(ShapeSdf, 0.0);
 			const float AirEnvelope =
 				(1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * SafeAirflowRadiusScale, ShapeDistance)) *
@@ -199,12 +201,18 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			const float Front =
 				TimeThiefSmokeSoftSphere(length(ToCell - Direction * ShapeRadius * 0.55), ShapeRadius * 1.75) *
 				saturate(smoothstep(-ShapeRadius * 0.25, ShapeRadius * 1.25, Along));
-			const float SpinBreakup = lerp(0.45, 1.0, TimeThiefSmokeRidgedFBM(float3(BackAlong * 0.035, Seed * 0.011, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
+			float SpinBreakup = 1.0;
+			const float SpinWeight = max(max(SurfaceBand * ShearMask, SideAir * Strength * MotionMask), max(Trail, WakeStreet) * Strength * MotionMask);
+			if (SpinWeight > 0.0001)
+			{
+				SpinBreakup = lerp(0.45, 1.0, TimeThiefSmokeRidgedFBM(float3(BackAlong * 0.035, Seed * 0.011, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
+			}
 			Force += (RollForce * SurfaceBand * ShearMask * SpinBreakup * 420.0) * ActorTemporalScale;
 			Force += (RollForce * SideAir * SpinBreakup * Strength * ActorSpeed * max(ActorAirflowVortexStrength, 0.0)) * ActorTemporalScale;
 			Force += (SurfaceTangent * SurfaceBand * ActorSpeed * 0.22) * ActorTemporalScale;
 			Force += (CurlNoise * SurfaceBand * ShearMask * 115.0) * ActorTemporalScale;
 			Force += (RollForce * Trail * SpinBreakup * Strength * MotionMask * lerp(220.0, 620.0, WarpBudget)) * ActorTemporalScale;
+			Force += (WakeStreetDirection * WakeStreet * SpinBreakup * Strength * MotionMask * ActorSpeed * max(ActorAirflowVortexStrength, 0.0) * 0.58) * ActorTemporalScale;
 			Force += (Direction * Front * Strength * ActorSpeed * 0.18) * ActorTemporalScale;
 		}
 	}

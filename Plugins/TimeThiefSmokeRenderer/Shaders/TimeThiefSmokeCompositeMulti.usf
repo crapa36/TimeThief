@@ -602,15 +602,23 @@ float ComputeSelfShadow(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData D
 		OpticalDepth += ShadowDensity * ShadowOpen * LightSimulationStepSize;
 	}
 
-	const float ShadowTransmittance = exp2(-OpticalDepth * ShadowExtinction * 1.442695);
-	return lerp(1.0, ShadowTransmittance, ShadowStrength);
+	if (OpticalDepth <= 0.00001)
+	{
+		return 1.0;
+	}
+
+	const float ShadowOpticalDepth = OpticalDepth * ShadowExtinction;
+	const float ShadowTransmittance = exp2(-ShadowOpticalDepth * 1.442695);
+	const float PowderDepth = 1.0 - exp2(-ShadowOpticalDepth * 0.75 * 1.442695);
+	const float PowderLighting = lerp(0.9, 1.06, saturate(PowderDepth));
+	return saturate(lerp(1.0, ShadowTransmittance * PowderLighting, ShadowStrength));
 }
 
-float3 SmokeColorFromDescriptor(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+float3 SmokeColorFromDescriptor(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 WorldRayDirection)
 {
 	const float ScatteringAlbedo = Desc.ScatterNoise.x;
 	const float ScatteringAnisotropy = Desc.ScatterNoise.y;
-	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
+	const float PhaseBoost = TimeThiefSmokeDirectionalPhase(WorldRayDirection, Desc.SelfShadowLightDirection_StepCount.xyz, ScatteringAnisotropy);
 	return lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
 }
 
@@ -619,6 +627,11 @@ void AccumulateSmokeSample(
 	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
 	float3 SampleWorld,
 	float3 WorldRayDirection,
+	float4x4 WorldToLocal,
+	float3 BoundsExtent,
+	float3 SimulationLocal,
+	float3 VolumeUVW,
+	float3 SmokeColor,
 	float StepSize,
 	inout float Transmittance,
 	inout float Scatter,
@@ -626,16 +639,6 @@ void AccumulateSmokeSample(
 	inout float WarpScatter,
 	inout float3 WarpColorAccum)
 {
-	const float4x4 WorldToLocal = GetWorldToLocal(Desc);
-	const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
-	const float3 SampleLocal = mul(float4(SampleWorld, 1.0), WorldToLocal).xyz;
-	const float3 SimulationLocal = SampleLocal / BoundsExtent;
-	const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
-	if (!TimeThiefSmokeInsideUVW(VolumeUVW) || !IsActiveBrick(Slot, Desc, VolumeUVW))
-	{
-		return;
-	}
-
 	const float4 RawFields = SampleFieldSet(Slot, Desc, VolumeUVW);
 	const float RawDensity = max(RawFields.x, 0.0);
 	const float RawWarp = max(RawFields.y, 0.0);
@@ -659,6 +662,7 @@ void AccumulateSmokeSample(
 	const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
 	float Density = RawDensity * DensityVisibility;
 	const float Warp = RawWarp * ObstacleOpen * BoundaryMask * LifetimeAlpha;
+	const float WarpDetail = saturate(Warp * 1.35);
 	if (Density <= 0.0001 && Warp <= 0.0001)
 	{
 		return;
@@ -682,17 +686,14 @@ void AccumulateSmokeSample(
 	const float FineNoiseMultiplier = min(1.86, MaxResolvedFineNoiseScale / max(StableRenderNoiseScale, 0.0001));
 	const float FineFilamentMultiplier = min(1.9, MaxResolvedFineNoiseScale / max(StableRenderFilamentScale, 0.0001));
 	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
-
-	float DensityNoise = 1.0;
-	if (RenderNoiseStrength > 0.001)
-	{
-		const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
-		const float SmoothNoise = TimeThiefSmokeFBM(NoisePosition + TimeNoise);
-		const float RidgeNoise = TimeThiefSmokeRidgedFBM(NoisePosition * 0.72 - TimeNoise * 0.65);
-		const float FineRidgeNoise = TimeThiefSmokeRidgedFBM(NoisePosition * FineNoiseMultiplier + SmoothNoise * 0.37 + TimeNoise * 0.29);
-		const float ClumpMask = smoothstep(0.34, 0.72, saturate(SmoothNoise * 0.16 + RidgeNoise * 0.50 + FineRidgeNoise * 0.42));
-		DensityNoise = lerp(1.0 - RenderNoiseStrength * 0.64, 1.0 + RenderNoiseStrength * 1.72, ClumpMask);
-	}
+	const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
+	const float DensityNoise = TimeThiefSmokeRenderDensityNoise(
+		NoisePosition,
+		TimeNoise,
+		RawDensity,
+		BoundaryMask,
+		RenderNoiseStrength * (1.0 + WarpDetail * 0.35),
+		FineNoiseMultiplier);
 
 	float FilamentGain = 1.0;
 	const float EdgeFilamentGate = smoothstep(0.38, 0.98, EllipsoidDistance);
@@ -701,33 +702,42 @@ void AccumulateSmokeSample(
 	if (RenderFilamentStrength > 0.001 && FilamentInfluence > 0.015)
 	{
 		const float3 FilamentPosition = SimulationLocal * BoundsExtent * StableRenderFilamentScale;
-		const float3 FilamentWarp = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
-		const float FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
+		const float3 FilamentWarpBase = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
+		const float3 FilamentWarpFlow = TimeThiefSmokeDomainWarp(FilamentPosition * 0.29 + WarpDetail, TimeNoise * 0.43) * (RenderFilamentWarpStrength * WarpDetail * 0.38);
+		const float3 FilamentWarp = FilamentWarpBase + FilamentWarpFlow;
+		const float WarpFilamentContrast = RenderFilamentContrast * (1.0 + WarpDetail * 0.35);
+		const float FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, WarpFilamentContrast);
 		float CombinedFilamentMask = FilamentMask;
 		float AirPocket = 0.5;
 		if (!bUseFastFilament && FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
 		{
-			const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91);
-			CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(RenderFilamentContrast * 0.92, 0.1)) * 0.28);
+			const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * (FineFilamentMultiplier + WarpDetail * 0.18) - FilamentWarp * 0.36 + TimeNoise * 0.91);
+			CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(WarpFilamentContrast * 0.92, 0.1)) * 0.28);
 			AirPocket = TimeThiefSmokeFBM(FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37);
 		}
+		AirPocket = lerp(AirPocket, TimeThiefSmokeFBM(FilamentPosition * 0.31 + FilamentWarp * 0.22 + TimeNoise * 0.19), WarpDetail * 0.45);
+		CombinedFilamentMask = saturate(CombinedFilamentMask + WarpDetail * (0.5 - AirPocket) * 0.18);
 		const float FilamentLow = max(0.38, 1.0 - RenderFilamentStrength * (0.18 + AirPocket * 0.28));
 		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
 		FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
 	}
 
 	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-	Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain;
+	const float WarpDensityGain = lerp(1.0, 1.0 + WarpDetail * 0.16, saturate(RawDensity * 1.6));
+	Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain * WarpDensityGain;
 	const float3 LocalRayDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz;
 	const float SimulationStepSize = length((LocalRayDirection * StepSize) / BoundsExtent);
 	const float Absorption = Density * Desc.RenderBoundsExtent_Extinction.w * SimulationStepSize;
 	const float StepTransmittance = exp2(-Absorption * 1.442695);
 	const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
-	const float3 SmokeColor = SmokeColorFromDescriptor(Desc);
-	const float SelfShadow = ComputeSelfShadow(Slot, Desc, VolumeUVW);
+	float SelfShadow = 1.0;
+	if (SampleWeight > 0.00001)
+	{
+		SelfShadow = ComputeSelfShadow(Slot, Desc, VolumeUVW);
+	}
 	Scatter += SampleWeight * Density * SelfShadow;
 	SmokeColorAccum += SampleWeight * SmokeColor * SelfShadow;
-	const float WarpWeight = Transmittance * Warp * SimulationStepSize * 0.85;
+	const float WarpWeight = Transmittance * Warp * SimulationStepSize * 0.32;
 	WarpScatter += WarpWeight;
 	WarpColorAccum += WarpWeight * lerp(SmokeColor, float3(0.92, 0.96, 1.0), 0.55);
 	Transmittance *= StepTransmittance;
@@ -762,6 +772,7 @@ void MainPS(
 
 	float SmokeTMin[7];
 	float SmokeTMax[7];
+	float3 SmokeColors[7];
 	int SmokeSlots[7];
 	int ActiveSmokeCount = 0;
 	float RayStart = SceneT;
@@ -807,6 +818,7 @@ void MainPS(
 		MaxRenderSteps = max(MaxRenderSteps, (int)round(Desc.RenderSteps_Events.y));
 		SmokeTMin[ActiveSmokeCount] = TMin;
 		SmokeTMax[ActiveSmokeCount] = TMax;
+		SmokeColors[ActiveSmokeCount] = SmokeColorFromDescriptor(Desc, WorldRayDirection);
 		SmokeSlots[ActiveSmokeCount] = Slot;
 		++ActiveSmokeCount;
 		RayStart = min(RayStart, TMin);
@@ -858,7 +870,8 @@ void MainPS(
 			const float4x4 WorldToLocal = GetWorldToLocal(Desc);
 			const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
 			const float3 SampleLocal = mul(float4(SampleWorld, 1.0), WorldToLocal).xyz;
-			const float3 VolumeUVW = (SampleLocal / BoundsExtent) * 0.5 + 0.5;
+			const float3 SimulationLocal = SampleLocal / BoundsExtent;
+			const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
 			if (!TimeThiefSmokeInsideUVW(VolumeUVW))
 			{
 				continue;
@@ -873,7 +886,22 @@ void MainPS(
 			}
 
 			bSawActiveCandidate = true;
-			AccumulateSmokeSample(Slot, Desc, SampleWorld, WorldRayDirection, StepSize, Transmittance, Scatter, SmokeColorAccum, WarpScatter, WarpColorAccum);
+			AccumulateSmokeSample(
+				Slot,
+				Desc,
+				SampleWorld,
+				WorldRayDirection,
+				WorldToLocal,
+				BoundsExtent,
+				SimulationLocal,
+				VolumeUVW,
+				SmokeColors[SmokeIndex],
+				StepSize,
+				Transmittance,
+				Scatter,
+				SmokeColorAccum,
+				WarpScatter,
+				WarpColorAccum);
 		}
 
 		if (Transmittance < 0.015)
@@ -900,7 +928,7 @@ void MainPS(
 	const float Alpha = saturate(1.0 - Transmittance);
 	const float3 AverageSmokeColor = SmokeColorAccum / max(Alpha, 0.0001);
 	const float3 Composited = SceneColor.rgb * Transmittance + AverageSmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
-	const float WarpAlpha = saturate(WarpScatter * 0.62);
+	const float WarpAlpha = saturate(WarpScatter * 0.34);
 	const float3 AverageWarpColor = WarpColorAccum / max(WarpScatter, 0.0001);
-	OutColor = float4(lerp(Composited, AverageWarpColor, WarpAlpha * 0.42), SceneColor.a);
+	OutColor = float4(lerp(Composited, AverageWarpColor, WarpAlpha * 0.18), SceneColor.a);
 }

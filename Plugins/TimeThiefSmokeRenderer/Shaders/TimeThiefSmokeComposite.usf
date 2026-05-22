@@ -283,8 +283,16 @@ float ComputeSelfShadow(float3 VolumeUVW, float3 LightUVWStep, float LightSimula
 		OpticalDepth += ShadowDensity * ShadowOpen * LightSimulationStepSize;
 	}
 
-	const float ShadowTransmittance = exp2(-OpticalDepth * ShadowExtinction * 1.442695);
-	return lerp(1.0, ShadowTransmittance, ShadowStrength);
+	if (OpticalDepth <= 0.00001)
+	{
+		return 1.0;
+	}
+
+	const float ShadowOpticalDepth = OpticalDepth * ShadowExtinction;
+	const float ShadowTransmittance = exp2(-ShadowOpticalDepth * 1.442695);
+	const float PowderDepth = 1.0 - exp2(-ShadowOpticalDepth * 0.75 * 1.442695);
+	const float PowderLighting = lerp(0.9, 1.06, saturate(PowderDepth));
+	return saturate(lerp(1.0, ShadowTransmittance * PowderLighting, ShadowStrength));
 }
 
 void MainPS(
@@ -297,6 +305,7 @@ void MainPS(
 	const float SceneDeviceZ = SceneDepthTexture.Load(int3(uint2(SvPosition.xy), 0)).r;
 	const float3 NearWorld = ReconstructWorldPosition(SvPosition.xy, 1.0);
 	const float3 FarWorld = ReconstructWorldPosition(SvPosition.xy, 0.0);
+	const float3 WorldRayDirection = normalize(FarWorld - NearWorld);
 	const bool bHasOpaqueSceneDepth = SceneDeviceZ > 0.000001;
 	const float3 SceneWorld = bHasOpaqueSceneDepth ? ReconstructWorldPosition(SvPosition.xy, SceneDeviceZ) : FarWorld;
 	const float3 LocalNear = mul(float4(NearWorld, 1.0), WorldToLocal).xyz / max(RenderBoundsExtent, 1.0);
@@ -408,6 +417,7 @@ void MainPS(
 		const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
 		float Density = RawDensity * DensityVisibility;
 		const float Warp = RawWarp * ObstacleOpen * BoundaryMask * LifetimeAlpha;
+		const float WarpDetail = saturate(Warp * 1.35);
 		if (DebugMode == 0 && Density <= 0.0001 && Warp <= 0.0001)
 		{
 			CurrentT += StepSize;
@@ -415,16 +425,14 @@ void MainPS(
 		}
 
 		const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
-		float DensityNoise = 1.0;
-		if (RenderNoiseStrength > 0.001)
-		{
-			const float3 NoisePosition = SimulationLocal * max(BoundsExtent, 1.0) * StableRenderNoiseScale;
-			const float SmoothNoise = TimeThiefSmokeFBM(NoisePosition + TimeNoise);
-			const float RidgeNoise = TimeThiefSmokeRidgedFBM(NoisePosition * 0.72 - TimeNoise * 0.65);
-			const float FineRidgeNoise = TimeThiefSmokeRidgedFBM(NoisePosition * FineNoiseMultiplier + SmoothNoise * 0.37 + TimeNoise * 0.29);
-			const float ClumpMask = smoothstep(0.34, 0.72, saturate(SmoothNoise * 0.16 + RidgeNoise * 0.50 + FineRidgeNoise * 0.42));
-			DensityNoise = lerp(1.0 - RenderNoiseStrength * 0.64, 1.0 + RenderNoiseStrength * 1.72, ClumpMask);
-		}
+		const float3 NoisePosition = SimulationLocal * max(BoundsExtent, 1.0) * StableRenderNoiseScale;
+		const float DensityNoise = TimeThiefSmokeRenderDensityNoise(
+			NoisePosition,
+			TimeNoise,
+			RawDensity,
+			BoundaryMask,
+			RenderNoiseStrength * (1.0 + WarpDetail * 0.35),
+			FineNoiseMultiplier);
 
 		float FilamentGain = 1.0;
 		const float EdgeFilamentGate = smoothstep(0.38, 0.98, EllipsoidDistance);
@@ -433,22 +441,28 @@ void MainPS(
 		if (RenderFilamentStrength > 0.001 && FilamentInfluence > 0.015)
 		{
 			const float3 FilamentPosition = SimulationLocal * max(BoundsExtent, 1.0) * StableRenderFilamentScale;
-			const float3 FilamentWarp = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
-			const float FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
+			const float3 FilamentWarpBase = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
+			const float3 FilamentWarpFlow = TimeThiefSmokeDomainWarp(FilamentPosition * 0.29 + WarpDetail, TimeNoise * 0.43) * (RenderFilamentWarpStrength * WarpDetail * 0.38);
+			const float3 FilamentWarp = FilamentWarpBase + FilamentWarpFlow;
+			const float WarpFilamentContrast = RenderFilamentContrast * (1.0 + WarpDetail * 0.35);
+			const float FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, WarpFilamentContrast);
 			float CombinedFilamentMask = FilamentMask;
 			float AirPocket = 0.5;
 			if (bUseFastFilament == 0u && FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
 			{
-				const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91);
-				CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(RenderFilamentContrast * 0.92, 0.1)) * 0.28);
+				const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * (FineFilamentMultiplier + WarpDetail * 0.18) - FilamentWarp * 0.36 + TimeNoise * 0.91);
+				CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(WarpFilamentContrast * 0.92, 0.1)) * 0.28);
 				AirPocket = TimeThiefSmokeFBM(FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37);
 			}
+			AirPocket = lerp(AirPocket, TimeThiefSmokeFBM(FilamentPosition * 0.31 + FilamentWarp * 0.22 + TimeNoise * 0.19), WarpDetail * 0.45);
+			CombinedFilamentMask = saturate(CombinedFilamentMask + WarpDetail * (0.5 - AirPocket) * 0.18);
 			const float FilamentLow = max(0.38, 1.0 - RenderFilamentStrength * (0.18 + AirPocket * 0.28));
 			const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
 			FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
 		}
 		const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-		Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain;
+		const float WarpDensityGain = lerp(1.0, 1.0 + WarpDetail * 0.16, saturate(RawDensity * 1.6));
+		Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain * WarpDensityGain;
 
 		if (DebugMode == 1)
 		{
@@ -492,11 +506,15 @@ void MainPS(
 		const float Absorption = Density * Extinction * SimulationStepSize;
 		const float StepTransmittance = exp2(-Absorption * 1.442695);
 		const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
-		const float SelfShadow = DebugMode == 0 ? ComputeSelfShadow(VolumeUVW, SelfShadowUVWStep, SelfShadowSimulationStepSize) : 1.0;
+		float SelfShadow = 1.0;
+		if (DebugMode == 0 && SampleWeight > 0.00001)
+		{
+			SelfShadow = ComputeSelfShadow(VolumeUVW, SelfShadowUVWStep, SelfShadowSimulationStepSize);
+		}
 		Scatter += SampleWeight * Density * SelfShadow;
 		SmokeLightAccum += SampleWeight * SelfShadow;
 		SmokeLightWeight += SampleWeight;
-		WarpScatter += Transmittance * Warp * SimulationStepSize * 0.85;
+		WarpScatter += Transmittance * Warp * SimulationStepSize * 0.32;
 		Transmittance *= StepTransmittance;
 		CurrentT += StepSize;
 
@@ -547,11 +565,11 @@ void MainPS(
 	}
 
 	const float Alpha = saturate(1.0 - Transmittance);
-	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
+	const float PhaseBoost = TimeThiefSmokeDirectionalPhase(WorldRayDirection, SelfShadowLightDirection, ScatteringAnisotropy);
 	const float3 SmokeColor = lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
 	const float SmokeLighting = SmokeLightWeight > 0.0001 ? saturate(SmokeLightAccum / SmokeLightWeight) : 1.0;
 	const float3 Composited = SceneColor.rgb * Transmittance + SmokeColor * Alpha * SmokeLighting * saturate(0.82 + Scatter * 0.85);
-	const float WarpAlpha = saturate(WarpScatter * 0.62);
+	const float WarpAlpha = saturate(WarpScatter * 0.34);
 	const float3 WarpColor = lerp(SmokeColor, float3(0.92, 0.96, 1.0), 0.55);
-	OutColor = float4(lerp(Composited, WarpColor, WarpAlpha * 0.42), SceneColor.a);
+	OutColor = float4(lerp(Composited, WarpColor, WarpAlpha * 0.18), SceneColor.a);
 }

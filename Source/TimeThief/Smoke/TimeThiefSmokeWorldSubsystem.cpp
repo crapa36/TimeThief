@@ -8,14 +8,6 @@
 
 namespace TimeThiefSmoke
 {
-	constexpr int32 MaxBulletTracesPerSmokePerTick = TimeThiefSmokeParameterDefaults::MaxBulletTracesPerSmokePerTick;
-	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = TimeThiefSmokeParameterDefaults::MaxActiveExplosionImpulsesPerSmoke;
-	constexpr float SmokeClusterBoundsExpansionRatio = TimeThiefSmokeParameterDefaults::SmokeClusterBoundsExpansionRatio;
-	constexpr float SmokeClusterMinExpansionCm = TimeThiefSmokeParameterDefaults::SmokeClusterMinExpansionCm;
-	constexpr float SmokeClusterReleaseBoundsExpansionRatio = TimeThiefSmokeParameterDefaults::SmokeClusterReleaseBoundsExpansionRatio;
-	constexpr float SmokeClusterReleaseMinExpansionCm = TimeThiefSmokeParameterDefaults::SmokeClusterReleaseMinExpansionCm;
-	constexpr float SmokeSpatialCellSize = TimeThiefSmokeParameterDefaults::SmokeSpatialCellSize;
-
 	struct FPendingRendererSmokeVolume
 	{
 		FTimeThiefSmokeRendererVolume Volume;
@@ -75,7 +67,7 @@ namespace TimeThiefSmoke
 
 	FIntVector WorldToSmokeSpatialCell(const FVector& Position)
 	{
-		const float SafeCellSize = FMath::Max(SmokeSpatialCellSize, 1.0f);
+		const float SafeCellSize = FMath::Max(TimeThiefSmokeParameterDefaults::SmokeSpatialCellSize, 1.0f);
 		return FIntVector(
 			FMath::FloorToInt(Position.X / SafeCellSize),
 			FMath::FloorToInt(Position.Y / SafeCellSize),
@@ -159,8 +151,8 @@ namespace TimeThiefSmoke
 		ReleaseClusterBounds.Reserve(PendingVolumes.Num());
 		for (const FPendingRendererSmokeVolume& PendingVolume : PendingVolumes)
 		{
-			ExpandedClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, SmokeClusterBoundsExpansionRatio, SmokeClusterMinExpansionCm));
-			ReleaseClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, SmokeClusterReleaseBoundsExpansionRatio, SmokeClusterReleaseMinExpansionCm));
+			ExpandedClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, TimeThiefSmokeParameterDefaults::SmokeClusterBoundsExpansionRatio, TimeThiefSmokeParameterDefaults::SmokeClusterMinExpansionCm));
+			ReleaseClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, TimeThiefSmokeParameterDefaults::SmokeClusterReleaseBoundsExpansionRatio, TimeThiefSmokeParameterDefaults::SmokeClusterReleaseMinExpansionCm));
 		}
 
 		TSet<uint64> NextPersistentClusterLinks;
@@ -336,7 +328,7 @@ namespace TimeThiefSmoke
 			}
 		}
 
-		if (MatchingCount < MaxActiveExplosionImpulsesPerSmoke)
+		if (MatchingCount < TimeThiefSmokeParameterDefaults::MaxActiveExplosionImpulsesPerSmoke)
 		{
 			ActiveImpulses.Add(NewImpulse);
 			return true;
@@ -512,7 +504,7 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 		if (SmokeVolume->IntersectTraceSegment(TraceStart, TraceEnd, EntryPoint, ExitPoint))
 		{
 			int32& TraceCount = BulletTraceCountsThisTick.FindOrAdd(SmokeVolume);
-			if (TraceCount >= TimeThiefSmoke::MaxBulletTracesPerSmokePerTick)
+			if (TraceCount >= TimeThiefSmokeParameterDefaults::MaxBulletTracesPerSmokePerTick)
 			{
 				continue;
 			}
