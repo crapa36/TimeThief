@@ -200,11 +200,19 @@ void ATimeThiefMonster::OnDeathNetwork()
 		{
 			if (DeathMontage)
 			{
-				float Duration = AnimInst->Montage_Play(DeathMontage);
+				AnimInst->Montage_Play(DeathMontage);
 				
-				FOnMontageEnded EndDelegate;
-				EndDelegate.BindUObject(this, &ATimeThiefMonster::OnDeathMontageEnded);
-				AnimInst->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+				GetWorldTimerManager().SetTimer(
+					DeathHideTimerHandle,
+					this,
+					&ATimeThiefMonster::StartDeathDisappearEffect,
+					DeathMontage->GetPlayLength(),
+					false
+				);
+				
+				// FOnMontageEnded EndDelegate;
+				// EndDelegate.BindUObject(this, &ATimeThiefMonster::OnDeathMontageEnded);
+				// AnimInst->Montage_SetEndDelegate(EndDelegate, DeathMontage);
 				return;
 			}
 		}
@@ -216,6 +224,17 @@ void ATimeThiefMonster::OnDeathNetwork()
 void ATimeThiefMonster::OnRespawnNetwork(const FVector& SpawnLocation, const FRotator& SpawnRotation)
 {
 	GetWorldTimerManager().ClearTimer(DeathHideTimerHandle);
+	
+	if (MeshComponent)
+	{
+		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
+		{
+			if (DeathMontage)
+			{
+				AnimInst->Montage_Stop(0.0f, DeathMontage);
+			}
+		}
+	}
 
 	SetActorLocation(SpawnLocation);
 	SetActorRotation(SpawnRotation);
