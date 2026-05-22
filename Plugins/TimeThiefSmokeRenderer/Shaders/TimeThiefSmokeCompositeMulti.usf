@@ -16,6 +16,8 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	float4 BoundsExtent_RenderStepVoxelScale;
 	float4 RenderBoundsExtent_Extinction;
 	float4 ScatterNoise;
+	float4 SelfShadowLightDirection_StepCount;
+	float4 SelfShadowControls;
 	float4 NoiseFilamentA;
 	float4 FilamentAge;
 	float4 GridResolution_UseSparse;
@@ -557,6 +559,53 @@ float ComputeAnalyticBulletOpen(FTimeThiefSmokeCompositeDescriptorShaderData Des
 	return saturate(OpenMask);
 }
 
+float ComputeSelfShadow(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+{
+	const int ShadowSteps = clamp((int)round(Desc.SelfShadowLightDirection_StepCount.w), 0, 12);
+	const float ShadowStrength = saturate(Desc.SelfShadowControls.x);
+	const float ShadowExtinction = max(Desc.SelfShadowControls.y, 0.0);
+	const float ShadowStepLength = max(Desc.SelfShadowControls.z, 1.0);
+	if (ShadowSteps <= 0 || ShadowStrength <= 0.001 || ShadowExtinction <= 0.001)
+	{
+		return 1.0;
+	}
+
+	const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
+	const float3 WorldLightDirection = normalize(Desc.SelfShadowLightDirection_StepCount.xyz + float3(0.0, 0.0, 0.0001));
+	const float3 LocalLightDirection = normalize(mul(float4(WorldLightDirection, 0.0), GetWorldToLocal(Desc)).xyz + 0.0001);
+	const float3 LightUVWStep = LocalLightDirection * ShadowStepLength / BoundsExtent * 0.5;
+	const float LightSimulationStepSize = length((LocalLightDirection * ShadowStepLength) / BoundsExtent);
+
+	float OpticalDepth = 0.0;
+	float3 ShadowUVW = VolumeUVW;
+	[loop]
+	for (int ShadowStep = 0; ShadowStep < ShadowSteps; ++ShadowStep)
+	{
+		ShadowUVW += LightUVWStep;
+		if (!TimeThiefSmokeInsideUVW(ShadowUVW))
+		{
+			break;
+		}
+		if (!IsActiveBrick(Slot, Desc, ShadowUVW))
+		{
+			continue;
+		}
+
+		const float ShadowDensity = max(SampleFieldSet(Slot, Desc, ShadowUVW).x, 0.0);
+		if (ShadowDensity <= 0.0001)
+		{
+			continue;
+		}
+
+		const float ShadowObstacle = SampleObstacleTexture(Slot, ShadowUVW);
+		const float ShadowOpen = TimeThiefSmokeObstacleOpenFromValue(ShadowObstacle);
+		OpticalDepth += ShadowDensity * ShadowOpen * LightSimulationStepSize;
+	}
+
+	const float ShadowTransmittance = exp2(-OpticalDepth * ShadowExtinction * 1.442695);
+	return lerp(1.0, ShadowTransmittance, ShadowStrength);
+}
+
 float3 SmokeColorFromDescriptor(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
 {
 	const float ScatteringAlbedo = Desc.ScatterNoise.x;
@@ -675,8 +724,9 @@ void AccumulateSmokeSample(
 	const float StepTransmittance = exp2(-Absorption * 1.442695);
 	const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
 	const float3 SmokeColor = SmokeColorFromDescriptor(Desc);
-	Scatter += SampleWeight * Density;
-	SmokeColorAccum += SampleWeight * SmokeColor;
+	const float SelfShadow = ComputeSelfShadow(Slot, Desc, VolumeUVW);
+	Scatter += SampleWeight * Density * SelfShadow;
+	SmokeColorAccum += SampleWeight * SmokeColor * SelfShadow;
 	const float WarpWeight = Transmittance * Warp * SimulationStepSize * 0.85;
 	WarpScatter += WarpWeight;
 	WarpColorAccum += WarpWeight * lerp(SmokeColor, float3(0.92, 0.96, 1.0), 0.55);

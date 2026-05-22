@@ -88,6 +88,14 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float ScatteringAlbedo = 0.75f;
 	// 전방 산란 방향성(-1~1). 높을수록 빛 방향 산란이 강해짐.
 	constexpr float ScatteringAnisotropy = 0.2f;
+	inline FVector3f GetSelfShadowLightDirection()
+	{
+		return FVector3f(-0.45f, -0.25f, 0.86f).GetSafeNormal();
+	}
+	constexpr float SelfShadowStrength = 0.55f;
+	constexpr float SelfShadowExtinction = 1.1f;
+	constexpr int32 SelfShadowStepCount = 4;
+	constexpr float SelfShadowStepLength = 95.0f;
 
 	// 밀도/속도 시뮬레이션
 

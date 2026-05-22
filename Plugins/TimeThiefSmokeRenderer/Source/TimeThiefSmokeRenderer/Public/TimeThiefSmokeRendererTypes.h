@@ -55,6 +55,11 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float Extinction;
 	float ScatteringAlbedo;
 	float ScatteringAnisotropy;
+	FVector3f SelfShadowLightDirection;
+	float SelfShadowStrength;
+	float SelfShadowExtinction;
+	int32 SelfShadowStepCount;
+	float SelfShadowStepLength;
 	float DensityDissipation;
 	float VelocityDamping;
 	float VorticityStrength;

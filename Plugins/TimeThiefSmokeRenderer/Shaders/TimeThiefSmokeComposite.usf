@@ -247,6 +247,46 @@ float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float S
 	return max(StepSize, DeltaT + 0.0001);
 }
 
+float ComputeSelfShadow(float3 VolumeUVW, float3 LightUVWStep, float LightSimulationStepSize)
+{
+	const int ShadowSteps = clamp(SelfShadowStepCount, 0, 12);
+	const float ShadowStrength = saturate(SelfShadowStrength);
+	const float ShadowExtinction = max(SelfShadowExtinction, 0.0);
+	if (ShadowSteps <= 0 || ShadowStrength <= 0.001 || ShadowExtinction <= 0.001)
+	{
+		return 1.0;
+	}
+
+	float OpticalDepth = 0.0;
+	float3 ShadowUVW = VolumeUVW;
+	[loop]
+	for (int ShadowStep = 0; ShadowStep < ShadowSteps; ++ShadowStep)
+	{
+		ShadowUVW += LightUVWStep;
+		if (!TimeThiefSmokeInsideUVW(ShadowUVW))
+		{
+			break;
+		}
+		if (!IsActiveBrick(ShadowUVW))
+		{
+			continue;
+		}
+
+		const float ShadowDensity = max(SampleFieldSet(ShadowUVW).x, 0.0);
+		if (ShadowDensity <= 0.0001)
+		{
+			continue;
+		}
+
+		const float ShadowObstacle = ObstacleTexture.SampleLevel(VolumeSampler, ShadowUVW, 0.0);
+		const float ShadowOpen = TimeThiefSmokeObstacleOpenFromValue(ShadowObstacle);
+		OpticalDepth += ShadowDensity * ShadowOpen * LightSimulationStepSize;
+	}
+
+	const float ShadowTransmittance = exp2(-OpticalDepth * ShadowExtinction * 1.442695);
+	return lerp(1.0, ShadowTransmittance, ShadowStrength);
+}
+
 void MainPS(
 	in noperspective float4 UVAndScreenPos : TEXCOORD0,
 	float4 SvPosition : SV_POSITION,
@@ -291,6 +331,10 @@ void MainPS(
 	const float3 LocalStep = RayDirection * StepSize * RenderBoundsExtent;
 	const float3 RayUVWDirection = RayDirection * RenderBoundsExtent / max(BoundsExtent, 1.0) * 0.5;
 	const float SimulationStepSize = length(LocalStep / max(BoundsExtent, 1.0));
+	const float3 LocalSelfShadowDirection = normalize(mul(float4(normalize(SelfShadowLightDirection + float3(0.0, 0.0, 0.0001)), 0.0), WorldToLocal).xyz + 0.0001);
+	const float SelfShadowStepLengthSafe = max(SelfShadowStepLength, 1.0);
+	const float3 SelfShadowUVWStep = LocalSelfShadowDirection * SelfShadowStepLengthSafe / max(BoundsExtent, 1.0) * 0.5;
+	const float SelfShadowSimulationStepSize = length((LocalSelfShadowDirection * SelfShadowStepLengthSafe) / max(BoundsExtent, 1.0));
 	const float MaxResolvedBaseNoiseScale = 0.9 / MaxGridCellSize;
 	const float MaxResolvedFineNoiseScale = 1.15 / MaxGridCellSize;
 	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedBaseNoiseScale);
@@ -299,6 +343,8 @@ void MainPS(
 	const float FineFilamentMultiplier = min(1.9, MaxResolvedFineNoiseScale / max(StableRenderFilamentScale, 0.0001));
 	float Transmittance = 1.0;
 	float Scatter = 0.0;
+	float SmokeLightAccum = 0.0;
+	float SmokeLightWeight = 0.0;
 	float WarpScatter = 0.0;
 	float DebugValue = 0.0;
 	const float RayJitter = TimeThiefSmokeHash13(float3(SvPosition.xy, AgeSeconds)) - 0.5;
@@ -445,7 +491,11 @@ void MainPS(
 
 		const float Absorption = Density * Extinction * SimulationStepSize;
 		const float StepTransmittance = exp2(-Absorption * 1.442695);
-		Scatter += Transmittance * (1.0 - StepTransmittance) * Density;
+		const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
+		const float SelfShadow = DebugMode == 0 ? ComputeSelfShadow(VolumeUVW, SelfShadowUVWStep, SelfShadowSimulationStepSize) : 1.0;
+		Scatter += SampleWeight * Density * SelfShadow;
+		SmokeLightAccum += SampleWeight * SelfShadow;
+		SmokeLightWeight += SampleWeight;
 		WarpScatter += Transmittance * Warp * SimulationStepSize * 0.85;
 		Transmittance *= StepTransmittance;
 		CurrentT += StepSize;
@@ -499,7 +549,8 @@ void MainPS(
 	const float Alpha = saturate(1.0 - Transmittance);
 	const float PhaseBoost = lerp(0.75, 1.15, saturate(ScatteringAnisotropy * 0.5 + 0.5));
 	const float3 SmokeColor = lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
-	const float3 Composited = SceneColor.rgb * Transmittance + SmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
+	const float SmokeLighting = SmokeLightWeight > 0.0001 ? saturate(SmokeLightAccum / SmokeLightWeight) : 1.0;
+	const float3 Composited = SceneColor.rgb * Transmittance + SmokeColor * Alpha * SmokeLighting * saturate(0.82 + Scatter * 0.85);
 	const float WarpAlpha = saturate(WarpScatter * 0.62);
 	const float3 WarpColor = lerp(SmokeColor, float3(0.92, 0.96, 1.0), 0.55);
 	OutColor = float4(lerp(Composited, WarpColor, WarpAlpha * 0.42), SceneColor.a);

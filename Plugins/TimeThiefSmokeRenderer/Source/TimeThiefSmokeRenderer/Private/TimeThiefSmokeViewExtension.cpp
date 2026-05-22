@@ -928,6 +928,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		Descriptor.BoundsExtent_RenderStepVoxelScale = FVector4f(State.Volume.BoundsExtent.X, State.Volume.BoundsExtent.Y, State.Volume.BoundsExtent.Z, FMath::Clamp(State.Volume.Settings.RenderStepVoxelScale, 0.1f, 4.0f));
 		Descriptor.RenderBoundsExtent_Extinction = FVector4f(State.Volume.RenderBoundsExtent.X, State.Volume.RenderBoundsExtent.Y, State.Volume.RenderBoundsExtent.Z, State.Volume.Settings.Extinction);
 		Descriptor.ScatterNoise = FVector4f(State.Volume.Settings.ScatteringAlbedo, State.Volume.Settings.ScatteringAnisotropy, State.Volume.Settings.RenderNoiseScale, State.Volume.Settings.RenderNoiseStrength);
+		Descriptor.SelfShadowLightDirection_StepCount = FVector4f(State.Volume.Settings.SelfShadowLightDirection.X, State.Volume.Settings.SelfShadowLightDirection.Y, State.Volume.Settings.SelfShadowLightDirection.Z, static_cast<float>(State.Volume.Settings.SelfShadowStepCount));
+		Descriptor.SelfShadowControls = FVector4f(State.Volume.Settings.SelfShadowStrength, State.Volume.Settings.SelfShadowExtinction, State.Volume.Settings.SelfShadowStepLength, 0.0f);
 		Descriptor.NoiseFilamentA = FVector4f(State.Volume.Settings.RenderNoiseTimeScale, State.Volume.Settings.RenderFilamentScale, State.Volume.Settings.RenderFilamentStrength, State.Volume.Settings.RenderFilamentContrast);
 		Descriptor.FilamentAge = FVector4f(State.Volume.Settings.RenderFilamentWarpStrength, State.Volume.AgeSeconds, State.Volume.DurationSeconds, State.Volume.Settings.SmokeFadeOutDuration);
 		Descriptor.GridResolution_UseSparse = FVector4f(static_cast<float>(State.AllocatedGridSize.X), static_cast<float>(State.AllocatedGridSize.Y), static_cast<float>(State.AllocatedGridSize.Z), bUseSparseComposite ? 1.0f : 0.0f);
@@ -1406,6 +1408,11 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		PassParameters->Extinction = State.Volume.Settings.Extinction;
 		PassParameters->ScatteringAlbedo = State.Volume.Settings.ScatteringAlbedo;
 		PassParameters->ScatteringAnisotropy = State.Volume.Settings.ScatteringAnisotropy;
+		PassParameters->SelfShadowLightDirection = State.Volume.Settings.SelfShadowLightDirection;
+		PassParameters->SelfShadowStrength = State.Volume.Settings.SelfShadowStrength;
+		PassParameters->SelfShadowExtinction = State.Volume.Settings.SelfShadowExtinction;
+		PassParameters->SelfShadowStepCount = State.Volume.Settings.SelfShadowStepCount;
+		PassParameters->SelfShadowStepLength = State.Volume.Settings.SelfShadowStepLength;
 		PassParameters->RenderNoiseScale = State.Volume.Settings.RenderNoiseScale;
 		PassParameters->RenderNoiseStrength = State.Volume.Settings.RenderNoiseStrength;
 		PassParameters->RenderNoiseTimeScale = State.Volume.Settings.RenderNoiseTimeScale;
