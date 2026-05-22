@@ -11,6 +11,7 @@
 #include "Network/State/RemoteAttackNotify.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 
 #include "TimeThiefMonster.generated.h"
 
@@ -173,13 +174,11 @@ protected:
 	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
 	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
-	TObjectPtr<UNiagaraSystem> DeathFX = nullptr;
-	// 사망 후 이펙트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="VFX", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNiagaraComponent> DeathFX = nullptr;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
-	TObjectPtr<UNiagaraSystem> RespawnFX = nullptr;
-	// 부활 이펙트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="VFX", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UNiagaraComponent> RespawnFX = nullptr;
 // -----------------------------------------------------------------------------------	
 	
 	UPROPERTY()

@@ -28,6 +28,14 @@ ATimeThiefMonster::ATimeThiefMonster()
 	NetworkEntityComponent = CreateDefaultSubobject<UNetworkEntityComponent>(TEXT("NetworkEntityComponent"));
 	NetworkMoveComponent = CreateDefaultSubobject<UNetworkMoveComponent>(TEXT("NetworkMoveComponent"));
 	NetworkCombatSyncComponent = CreateDefaultSubobject<UNetworkCombatSyncComponent>(TEXT("NetworkCombatSyncComponent"));
+	
+	DeathFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DeathFX"));
+	DeathFX->SetupAttachment(MeshComponent);
+	DeathFX->bAutoActivate = false;
+	
+	RespawnFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("RespawnFX"));
+	RespawnFX->SetupAttachment(MeshComponent);
+	RespawnFX->bAutoActivate = false;
 }
 
 // Called when the game starts or when spawned
@@ -35,6 +43,17 @@ void ATimeThiefMonster::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (DeathFX)
+	{
+		DeathFX->SetVariableFloat(FName("User.Loop"), 1);
+		DeathFX->Deactivate();
+	}
+	
+	if (RespawnFX)
+	{
+		RespawnFX->SetVariableFloat(FName("User.MaxLifeTime"), 1);
+		RespawnFX->Deactivate();
+	}
 }
 
 // Called every frame
@@ -396,19 +415,19 @@ void ATimeThiefMonster::StartDeathDisappearEffect()
 	// Ray / Beam FX
 	if (DeathFX)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(),
-			DeathFX,
-			Location,
-			Rotation
-		);
+		UE_LOG(LogTemp, Log, TEXT("[Monster] Activate DeathFX"));
+		DeathFX->Activate(true);
+		
+		UE_LOG(LogTemp, Warning, TEXT("DeathFX Activate. Asset=%s Active=%d"),
+			*GetNameSafe(DeathFX->GetAsset()),
+			DeathFX->IsActive());
 	}
 	
 	GetWorldTimerManager().SetTimer(
 		DeathHideTimerHandle,
 		this,
 		&ATimeThiefMonster::FinishDeathHide,
-		1.0f,
+		2.0f,
 		false
 		);
 }
@@ -431,17 +450,18 @@ void ATimeThiefMonster::FinishDeathHide()
 
 void ATimeThiefMonster::PlayRespawnEffect()
 {
-	const FVector Location = GetActorLocation();
-	const FRotator Rotation = GetActorRotation();
+	// const FVector Location = GetActorLocation();
+	// const FRotator Rotation = GetActorRotation();
 
+	if (DeathFX)
+	{
+		DeathFX->Deactivate();
+	}
+	
 	if (RespawnFX)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(),
-			RespawnFX,
-			Location,
-			Rotation
-		);
+		UE_LOG(LogTemp, Log, TEXT("[Monster] Activate RespawnFX"));
+		RespawnFX->Activate(true);
 	}
 }
 
@@ -502,6 +522,11 @@ void ATimeThiefMonster::FinishRespawn()
 {
 	VisualState = EMonsterVisualState::Alive;
 	bIsDead = false;
+	
+	if (RespawnFX)
+	{
+		RespawnFX->Deactivate();
+	}
 
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
