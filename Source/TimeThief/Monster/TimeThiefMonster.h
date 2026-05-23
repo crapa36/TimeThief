@@ -12,6 +12,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "NiagaraComponent.h"
+#include "Components/FX/TimeThiefDissolveFXComponent.h"
 
 #include "TimeThiefMonster.generated.h"
 
@@ -116,7 +117,6 @@ public:
 	void FinishRespawn();
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
-	void ResetDissolveMaterial();
 	void DisableCombatCollision();
 	void EnableCombatCollision();
 	void StopMovementVisual();
@@ -174,11 +174,9 @@ protected:
 	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
 	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="VFX", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<UNiagaraComponent> DeathFX = nullptr;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="VFX", meta=(AllowPrivateAccess="true"))
-	TObjectPtr<UNiagaraComponent> RespawnFX = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|VFX", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UTimeThiefDissolveFXComponent> DissolveFXComponent = nullptr;
+	// 디졸브 이펙트 컴포넌트 (사망과 부활 시 디졸브 효과를 담당하는 컴포넌트)
 // -----------------------------------------------------------------------------------	
 	
 	UPROPERTY()

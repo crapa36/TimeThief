@@ -29,13 +29,7 @@ ATimeThiefMonster::ATimeThiefMonster()
 	NetworkMoveComponent = CreateDefaultSubobject<UNetworkMoveComponent>(TEXT("NetworkMoveComponent"));
 	NetworkCombatSyncComponent = CreateDefaultSubobject<UNetworkCombatSyncComponent>(TEXT("NetworkCombatSyncComponent"));
 	
-	DeathFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("DeathFX"));
-	DeathFX->SetupAttachment(MeshComponent);
-	DeathFX->bAutoActivate = false;
-	
-	RespawnFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("RespawnFX"));
-	RespawnFX->SetupAttachment(MeshComponent);
-	RespawnFX->bAutoActivate = false;
+	DissolveFXComponent = CreateDefaultSubobject<UTimeThiefDissolveFXComponent>(TEXT("DissolveFXComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -43,17 +37,11 @@ void ATimeThiefMonster::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (DeathFX)
-	{
-		DeathFX->SetVariableFloat(FName("User.Loop"), 1);
-		DeathFX->Deactivate();
-	}
-	
-	if (RespawnFX)
-	{
-		RespawnFX->SetVariableFloat(FName("User.MaxLifeTime"), 1);
-		RespawnFX->Deactivate();
-	}
+	// FX Component가 자동 수집하게
+	// if (DissolveFXComponent && MeshComponent)
+	// {
+	// 	DissolveFXComponent->RegisterMesh(MeshComponent);
+	// }
 }
 
 // Called every frame
@@ -277,14 +265,13 @@ void ATimeThiefMonster::OnRespawnNetwork(const FVector& SpawnLocation, const FRo
 		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	ResetDissolveMaterial();
 	PlayRespawnEffect();
 
 	GetWorldTimerManager().SetTimer(
 		RespawnFinishTimerHandle,
 		this,
 		&ATimeThiefMonster::FinishRespawn,
-		0.8f,
+		0.8f,		// TODO: 이거 하드 코딩 제외 해야 함
 		false
 	);
 }
@@ -409,25 +396,23 @@ UAnimMontage* ATimeThiefMonster::GetAttackMontage(int32 AttackType) const
 
 void ATimeThiefMonster::StartDeathDisappearEffect()
 {
-	const FVector Location = GetActorLocation();
-	const FRotator Rotation = GetActorRotation();
-	
-	// Ray / Beam FX
-	if (DeathFX)
+	if (VisualState == EMonsterVisualState::DeadHidden)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Monster] Activate DeathFX"));
-		DeathFX->Activate(true);
-		
-		UE_LOG(LogTemp, Warning, TEXT("DeathFX Activate. Asset=%s Active=%d"),
-			*GetNameSafe(DeathFX->GetAsset()),
-			DeathFX->IsActive());
+		return;
+	}
+
+	VisualState = EMonsterVisualState::Dying;
+
+	if (DissolveFXComponent)
+	{
+		DissolveFXComponent->PlayDisappear();
 	}
 	
 	GetWorldTimerManager().SetTimer(
 		DeathHideTimerHandle,
 		this,
 		&ATimeThiefMonster::FinishDeathHide,
-		2.0f,
+		2.0f,		// TODO: 이거 하드 코딩 제외 해야 함
 		false
 		);
 }
@@ -450,24 +435,10 @@ void ATimeThiefMonster::FinishDeathHide()
 
 void ATimeThiefMonster::PlayRespawnEffect()
 {
-	// const FVector Location = GetActorLocation();
-	// const FRotator Rotation = GetActorRotation();
-
-	if (DeathFX)
+	if (DissolveFXComponent)
 	{
-		DeathFX->Deactivate();
+		DissolveFXComponent->PlayAppear();
 	}
-	
-	if (RespawnFX)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Monster] Activate RespawnFX"));
-		RespawnFX->Activate(true);
-	}
-}
-
-void ATimeThiefMonster::ResetDissolveMaterial()
-{
-
 }
 
 void ATimeThiefMonster::DisableCombatCollision()
@@ -523,11 +494,6 @@ void ATimeThiefMonster::FinishRespawn()
 	VisualState = EMonsterVisualState::Alive;
 	bIsDead = false;
 	
-	if (RespawnFX)
-	{
-		RespawnFX->Deactivate();
-	}
-
 	SetActorHiddenInGame(false);
 	SetActorTickEnabled(true);
 	SetActorEnableCollision(true);
