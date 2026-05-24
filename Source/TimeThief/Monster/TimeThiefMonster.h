@@ -92,6 +92,8 @@ public:
 	UNetworkCombatSyncComponent* GetNetworkCombatSyncComponent() const { return NetworkCombatSyncComponent; }
 	
 public:
+	void SetTarget(uint32 InTargetId, AActor* InTargetActor);
+	
 	UFUNCTION(BlueprintCallable, Category="Combat")
 	void HandleRemoteCombatRequest(const FRemoteAttackNotify& AttackRequest);
 
@@ -190,5 +192,8 @@ protected:
 	
 	FTimerHandle DeathHideTimerHandle;
 	FTimerHandle RespawnFinishTimerHandle;
+	
+	uint32 TargetId = 0;
+	AActor* TargetActor = nullptr;
 	
 };

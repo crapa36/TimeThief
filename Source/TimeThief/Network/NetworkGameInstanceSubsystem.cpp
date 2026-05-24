@@ -1321,6 +1321,40 @@ void UNetworkGameInstanceSubsystem::HandleMonsterFire(const se::game::N_MonsterF
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
+void UNetworkGameInstanceSubsystem::HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.monster_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMonsterTarget: Missing actor for EntityId=%u"), EntityId);
+		return;
+	}
+	
+	const uint32 TargetId = Pkt.target_id().value();
+	FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetId);
+	if (TargetEntry == nullptr and TargetId != 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMonsterTarget: Missing target actor for TargetId=%u"), TargetId);
+	}
+	
+	if (auto MonsterPawn = Cast<ATimeThiefMonster>(EntityEntry->Actor.Get()))
+	{
+		MonsterPawn->SetTarget(TargetId, TargetEntry ? TargetEntry->Actor.Get() : nullptr);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMonsterTarget: Missing MonsterComponent for EntityId=%u"), EntityId);
+	}
+}
+
 void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt)
 {
 	check(IsInGameThread());

@@ -181,6 +181,12 @@ uint32 ATimeThiefMonster::GetEntityId() const
 	return NetworkEntityComponent ? NetworkEntityComponent->GetEntityId() : 0;
 }
 
+void ATimeThiefMonster::SetTarget(uint32 InTargetId, AActor* InTargetActor)
+{
+	TargetId = InTargetId;
+	TargetActor = InTargetActor;
+}
+
 void ATimeThiefMonster::HandleRemoteCombatRequest(const FRemoteAttackNotify& AttackRequest)
 {
 	RemoteCombat(AttackRequest);

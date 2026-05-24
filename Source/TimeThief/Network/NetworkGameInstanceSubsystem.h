@@ -130,6 +130,7 @@ public:
 	void HandleFire(const se::game::N_Fire& Pkt);
 	void HandleAttack(const se::game::N_Attack& Pkt);
 	void HandleMonsterFire(const se::game::N_MonsterFire& Pkt);
+	void HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt);
 	void HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt);
 	void HandleReload(const se::game::N_Reload& Pkt);
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
