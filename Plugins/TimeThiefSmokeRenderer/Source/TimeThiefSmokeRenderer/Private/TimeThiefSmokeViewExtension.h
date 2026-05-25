@@ -41,15 +41,14 @@ private:
 		TRefCountPtr<IPooledRenderTarget> BulletCutoutTextures[2];
 		TRefCountPtr<IPooledRenderTarget> BulletSinkTextures[2];
 		TRefCountPtr<IPooledRenderTarget> WarpTextures[2];
-		TRefCountPtr<IPooledRenderTarget> ObstacleTexture;
+		TRefCountPtr<IPooledRenderTarget> ObstacleSdfTexture;
+		TRefCountPtr<IPooledRenderTarget> ObstacleVelocityTexture;
+		TRefCountPtr<IPooledRenderTarget> ObstacleFaceOpenTexture;
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
 		TRefCountPtr<IPooledRenderTarget> SparseFieldAtlasTexture;
 		TRefCountPtr<IPooledRenderTarget> CurlTexture;
 		TRefCountPtr<FRDGPooledBuffer> VortexParticleBuffers[2];
 		TSharedPtr<FRHIGPUBufferReadback> ActiveBrickCountReadback;
-		TArray<uint8> ObstacleUploadScratch;
-		TArray<uint8> ObstaclePreviousScratch;
-		TArray<uint8> ObstacleTargetScratch;
 		int32 CurrentDensityIndex = 0;
 		int32 CurrentVelocityIndex = 0;
 		int32 CurrentBulletFieldIndex = 0;
@@ -59,11 +58,9 @@ private:
 		FIntVector AllocatedBrickGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedSparseAtlasBrickGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedSparseAtlasGridSize = FIntVector::ZeroValue;
-		int32 AllocatedObstacleResolution = 0;
+		FIntVector AllocatedObstacleGridSize = FIntVector::ZeroValue;
 		uint32 LastActiveBrickCount = 0;
-		uint32 UploadedObstacleMaskRevision = MAX_uint32;
-		uint32 TargetObstacleMaskRevision = MAX_uint32;
-		float ObstacleMaskBlendAge = 1.0f;
+		uint32 UploadedObstacleFieldRevision = MAX_uint32;
 		uint32 LastSimulatedFrame = MAX_uint32;
 		int32 AllocatedVortexParticleCount = 0;
 		int32 LastProfilePassCount = 0;
@@ -98,7 +95,7 @@ private:
 		bool bAllowOverrideOutput);
 
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
-	void EnsureObstacleTexture(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
+	void EnsureObstacleFieldTextures(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void EnsureVortexParticleBuffers(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void UploadDeadVortexParticles(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexBuffer);
 	void AddVortexParticleUpdatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexIn, FRDGBufferRef VortexOut, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);

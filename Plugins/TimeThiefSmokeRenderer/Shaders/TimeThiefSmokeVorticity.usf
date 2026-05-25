@@ -53,7 +53,7 @@ float3 SafeNormalize(float3 Value)
 float LoadOpen(int3 Coord)
 {
 	const int3 SafeCoord = ClampSmokeCoord(Coord);
-	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), ObstacleSdfSurfaceFeatherCm);
 }
 
 float4 LoadCurlPacked(int3 Coord)
@@ -96,13 +96,13 @@ float3 ComputeAirInteractionForce(int3 Coord, float3 Velocity, float Density, fl
 	const float ShearMask = saturate(TangentialSpeed / 320.0);
 	const float WakeMask = InterfaceMask * lerp(0.35, 1.0, ShearMask);
 	const float WakeScale = max(AirInteractionStrength, 0.0) * WakeMask;
-	return (RollForce * (120.0 + TangentialSpeed * 0.42) + CurlNoise * 180.0) * WakeScale * max(SelfWobbleForceScale, 0.0);
+	return (RollForce * (AirInteractionRollBaseForce + TangentialSpeed * AirInteractionTangentialSpeedScale) + CurlNoise * AirInteractionCurlNoiseForce) * WakeScale * max(SelfWobbleForceScale, 0.0);
 }
 
 float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float DensityMask, float3 CurlNoise, float CellLength, uint4 EventBrickMask)
 {
 	float3 Force = float3(0.0, 0.0, 0.0);
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -123,8 +123,8 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 		const float3 ToCell = WorldPosition - EventPosition;
 		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
 		const float InfluenceRadius = EventType == 0
-			? max(Length * 0.5 + Radius * 2.4, ShapeRadius * 2.4)
-			: (EventType == 1 ? Radius * 1.45 : TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale));
+			? TimeThiefSmokeBulletWakeInfluenceRadius(Event, BulletWakeCutoutFeather)
+			: (EventType == 1 ? TimeThiefSmokeExplosionInfluenceRadius(Event) : TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale));
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;
@@ -165,9 +165,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);
 			const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
 			const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
-			const float SafeAirflowFullSpeed = max(ActorAirflowFullSpeed, 1.0);
-			const float SafeAirflowRadiusScale = max(ActorAirflowRadiusScale, 0.1);
-			const float MotionMask = saturate(ActorSpeed / SafeAirflowFullSpeed);
+			const float MotionMask = saturate(ActorSpeed / ActorAirflowFullSpeed);
 			const float TravelDistance = length(Event.PositionRadius.xyz - Event.PreviousPositionSpeed.xyz);
 			const float ActorTemporalScale = clamp((TravelDistance / max(ActorSpeed, 1.0)) * 30.0, 1.0, 3.6);
 			const float3 SolidVelocity = Direction * ActorSpeed;
@@ -179,25 +177,26 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			const float3 RollAxis = SafeNormalize(cross(SurfaceNormal, SurfaceTangent) + CurlNoise * 0.42);
 			const float3 RollForce = SafeNormalize(cross(RollAxis, SurfaceNormal));
 			const float Along = dot(ToCell, Direction);
-			const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 7.5);
+			const float TrailLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+			const float BackAlong = clamp(-Along, 0.0, TrailLength);
 			const float3 TrailClosest = EventPosition - Direction * BackAlong;
 			const float3 TrailRadial = WorldPosition - TrailClosest;
 			const float TrailDistance = length(TrailRadial);
-			const float TrailRadius = max(ShapeRadius * lerp(0.82, 2.05, saturate(BackAlong / max(ShapeRadius * 7.5, 1.0))), CellLength * 2.0);
+			const float TrailRadius = max(ShapeRadius * lerp(0.82, 2.05, saturate(BackAlong / max(TrailLength, 1.0))), CellLength * 2.0);
 			const float Trail =
 				(1.0 - smoothstep(TrailRadius * 0.35, TrailRadius, TrailDistance)) *
-				(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 7.5, BackAlong)) *
+				(1.0 - smoothstep(ShapeRadius * 0.35, TrailLength, BackAlong)) *
 				saturate(-Along / max(ShapeRadius * 0.65, 1.0));
 			float3 WakeStreetDirection = Direction;
-			const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, ShapeRadius * 7.5, CellLength, WakeStreetDirection);
+			const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, TrailLength, CellLength, ActorWakeStreetLaneInnerRadiusScale, WakeStreetDirection);
 			const float ShapeDistance = max(ShapeSdf, 0.0);
 			const float AirEnvelope =
-				(1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * SafeAirflowRadiusScale, ShapeDistance)) *
+				(1.0 - smoothstep(ShapeRadius * 0.45, ShapeRadius * ActorAirflowRadiusScale, ShapeDistance)) *
 				MotionMask;
 			const float SideAir =
 				AirEnvelope *
 				saturate(1.0 - abs(dot(SurfaceNormal, Direction))) *
-				(1.0 - smoothstep(ShapeRadius * 0.65, ShapeRadius * max(SafeAirflowRadiusScale * 1.1, 0.7), abs(Along)));
+				(1.0 - smoothstep(ShapeRadius * 0.65, ShapeRadius * max(ActorAirflowRadiusScale * 1.1, 0.7), abs(Along)));
 			const float Front =
 				TimeThiefSmokeSoftSphere(length(ToCell - Direction * ShapeRadius * 0.55), ShapeRadius * 1.75) *
 				saturate(smoothstep(-ShapeRadius * 0.25, ShapeRadius * 1.25, Along));
@@ -207,13 +206,13 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			{
 				SpinBreakup = lerp(0.45, 1.0, TimeThiefSmokeRidgedFBM(float3(BackAlong * 0.035, Seed * 0.011, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
 			}
-			Force += (RollForce * SurfaceBand * ShearMask * SpinBreakup * 420.0) * ActorTemporalScale;
+			Force += (RollForce * SurfaceBand * ShearMask * SpinBreakup * ActorWakeSurfaceRollForce) * ActorTemporalScale;
 			Force += (RollForce * SideAir * SpinBreakup * Strength * ActorSpeed * max(ActorAirflowVortexStrength, 0.0)) * ActorTemporalScale;
-			Force += (SurfaceTangent * SurfaceBand * ActorSpeed * 0.22) * ActorTemporalScale;
-			Force += (CurlNoise * SurfaceBand * ShearMask * 115.0) * ActorTemporalScale;
-			Force += (RollForce * Trail * SpinBreakup * Strength * MotionMask * lerp(220.0, 620.0, WarpBudget)) * ActorTemporalScale;
-			Force += (WakeStreetDirection * WakeStreet * SpinBreakup * Strength * MotionMask * ActorSpeed * max(ActorAirflowVortexStrength, 0.0) * 0.58) * ActorTemporalScale;
-			Force += (Direction * Front * Strength * ActorSpeed * 0.18) * ActorTemporalScale;
+			Force += (SurfaceTangent * SurfaceBand * ActorSpeed * ActorWakeSurfaceTangentSpeedScale) * ActorTemporalScale;
+			Force += (CurlNoise * SurfaceBand * ShearMask * ActorWakeSurfaceNoiseForce) * ActorTemporalScale;
+			Force += (RollForce * Trail * SpinBreakup * Strength * MotionMask * lerp(ActorWakeTrailMinRollForce, ActorWakeTrailMaxRollForce, WarpBudget)) * ActorTemporalScale;
+			Force += (WakeStreetDirection * WakeStreet * SpinBreakup * Strength * MotionMask * ActorSpeed * max(ActorAirflowVortexStrength, 0.0) * ActorWakeStreetForceScale) * ActorTemporalScale;
+			Force += (Direction * Front * Strength * ActorSpeed * ActorWakeFrontPushScale) * ActorTemporalScale;
 		}
 	}
 	return Force * DensityMask;
@@ -235,14 +234,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	const int3 Coord = int3(DispatchThreadId);
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
 	if (OpenMask <= 0.01)
 	{
 		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
 		return;
 	}
 
-	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
+	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
 	const float Density = max(DensityIn.Load(int4(Coord, 0)) + DisplacedDensityIn.Load(int4(Coord, 0)), 0.0);
 	float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
@@ -261,15 +260,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
 	const float SafeSelfWobbleForceScale = max(SelfWobbleForceScale, 0.0);
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale);
-	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * 24.0 * SafeSelfWobbleForceScale;
-	const float TurbulenceBand = lerp(180.0, 460.0, saturate(CurlMagnitude * 0.18)) * SafeSelfWobbleForceScale;
+	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * VorticityConfinementForceScale * SafeSelfWobbleForceScale;
+	const float TurbulenceBand = lerp(TurbulenceBandMinForce, TurbulenceBandMaxForce, saturate(CurlMagnitude * TurbulenceCurlMagnitudeScale)) * SafeSelfWobbleForceScale;
 	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * DensityMask * TurbulenceBand;
-	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * 95.0 * SafeSelfWobbleForceScale;
+	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
 	const float3 AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
 	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	const float3 EventForce = ComputeEventVortexForce(WorldPosition, Velocity, DensityMask, CurlNoise, CellLength, EventBrickMask);
 	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AmbientAirForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
-	const float MaxDeltaSpeed = max(160.0, 420.0 * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
+	const float MaxDeltaSpeed = max(VorticityDeltaSpeedMin, VorticityDeltaSpeedStrengthScale * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
 	const float DeltaSpeed = length(DeltaVelocity);
 	if (DeltaSpeed > MaxDeltaSpeed)
 	{
@@ -277,7 +276,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	Velocity += DeltaVelocity;
-	const float MaxSpeed = 2600.0;
+	const float MaxSpeed = max(MaxSmokeVelocity, 1.0);
 	const float Speed = length(Velocity);
 	if (Speed > MaxSpeed)
 	{

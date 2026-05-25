@@ -23,7 +23,7 @@ int3 ClampSmokeCoord(int3 Coord)
 float LoadOpen(int3 Coord)
 {
 	const int3 SafeCoord = ClampSmokeCoord(Coord);
-	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), ObstacleSdfSurfaceFeatherCm);
 }
 
 float3 LoadOpenVelocity(int3 Coord)

@@ -64,15 +64,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
-	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
+	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
 	float NaturalDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	float DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
 
 	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -93,7 +93,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Strength = saturate(Event.ExtentsStrength.w);
 		const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
 		const float3 ToCell = WorldPosition - Event.PositionRadius.xyz;
-		const float InfluenceRadius = TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale);
+		const float TrailLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+		const float InfluenceRadius = max(
+			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
+			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;
@@ -120,23 +123,19 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 NormalCorrection = (SurfaceNormal * dot(SolidVelocity - Velocity, SurfaceNormal)) * SurfaceBand * 0.62;
 		const float3 BoundaryDrag = (TangentialSolidVelocity - TangentialFluidVelocity) * BoundaryLayer * 0.42;
 		const float Along = dot(ToCell, Direction);
-		const float BackAlong = clamp(-Along, 0.0, ShapeRadius * 5.0);
+		const float BackAlong = clamp(-Along, 0.0, TrailLength);
 		const float3 TrailClosest = Event.PositionRadius.xyz - Direction * BackAlong;
 		const float TrailDistance = length(WorldPosition - TrailClosest);
 		const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
 		const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
-		const float SafeAirflowStrength = max(ActorAirflowStrength, 0.0);
-		const float SafeAirflowMinSpeed = max(ActorAirflowMinSpeed, 0.0);
-		const float SafeAirflowFullSpeed = max(ActorAirflowFullSpeed, SafeAirflowMinSpeed + 1.0);
-		const float SafeAirflowRadiusScale = max(ActorAirflowRadiusScale, 0.1);
 		float3 WakeStreetDirection = Direction;
-		const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, ShapeRadius * 5.0, MaxGridCellSize, WakeStreetDirection);
+		const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, TrailLength, MaxGridCellSize, ActorWakeStreetLaneInnerRadiusScale, WakeStreetDirection);
 		const float WakeMask = max(
 			(1.0 - smoothstep(ShapeRadius * 0.72, ShapeRadius * 2.25, TrailDistance)) *
-			(1.0 - smoothstep(ShapeRadius * 0.35, ShapeRadius * 5.0, BackAlong)) *
+			(1.0 - smoothstep(ShapeRadius * 0.35, TrailLength, BackAlong)) *
 			saturate(SolidSpeed / 260.0) * RearMask,
 			WakeStreet * 0.72);
-		const float MotionMask = smoothstep(SafeAirflowMinSpeed, SafeAirflowFullSpeed, SolidSpeed) * saturate(Strength + 0.25);
+		const float MotionMask = smoothstep(ActorAirflowMinSpeed, ActorAirflowFullSpeed, SolidSpeed) * saturate(Strength + 0.25);
 		const float SurfaceRedistribution = SurfaceBand * lerp(0.45, 0.45 + FrontMask * 0.55, MotionMask);
 		const float RedistributeWeight = saturate((SurfaceRedistribution + WakeMask * 0.28) * BoundaryStrength * (0.35 + MotionMask * 0.65));
 		float DonorDensity = 0.0;
@@ -145,23 +144,23 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			const float3 LocalSurfaceNormal = SafeNormalize(mul(float4(SurfaceNormal, 0.0), WorldToLocal).xyz);
 			const float DonorDistance = max(ShapeRadius * 0.24, 8.0);
 			const float3 DonorUVW = saturate(UVW - LocalSurfaceNormal * DonorDistance / max(BoundsExtent * 2.0, 1.0));
-			const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW);
+			const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW, ObstacleSdfSurfaceFeatherCm);
 			DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
 		}
 		const float ShapeDistance = max(ShapeSdf, 0.0);
 		const float AirEnvelope =
-			(1.0 - smoothstep(ShapeRadius * 0.42, ShapeRadius * SafeAirflowRadiusScale, ShapeDistance)) *
+			(1.0 - smoothstep(ShapeRadius * 0.42, ShapeRadius * ActorAirflowRadiusScale, ShapeDistance)) *
 			MotionMask *
-			SafeAirflowStrength *
+			ActorAirflowStrength *
 			Outside;
 		const float FrontAir =
 			AirEnvelope *
 			FrontMask *
-			(1.0 - smoothstep(ShapeRadius * 0.18, ShapeRadius * max(SafeAirflowRadiusScale * 0.76, 0.2), max(Along, 0.0)));
+			(1.0 - smoothstep(ShapeRadius * 0.18, ShapeRadius * max(ActorAirflowRadiusScale * 0.76, 0.2), max(Along, 0.0)));
 		const float SideAir =
 			AirEnvelope *
 			saturate(1.0 - abs(dot(SurfaceNormal, Direction))) *
-			(1.0 - smoothstep(ShapeRadius * 0.6, ShapeRadius * SafeAirflowRadiusScale, abs(Along)));
+			(1.0 - smoothstep(ShapeRadius * 0.6, ShapeRadius * ActorAirflowRadiusScale, abs(Along)));
 		const float WakeAir = WakeMask * MotionMask * Outside;
 		const float3 RollAxis = SafeNormalize(cross(SurfaceNormal, Tangent));
 		const float3 ShearRoll = SafeNormalize(cross(RollAxis, SurfaceNormal)) * SolidSpeed * SurfaceBand * RearMask * 0.18;
@@ -179,13 +178,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float InteractionMask = max(Outside, SurfaceBand) * SmokeInteractionMask;
 		const float3 InteriorEscape = SurfaceNormal * Inside * BoundaryStrength * max(80.0, SolidSpeed * 0.34) * SmokeInteractionMask;
 
-		DisplacedDensity = min(3.2, DisplacedDensity + UpdatedTotalDensity * FrontCompression * InteractionMask * EventDeltaSeconds * 0.65);
+		DisplacedDensity = min(SmokeDensityMax, DisplacedDensity + UpdatedTotalDensity * FrontCompression * InteractionMask * EventDeltaSeconds * 0.65);
 		Velocity += (NormalCorrection + BoundaryDrag) * InteractionMask;
 		Velocity += InteriorEscape;
 		Velocity += (BowWave + WakePull + ShearRoll + MovingAirflow) * InteractionMask * EventDeltaSeconds;
 	}
 
-	OutDensity[DispatchThreadId] = clamp(NaturalDensity * OpenMask, 0.0, 3.2);
-	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, 3.2);
+	OutDensity[DispatchThreadId] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
+	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, SmokeDensityMax);
 	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
 }

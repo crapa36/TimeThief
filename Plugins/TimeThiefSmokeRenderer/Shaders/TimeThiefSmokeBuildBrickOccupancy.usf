@@ -8,18 +8,17 @@ groupshared uint SharedActive;
 float BrickEventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 {
 	const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
-	const float Radius = max(Event.PositionRadius.w, 1.0);
-	const float Length = max(Event.DirectionLength.w, Radius * 2.0);
-	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
 	if (EventType == 0u)
 	{
-		return max(Length * 0.5 + Radius * 4.8, ShapeRadius * 2.4);
+		return TimeThiefSmokeBulletWakeInfluenceRadius(Event, BulletWakeCutoutFeather);
 	}
 	if (EventType == 1u)
 	{
-		return Radius * 1.55;
+		return TimeThiefSmokeExplosionInfluenceRadius(Event);
 	}
-	return TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale);
+	return max(
+		TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
+		TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
 }
 
 float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)
@@ -40,9 +39,7 @@ bool IsEventActiveBrick(int3 BrickCoord)
 {
 	float BrickRadius = 1.0;
 	const float3 CenterWorld = BrickCenterWorld(BrickCoord, BrickRadius);
-	const float SafeAirflowMinSpeed = max(ActorAirflowMinSpeed, 0.0);
-	const float SafeAirflowFullSpeed = max(ActorAirflowFullSpeed, SafeAirflowMinSpeed + 1.0);
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
@@ -51,16 +48,6 @@ bool IsEventActiveBrick(int3 BrickCoord)
 		if (Event.ExtentsStrength.w <= 0.001)
 		{
 			continue;
-		}
-
-		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
-		if (EventType == 2u)
-		{
-			const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
-			if (smoothstep(SafeAirflowMinSpeed, SafeAirflowFullSpeed, ActorSpeed) <= 0.0)
-			{
-				continue;
-			}
 		}
 
 		const float InfluenceRadius = BrickEventInfluenceRadius(Event) + BrickRadius;

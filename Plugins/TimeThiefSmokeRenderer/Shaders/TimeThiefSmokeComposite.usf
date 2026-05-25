@@ -31,7 +31,7 @@ bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float
 float ComputeEventDebug(float3 SampleWorld)
 {
 	float Weight = 0.0;
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -64,7 +64,7 @@ float ComputeEventDebug(float3 SampleWorld)
 float ComputeAnalyticBulletOpen(float3 SampleWorld)
 {
 	float OpenMask = 1.0;
-	const int SafeEventCount = min(AnalyticBulletEventCount, 128);
+	const int SafeEventCount = min(AnalyticBulletEventCount, MaxShaderEventCount);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -78,7 +78,7 @@ float ComputeAnalyticBulletOpen(float3 SampleWorld)
 		const float Radius = max(Event.PositionRadius.w, 1.0);
 		const float Sdf = TimeThiefSmokeEventSweptSdf(Event, SampleWorld);
 		const float AgeFade = 1.0 - saturate(Event.TypeShapeAgeSeed.z);
-		const float Feather = max(Radius * 0.28, 1.0);
+		const float Feather = max(Radius * AnalyticBulletCutoutFeatherRadiusScale, AnalyticBulletCutoutMinFeather);
 		const float Cutout = (1.0 - smoothstep(-Feather, Feather, Sdf)) * AgeFade;
 		OpenMask = min(OpenMask, 1.0 - Cutout);
 	}
@@ -215,7 +215,7 @@ float SampleDensityField(float3 VolumeUVW)
 		: DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0) + DisplacedDensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
 }
 
-float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
+float ComputeBrickExitDelta(float3 VolumeUVW, float3 RayUVWDirection)
 {
 	const int3 BrickCoord = ComputeBrickCoord(VolumeUVW);
 	const float3 SafeGridResolution = max(float3(GridResolution), 1.0);
@@ -251,12 +251,81 @@ float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float S
 		}
 	}
 
-	return max(StepSize, DeltaT + 0.0001);
+	return DeltaT;
+}
+
+float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
+{
+	const float MaxSkip = StepSize * InactiveBrickRaymarchMaxSkipScale;
+	const int MaxTraversalBricks = max((int)round(InactiveBrickRaymarchMaxSkipScale), 1);
+	float AccumulatedSkip = 0.0;
+	[loop]
+	for (int TraversalIndex = 0; TraversalIndex < MaxTraversalBricks; ++TraversalIndex)
+	{
+		const float3 ProbeUVW = VolumeUVW + RayUVWDirection * AccumulatedSkip;
+		if (!TimeThiefSmokeInsideUVW(ProbeUVW) || IsActiveBrick(ProbeUVW))
+		{
+			break;
+		}
+
+		const float BrickExitDelta = ComputeBrickExitDelta(ProbeUVW, RayUVWDirection);
+		if (BrickExitDelta >= 999999.0)
+		{
+			break;
+		}
+
+		AccumulatedSkip += BrickExitDelta + 0.0001;
+		if (AccumulatedSkip >= MaxSkip)
+		{
+			break;
+		}
+	}
+
+	return clamp(max(StepSize, AccumulatedSkip), StepSize, MaxSkip);
+}
+
+int ComputeInactiveBrickShadowSkip(float3 VolumeUVW, float3 LightUVWStep)
+{
+	const int3 BrickCoord = ComputeBrickCoord(VolumeUVW);
+	const float3 SafeGridResolution = max(float3(GridResolution), 1.0);
+	const float3 BrickMin = (float3(BrickCoord) * max(SmokeBrickSize, 1)) / SafeGridResolution;
+	const float3 BrickMax = min((float3(BrickCoord + 1) * max(SmokeBrickSize, 1)) / SafeGridResolution, 1.0);
+	float StepDelta = 1000000.0;
+
+	if (abs(LightUVWStep.x) > 0.000001)
+	{
+		const float Boundary = LightUVWStep.x > 0.0 ? BrickMax.x : BrickMin.x;
+		const float AxisDelta = (Boundary - VolumeUVW.x) / LightUVWStep.x;
+		if (AxisDelta > 0.000001)
+		{
+			StepDelta = min(StepDelta, AxisDelta);
+		}
+	}
+	if (abs(LightUVWStep.y) > 0.000001)
+	{
+		const float Boundary = LightUVWStep.y > 0.0 ? BrickMax.y : BrickMin.y;
+		const float AxisDelta = (Boundary - VolumeUVW.y) / LightUVWStep.y;
+		if (AxisDelta > 0.000001)
+		{
+			StepDelta = min(StepDelta, AxisDelta);
+		}
+	}
+	if (abs(LightUVWStep.z) > 0.000001)
+	{
+		const float Boundary = LightUVWStep.z > 0.0 ? BrickMax.z : BrickMin.z;
+		const float AxisDelta = (Boundary - VolumeUVW.z) / LightUVWStep.z;
+		if (AxisDelta > 0.000001)
+		{
+			StepDelta = min(StepDelta, AxisDelta);
+		}
+	}
+
+	return clamp((int)floor(StepDelta), 1, SelfShadowInactiveBrickMaxSkipSteps);
 }
 
 float ComputeSelfShadow(float3 VolumeUVW, float3 LightUVWStep, float LightSimulationStepSize)
 {
-	const int ShadowSteps = clamp(SelfShadowStepCount, 0, 12);
+	const int ShadowSteps = max(SelfShadowStepCount, 0);
 	const float ShadowStrength = saturate(SelfShadowStrength);
 	const float ShadowExtinction = max(SelfShadowExtinction, 0.0);
 	if (ShadowSteps <= 0 || ShadowStrength <= 0.001 || ShadowExtinction <= 0.001)
@@ -266,16 +335,24 @@ float ComputeSelfShadow(float3 VolumeUVW, float3 LightUVWStep, float LightSimula
 
 	float OpticalDepth = 0.0;
 	float3 ShadowUVW = VolumeUVW;
+	int ShadowStep = 0;
 	[loop]
-	for (int ShadowStep = 0; ShadowStep < ShadowSteps; ++ShadowStep)
+	while (ShadowStep < ShadowSteps)
 	{
 		ShadowUVW += LightUVWStep;
+		++ShadowStep;
 		if (!TimeThiefSmokeInsideUVW(ShadowUVW))
 		{
 			break;
 		}
 		if (!IsActiveBrick(ShadowUVW))
 		{
+			const int SkipSteps = min(ComputeInactiveBrickShadowSkip(ShadowUVW, LightUVWStep), ShadowSteps - ShadowStep);
+			if (SkipSteps > 1)
+			{
+				ShadowUVW += LightUVWStep * (float)(SkipSteps - 1);
+				ShadowStep += SkipSteps - 1;
+			}
 			continue;
 		}
 
@@ -286,7 +363,7 @@ float ComputeSelfShadow(float3 VolumeUVW, float3 LightUVWStep, float LightSimula
 		}
 
 		const float ShadowObstacle = ObstacleTexture.SampleLevel(VolumeSampler, ShadowUVW, 0.0);
-		const float ShadowOpen = TimeThiefSmokeObstacleOpenFromValue(ShadowObstacle);
+		const float ShadowOpen = TimeThiefSmokeObstacleOpenFromSdf(ShadowObstacle, ObstacleSdfSurfaceFeatherCm);
 		OpticalDepth += ShadowDensity * ShadowOpen * LightSimulationStepSize;
 	}
 
@@ -340,9 +417,9 @@ void MainPS(
 	const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
 	const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
 	const float PhysicalRayLength = length(RayDirection * max(TMax - TMin, 0.0) * RenderBoundsExtent);
-	const float TargetStepLength = max(MaxGridCellSize * max(RenderStepVoxelScale, 0.1), 1.0);
+	const float TargetStepLength = max(MaxGridCellSize * RenderStepVoxelScale, 1.0);
 	const int AdaptiveSteps = (int)ceil(PhysicalRayLength / TargetStepLength);
-	const int Steps = clamp(max(RenderStepCount, AdaptiveSteps), 8, max(RenderMaxStepCount, 8));
+	const int Steps = min(max(RenderStepCount, AdaptiveSteps), max(RenderMaxStepCount, 1));
 	const float StepSize = max((TMax - TMin) / Steps, 0.0001);
 	const float3 LocalStep = RayDirection * StepSize * RenderBoundsExtent;
 	const float3 RayUVWDirection = RayDirection * RenderBoundsExtent / max(BoundsExtent, 1.0) * 0.5;
@@ -419,7 +496,7 @@ void MainPS(
 		const float BulletSink = RawFields.w;
 		const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
 		const float3 SampleWorld = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
-		const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromValue(Obstacle);
+		const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, ObstacleSdfSurfaceFeatherCm);
 		const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
 		const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
 		const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
@@ -514,13 +591,13 @@ void MainPS(
 		}
 
 		const float Absorption = Density * Extinction * SimulationStepSize;
-		const float StepTransmittance = exp2(-Absorption * 1.442695);
-		const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
-		float SelfShadow = 1.0;
-		if (DebugMode == 0 && SampleWeight > 0.00001)
-		{
-			SelfShadow = ComputeSelfShadow(VolumeUVW, SelfShadowUVWStep, SelfShadowSimulationStepSize);
-		}
+	const float StepTransmittance = exp2(-Absorption * 1.442695);
+	const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
+	float SelfShadow = 1.0;
+	if (DebugMode == 0 && SampleWeight > SelfShadowMinSampleWeight)
+	{
+		SelfShadow = ComputeSelfShadow(VolumeUVW, SelfShadowUVWStep, SelfShadowSimulationStepSize);
+	}
 		Scatter += SampleWeight * Density * SelfShadow;
 		SmokeLightAccum += SampleWeight * SelfShadow;
 		SmokeLightWeight += SampleWeight;
@@ -528,7 +605,7 @@ void MainPS(
 		Transmittance *= StepTransmittance;
 		CurrentT += StepSize;
 
-		if (Transmittance < 0.015)
+		if (Transmittance < RenderTransmittanceEarlyOut)
 		{
 			break;
 		}

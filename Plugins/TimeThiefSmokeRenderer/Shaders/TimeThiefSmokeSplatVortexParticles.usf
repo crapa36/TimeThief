@@ -70,7 +70,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
 	const float Density = max(DensityIn.SampleLevel(VolumeSampler, UVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * OpenMask;
 	const float Cutout = BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0);
 	const float Sink = BulletSinkTexture.SampleLevel(VolumeSampler, UVW, 0.0);
@@ -102,7 +102,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			{
 				const uint BitIndex = firstbitlow(Word);
 				const int ParticleIndex = WordIndex * 32 + (int)BitIndex;
-				if (ParticleIndex < min(VortexParticleCount, 128))
+				if (ParticleIndex < min(VortexParticleCount, MaxVortexParticleCount))
 				{
 					AccumulateVortexParticle(ParticleIndex, LocalPosition, Density, BulletMasks, SafeRadius, SafeCore, SplatVelocity);
 				}
@@ -113,14 +113,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	else
 	{
 		[loop]
-		for (int ParticleIndex = 0; ParticleIndex < min(VortexParticleCount, 128); ++ParticleIndex)
+		for (int ParticleIndex = 0; ParticleIndex < min(VortexParticleCount, MaxVortexParticleCount); ++ParticleIndex)
 		{
 			AccumulateVortexParticle(ParticleIndex, LocalPosition, Density, BulletMasks, SafeRadius, SafeCore, SplatVelocity);
 		}
 	}
 
 	Velocity += SplatVelocity;
-	const float MaxSpeed = 2600.0;
+	const float MaxSpeed = max(MaxSmokeVelocity, 1.0);
 	const float Speed = length(Velocity);
 	if (Speed > MaxSpeed)
 	{

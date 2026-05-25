@@ -3,6 +3,7 @@
 #include "GlobalShader.h"
 #include "ShaderParameterStruct.h"
 #include "TimeThiefSmokeShaderParameterMacros.h"
+#include "TimeThiefSmokeRendererTypes.h"
 
 struct FTimeThiefSmokeEventShaderData
 {
@@ -39,6 +40,8 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f SparseAtlasBrickGridResolution_MaxActive = FVector4f::Zero();
 	FVector4f RenderSteps_EventsQuality = FVector4f::Zero();
 	FVector4f AnalyticEvents = FVector4f::Zero();
+	FVector4f AnalyticBulletControls = FVector4f::Zero();
+	FVector4f RaymarchControls = FVector4f::Zero();
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData
@@ -57,16 +60,22 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeUploadObstacleMaskCS : public FGlobalShader
+class FTimeThiefSmokeBuildObstacleFieldCS : public FGlobalShader
 {
 public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeUploadObstacleMaskCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeUploadObstacleMaskCS, FGlobalShader);
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildObstacleFieldCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildObstacleFieldCS, FGlobalShader);
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER(FIntVector, GridResolution)
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float>, SourceMask)
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutObstacleTexture)
+		SHADER_PARAMETER(FVector3f, BoundsExtent)
+		SHADER_PARAMETER(int32, ObstaclePrimitiveCount)
+		SHADER_PARAMETER(float, FarDistanceCm)
+		SHADER_PARAMETER(float, SurfaceFeatherCm)
+		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeObstaclePrimitive>, ObstaclePrimitives)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutObstacleSdfTexture)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float4>, OutObstacleVelocityTexture)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float4>, OutObstacleFaceOpenTexture)
 	END_SHADER_PARAMETER_STRUCT()
 };
 

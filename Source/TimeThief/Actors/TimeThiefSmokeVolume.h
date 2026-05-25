@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Smoke/TimeThiefSmokeTypes.h"
+#include "TimeThiefSmokeRendererTypes.h"
 #include "TimeThiefSmokeVolume.generated.h"
 
 class UBoxComponent;
@@ -23,11 +24,11 @@ public:
 	FVector GetCurrentSmokeBoundsExtent() const;
 	FVector GetCurrentSmokeRenderBoundsExtent() const;
 	FBox GetCurrentSmokeWorldBounds() const;
-	int32 GetObstacleMaskResolution() const { return ObstacleMaskResolution; }
-	uint32 GetObstacleMaskRevision() const { return ObstacleMaskRevision; }
-	TSharedPtr<const TArray<uint8>, ESPMode::ThreadSafe> GetObstacleMaskSnapshot() const;
-	bool HasSolidObstacleMask() const { return bHasSolidObstacleMask; }
-	void FlushPendingObstacleMaskRebuild();
+	int32 GetObstacleFieldResolution() const { return ObstacleFieldResolution; }
+	uint32 GetObstacleFieldRevision() const { return ObstacleFieldRevision; }
+	const TArray<FTimeThiefSmokeObstaclePrimitive>& GetObstaclePrimitives() const { return ObstaclePrimitives; }
+	bool HasSolidObstacleField() const { return bHasSolidObstacleField; }
+	void FlushPendingObstacleFieldRebuild();
 
 	bool IntersectTraceSegment(const FVector& SegmentStart, const FVector& SegmentEnd, FVector& OutEntryPoint, FVector& OutExitPoint) const;
 	bool IntersectsExplosion(const FVector& Center, float Radius) const;
@@ -51,10 +52,10 @@ private:
 	float EstimateWarpDensityAtWorldPosition(const FVector& WorldPosition) const;
 	ESmokeInteractionShape ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const;
 	void ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event);
-	void MarkObstacleMaskDirty();
-	void RebuildStaticObstacleMask();
-	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates);
-	float ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent) const;
+	void MarkObstacleFieldDirty();
+	void RebuildStaticObstacleField();
+	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, const TArray<FTimeThiefSmokeObstaclePrimitive>& StaticObstaclePrimitives);
+	float ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent, const TArray<FIntVector>& ActiveCellCoords) const;
 	void UpdateSmokeBounds();
 	void DrawDebugSmoke() const;
 
@@ -65,14 +66,12 @@ private:
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, float> ActorWarpDensityAccumulations;
 	float ActorInteractionAccumulator = 0.0f;
 	float SmokeAgeSeconds = 0.0f;
-	TArray<uint8> ObstacleMask;
+	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
 	TArray<uint8> ActiveBoundsCells;
-	mutable TSharedPtr<const TArray<uint8>, ESPMode::ThreadSafe> ObstacleMaskSnapshot;
-	int32 ObstacleMaskResolution = 0;
+	int32 ObstacleFieldResolution = 0;
 	FIntVector ActiveBoundsCellGrid = FIntVector::ZeroValue;
-	uint32 ObstacleMaskRevision = 0;
-	mutable uint32 ObstacleMaskSnapshotRevision = MAX_uint32;
+	uint32 ObstacleFieldRevision = 0;
 	FVector BoundsClusterLocalOffset = FVector::ZeroVector;
-	bool bHasSolidObstacleMask = false;
-	bool bObstacleMaskRebuildPending = false;
+	bool bHasSolidObstacleField = false;
+	bool bObstacleFieldRebuildPending = false;
 };

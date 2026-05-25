@@ -21,6 +21,8 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	float4 SparseAtlasBrickGridResolution_MaxActive;
 	float4 RenderSteps_EventsQuality;
 	float4 AnalyticEvents;
+	float4 AnalyticBulletControls;
+	float4 RaymarchControls;
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData
@@ -498,7 +500,7 @@ float SampleDensityField(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData 
 	return SampleDensityTexture(Slot, SafeUVW) + SampleDisplacedDensityTexture(Slot, SafeUVW);
 }
 
-float ComputeInactiveBrickSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
+float ComputeBrickExitDelta(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW, float3 RayUVWDirection)
 {
 	const int3 BrickCoord = ComputeBrickCoord(Desc, VolumeUVW);
 	const float3 SafeGridResolution = max(float3(GetGridResolution(Desc)), 1.0);
@@ -533,10 +535,78 @@ float ComputeInactiveBrickSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc
 			DeltaT = min(DeltaT, AxisDelta);
 		}
 	}
-	return clamp(max(StepSize, DeltaT + 0.0001), StepSize, StepSize * 8.0);
+	return DeltaT;
 }
 
-float ComputeAnalyticBulletOpen(int EventOffset, int SafeEventCount, float3 SampleWorld)
+float ComputeInactiveBrickSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc, int Slot, float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
+{
+	const float MaxSkip = StepSize * Desc.RaymarchControls.x;
+	const int MaxTraversalBricks = max((int)round(Desc.RaymarchControls.x), 1);
+	float AccumulatedSkip = 0.0;
+	[loop]
+	for (int TraversalIndex = 0; TraversalIndex < MaxTraversalBricks; ++TraversalIndex)
+	{
+		const float3 ProbeUVW = VolumeUVW + RayUVWDirection * AccumulatedSkip;
+		if (!TimeThiefSmokeInsideUVW(ProbeUVW) || IsActiveBrick(Slot, Desc, ProbeUVW))
+		{
+			break;
+		}
+
+		const float BrickExitDelta = ComputeBrickExitDelta(Desc, ProbeUVW, RayUVWDirection);
+		if (BrickExitDelta >= 999999.0)
+		{
+			break;
+		}
+
+		AccumulatedSkip += BrickExitDelta + 0.0001;
+		if (AccumulatedSkip >= MaxSkip)
+		{
+			break;
+		}
+	}
+	return clamp(max(StepSize, AccumulatedSkip), StepSize, MaxSkip);
+}
+
+int ComputeInactiveBrickShadowSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW, float3 LightUVWStep)
+{
+	const int3 BrickCoord = ComputeBrickCoord(Desc, VolumeUVW);
+	const float3 SafeGridResolution = max(float3(GetGridResolution(Desc)), 1.0);
+	const float SafeBrickSize = max((float)GetSmokeBrickSize(Desc), 1.0);
+	const float3 BrickMin = (float3(BrickCoord) * SafeBrickSize) / SafeGridResolution;
+	const float3 BrickMax = min((float3(BrickCoord + int3(1, 1, 1)) * SafeBrickSize) / SafeGridResolution, 1.0);
+	float StepDelta = 1000000.0;
+	if (abs(LightUVWStep.x) > 0.000001)
+	{
+		const float Boundary = LightUVWStep.x > 0.0 ? BrickMax.x : BrickMin.x;
+		const float AxisDelta = (Boundary - VolumeUVW.x) / LightUVWStep.x;
+		if (AxisDelta > 0.000001)
+		{
+			StepDelta = min(StepDelta, AxisDelta);
+		}
+	}
+	if (abs(LightUVWStep.y) > 0.000001)
+	{
+		const float Boundary = LightUVWStep.y > 0.0 ? BrickMax.y : BrickMin.y;
+		const float AxisDelta = (Boundary - VolumeUVW.y) / LightUVWStep.y;
+		if (AxisDelta > 0.000001)
+		{
+			StepDelta = min(StepDelta, AxisDelta);
+		}
+	}
+	if (abs(LightUVWStep.z) > 0.000001)
+	{
+		const float Boundary = LightUVWStep.z > 0.0 ? BrickMax.z : BrickMin.z;
+		const float AxisDelta = (Boundary - VolumeUVW.z) / LightUVWStep.z;
+		if (AxisDelta > 0.000001)
+		{
+			StepDelta = min(StepDelta, AxisDelta);
+		}
+	}
+	const int MaxSkipSteps = (int)round(Desc.SelfShadowControls.w);
+	return clamp((int)floor(StepDelta), 1, MaxSkipSteps);
+}
+
+float ComputeAnalyticBulletOpen(int EventOffset, int SafeEventCount, float3 SampleWorld, float FeatherRadiusScale, float MinFeather)
 {
 	float OpenMask = 1.0;
 	[loop]
@@ -552,7 +622,7 @@ float ComputeAnalyticBulletOpen(int EventOffset, int SafeEventCount, float3 Samp
 		const float Radius = max(Event.PositionRadius.w, 1.0);
 		const float Sdf = TimeThiefSmokeEventSweptSdf(Event, SampleWorld);
 		const float AgeFade = 1.0 - saturate(Event.TypeShapeAgeSeed.z);
-		const float Feather = max(Radius * 0.28, 1.0);
+		const float Feather = max(Radius * FeatherRadiusScale, MinFeather);
 		const float Cutout = (1.0 - smoothstep(-Feather, Feather, Sdf)) * AgeFade;
 		OpenMask = min(OpenMask, 1.0 - Cutout);
 	}
@@ -566,7 +636,7 @@ float ComputeSelfShadow(
 	float3 LightUVWStep,
 	float LightSimulationStepSize)
 {
-	const int ShadowSteps = clamp((int)round(Desc.SelfShadowLightDirection_StepCount.w), 0, 12);
+	const int ShadowSteps = max((int)round(Desc.SelfShadowLightDirection_StepCount.w), 0);
 	const float ShadowStrength = saturate(Desc.SelfShadowControls.x);
 	const float ShadowExtinction = max(Desc.SelfShadowControls.y, 0.0);
 	if (ShadowSteps <= 0 || ShadowStrength <= 0.001 || ShadowExtinction <= 0.001)
@@ -576,16 +646,24 @@ float ComputeSelfShadow(
 
 	float OpticalDepth = 0.0;
 	float3 ShadowUVW = VolumeUVW;
+	int ShadowStep = 0;
 	[loop]
-	for (int ShadowStep = 0; ShadowStep < ShadowSteps; ++ShadowStep)
+	while (ShadowStep < ShadowSteps)
 	{
 		ShadowUVW += LightUVWStep;
+		++ShadowStep;
 		if (!TimeThiefSmokeInsideUVW(ShadowUVW))
 		{
 			break;
 		}
 		if (!IsActiveBrick(Slot, Desc, ShadowUVW))
 		{
+			const int SkipSteps = min(ComputeInactiveBrickShadowSkip(Desc, ShadowUVW, LightUVWStep), ShadowSteps - ShadowStep);
+			if (SkipSteps > 1)
+			{
+				ShadowUVW += LightUVWStep * (float)(SkipSteps - 1);
+				ShadowStep += SkipSteps - 1;
+			}
 			continue;
 		}
 
@@ -596,7 +674,7 @@ float ComputeSelfShadow(
 		}
 
 		const float ShadowObstacle = SampleObstacleTexture(Slot, ShadowUVW);
-		const float ShadowOpen = TimeThiefSmokeObstacleOpenFromValue(ShadowObstacle);
+		const float ShadowOpen = TimeThiefSmokeObstacleOpenFromSdf(ShadowObstacle, Desc.AnalyticBulletControls.z);
 		OpticalDepth += ShadowDensity * ShadowOpen * LightSimulationStepSize;
 	}
 
@@ -643,6 +721,7 @@ void AccumulateSmokeSample(
 	int AnalyticEventCount,
 	float3 LightUVWStep,
 	float LightSimulationStepSize,
+	float SelfShadowMinWeight,
 	inout float Transmittance,
 	inout float Scatter,
 	inout float3 SmokeColorAccum,
@@ -659,12 +738,14 @@ void AccumulateSmokeSample(
 
 	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
-	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromValue(Obstacle);
+	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.AnalyticBulletControls.z);
 	const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
 	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 	const float AgeSeconds = Desc.FilamentAge.y;
-	const float AnalyticBulletOpen = AnalyticEventCount > 0 ? ComputeAnalyticBulletOpen(AnalyticEventOffset, AnalyticEventCount, SampleWorld) : 1.0;
+	const float AnalyticBulletOpen = AnalyticEventCount > 0
+		? ComputeAnalyticBulletOpen(AnalyticEventOffset, AnalyticEventCount, SampleWorld, Desc.AnalyticBulletControls.x, Desc.AnalyticBulletControls.y)
+		: 1.0;
 	const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
 	float Density = RawDensity * DensityVisibility;
 	const float Warp = RawWarp * ObstacleOpen * BoundaryMask * LifetimeAlpha;
@@ -732,7 +813,7 @@ void AccumulateSmokeSample(
 	const float StepTransmittance = exp2(-Absorption * 1.442695);
 	const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
 	float SelfShadow = 1.0;
-	if (SampleWeight > 0.00001)
+	if (SampleWeight > SelfShadowMinWeight)
 	{
 		SelfShadow = ComputeSelfShadow(Slot, Desc, VolumeUVW, LightUVWStep, LightSimulationStepSize);
 	}
@@ -791,8 +872,11 @@ void MainPS(
 	float RayStart = SceneT;
 	float RayEnd = 0.0;
 	float TargetStepLength = 1000000.0;
-	int MinRenderSteps = 8;
-	int MaxRenderSteps = 16;
+	int MinRenderSteps = 0;
+	int MaxRenderSteps = 0;
+	float RaymarchMaxSkipScale = 1.0;
+	float TransmittanceEarlyOut = 0.0;
+	float SelfShadowMinWeight = 0.0;
 
 	[loop]
 	for (int TileSmokeIndex = 0; TileSmokeIndex < TileSmokeCount; ++TileSmokeIndex)
@@ -835,10 +919,13 @@ void MainPS(
 		const float BoundaryFadeStart = ComputeRenderBoundaryFadeStart(BoundsExtent, Desc.AnalyticEvents.yzw);
 		const float LifetimeAlpha = 1.0 - smoothstep(Desc.FilamentAge.z, Desc.FilamentAge.z + max(Desc.FilamentAge.w, 0.001), Desc.FilamentAge.y);
 		const int AnalyticEventOffset = (int)round(Desc.RenderSteps_EventsQuality.z);
-		const int AnalyticEventCount = min((int)round(Desc.AnalyticEvents.x), 128);
-		TargetStepLength = min(TargetStepLength, max(MaxGridCellSize * max(Desc.BoundsExtent_RenderStepVoxelScale.w, 0.1), 1.0));
+		const int AnalyticEventCount = min((int)round(Desc.AnalyticEvents.x), max((int)round(Desc.RaymarchControls.z), 0));
+		TargetStepLength = min(TargetStepLength, max(MaxGridCellSize * Desc.BoundsExtent_RenderStepVoxelScale.w, 1.0));
 		MinRenderSteps = max(MinRenderSteps, (int)round(Desc.RenderSteps_EventsQuality.x));
 		MaxRenderSteps = max(MaxRenderSteps, (int)round(Desc.RenderSteps_EventsQuality.y));
+		RaymarchMaxSkipScale = max(RaymarchMaxSkipScale, Desc.RaymarchControls.x);
+		TransmittanceEarlyOut = max(TransmittanceEarlyOut, Desc.RaymarchControls.y);
+		SelfShadowMinWeight = max(SelfShadowMinWeight, Desc.RaymarchControls.w);
 		SmokeTMin[ActiveSmokeCount] = TMin;
 		SmokeTMax[ActiveSmokeCount] = TMax;
 		SmokeColors[ActiveSmokeCount] = SmokeColorFromDescriptor(Desc, WorldRayDirection);
@@ -866,9 +953,33 @@ void MainPS(
 		return;
 	}
 
+	float SegmentBoundaries[16];
+	int SegmentBoundaryCount = 0;
+	SegmentBoundaries[SegmentBoundaryCount++] = RayStart;
+	SegmentBoundaries[SegmentBoundaryCount++] = RayEnd;
+	[loop]
+	for (int SmokeIndex = 0; SmokeIndex < ActiveSmokeCount; ++SmokeIndex)
+	{
+		SegmentBoundaries[SegmentBoundaryCount++] = clamp(SmokeTMin[SmokeIndex], RayStart, RayEnd);
+		SegmentBoundaries[SegmentBoundaryCount++] = clamp(SmokeTMax[SmokeIndex], RayStart, RayEnd);
+	}
+	[loop]
+	for (int BoundaryIndex = 1; BoundaryIndex < SegmentBoundaryCount; ++BoundaryIndex)
+	{
+		const float Boundary = SegmentBoundaries[BoundaryIndex];
+		int SortedIndex = BoundaryIndex - 1;
+		[loop]
+		while (SortedIndex >= 0 && SegmentBoundaries[SortedIndex] > Boundary)
+		{
+			SegmentBoundaries[SortedIndex + 1] = SegmentBoundaries[SortedIndex];
+			--SortedIndex;
+		}
+		SegmentBoundaries[SortedIndex + 1] = Boundary;
+	}
+
 	const float PhysicalRayLength = max(RayEnd - RayStart, 0.0);
 	const int AdaptiveSteps = (int)ceil(PhysicalRayLength / max(TargetStepLength, 1.0));
-	const int Steps = clamp(max(MinRenderSteps, AdaptiveSteps), 8, max(MaxRenderSteps, 8));
+	const int Steps = min(max(MinRenderSteps, AdaptiveSteps), max(MaxRenderSteps, 1));
 	const float StepSize = max((RayEnd - RayStart) / Steps, 0.0001);
 	const float RayJitter = TimeThiefSmokeHash13(float3(SvPosition.xy, SceneT)) - 0.5;
 	float CurrentT = max(RayStart, RayStart + (0.5 + RayJitter) * StepSize);
@@ -878,89 +989,112 @@ void MainPS(
 	float WarpScatter = 0.0;
 	float3 WarpColorAccum = float3(0.0, 0.0, 0.0);
 
+	int StepIndex = 0;
 	[loop]
-	for (int StepIndex = 0; StepIndex < Steps && CurrentT < RayEnd; ++StepIndex)
+	for (int SegmentIndex = 0; SegmentIndex < SegmentBoundaryCount - 1 && StepIndex < Steps && CurrentT < RayEnd; ++SegmentIndex)
 	{
-		const float3 SampleWorld = NearWorld + WorldRayDirection * CurrentT;
-		bool bSawInactiveCandidate = false;
-		bool bSawActiveCandidate = false;
-		float InactiveSkip = StepSize * 8.0;
-		float NextSmokeStart = RayEnd;
+		const float SegmentStart = SegmentBoundaries[SegmentIndex];
+		const float SegmentEnd = SegmentBoundaries[SegmentIndex + 1];
+		if (SegmentEnd <= SegmentStart || CurrentT >= SegmentEnd)
+		{
+			continue;
+		}
 
+		int SegmentSmokeIndices[7];
+		int SegmentSmokeCount = 0;
 		[loop]
 		for (int SmokeIndex = 0; SmokeIndex < ActiveSmokeCount; ++SmokeIndex)
 		{
-			if (CurrentT < SmokeTMin[SmokeIndex])
+			if (SegmentStart < SmokeTMax[SmokeIndex] && SegmentEnd > SmokeTMin[SmokeIndex] && SegmentSmokeCount < 7)
 			{
-				NextSmokeStart = min(NextSmokeStart, SmokeTMin[SmokeIndex]);
-				continue;
+				SegmentSmokeIndices[SegmentSmokeCount++] = SmokeIndex;
 			}
-			if (CurrentT > SmokeTMax[SmokeIndex])
-			{
-				continue;
-			}
-
-			const int Slot = SmokeSlots[SmokeIndex];
-			const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
-			const float3 BoundsExtent = SmokeBoundsExtents[SmokeIndex];
-			const float3 SampleLocal = SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * CurrentT;
-			const float3 SimulationLocal = SampleLocal / BoundsExtent;
-			const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
-			if (!TimeThiefSmokeInsideUVW(VolumeUVW))
-			{
-				continue;
-			}
-
-			if (!IsActiveBrick(Slot, Desc, VolumeUVW))
-			{
-				InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, VolumeUVW, SmokeRayUVWDirections[SmokeIndex], StepSize));
-				bSawInactiveCandidate = true;
-				continue;
-			}
-
-			bSawActiveCandidate = true;
-			AccumulateSmokeSample(
-				Slot,
-				Desc,
-				SampleWorld,
-				BoundsExtent,
-				SimulationLocal,
-				VolumeUVW,
-				SmokeColors[SmokeIndex],
-				StepSize * SmokeSimulationStepScales[SmokeIndex],
-				SmokeMaxGridCellSizes[SmokeIndex],
-				SmokeBoundaryFadeStarts[SmokeIndex],
-				SmokeLifetimeAlphas[SmokeIndex],
-				SmokeAnalyticEventOffsets[SmokeIndex],
-				SmokeAnalyticEventCounts[SmokeIndex],
-				SmokeLightUVWSteps[SmokeIndex],
-				SmokeLightSimulationStepSizes[SmokeIndex],
-				Transmittance,
-				Scatter,
-				SmokeColorAccum,
-				WarpScatter,
-				WarpColorAccum);
+		}
+		if (SegmentSmokeCount <= 0)
+		{
+			CurrentT = max(CurrentT, SegmentEnd);
+			continue;
 		}
 
-		if (Transmittance < 0.015)
+		CurrentT = max(CurrentT, SegmentStart);
+		[loop]
+		while (StepIndex < Steps && CurrentT < SegmentEnd && CurrentT < RayEnd)
+		{
+			const float3 SampleWorld = NearWorld + WorldRayDirection * CurrentT;
+			bool bSawInactiveCandidate = false;
+			bool bSawActiveCandidate = false;
+			float InactiveSkip = StepSize * RaymarchMaxSkipScale;
+
+			[loop]
+			for (int SegmentSmokeIndex = 0; SegmentSmokeIndex < SegmentSmokeCount; ++SegmentSmokeIndex)
+			{
+				const int SmokeIndex = SegmentSmokeIndices[SegmentSmokeIndex];
+				if (CurrentT < SmokeTMin[SmokeIndex] || CurrentT > SmokeTMax[SmokeIndex])
+				{
+					continue;
+				}
+
+				const int Slot = SmokeSlots[SmokeIndex];
+				const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
+				const float3 BoundsExtent = SmokeBoundsExtents[SmokeIndex];
+				const float3 SampleLocal = SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * CurrentT;
+				const float3 SimulationLocal = SampleLocal / BoundsExtent;
+				const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
+				if (!TimeThiefSmokeInsideUVW(VolumeUVW))
+				{
+					continue;
+				}
+
+				if (!IsActiveBrick(Slot, Desc, VolumeUVW))
+				{
+					InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, Slot, VolumeUVW, SmokeRayUVWDirections[SmokeIndex], StepSize));
+					bSawInactiveCandidate = true;
+					continue;
+				}
+
+				bSawActiveCandidate = true;
+				AccumulateSmokeSample(
+					Slot,
+					Desc,
+					SampleWorld,
+					BoundsExtent,
+					SimulationLocal,
+					VolumeUVW,
+					SmokeColors[SmokeIndex],
+					StepSize * SmokeSimulationStepScales[SmokeIndex],
+					SmokeMaxGridCellSizes[SmokeIndex],
+					SmokeBoundaryFadeStarts[SmokeIndex],
+					SmokeLifetimeAlphas[SmokeIndex],
+					SmokeAnalyticEventOffsets[SmokeIndex],
+					SmokeAnalyticEventCounts[SmokeIndex],
+					SmokeLightUVWSteps[SmokeIndex],
+					SmokeLightSimulationStepSizes[SmokeIndex],
+					SelfShadowMinWeight,
+					Transmittance,
+					Scatter,
+					SmokeColorAccum,
+					WarpScatter,
+					WarpColorAccum);
+			}
+
+			if (Transmittance < TransmittanceEarlyOut)
+			{
+				break;
+			}
+
+			float Advance = StepSize;
+			if (!bSawActiveCandidate && bSawInactiveCandidate)
+			{
+				Advance = max(StepSize, InactiveSkip);
+			}
+			CurrentT += min(Advance, max(SegmentEnd - CurrentT, 0.0001));
+			++StepIndex;
+		}
+
+		if (Transmittance < TransmittanceEarlyOut)
 		{
 			break;
 		}
-
-		float Advance = StepSize;
-		if (!bSawActiveCandidate && bSawInactiveCandidate)
-		{
-			Advance = max(StepSize, InactiveSkip);
-			if (NextSmokeStart > CurrentT)
-			{
-				Advance = min(Advance, max(StepSize, NextSmokeStart - CurrentT));
-			}
-		}
-		else if (!bSawActiveCandidate && !bSawInactiveCandidate && NextSmokeStart > CurrentT)
-		{
-			Advance = min(StepSize * 8.0, max(StepSize, NextSmokeStart - CurrentT));
-		}
-		CurrentT += Advance;
 	}
 
 	const float Alpha = saturate(1.0 - Transmittance);

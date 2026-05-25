@@ -110,14 +110,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		OutDisplacedDensity[DispatchThreadId] = max(DisplacedDensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
 		OutVelocity[DispatchThreadId] = float4(VelocityIn.Load(int4(Coord, 0)).xyz * VelocityDecay, 0.0);
 		OutCutout[DispatchThreadId] = Cutout > 1.0
-			? max(1.0, Cutout - DeltaSeconds / max(BulletWakeCutoutLife, 0.001))
-			: max(0.0, Cutout - DeltaSeconds / max(BulletWakeReleaseDuration, 0.001));
-		OutSink[DispatchThreadId] = max(Sink * exp2(-DeltaSeconds / max(BulletWakeSinkLife, 0.001)), 0.0);
+			? max(1.0, Cutout - DeltaSeconds / BulletWakeCutoutLife)
+			: max(0.0, Cutout - DeltaSeconds / BulletWakeReleaseDuration);
+		OutSink[DispatchThreadId] = max(Sink * exp2(-DeltaSeconds / BulletWakeSinkLife), 0.0);
 		return;
 	}
 
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
 	const float3 SmokeOrigin = mul(float4(0.0, 0.0, 0.0, 1.0), LocalToWorld).xyz;
@@ -129,16 +129,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float BulletCutout = max(BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0);
 	float BulletSink = TimeThiefSmokeInsideUVW(PreviousUVW) ? max(BulletSinkTexture.SampleLevel(VolumeSampler, PreviousUVW, 0.0), 0.0) : 0.0;
 	BulletCutout = BulletCutout > 1.0
-		? max(1.0, BulletCutout - DeltaSeconds / max(BulletWakeCutoutLife, 0.001))
-		: max(0.0, BulletCutout - DeltaSeconds / max(BulletWakeReleaseDuration, 0.001));
-	BulletSink *= exp2(-DeltaSeconds / max(BulletWakeSinkLife, 0.001));
+		? max(1.0, BulletCutout - DeltaSeconds / BulletWakeCutoutLife)
+		: max(0.0, BulletCutout - DeltaSeconds / BulletWakeReleaseDuration);
+	BulletSink *= exp2(-DeltaSeconds / BulletWakeSinkLife);
 
 	float3 BulletImpulse = float3(0.0, 0.0, 0.0);
 	float EventSourceDensity = 0.0;
 	float3 EventSourceVelocity = float3(0.0, 0.0, 0.0);
 	float SourceObstacleOpen = 0.0;
 	bool bEventSourceInfluence = false;
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
@@ -192,7 +192,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Seed = Event.TypeShapeAgeSeed.w;
 		const float3 ToCell = WorldPosition - EventPosition;
 		const float AlongRaw = dot(ToCell, Direction);
-		const float FeatherScale = max(BulletWakeCutoutFeather, 0.2);
+		const float FeatherScale = BulletWakeCutoutFeather;
 		if (abs(AlongRaw) > Length * 0.5 + Radius * 2.0 * FeatherScale)
 		{
 			continue;
@@ -211,7 +211,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float WakeDistance = sqrt(WakeDistanceSq);
 		const float Axial = 1.0 - smoothstep(Length * 0.47, Length * 0.5 + Radius, abs(AlongRaw));
 		const float Breakup = lerp(0.82, 1.18, TimeThiefSmokeRidgedFBM(WorldPosition * 0.022 + Seed * 0.013));
-		const float HoldCore = 1.0 - smoothstep(Radius * 0.28, Radius * 1.05 * Breakup, WakeDistance);
+		const float HoldCore = 1.0 - smoothstep(Radius * BulletWakeHoldCoreInnerRadiusScale, Radius * BulletWakeHoldCoreOuterRadiusScale * Breakup, WakeDistance);
 		const float Core = 1.0 - smoothstep(Radius * 0.45, Radius * FeatherScale * Breakup, WakeDistance);
 		const float Feather = 1.0 - smoothstep(Radius * 0.55, Radius * 2.0 * FeatherScale * Breakup, WakeDistance);
 		const float AgeFade = 1.0 - smoothstep(0.15, 1.0, Age);
@@ -232,7 +232,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float DisplacedDensity = 0.0;
 	float3 AdvectedVelocity = float3(0.0, 0.0, 0.0);
 	const float PreviousOpenMask = TimeThiefSmokeInsideUVW(PreviousUVW)
-		? TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, PreviousUVW)
+		? TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, PreviousUVW, ObstacleSdfSurfaceFeatherCm)
 		: 0.0;
 	if (PreviousOpenMask > 0.01)
 	{
@@ -261,7 +261,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 ForwardWorld = PreviousWorld + AdvectedVelocity * DeltaSeconds;
 		const float3 ForwardLocal = mul(float4(ForwardWorld, 1.0), WorldToLocal).xyz;
 		const float3 ForwardUVW = ForwardLocal / max(BoundsExtent, 1.0) * 0.5 + 0.5;
-		if (TimeThiefSmokeInsideUVW(ForwardUVW) && TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, ForwardUVW) > 0.01)
+		if (TimeThiefSmokeInsideUVW(ForwardUVW) && TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, ForwardUVW, ObstacleSdfSurfaceFeatherCm) > 0.01)
 		{
 			const float BackDensity = DensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
 			const float BackDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
@@ -275,8 +275,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			float3 VelocityMin = float3(0.0, 0.0, 0.0);
 			float3 VelocityMax = float3(0.0, 0.0, 0.0);
 			ComputeAdvectionLimiterBounds(PreviousUVW, DensityMin, DensityMax, DisplacedDensityMin, DisplacedDensityMax, VelocityMin, VelocityMax);
-			Density = clamp(CorrectedDensity, max(DensityMin, 0.0), min(DensityMax, 3.2));
-			DisplacedDensity = clamp(CorrectedDisplacedDensity, max(DisplacedDensityMin, 0.0), min(DisplacedDensityMax, 3.2));
+			Density = clamp(CorrectedDensity, max(DensityMin, 0.0), min(DensityMax, SmokeDensityMax));
+			DisplacedDensity = clamp(CorrectedDisplacedDensity, max(DisplacedDensityMin, 0.0), min(DisplacedDensityMax, SmokeDensityMax));
 			AdvectedVelocity = clamp(CorrectedVelocity, VelocityMin, VelocityMax);
 		}
 	}

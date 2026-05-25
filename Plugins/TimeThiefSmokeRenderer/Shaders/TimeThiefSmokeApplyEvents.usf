@@ -59,7 +59,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
 	float NaturalDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	float DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
@@ -72,7 +72,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-	const int SafeEventCount = min(EventCount, 128);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
@@ -94,14 +94,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Radius = max(Event.PositionRadius.w, 1.0);
 		const float Strength = max(Event.ExtentsStrength.w, 0.0);
 		const float3 ToCell = WorldPosition - EventPosition;
-		const float MaxInfluenceRadius = Radius * 1.35;
+		const float MaxInfluenceRadius = TimeThiefSmokeExplosionInfluenceRadius(Event);
 		if (dot(ToCell, ToCell) > MaxInfluenceRadius * MaxInfluenceRadius)
 		{
 			continue;
 		}
 
 		const float Distance = length(ToCell);
-		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), 1.0 / 15.0);
+		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
 		const float FrontRadius = Radius * lerp(0.12, 1.08, Age);
 		const float FrontThickness = max(Radius * 0.16, 1.0);
 		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
@@ -116,7 +116,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 LocalRadial = normalize(mul(float4(Radial, 0.0), WorldToLocal).xyz + float3(0.0001, 0.0001, 0.0001));
 		const float DonorDistance = max(Radius * 0.18, 8.0);
 		const float3 DonorUVW = saturate(UVW - LocalRadial * DonorDistance / max(BoundsExtent * 2.0, 1.0));
-		const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW);
+		const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW, ObstacleSdfSurfaceFeatherCm);
 		const float DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
 		const float RedistributeWeight = saturate((ShockShell * 0.85 + EvacuatedCore * 0.35) * Strength * ShockFade);
 		const float Evacuation = saturate(EvacuatedCore * Strength * ClearStrength * SafeDeltaSeconds * 3.5);
@@ -127,12 +127,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 		const float TotalDensity = NaturalDensity + DisplacedDensity;
 		DisplacedDensity += max(DonorDensity * RedistributeWeight - TotalDensity, 0.0);
-		DisplacedDensity = min(3.2, DisplacedDensity + TotalDensity * ShockShell * Strength * SafeDeltaSeconds * 0.35);
+		DisplacedDensity = min(SmokeDensityMax, DisplacedDensity + TotalDensity * ShockShell * Strength * SafeDeltaSeconds * 0.35);
 		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
 		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
 	}
 
-	OutDensity[DispatchThreadId] = clamp(NaturalDensity * OpenMask, 0.0, 3.2);
-	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, 3.2);
+	OutDensity[DispatchThreadId] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
+	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OpenMask, 0.0, SmokeDensityMax);
 	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
 }

@@ -16,7 +16,7 @@ float LoadPressure(int3 Coord)
 float LoadOpen(int3 Coord)
 {
 	const int3 SafeCoord = ClampSmokeCoord(Coord);
-	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution));
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), ObstacleSdfSurfaceFeatherCm);
 }
 
 float LoadNeighborPressure(int3 Coord, float CenterPressure)
@@ -34,7 +34,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	const int3 Coord = int3(DispatchThreadId);
 	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
-	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
 	if (OpenMask <= 0.01)
 	{
 		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);

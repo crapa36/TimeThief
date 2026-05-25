@@ -6,6 +6,10 @@
 #include "TimeThiefSmokeParameterDefaults.h"
 #include "TimeThiefSmokeRendererSubsystem.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+#include "Misc/AutomationTest.h"
+#endif
+
 namespace TimeThiefSmoke
 {
 	struct FPendingRendererSmokeVolume
@@ -60,9 +64,9 @@ namespace TimeThiefSmoke
 		return (static_cast<uint64>(Low) << 32) | static_cast<uint64>(High);
 	}
 
-	bool HasSolidObstacleMask(const FTimeThiefSmokeRendererVolume& Volume)
+	bool HasSolidObstacleField(const FTimeThiefSmokeRendererVolume& Volume)
 	{
-		return Volume.bHasSolidObstacleMask;
+		return Volume.bHasSolidObstacleField;
 	}
 
 	FIntVector WorldToSmokeSpatialCell(const FVector& Position)
@@ -90,8 +94,8 @@ namespace TimeThiefSmoke
 			A.Settings.SmokeGridResolution == B.Settings.SmokeGridResolution &&
 			A.Settings.SmokeBrickSize == B.Settings.SmokeBrickSize &&
 			A.Settings.MaxActiveSmokeBricks == B.Settings.MaxActiveSmokeBricks &&
-			!HasSolidObstacleMask(A) &&
-			!HasSolidObstacleMask(B);
+			!HasSolidObstacleField(A) &&
+			!HasSolidObstacleField(B);
 	}
 
 	int32 FindClusterRoot(TArray<int32>& Parents, const int32 Index)
@@ -128,6 +132,69 @@ namespace TimeThiefSmoke
 		}
 	}
 
+	uint64 MakeIndexPairKey(const int32 A, const int32 B)
+	{
+		const uint32 Low = static_cast<uint32>(FMath::Min(A, B));
+		const uint32 High = static_cast<uint32>(FMath::Max(A, B));
+		return (static_cast<uint64>(Low) << 32) | static_cast<uint64>(High);
+	}
+
+	void AddClusterCandidatePairsForBounds(
+		const int32 Index,
+		const FBox& Bounds,
+		TMap<FIntVector, TArray<int32>>& Cells,
+		TSet<uint64>& PairKeys,
+		TArray<TPair<int32, int32>>& OutPairs)
+	{
+		if (!Bounds.IsValid)
+		{
+			return;
+		}
+
+		const FIntVector MinCell = WorldToSmokeSpatialCell(Bounds.Min);
+		const FIntVector MaxCell = WorldToSmokeSpatialCell(Bounds.Max);
+		for (int32 Z = MinCell.Z; Z <= MaxCell.Z; ++Z)
+		{
+			for (int32 Y = MinCell.Y; Y <= MaxCell.Y; ++Y)
+			{
+				for (int32 X = MinCell.X; X <= MaxCell.X; ++X)
+				{
+					TArray<int32>& CellIndices = Cells.FindOrAdd(FIntVector(X, Y, Z));
+					for (const int32 OtherIndex : CellIndices)
+					{
+						if (OtherIndex == Index)
+						{
+							continue;
+						}
+
+						const uint64 PairKey = MakeIndexPairKey(Index, OtherIndex);
+						if (!PairKeys.Contains(PairKey))
+						{
+							PairKeys.Add(PairKey);
+							OutPairs.Add(TPair<int32, int32>(FMath::Min(Index, OtherIndex), FMath::Max(Index, OtherIndex)));
+						}
+					}
+					CellIndices.AddUnique(Index);
+				}
+			}
+		}
+	}
+
+	void BuildSmokeClusterCandidatePairs(
+		const TArray<FBox>& ExpandedClusterBounds,
+		const TArray<FBox>& ReleaseClusterBounds,
+		TArray<TPair<int32, int32>>& OutPairs)
+	{
+		OutPairs.Reset();
+		TMap<FIntVector, TArray<int32>> Cells;
+		TSet<uint64> PairKeys;
+		for (int32 Index = 0; Index < ExpandedClusterBounds.Num(); ++Index)
+		{
+			AddClusterCandidatePairsForBounds(Index, ExpandedClusterBounds[Index], Cells, PairKeys, OutPairs);
+			AddClusterCandidatePairsForBounds(Index, ReleaseClusterBounds[Index], Cells, PairKeys, OutPairs);
+		}
+	}
+
 	void AssignSmokeClusters(TArray<FPendingRendererSmokeVolume>& PendingVolumes, TSet<uint64>& PersistentClusterLinks)
 	{
 		TArray<int32> Parents;
@@ -156,24 +223,30 @@ namespace TimeThiefSmoke
 		}
 
 		TSet<uint64> NextPersistentClusterLinks;
-		for (int32 A = 0; A < PendingVolumes.Num(); ++A)
+		TArray<TPair<int32, int32>> CandidatePairs;
+		BuildSmokeClusterCandidatePairs(ExpandedClusterBounds, ReleaseClusterBounds, CandidatePairs);
+		for (const TPair<int32, int32>& CandidatePair : CandidatePairs)
 		{
-			for (int32 B = A + 1; B < PendingVolumes.Num(); ++B)
+			const int32 A = CandidatePair.Key;
+			const int32 B = CandidatePair.Value;
+			if (!PendingVolumes.IsValidIndex(A) || !PendingVolumes.IsValidIndex(B))
 			{
-				if (!AreSmokeVolumesClusterCompatible(PendingVolumes[A].Volume, PendingVolumes[B].Volume))
-				{
-					continue;
-				}
+				continue;
+			}
 
-				const uint64 PairKey = MakeSmokePairKey(PendingVolumes[A].Volume.SmokeId, PendingVolumes[B].Volume.SmokeId);
-				const bool bJoinNow = ExpandedClusterBounds[A].Intersect(ExpandedClusterBounds[B]);
-				const bool bKeepExisting = PersistentClusterLinks.Contains(PairKey) &&
-					ReleaseClusterBounds[A].Intersect(ReleaseClusterBounds[B]);
-				if (bJoinNow || bKeepExisting)
-				{
-					UnionSmokeClusters(Parents, A, B);
-					NextPersistentClusterLinks.Add(PairKey);
-				}
+			if (!AreSmokeVolumesClusterCompatible(PendingVolumes[A].Volume, PendingVolumes[B].Volume))
+			{
+				continue;
+			}
+
+			const uint64 PairKey = MakeSmokePairKey(PendingVolumes[A].Volume.SmokeId, PendingVolumes[B].Volume.SmokeId);
+			const bool bJoinNow = ExpandedClusterBounds[A].Intersect(ExpandedClusterBounds[B]);
+			const bool bKeepExisting = PersistentClusterLinks.Contains(PairKey) &&
+				ReleaseClusterBounds[A].Intersect(ReleaseClusterBounds[B]);
+			if (bJoinNow || bKeepExisting)
+			{
+				UnionSmokeClusters(Parents, A, B);
+				NextPersistentClusterLinks.Add(PairKey);
 			}
 		}
 		PersistentClusterLinks = MoveTemp(NextPersistentClusterLinks);
@@ -253,10 +326,10 @@ namespace TimeThiefSmoke
 		ClusterVolume.ClusterSourceCount = ClusterMembers.Num();
 		ClusterVolume.AgeSeconds = FirstVolume.AgeSeconds;
 		ClusterVolume.DurationSeconds = FirstVolume.DurationSeconds;
-		ClusterVolume.ObstacleMaskResolution = 0;
-		ClusterVolume.ObstacleMaskRevision = 0;
-		ClusterVolume.ObstacleMask.Reset();
-		ClusterVolume.bHasSolidObstacleMask = false;
+		ClusterVolume.ObstacleFieldResolution = 0;
+		ClusterVolume.ObstacleFieldRevision = 0;
+		ClusterVolume.ObstaclePrimitives.Reset();
+		ClusterVolume.bHasSolidObstacleField = false;
 		ClusterVolume.SourceEvents.Reset();
 		ClusterVolume.SourceEvents.Reserve(ClusterMembers.Num());
 
@@ -299,9 +372,12 @@ namespace TimeThiefSmoke
 	float ComputeInteractionEventPriority(const FTimeThiefSmokeInteractionEvent& Event, const float Age, const float Duration)
 	{
 		const float NormalizedAge = Duration > KINDA_SMALL_NUMBER ? FMath::Clamp(Age / Duration, 0.0f, 1.0f) : 1.0f;
-		const float AgeWeight = FMath::Max(1.0f - NormalizedAge, 0.05f);
-		const float Strength = FMath::Max(Event.Strength, 0.01f);
-		const float RadiusWeight = FMath::Clamp(Event.Radius / 200.0f, 0.5f, 4.0f);
+		const float AgeWeight = FMath::Max(1.0f - NormalizedAge, TimeThiefSmokeParameterDefaults::EventPriorityMinAgeWeight);
+		const float Strength = FMath::Max(Event.Strength, TimeThiefSmokeParameterDefaults::EventPriorityMinStrength);
+		const float RadiusWeight = FMath::Clamp(
+			Event.Radius / TimeThiefSmokeParameterDefaults::EventPriorityRadiusDivisor,
+			TimeThiefSmokeParameterDefaults::EventPriorityRadiusMin,
+			TimeThiefSmokeParameterDefaults::EventPriorityRadiusMax);
 		return Strength * RadiusWeight * AgeWeight;
 	}
 
@@ -394,6 +470,53 @@ namespace TimeThiefSmoke
 		RendererEvent.Seed = Event.Seed;
 		return RendererEvent;
 	}
+
+#if WITH_DEV_AUTOMATION_TESTS
+	FBox MakeAutomationClusterBox(const FVector& Center, const FVector& Extent)
+	{
+		return FBox(Center - Extent, Center + Extent);
+	}
+
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+		FTimeThiefSmokeClusterBroadphaseAutomationTest,
+		"TimeThief.Smoke.World.ClusterBroadphase",
+		EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+	bool FTimeThiefSmokeClusterBroadphaseAutomationTest::RunTest(const FString& Parameters)
+	{
+		TArray<FBox> FarBounds;
+		TArray<FBox> FarReleaseBounds;
+		const float CellStride = TimeThiefSmokeParameterDefaults::SmokeSpatialCellSize * 3.0f;
+		for (int32 Index = 0; Index < 64; ++Index)
+		{
+			const FVector Center(CellStride * static_cast<float>(Index), 0.0, 0.0);
+			const FBox Bounds = MakeAutomationClusterBox(Center, FVector(80.0, 80.0, 80.0));
+			FarBounds.Add(Bounds);
+			FarReleaseBounds.Add(Bounds);
+		}
+
+		TArray<TPair<int32, int32>> CandidatePairs;
+		BuildSmokeClusterCandidatePairs(FarBounds, FarReleaseBounds, CandidatePairs);
+		TestEqual(TEXT("Separated smoke cluster broadphase emits no candidate pairs"), CandidatePairs.Num(), 0);
+
+		TArray<FBox> TouchingBounds;
+		TArray<FBox> TouchingReleaseBounds;
+		TouchingBounds.Add(MakeAutomationClusterBox(FVector::ZeroVector, FVector(200.0, 200.0, 200.0)));
+		TouchingBounds.Add(MakeAutomationClusterBox(FVector(320.0, 0.0, 0.0), FVector(200.0, 200.0, 200.0)));
+		TouchingReleaseBounds = TouchingBounds;
+
+		CandidatePairs.Reset();
+		BuildSmokeClusterCandidatePairs(TouchingBounds, TouchingReleaseBounds, CandidatePairs);
+		TestEqual(TEXT("Overlapping smoke cluster broadphase emits one candidate pair"), CandidatePairs.Num(), 1);
+		if (CandidatePairs.Num() == 1)
+		{
+			TestEqual(TEXT("Overlapping pair uses first smoke index"), CandidatePairs[0].Key, 0);
+			TestEqual(TEXT("Overlapping pair uses second smoke index"), CandidatePairs[0].Value, 1);
+		}
+
+		return true;
+	}
+#endif
 }
 
 void UTimeThiefSmokeWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -544,7 +667,7 @@ void UTimeThiefSmokeWorldSubsystem::AddTimedInteractionEvent(ATimeThiefSmokeVolu
 	ActiveImpulse.SmokeVolume = SmokeVolume;
 	ActiveImpulse.Event = Event;
 	ActiveImpulse.Age = 0.0f;
-	ActiveImpulse.Duration = FMath::Max(0.01f, Duration);
+	ActiveImpulse.Duration = FMath::Max(TimeThiefSmokeParameterDefaults::ActiveImpulseMinDurationSeconds, Duration);
 	if (TimeThiefSmoke::AddPrioritizedActiveImpulse(ActiveImpulses, ActiveImpulse))
 	{
 		SmokeVolume->ApplyInteractionEvent(Event);
@@ -698,7 +821,7 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		{
 			continue;
 		}
-		SmokeVolume->FlushPendingObstacleMaskRebuild();
+		SmokeVolume->FlushPendingObstacleFieldRebuild();
 
 		FTimeThiefSmokeRendererVolume RendererVolume;
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
@@ -712,10 +835,10 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.BoundsExtent = RendererVolume.SimulationBoundsExtent;
 		RendererVolume.AgeSeconds = SmokeVolume->GetSmokeAgeSeconds();
 		RendererVolume.DurationSeconds = TimeThiefSmokeParameterDefaults::SmokeDuration;
-		RendererVolume.ObstacleMaskResolution = SmokeVolume->GetObstacleMaskResolution();
-		RendererVolume.ObstacleMaskRevision = SmokeVolume->GetObstacleMaskRevision();
-		RendererVolume.ObstacleMask = SmokeVolume->GetObstacleMaskSnapshot();
-		RendererVolume.bHasSolidObstacleMask = SmokeVolume->HasSolidObstacleMask();
+		RendererVolume.ObstacleFieldResolution = SmokeVolume->GetObstacleFieldResolution();
+		RendererVolume.ObstacleFieldRevision = SmokeVolume->GetObstacleFieldRevision();
+		RendererVolume.ObstaclePrimitives = SmokeVolume->GetObstaclePrimitives();
+		RendererVolume.bHasSolidObstacleField = SmokeVolume->HasSolidObstacleField();
 		RendererVolume.Settings = FTimeThiefSmokeRendererSettings();
 
 		TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume = PendingVolumes.AddDefaulted_GetRef();

@@ -31,6 +31,22 @@ enum class ETimeThiefSmokePressureSolver : uint8
 	Multigrid = 1
 };
 
+enum class ETimeThiefSmokeObstaclePrimitiveShape : uint8
+{
+	Sphere = 0,
+	Capsule = 1,
+	Box = 2,
+	Aabb = 3
+};
+
+struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeObstaclePrimitive
+{
+	FVector4f CenterRadius = FVector4f::Zero();
+	FVector4f AxisHalfLength = FVector4f::Zero();
+	FVector4f ExtentsShape = FVector4f::Zero();
+	FVector4f Rotation = FVector4f::Zero();
+};
+
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 {
 	FTimeThiefSmokeRendererSettings();
@@ -144,10 +160,10 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererVolume
 	int32 ClusterSourceCount = 1;
 	float AgeSeconds = 0.0f;
 	float DurationSeconds;
-	int32 ObstacleMaskResolution = 0;
-	uint32 ObstacleMaskRevision = 0;
-	TSharedPtr<const TArray<uint8>, ESPMode::ThreadSafe> ObstacleMask;
-	bool bHasSolidObstacleMask = false;
+	int32 ObstacleFieldResolution = 0;
+	uint32 ObstacleFieldRevision = 0;
+	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
+	bool bHasSolidObstacleField = false;
 	TArray<FTimeThiefSmokeRendererEvent> SourceEvents;
 	FTimeThiefSmokeRendererSettings Settings;
 };
