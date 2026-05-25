@@ -446,7 +446,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 폭발 바깥 방향 속도 강도(cm/s). 높을수록 연막 밀림 증가.
 	constexpr float ExplosionOutwardStrength = 720.0f;
 	// 폭발 즉시 밀도 제거 비율(0~1). 높을수록 제거 강도 증가.
-	constexpr float ExplosionDensityClearStrength = 0.25f;
+	constexpr float ExplosionDensityClearStrength = 0.0f;
 
 	// 액터 상호작용
 

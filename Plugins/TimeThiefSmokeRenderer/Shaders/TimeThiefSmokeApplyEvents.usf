@@ -110,24 +110,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 Radial = normalize(ToCell + float3(0.0001, 0.0001, 0.0001));
 		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
 		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
-		const float ClearStrength = saturate(Event.ExtentsStrength.y);
 		const float PressureWeight = saturate(ShockShell + EvacuatedCore * 0.28);
 		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
-		const float3 LocalRadial = normalize(mul(float4(Radial, 0.0), WorldToLocal).xyz + float3(0.0001, 0.0001, 0.0001));
-		const float DonorDistance = max(Radius * 0.18, 8.0);
-		const float3 DonorUVW = saturate(UVW - LocalRadial * DonorDistance / max(BoundsExtent * 2.0, 1.0));
-		const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW, ObstacleSdfSurfaceFeatherCm);
-		const float DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
-		const float RedistributeWeight = saturate((ShockShell * 0.85 + EvacuatedCore * 0.35) * Strength * ShockFade);
-		const float Evacuation = saturate(EvacuatedCore * Strength * ClearStrength * SafeDeltaSeconds * 3.5);
-		const float NaturalTransfer = NaturalDensity * Evacuation * 0.65;
-		const float DisplacedTransfer = DisplacedDensity * Evacuation * 0.35;
-		NaturalDensity = max(NaturalDensity - NaturalTransfer, 0.0);
-		DisplacedDensity = max(DisplacedDensity - DisplacedTransfer, 0.0) + NaturalTransfer;
-
-		const float TotalDensity = NaturalDensity + DisplacedDensity;
-		DisplacedDensity += max(DonorDensity * RedistributeWeight - TotalDensity, 0.0);
-		DisplacedDensity = min(SmokeDensityMax, DisplacedDensity + TotalDensity * ShockShell * Strength * SafeDeltaSeconds * 0.35);
+		// Explosion is a momentum impulse. Density is preserved here and moves through advection.
 		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
 		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
 	}

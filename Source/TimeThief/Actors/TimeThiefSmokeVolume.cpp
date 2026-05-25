@@ -1056,7 +1056,7 @@ void ATimeThiefSmokeVolume::HandleExplosionShock(const FVector& Center, float Ra
 	Event.Radius = FMath::Max(Radius, TimeThiefSmokeParameterDefaults::ExplosionShockRadius);
 	Event.Length = Event.Radius;
 	Event.Strength = FMath::Max(0.0f, Strength);
-	Event.Extents = FVector(TimeThiefSmokeParameterDefaults::ExplosionOutwardStrength, TimeThiefSmokeParameterDefaults::ExplosionDensityClearStrength, 0.0f);
+	Event.Extents = FVector(TimeThiefSmokeParameterDefaults::ExplosionOutwardStrength, 0.0f, 0.0f);
 	Event.NormalizedAge = 0.0f;
 	Event.Seed = Seed;
 

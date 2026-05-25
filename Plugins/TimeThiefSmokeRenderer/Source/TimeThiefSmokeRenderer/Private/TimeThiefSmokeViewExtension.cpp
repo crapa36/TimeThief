@@ -3474,6 +3474,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 				*ActiveBrickResources,
 				ComputeSparseScatterGroupsPerBrick(PassParameters->SmokeBrickSize),
 				GetBrickGridCount(State.AllocatedBrickGridSize));
+		PassParameters->SparseDispatchIndirectArgsBuffer = IndirectArgsBuffer;
 		FComputeShaderUtils::AddPass(
 			GraphBuilder,
 			RDG_EVENT_NAME("TimeThiefSmoke.SimulateActive SmokeId=%d", State.Volume.SmokeId),
@@ -3920,6 +3921,7 @@ void FTimeThiefSmokeViewExtension::AddScatterSparseAtlasPass(
 		return;
 	}
 	PassParameters->OutSparseFieldAtlas = GraphBuilder.CreateUAV(SparseFieldAtlasTexture);
+	PassParameters->SparseDispatchIndirectArgsBuffer = IndirectArgsBuffer;
 
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
@@ -4053,6 +4055,7 @@ void FTimeThiefSmokeViewExtension::AddBuildMacDivergencePass(
 				*ActiveBrickResources,
 				ComputeSparseScatterGroupsPerBrick(PassParameters->SmokeBrickSize),
 				GetBrickGridCount(State.AllocatedBrickGridSize));
+		PassParameters->SparseDispatchIndirectArgsBuffer = IndirectArgsBuffer;
 		FComputeShaderUtils::AddPass(
 			GraphBuilder,
 			RDG_EVENT_NAME("TimeThiefSmoke.BuildMacDivergenceActive SmokeId=%d", State.Volume.SmokeId),
@@ -4222,6 +4225,7 @@ void FTimeThiefSmokeViewExtension::AddPressureJacobiPass(
 				*ActiveBrickResources,
 				ComputeSparseScatterGroupsPerBrick(PassParameters->SmokeBrickSize),
 				GetBrickGridCount(State.AllocatedBrickGridSize));
+		PassParameters->SparseDispatchIndirectArgsBuffer = IndirectArgsBuffer;
 		FComputeShaderUtils::AddPass(
 			GraphBuilder,
 			RDG_EVENT_NAME("TimeThiefSmoke.PressureJacobiActive SmokeId=%d", State.Volume.SmokeId),
@@ -4291,6 +4295,7 @@ void FTimeThiefSmokeViewExtension::AddPressureResidualPass(
 				*ActiveBrickResources,
 				ComputeSparseScatterGroupsPerBrick(PassParameters->SmokeBrickSize),
 				GetBrickGridCount(State.AllocatedBrickGridSize));
+		PassParameters->SparseDispatchIndirectArgsBuffer = IndirectArgsBuffer;
 		FComputeShaderUtils::AddPass(
 			GraphBuilder,
 			RDG_EVENT_NAME("TimeThiefSmoke.PressureResidualActive SmokeId=%d", State.Volume.SmokeId),
@@ -4507,6 +4512,7 @@ void FTimeThiefSmokeViewExtension::AddProjectMacToCollocatedVelocityPass(
 				*ActiveBrickResources,
 				ComputeSparseScatterGroupsPerBrick(PassParameters->SmokeBrickSize),
 				GetBrickGridCount(State.AllocatedBrickGridSize));
+		PassParameters->SparseDispatchIndirectArgsBuffer = IndirectArgsBuffer;
 		FComputeShaderUtils::AddPass(
 			GraphBuilder,
 			RDG_EVENT_NAME("TimeThiefSmoke.ProjectMacToCollocatedVelocityActive SmokeId=%d", State.Volume.SmokeId),
