@@ -76,6 +76,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Network")
 	float GetNetworkSpeed() const { return GetMoveStep().Size2D(); }
 	
+// Anim Instance
+public:
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	float GetAimYaw() const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	float GetAimPitch() const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsDead() const;
+	
 	// CombatSyncInterface
 public:
 	virtual class UTimeThiefPawnCombatComponent* GetCombatComponent() const override;
@@ -194,6 +205,6 @@ protected:
 	FTimerHandle RespawnFinishTimerHandle;
 	
 	uint32 TargetId = 0;
-	AActor* TargetActor = nullptr;
+	TWeakObjectPtr<AActor> TargetActor;
 	
 };

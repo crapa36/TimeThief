@@ -3,6 +3,8 @@
 
 #include "TimeThiefMonster.h"
 
+#include "TimeThiefMonsterAnimInstance.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Network/NetworkCombatSyncComponent.h"
 #include "Network/NetworkEntityComponent.h"
 #include "Network/NetworkMoveComponent.h"
@@ -22,6 +24,9 @@ ATimeThiefMonster::ATimeThiefMonster()
 
 	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
 	MeshComponent->SetupAttachment(SceneRootComponent);
+	
+	MeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+	MeshComponent->SetAnimInstanceClass(UTimeThiefMonsterAnimInstance::StaticClass());
 
 	MonsterCombatComponent = CreateDefaultSubobject<UTimeThiefMonsterCombatComponent>(TEXT("MonsterCombatComponent"));
 	
@@ -159,6 +164,43 @@ void ATimeThiefMonster::ApplyNetworkMovementState(const FNetworkEntityState& Ent
 	}
 	
 	NetworkMoveComponent->ApplyNetworkState(EntityState);
+}
+
+float ATimeThiefMonster::GetAimYaw() const
+{
+	if (!TargetActor.IsValid())
+	{
+		return 0.0f;
+	}
+
+	const FVector MyLocation = GetActorLocation();
+	const FVector TargetLocation = TargetActor->GetActorLocation();
+
+	const FRotator LookAtRot = (TargetLocation - MyLocation).Rotation();
+	const FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(LookAtRot, GetActorRotation());
+
+	return FMath::Clamp(Delta.Yaw, -75.0f, 75.0f);
+}
+
+float ATimeThiefMonster::GetAimPitch() const
+{
+	if (!TargetActor.IsValid())
+	{
+		return 0.0f;
+	}
+
+	const FVector MyLocation = GetActorLocation();
+	const FVector TargetLocation = TargetActor->GetActorLocation();
+
+	const FRotator LookAtRot = (TargetLocation - MyLocation).Rotation();
+	const FRotator Delta = UKismetMathLibrary::NormalizedDeltaRotator(LookAtRot, GetActorRotation());
+
+	return FMath::Clamp(Delta.Pitch, -50.0f, 50.0f);
+}
+
+bool ATimeThiefMonster::IsDead() const
+{
+	return bIsDead;
 }
 
 class UTimeThiefPawnCombatComponent* ATimeThiefMonster::GetCombatComponent() const
