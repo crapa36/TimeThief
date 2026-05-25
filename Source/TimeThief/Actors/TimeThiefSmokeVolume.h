@@ -7,7 +7,6 @@
 
 class UBoxComponent;
 class UPrimitiveComponent;
-struct FOverlapResult;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefSmokeVolume : public AActor
@@ -54,7 +53,7 @@ private:
 	void ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event);
 	void MarkObstacleMaskDirty();
 	void RebuildStaticObstacleMask();
-	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, FCollisionObjectQueryParams ObjectQueryParams, FCollisionQueryParams QueryParams, const TArray<FOverlapResult>& StaticObstacleCandidates);
+	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates);
 	float ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent) const;
 	void UpdateSmokeBounds();
 	void DrawDebugSmoke() const;

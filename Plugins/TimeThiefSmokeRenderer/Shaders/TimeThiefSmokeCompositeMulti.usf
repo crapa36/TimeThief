@@ -487,13 +487,25 @@ float4 SampleCompositeSparseFields(int Slot, FTimeThiefSmokeCompositeDescriptorS
 
 float4 SampleFieldSet(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
 {
+	const float3 SafeUVW = saturate(VolumeUVW);
 	return UsesSparseAtlas(Desc) != 0u
 		? SampleCompositeSparseFields(Slot, Desc, VolumeUVW)
 		: float4(
-			SampleDensityTexture(Slot, saturate(VolumeUVW)) + SampleDisplacedDensityTexture(Slot, saturate(VolumeUVW)),
-			SampleWarpTexture(Slot, saturate(VolumeUVW)),
-			SampleBulletCutoutTexture(Slot, saturate(VolumeUVW)),
-			SampleBulletSinkTexture(Slot, saturate(VolumeUVW)));
+			SampleDensityTexture(Slot, SafeUVW) + SampleDisplacedDensityTexture(Slot, SafeUVW),
+			SampleWarpTexture(Slot, SafeUVW),
+			SampleBulletCutoutTexture(Slot, SafeUVW),
+			SampleBulletSinkTexture(Slot, SafeUVW));
+}
+
+float SampleDensityField(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+{
+	if (UsesSparseAtlas(Desc) != 0u)
+	{
+		return SampleCompositeSparseFields(Slot, Desc, VolumeUVW).x;
+	}
+
+	const float3 SafeUVW = saturate(VolumeUVW);
+	return SampleDensityTexture(Slot, SafeUVW) + SampleDisplacedDensityTexture(Slot, SafeUVW);
 }
 
 float ComputeInactiveBrickSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
@@ -534,11 +546,9 @@ float ComputeInactiveBrickSkip(FTimeThiefSmokeCompositeDescriptorShaderData Desc
 	return clamp(max(StepSize, DeltaT + 0.0001), StepSize, StepSize * 8.0);
 }
 
-float ComputeAnalyticBulletOpen(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 SampleWorld)
+float ComputeAnalyticBulletOpen(int EventOffset, int SafeEventCount, float3 SampleWorld)
 {
 	float OpenMask = 1.0;
-	const int EventOffset = (int)round(Desc.RenderSteps_Events.z);
-	const int SafeEventCount = min((int)round(Desc.AnalyticEvents.x), 128);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -559,22 +569,20 @@ float ComputeAnalyticBulletOpen(FTimeThiefSmokeCompositeDescriptorShaderData Des
 	return saturate(OpenMask);
 }
 
-float ComputeSelfShadow(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
+float ComputeSelfShadow(
+	int Slot,
+	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
+	float3 VolumeUVW,
+	float3 LightUVWStep,
+	float LightSimulationStepSize)
 {
 	const int ShadowSteps = clamp((int)round(Desc.SelfShadowLightDirection_StepCount.w), 0, 12);
 	const float ShadowStrength = saturate(Desc.SelfShadowControls.x);
 	const float ShadowExtinction = max(Desc.SelfShadowControls.y, 0.0);
-	const float ShadowStepLength = max(Desc.SelfShadowControls.z, 1.0);
 	if (ShadowSteps <= 0 || ShadowStrength <= 0.001 || ShadowExtinction <= 0.001)
 	{
 		return 1.0;
 	}
-
-	const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
-	const float3 WorldLightDirection = normalize(Desc.SelfShadowLightDirection_StepCount.xyz + float3(0.0, 0.0, 0.0001));
-	const float3 LocalLightDirection = normalize(mul(float4(WorldLightDirection, 0.0), GetWorldToLocal(Desc)).xyz + 0.0001);
-	const float3 LightUVWStep = LocalLightDirection * ShadowStepLength / BoundsExtent * 0.5;
-	const float LightSimulationStepSize = length((LocalLightDirection * ShadowStepLength) / BoundsExtent);
 
 	float OpticalDepth = 0.0;
 	float3 ShadowUVW = VolumeUVW;
@@ -591,7 +599,7 @@ float ComputeSelfShadow(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData D
 			continue;
 		}
 
-		const float ShadowDensity = max(SampleFieldSet(Slot, Desc, ShadowUVW).x, 0.0);
+		const float ShadowDensity = max(SampleDensityField(Slot, Desc, ShadowUVW), 0.0);
 		if (ShadowDensity <= 0.0001)
 		{
 			continue;
@@ -622,17 +630,29 @@ float3 SmokeColorFromDescriptor(FTimeThiefSmokeCompositeDescriptorShaderData Des
 	return lerp(float3(0.6, 0.63, 0.65), float3(0.92, 0.93, 0.9), saturate(ScatteringAlbedo)) * PhaseBoost;
 }
 
+float ComputeRenderBoundaryFadeStart(float3 BoundsExtent, float3 NaturalBoundsExtent)
+{
+	const float3 NaturalCoverage = saturate(max(NaturalBoundsExtent, 1.0) / max(BoundsExtent, 1.0));
+	const float NaturalCoverageMax = max(max(NaturalCoverage.x, NaturalCoverage.y), NaturalCoverage.z);
+	return clamp(max(0.90, NaturalCoverageMax + 0.04), 0.82, 0.96);
+}
+
 void AccumulateSmokeSample(
 	int Slot,
 	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
 	float3 SampleWorld,
-	float3 WorldRayDirection,
-	float4x4 WorldToLocal,
 	float3 BoundsExtent,
 	float3 SimulationLocal,
 	float3 VolumeUVW,
 	float3 SmokeColor,
-	float StepSize,
+	float SimulationStepSize,
+	float MaxGridCellSize,
+	float BoundaryFadeStart,
+	float LifetimeAlpha,
+	int AnalyticEventOffset,
+	int AnalyticEventCount,
+	float3 LightUVWStep,
+	float LightSimulationStepSize,
 	inout float Transmittance,
 	inout float Scatter,
 	inout float3 SmokeColorAccum,
@@ -652,13 +672,9 @@ void AccumulateSmokeSample(
 	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromValue(Obstacle);
 	const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-	const float3 NaturalBoundsExtent = max(Desc.AnalyticEvents.yzw, 1.0);
-	const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 	const float AgeSeconds = Desc.FilamentAge.y;
-	const float DurationSeconds = Desc.FilamentAge.z;
-	const float SmokeFadeOutDuration = Desc.FilamentAge.w;
-	const float LifetimeAlpha = 1.0 - smoothstep(DurationSeconds, DurationSeconds + max(SmokeFadeOutDuration, 0.001), AgeSeconds);
-	const float AnalyticBulletOpen = Desc.AnalyticEvents.x > 0.5 ? ComputeAnalyticBulletOpen(Desc, SampleWorld) : 1.0;
+	const float AnalyticBulletOpen = AnalyticEventCount > 0 ? ComputeAnalyticBulletOpen(AnalyticEventOffset, AnalyticEventCount, SampleWorld) : 1.0;
 	const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
 	float Density = RawDensity * DensityVisibility;
 	const float Warp = RawWarp * ObstacleOpen * BoundaryMask * LifetimeAlpha;
@@ -676,9 +692,6 @@ void AccumulateSmokeSample(
 	const float RenderFilamentContrast = Desc.NoiseFilamentA.w;
 	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
 	const bool bUseFastFilament = Desc.RenderQuality.x > 0.5;
-	const int3 GridResolution = GetGridResolution(Desc);
-	const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
-	const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
 	const float MaxResolvedBaseNoiseScale = 0.9 / MaxGridCellSize;
 	const float MaxResolvedFineNoiseScale = 1.15 / MaxGridCellSize;
 	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedBaseNoiseScale);
@@ -725,15 +738,13 @@ void AccumulateSmokeSample(
 	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
 	const float WarpDensityGain = lerp(1.0, 1.0 + WarpDetail * 0.16, saturate(RawDensity * 1.6));
 	Density *= DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain * WarpDensityGain;
-	const float3 LocalRayDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz;
-	const float SimulationStepSize = length((LocalRayDirection * StepSize) / BoundsExtent);
 	const float Absorption = Density * Desc.RenderBoundsExtent_Extinction.w * SimulationStepSize;
 	const float StepTransmittance = exp2(-Absorption * 1.442695);
 	const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
 	float SelfShadow = 1.0;
 	if (SampleWeight > 0.00001)
 	{
-		SelfShadow = ComputeSelfShadow(Slot, Desc, VolumeUVW);
+		SelfShadow = ComputeSelfShadow(Slot, Desc, VolumeUVW, LightUVWStep, LightSimulationStepSize);
 	}
 	Scatter += SampleWeight * Density * SelfShadow;
 	SmokeColorAccum += SampleWeight * SmokeColor * SelfShadow;
@@ -773,6 +784,18 @@ void MainPS(
 	float SmokeTMin[7];
 	float SmokeTMax[7];
 	float3 SmokeColors[7];
+	float3 SmokeLocalOrigins[7];
+	float3 SmokeLocalRayDirections[7];
+	float3 SmokeBoundsExtents[7];
+	float3 SmokeRayUVWDirections[7];
+	float SmokeSimulationStepScales[7];
+	float SmokeMaxGridCellSizes[7];
+	float SmokeBoundaryFadeStarts[7];
+	float SmokeLifetimeAlphas[7];
+	int SmokeAnalyticEventOffsets[7];
+	int SmokeAnalyticEventCounts[7];
+	float3 SmokeLightUVWSteps[7];
+	float SmokeLightSimulationStepSizes[7];
 	int SmokeSlots[7];
 	int ActiveSmokeCount = 0;
 	float RayStart = SceneT;
@@ -793,8 +816,10 @@ void MainPS(
 		const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
 		const float4x4 WorldToLocal = GetWorldToLocal(Desc);
 		const float3 RenderBoundsExtent = max(Desc.RenderBoundsExtent_Extinction.xyz, 1.0);
-		const float3 LocalOrigin = mul(float4(NearWorld, 1.0), WorldToLocal).xyz / RenderBoundsExtent;
-		const float3 LocalDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz / RenderBoundsExtent;
+		const float3 LocalNear = mul(float4(NearWorld, 1.0), WorldToLocal).xyz;
+		const float3 LocalRayDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz;
+		const float3 LocalOrigin = LocalNear / RenderBoundsExtent;
+		const float3 LocalDirection = LocalRayDirection / RenderBoundsExtent;
 		float TMin = 0.0;
 		float TMax = 0.0;
 		if (!IntersectUnitBox(LocalOrigin, LocalDirection, TMin, TMax))
@@ -810,15 +835,35 @@ void MainPS(
 		}
 
 		const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
+		const float3 SimulationRayDirection = LocalRayDirection / BoundsExtent;
 		const int3 GridResolution = GetGridResolution(Desc);
 		const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
 		const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+		const float ShadowStepLength = max(Desc.SelfShadowControls.z, 1.0);
+		const float3 WorldLightDirection = normalize(Desc.SelfShadowLightDirection_StepCount.xyz + float3(0.0, 0.0, 0.0001));
+		const float3 LocalLightDirection = normalize(mul(float4(WorldLightDirection, 0.0), WorldToLocal).xyz + 0.0001);
+		const float BoundaryFadeStart = ComputeRenderBoundaryFadeStart(BoundsExtent, Desc.AnalyticEvents.yzw);
+		const float LifetimeAlpha = 1.0 - smoothstep(Desc.FilamentAge.z, Desc.FilamentAge.z + max(Desc.FilamentAge.w, 0.001), Desc.FilamentAge.y);
+		const int AnalyticEventOffset = (int)round(Desc.RenderSteps_Events.z);
+		const int AnalyticEventCount = min((int)round(Desc.AnalyticEvents.x), 128);
 		TargetStepLength = min(TargetStepLength, max(MaxGridCellSize * max(Desc.BoundsExtent_RenderStepVoxelScale.w, 0.1), 1.0));
 		MinRenderSteps = max(MinRenderSteps, (int)round(Desc.RenderSteps_Events.x));
 		MaxRenderSteps = max(MaxRenderSteps, (int)round(Desc.RenderSteps_Events.y));
 		SmokeTMin[ActiveSmokeCount] = TMin;
 		SmokeTMax[ActiveSmokeCount] = TMax;
 		SmokeColors[ActiveSmokeCount] = SmokeColorFromDescriptor(Desc, WorldRayDirection);
+		SmokeLocalOrigins[ActiveSmokeCount] = LocalNear;
+		SmokeLocalRayDirections[ActiveSmokeCount] = LocalRayDirection;
+		SmokeBoundsExtents[ActiveSmokeCount] = BoundsExtent;
+		SmokeRayUVWDirections[ActiveSmokeCount] = SimulationRayDirection * 0.5;
+		SmokeSimulationStepScales[ActiveSmokeCount] = length(SimulationRayDirection);
+		SmokeMaxGridCellSizes[ActiveSmokeCount] = MaxGridCellSize;
+		SmokeBoundaryFadeStarts[ActiveSmokeCount] = BoundaryFadeStart;
+		SmokeLifetimeAlphas[ActiveSmokeCount] = LifetimeAlpha;
+		SmokeAnalyticEventOffsets[ActiveSmokeCount] = AnalyticEventOffset;
+		SmokeAnalyticEventCounts[ActiveSmokeCount] = AnalyticEventCount;
+		SmokeLightUVWSteps[ActiveSmokeCount] = LocalLightDirection * ShadowStepLength / BoundsExtent * 0.5;
+		SmokeLightSimulationStepSizes[ActiveSmokeCount] = length((LocalLightDirection * ShadowStepLength) / BoundsExtent);
 		SmokeSlots[ActiveSmokeCount] = Slot;
 		++ActiveSmokeCount;
 		RayStart = min(RayStart, TMin);
@@ -867,9 +912,8 @@ void MainPS(
 
 			const int Slot = SmokeSlots[SmokeIndex];
 			const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
-			const float4x4 WorldToLocal = GetWorldToLocal(Desc);
-			const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
-			const float3 SampleLocal = mul(float4(SampleWorld, 1.0), WorldToLocal).xyz;
+			const float3 BoundsExtent = SmokeBoundsExtents[SmokeIndex];
+			const float3 SampleLocal = SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * CurrentT;
 			const float3 SimulationLocal = SampleLocal / BoundsExtent;
 			const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
 			if (!TimeThiefSmokeInsideUVW(VolumeUVW))
@@ -879,8 +923,7 @@ void MainPS(
 
 			if (!IsActiveBrick(Slot, Desc, VolumeUVW))
 			{
-				const float3 RayUVWDirection = mul(float4(WorldRayDirection, 0.0), WorldToLocal).xyz / BoundsExtent * 0.5;
-				InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, VolumeUVW, RayUVWDirection, StepSize));
+				InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, VolumeUVW, SmokeRayUVWDirections[SmokeIndex], StepSize));
 				bSawInactiveCandidate = true;
 				continue;
 			}
@@ -890,13 +933,18 @@ void MainPS(
 				Slot,
 				Desc,
 				SampleWorld,
-				WorldRayDirection,
-				WorldToLocal,
 				BoundsExtent,
 				SimulationLocal,
 				VolumeUVW,
 				SmokeColors[SmokeIndex],
-				StepSize,
+				StepSize * SmokeSimulationStepScales[SmokeIndex],
+				SmokeMaxGridCellSizes[SmokeIndex],
+				SmokeBoundaryFadeStarts[SmokeIndex],
+				SmokeLifetimeAlphas[SmokeIndex],
+				SmokeAnalyticEventOffsets[SmokeIndex],
+				SmokeAnalyticEventCounts[SmokeIndex],
+				SmokeLightUVWSteps[SmokeIndex],
+				SmokeLightSimulationStepSizes[SmokeIndex],
 				Transmittance,
 				Scatter,
 				SmokeColorAccum,

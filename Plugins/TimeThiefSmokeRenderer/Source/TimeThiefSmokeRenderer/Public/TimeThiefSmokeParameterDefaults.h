@@ -9,7 +9,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 실제 시뮬레이션 연막 박스 반경(cm).
 	inline FVector GetSmokeBoundsExtent()
 	{
-		return FVector(800.0, 800.0, 800.0);
+		return FVector(600.0, 600.0, 400.0);
 	}
 
 	// 렌더링 박스에 더하는 여유 반경(cm). 높을수록 가장자리 잘림 감소, raymarch 범위 증가.
@@ -32,9 +32,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 생성 소스 반경(cm). 높을수록 초기 연막 덩어리가 커짐.
 	constexpr float PlumeSourceRadius = 100.0f;
 	// 초기 연막 수평 확산 속도(cm/s).
-	constexpr float PlumeExpansionVelocity = 250.0f;
+	constexpr float PlumeExpansionVelocity = 300.0f;
 	// 초기 연막 상승 속도(cm/s).
-	constexpr float PlumeRiseVelocity = 150.0f;
+	constexpr float PlumeRiseVelocity = 50.0f;
 
 	// 장애물 마스크
 
@@ -43,13 +43,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
 	constexpr int32 ObstacleMaskResolution = 24;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
-	constexpr float ObstacleMaskInflation = 2.0f;
+	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
 	constexpr float ObstacleMaskCellFootprintRatio = 0.25f;
 	// 활성 경계 셀 장애물 검사 박스의 셀 반경 비율. 높을수록 차단 안정성 증가, 활성 영역 감소.
 	constexpr float BoundsCellObstacleFootprintRatio = 0.1f;
 	// 생성 원점 주변 장애물 차단 제거 반경 배율. 높을수록 원점 근처 생성 안정성 증가, 장애물 침범 증가.
-	constexpr float ObstacleSourceClearRadiusScale = 2.0f;
+	constexpr float ObstacleSourceClearRadiusScale = 10.0f;
 	// 장애물 마스크 변경 블렌딩 시간(초). 높을수록 변화가 부드럽고 반응이 느림.
 	constexpr float ObstacleMaskBlendDuration = 0.25f;
 

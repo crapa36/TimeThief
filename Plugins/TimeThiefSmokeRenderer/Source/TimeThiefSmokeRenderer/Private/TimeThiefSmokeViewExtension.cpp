@@ -796,6 +796,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 
 	TArray<int32> TileSmokeCounts;
 	TileSmokeCounts.Init(0, TileCount);
+	TArray<FIntRect> SmokeTileRects;
+	SmokeTileRects.SetNum(VisibleSmokes.Num());
 	for (int32 SmokeSlot = 0; SmokeSlot < VisibleSmokes.Num(); ++SmokeSlot)
 	{
 		const FIntRect& SmokeRect = VisibleSmokes[SmokeSlot].Rect;
@@ -803,9 +805,10 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.Y - 1);
 		const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.X - 1);
 		const int32 MaxTileY = FMath::Clamp((FMath::Max(SmokeRect.Max.Y - 1, SmokeRect.Min.Y) - DrawRect.Min.Y) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.Y - 1);
-		for (int32 TileY = MinTileY; TileY <= MaxTileY; ++TileY)
+		SmokeTileRects[SmokeSlot] = FIntRect(MinTileX, MinTileY, MaxTileX + 1, MaxTileY + 1);
+		for (int32 TileY = SmokeTileRects[SmokeSlot].Min.Y; TileY < SmokeTileRects[SmokeSlot].Max.Y; ++TileY)
 		{
-			for (int32 TileX = MinTileX; TileX <= MaxTileX; ++TileX)
+			for (int32 TileX = SmokeTileRects[SmokeSlot].Min.X; TileX < SmokeTileRects[SmokeSlot].Max.X; ++TileX)
 			{
 				++TileSmokeCounts[TileY * TileGridSize.X + TileX];
 			}
@@ -852,14 +855,10 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		TileIndices.SetNumUninitialized(TotalTileSmokeIndexCount);
 		for (int32 SmokeSlot = 0; SmokeSlot < VisibleSmokes.Num(); ++SmokeSlot)
 		{
-			const FIntRect& SmokeRect = VisibleSmokes[SmokeSlot].Rect;
-			const int32 MinTileX = FMath::Clamp((SmokeRect.Min.X - DrawRect.Min.X) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.X - 1);
-			const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.Y - 1);
-			const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.X - 1);
-			const int32 MaxTileY = FMath::Clamp((FMath::Max(SmokeRect.Max.Y - 1, SmokeRect.Min.Y) - DrawRect.Min.Y) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.Y - 1);
-			for (int32 TileY = MinTileY; TileY <= MaxTileY; ++TileY)
+			const FIntRect& SmokeTileRect = SmokeTileRects[SmokeSlot];
+			for (int32 TileY = SmokeTileRect.Min.Y; TileY < SmokeTileRect.Max.Y; ++TileY)
 			{
-				for (int32 TileX = MinTileX; TileX <= MaxTileX; ++TileX)
+				for (int32 TileX = SmokeTileRect.Min.X; TileX < SmokeTileRect.Max.X; ++TileX)
 				{
 					const int32 TileIndex = TileY * TileGridSize.X + TileX;
 					TileIndices[TileWriteOffsets[TileIndex]++] = static_cast<uint32>(SmokeSlot);
@@ -1192,7 +1191,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 			}
 
 			TArray<int32> GroupIndices;
-			GroupIndices.Reserve(TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots);
+			GroupIndices.Reserve(Candidates.Num());
 			GroupIndices.Add(SeedIndex);
 			bVisited[SeedIndex] = 1;
 
@@ -1216,35 +1215,44 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 				}
 			}
 
-			if (GroupIndices.Num() <= 1 || GroupIndices.Num() > TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots)
+			if (GroupIndices.Num() <= 1)
 			{
 				continue;
 			}
 
-			TArray<FRenderSmokeState*> GroupRenderStates;
-			GroupRenderStates.Reserve(GroupIndices.Num());
-			for (const int32 GroupIndex : GroupIndices)
+			for (int32 GroupOffset = 0; GroupOffset < GroupIndices.Num(); GroupOffset += TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots)
 			{
-				GroupRenderStates.Add(Candidates[GroupIndex].State);
-			}
+				const int32 ChunkCount = FMath::Min(TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots, GroupIndices.Num() - GroupOffset);
+				if (ChunkCount <= 1)
+				{
+					continue;
+				}
 
-			const FScreenPassTexture MultiOutput = CompositeSmokeMulti_RenderThread(
-				GraphBuilder,
-				View,
-				Inputs,
-				GroupRenderStates,
-				CurrentSceneColor,
-				InvViewProjection,
-				false);
-			if (MultiOutput.Texture == CurrentSceneColor.Texture)
-			{
-				continue;
-			}
+				TArray<FRenderSmokeState*> GroupRenderStates;
+				GroupRenderStates.Reserve(ChunkCount);
+				for (int32 ChunkIndex = 0; ChunkIndex < ChunkCount; ++ChunkIndex)
+				{
+					GroupRenderStates.Add(Candidates[GroupIndices[GroupOffset + ChunkIndex]].State);
+				}
 
-			CurrentSceneColor = MultiOutput;
-			for (const int32 GroupIndex : GroupIndices)
-			{
-				bHandledByMulti[GroupIndex] = 1;
+				const FScreenPassTexture MultiOutput = CompositeSmokeMulti_RenderThread(
+					GraphBuilder,
+					View,
+					Inputs,
+					GroupRenderStates,
+					CurrentSceneColor,
+					InvViewProjection,
+					false);
+				if (MultiOutput.Texture == CurrentSceneColor.Texture)
+				{
+					continue;
+				}
+
+				CurrentSceneColor = MultiOutput;
+				for (int32 ChunkIndex = 0; ChunkIndex < ChunkCount; ++ChunkIndex)
+				{
+					bHandledByMulti[GroupIndices[GroupOffset + ChunkIndex]] = 1;
+				}
 			}
 		}
 	}
@@ -1900,7 +1908,7 @@ FRDGBufferRef FTimeThiefSmokeViewExtension::AddBuildEventBrickMasksPass(
 		RDG_EVENT_NAME("TimeThiefSmoke.BuildEventBrickMasks SmokeId=%d Events=%d", State.Volume.SmokeId, EventCount),
 		ComputeShader,
 		PassParameters,
-		State.AllocatedBrickGridSize);
+		MakeGroupCount(State.AllocatedBrickGridSize));
 
 	return EventBrickMasksBuffer;
 }

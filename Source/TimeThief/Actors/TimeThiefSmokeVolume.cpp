@@ -8,13 +8,20 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "TimeThiefSmokeParameterDefaults.h"
+#include "Weapon/TimeThiefRocketProjectile.h"
+#include "Weapon/TimeThiefThrowableProjectile.h"
 #include "WorldCollision.h"
 
 namespace TimeThiefSmokeVolume
 {
 	int32 GNextSmokeId = 1;
+	const FName ServerCollisionTag(TEXT("ServerCollision"));
+	const FName BlockProjectileTag(TEXT("BlockProjectile"));
+	const FName BlockMovementTag(TEXT("BlockMovement"));
+	const FName IgnoreTag(TEXT("Ignore"));
 
 	bool IsCellCoordValid(const FIntVector& Coord, const FIntVector& CellGrid)
 	{
@@ -66,9 +73,14 @@ namespace TimeThiefSmokeVolume
 		return TimeThiefSmokeParameterDefaults::PlumeSourceRadius * TimeThiefSmokeParameterDefaults::ObstacleSourceClearRadiusScale;
 	}
 
-	bool IsInsideSourceClearRadius(const FVector& LocalPosition)
+	bool DoesBoxOverlapSourceClearRadius(const FVector& LocalCenter, const FVector& CellHalfExtent)
 	{
-		return LocalPosition.SizeSquared() <= FMath::Square(GetSourceClearRadius());
+		const FVector Delta = LocalCenter.GetAbs() - CellHalfExtent;
+		const FVector OutsideDelta(
+			FMath::Max(Delta.X, 0.0f),
+			FMath::Max(Delta.Y, 0.0f),
+			FMath::Max(Delta.Z, 0.0f));
+		return OutsideDelta.SizeSquared() <= FMath::Square(GetSourceClearRadius());
 	}
 
 	bool DoesCellOverlapSourceClearRadius(const FIntVector& Coord, const FVector& BoundsExtent, const FVector& ClusterOffset, const FIntVector& CellGrid)
@@ -78,12 +90,7 @@ namespace TimeThiefSmokeVolume
 			BoundsExtent.X / static_cast<float>(CellGrid.X),
 			BoundsExtent.Y / static_cast<float>(CellGrid.Y),
 			BoundsExtent.Z / static_cast<float>(CellGrid.Z));
-		const FVector Delta = LocalCenter.GetAbs() - CellHalfExtent;
-		const FVector OutsideDelta(
-			FMath::Max(Delta.X, 0.0f),
-			FMath::Max(Delta.Y, 0.0f),
-			FMath::Max(Delta.Z, 0.0f));
-		return OutsideDelta.SizeSquared() <= FMath::Square(GetSourceClearRadius());
+		return DoesBoxOverlapSourceClearRadius(LocalCenter, CellHalfExtent);
 	}
 
 	FBox MakeWorldAabbFromOrientedBox(const FVector& Center, const FQuat& Rotation, const FVector& Extent)
@@ -103,12 +110,132 @@ namespace TimeThiefSmokeVolume
 		return Bounds;
 	}
 
-	bool AnyCandidateMayOverlap(const TArray<FOverlapResult>& StaticObstacleCandidates, const FBox& QueryBounds)
+	bool IsIgnoredSmokeObstacleActor(const AActor* Actor, const ATimeThiefSmokeVolume* SmokeVolume)
 	{
-		for (const FOverlapResult& Candidate : StaticObstacleCandidates)
+		if (!Actor || Actor == SmokeVolume || Actor->IsA<ATimeThiefSmokeVolume>())
 		{
-			const UPrimitiveComponent* PrimitiveComponent = Candidate.GetComponent();
+			return true;
+		}
+
+		if (SmokeVolume && (Actor == SmokeVolume->GetOwner() || Actor == SmokeVolume->GetInstigator()))
+		{
+			return true;
+		}
+
+		return Actor->IsA<APawn>() ||
+			Actor->IsA<ATimeThiefThrowableProjectile>() ||
+			Actor->IsA<ATimeThiefRocketProjectile>();
+	}
+
+	bool IsServerCollisionShape(const UPrimitiveComponent* PrimitiveComponent)
+	{
+		const AActor* OwnerActor = PrimitiveComponent ? PrimitiveComponent->GetOwner() : nullptr;
+		return OwnerActor && OwnerActor->ActorHasTag(ServerCollisionTag) && PrimitiveComponent->IsA<UShapeComponent>();
+	}
+
+	bool IsSmokeProjectileObstacleComponent(const UPrimitiveComponent* PrimitiveComponent, const ATimeThiefSmokeVolume* SmokeVolume)
+	{
+		if (!PrimitiveComponent || PrimitiveComponent->ComponentHasTag(IgnoreTag) || !PrimitiveComponent->IsQueryCollisionEnabled())
+		{
+			return false;
+		}
+
+		const AActor* OwnerActor = PrimitiveComponent->GetOwner();
+		if (IsIgnoredSmokeObstacleActor(OwnerActor, SmokeVolume))
+		{
+			return false;
+		}
+
+		const bool bHasProjectileTag = PrimitiveComponent->ComponentHasTag(BlockProjectileTag);
+		const bool bHasMovementTag = PrimitiveComponent->ComponentHasTag(BlockMovementTag);
+		const bool bIsServerCollisionShape = IsServerCollisionShape(PrimitiveComponent);
+		if (bHasProjectileTag || (bIsServerCollisionShape && !bHasMovementTag && !bHasProjectileTag))
+		{
+			return true;
+		}
+
+		return PrimitiveComponent->GetCollisionResponseToChannel(ECC_Visibility) == ECR_Block;
+	}
+
+	void AddSmokeObstacleCandidates(const TArray<FOverlapResult>& Overlaps, const ATimeThiefSmokeVolume* SmokeVolume, TArray<TWeakObjectPtr<UPrimitiveComponent>>& OutCandidates)
+	{
+		for (const FOverlapResult& Overlap : Overlaps)
+		{
+			UPrimitiveComponent* PrimitiveComponent = Overlap.GetComponent();
+			if (IsSmokeProjectileObstacleComponent(PrimitiveComponent, SmokeVolume))
+			{
+				OutCandidates.AddUnique(PrimitiveComponent);
+			}
+		}
+	}
+
+	void QuerySmokeObstacleCandidates(
+		UWorld* World,
+		const ATimeThiefSmokeVolume* SmokeVolume,
+		const FTransform& SmokeTransform,
+		const FVector& BoundsExtent,
+		const FVector& QueryExtent,
+		const FCollisionQueryParams& QueryParams,
+		TArray<TWeakObjectPtr<UPrimitiveComponent>>& OutCandidates)
+	{
+		if (!World)
+		{
+			return;
+		}
+
+		TArray<FOverlapResult> Overlaps;
+		const FCollisionShape BoundsShape = FCollisionShape::MakeBox(BoundsExtent + QueryExtent);
+		World->OverlapMultiByChannel(
+			Overlaps,
+			SmokeTransform.GetLocation(),
+			SmokeTransform.GetRotation(),
+			ECC_Visibility,
+			BoundsShape,
+			QueryParams);
+		AddSmokeObstacleCandidates(Overlaps, SmokeVolume, OutCandidates);
+
+		FCollisionObjectQueryParams ObjectQueryParams;
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+
+		Overlaps.Reset();
+		World->OverlapMultiByObjectType(
+			Overlaps,
+			SmokeTransform.GetLocation(),
+			SmokeTransform.GetRotation(),
+			ObjectQueryParams,
+			BoundsShape,
+			QueryParams);
+		AddSmokeObstacleCandidates(Overlaps, SmokeVolume, OutCandidates);
+	}
+
+	bool AnyCandidateMayOverlap(const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates, const FBox& QueryBounds)
+	{
+		for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
+		{
+			const UPrimitiveComponent* PrimitiveComponent = Candidate.Get();
 			if (PrimitiveComponent && PrimitiveComponent->Bounds.GetBox().Intersect(QueryBounds))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool AnyCandidateOverlapsBox(
+		const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates,
+		const FBox& QueryBounds,
+		const FVector& BoxCenter,
+		const FQuat& BoxRotation,
+		const FCollisionShape& BoxShape)
+	{
+		for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
+		{
+			const UPrimitiveComponent* PrimitiveComponent = Candidate.Get();
+			if (PrimitiveComponent &&
+				PrimitiveComponent->Bounds.GetBox().Intersect(QueryBounds) &&
+				PrimitiveComponent->OverlapComponent(BoxCenter, BoxRotation, BoxShape))
 			{
 				return true;
 			}
@@ -700,25 +827,31 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeObstacleMaskQueryExtent(CellHalfExtent, TimeThiefSmokeParameterDefaults::ObstacleMaskInflation);
 	const FTransform SmokeTransform = GetActorTransform();
 
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeObstacleMask), false);
 	QueryParams.AddIgnoredActor(this);
-
-	TArray<FOverlapResult> StaticObstacleCandidates;
-	if (TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
+	if (AActor* OwnerActor = GetOwner())
 	{
-		World->OverlapMultiByObjectType(
-			StaticObstacleCandidates,
-			SmokeTransform.GetLocation(),
-			SmokeTransform.GetRotation(),
-			ObjectQueryParams,
-			FCollisionShape::MakeBox(BoundsExtent + ObstacleQueryExtent),
-			QueryParams);
+		QueryParams.AddIgnoredActor(OwnerActor);
+	}
+	if (APawn* InstigatorPawn = GetInstigator())
+	{
+		QueryParams.AddIgnoredActor(InstigatorPawn);
 	}
 
-	BuildActiveBoundsCells(NaturalBoundsExtent, SmokeTransform, ObjectQueryParams, QueryParams, StaticObstacleCandidates);
+	TArray<TWeakObjectPtr<UPrimitiveComponent>> StaticObstacleCandidates;
+	if (TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
+	{
+		TimeThiefSmokeVolume::QuerySmokeObstacleCandidates(
+			World,
+			this,
+			SmokeTransform,
+			BoundsExtent,
+			ObstacleQueryExtent,
+			QueryParams,
+			StaticObstacleCandidates);
+	}
+
+	BuildActiveBoundsCells(NaturalBoundsExtent, SmokeTransform, StaticObstacleCandidates);
 
 	for (int32 Z = 0; Z < Resolution; ++Z)
 	{
@@ -732,17 +865,18 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 					(static_cast<float>(Z) + 0.5f) / static_cast<float>(Resolution));
 				const FVector LocalPosition = ((Alpha * 2.0f) - FVector::OneVector) * BoundsExtent;
 				const FVector WorldPosition = SmokeTransform.TransformPosition(LocalPosition);
-				const bool bSourceOpen = TimeThiefSmokeVolume::IsInsideSourceClearRadius(LocalPosition);
+				const bool bSourceOpen = TimeThiefSmokeVolume::DoesBoxOverlapSourceClearRadius(LocalPosition, CellHalfExtent);
+				const FBox CellQueryBounds = TimeThiefSmokeVolume::MakeWorldAabbFromOrientedBox(WorldPosition, SmokeTransform.GetRotation(), ObstacleQueryExtent);
 				const bool bMayHitStaticObstacle = TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask &&
-					TimeThiefSmokeVolume::AnyCandidateMayOverlap(
+					TimeThiefSmokeVolume::AnyCandidateMayOverlap(StaticObstacleCandidates, CellQueryBounds);
+				const bool bBlocked = !bSourceOpen &&
+					bMayHitStaticObstacle &&
+					TimeThiefSmokeVolume::AnyCandidateOverlapsBox(
 						StaticObstacleCandidates,
-						TimeThiefSmokeVolume::MakeWorldAabbFromOrientedBox(WorldPosition, SmokeTransform.GetRotation(), ObstacleQueryExtent));
-				const bool bBlocked = !bSourceOpen && bMayHitStaticObstacle && World->OverlapAnyTestByObjectType(
-					WorldPosition,
-					SmokeTransform.GetRotation(),
-					ObjectQueryParams,
-					FCollisionShape::MakeBox(ObstacleQueryExtent),
-					QueryParams);
+						CellQueryBounds,
+						WorldPosition,
+						SmokeTransform.GetRotation(),
+						FCollisionShape::MakeBox(ObstacleQueryExtent));
 
 				const int32 Index = X + Y * Resolution + Z * Resolution * Resolution;
 				if (bBlocked)
@@ -771,9 +905,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleMask()
 void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
 	const FVector& BoundsExtent,
 	const FTransform& SmokeTransform,
-	FCollisionObjectQueryParams ObjectQueryParams,
-	FCollisionQueryParams QueryParams,
-	const TArray<FOverlapResult>& StaticObstacleCandidates)
+	const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates)
 {
 	if (!TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster)
 	{
@@ -795,12 +927,6 @@ void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
 		BoundsExtent.Z / static_cast<float>(ActiveBoundsCellGrid.Z));
 	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeBoundsCellObstacleQueryExtent(CellHalfExtent);
 
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
 	for (int32 Z = 0; Z < ActiveBoundsCellGrid.Z; ++Z)
 	{
 		for (int32 Y = 0; Y < ActiveBoundsCellGrid.Y; ++Y)
@@ -812,16 +938,18 @@ void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
 				const FVector WorldCenter = SmokeTransform.TransformPosition(LocalCenter);
 				const bool bSourceCell = TimeThiefSmokeVolume::DoesCellOverlapSourceClearRadius(Coord, BoundsExtent, BoundsClusterLocalOffset, ActiveBoundsCellGrid);
 				const bool bOutsideBounds = (LocalCenter.GetAbs() - BoundsExtent).GetMax() > 0.0f;
+				const FBox CellQueryBounds = TimeThiefSmokeVolume::MakeWorldAabbFromOrientedBox(WorldCenter, SmokeTransform.GetRotation(), ObstacleQueryExtent);
 				const bool bMayHitStaticObstacle = TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask &&
-					TimeThiefSmokeVolume::AnyCandidateMayOverlap(
-						StaticObstacleCandidates,
-						TimeThiefSmokeVolume::MakeWorldAabbFromOrientedBox(WorldCenter, SmokeTransform.GetRotation(), ObstacleQueryExtent));
-				const bool bBlocked = bOutsideBounds || (!bSourceCell && bMayHitStaticObstacle && World->OverlapAnyTestByObjectType(
-					WorldCenter,
-					SmokeTransform.GetRotation(),
-					ObjectQueryParams,
-					FCollisionShape::MakeBox(ObstacleQueryExtent),
-					QueryParams));
+					TimeThiefSmokeVolume::AnyCandidateMayOverlap(StaticObstacleCandidates, CellQueryBounds);
+				const bool bBlocked = bOutsideBounds ||
+					(!bSourceCell &&
+						bMayHitStaticObstacle &&
+						TimeThiefSmokeVolume::AnyCandidateOverlapsBox(
+							StaticObstacleCandidates,
+							CellQueryBounds,
+							WorldCenter,
+							SmokeTransform.GetRotation(),
+							FCollisionShape::MakeBox(ObstacleQueryExtent)));
 
 				if (bSourceCell)
 				{

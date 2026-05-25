@@ -337,9 +337,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
 	Density *= BoundaryDamping;
 	DisplacedDensity *= BoundaryDamping;
-	const float NaturalEscape = Density * (1.0 - NaturalBoundsMask);
-	Density -= NaturalEscape;
-	DisplacedDensity += NaturalEscape;
+	const float NaturalVentilation = saturate(1.0 - NaturalBoundsMask);
+	const float NaturalVentilationDissipation = NaturalVentilation * NaturalVentilation * (4.0 + max(EffectiveDissipation, 0.0) + max(VelocityDamping, 0.0));
+	const float NaturalVentilationDecay = exp2(-NaturalVentilationDissipation * DeltaSeconds);
+	const float DisplacedDominance = saturate(DisplacedDensity / max(Density + DisplacedDensity, 0.0001));
+	const float DisplacedVentilationDecay = lerp(NaturalVentilationDecay, 1.0, DisplacedDominance);
+	Density *= NaturalVentilationDecay;
+	DisplacedDensity *= DisplacedVentilationDecay;
 
 	const float NoiseA = TimeThiefSmokeHash13(WorldPosition * 0.006 + DeltaSeconds);
 	const float NoiseB = TimeThiefSmokeHash13(WorldPosition * 0.009 + 17.0);
@@ -352,13 +356,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	AdvectedVelocity = AdvectedVelocity * Damping + Swirl + BulletImpulse * BulletMasks.Detail;
 	AdvectedVelocity += SourceVelocityInjection * DeltaSeconds * 2.0;
 	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
-	const float NaturalContainment = 1.0 - NaturalBoundsMask;
-	if (NaturalContainment > 0.001)
-	{
-		const float3 NaturalNormal = TimeThiefSmokeNaturalBoundsNormal(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent);
-		const float OutwardSpeed = max(dot(AdvectedVelocity, NaturalNormal), 0.0);
-		AdvectedVelocity -= NaturalNormal * OutwardSpeed * saturate(NaturalContainment * 0.85);
-	}
+	const float VelocityVentilation = NaturalVentilation * (1.0 - DisplacedDominance * 0.75);
+	AdvectedVelocity *= exp2(-VelocityVentilation * VelocityVentilation * (4.0 + max(VelocityDamping, 0.0)) * DeltaSeconds);
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);

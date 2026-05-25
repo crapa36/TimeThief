@@ -41,7 +41,7 @@ float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)
 	return mul(float4(LocalPosition, 1.0), LocalToWorld).xyz;
 }
 
-[numthreads(1, 1, 1)]
+[numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
 	if (any(int3(DispatchThreadId) >= BrickGridResolution))
