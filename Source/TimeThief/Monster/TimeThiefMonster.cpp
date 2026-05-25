@@ -4,6 +4,7 @@
 #include "TimeThiefMonster.h"
 
 #include "TimeThiefMonsterAnimInstance.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Network/NetworkCombatSyncComponent.h"
 #include "Network/NetworkEntityComponent.h"
@@ -370,6 +371,34 @@ void ATimeThiefMonster::RemoteFire(const FRemoteAttackNotify& AttackNotify)
 			MuzzleLocation,
 			FireDirection.Rotation()
 		);
+	}
+	
+	// 사운드 재생
+	if (FireSound)
+	{
+		if (MonsterSoundAttenuation)
+		{
+			UGameplayStatics::SpawnSoundAtLocation(
+				this,
+				FireSound,
+				GetActorLocation(),
+				GetActorRotation(),
+				1.0f,
+				1.0f,
+				0.0f,
+				MonsterSoundAttenuation);
+		}
+		else
+		{
+			UGameplayStatics::SpawnSoundAtLocation(
+				this,
+				FireSound,
+				GetActorLocation(),
+				GetActorRotation(),
+				1.0f,
+				1.0f,
+				0.0f);
+		}
 	}
 
 	// Impact FX

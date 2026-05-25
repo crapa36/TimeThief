@@ -187,6 +187,14 @@ protected:
 	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
 	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Sound")
+	TObjectPtr<USoundBase> FireSound = nullptr;
+	// 사격 사운드
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Sound")
+	TObjectPtr<USoundAttenuation> MonsterSoundAttenuation = nullptr;
+	// 지역 사운드 감쇠 설정
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat|VFX", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UTimeThiefDissolveFXComponent> DissolveFXComponent = nullptr;
 	// 디졸브 이펙트 컴포넌트 (사망과 부활 시 디졸브 효과를 담당하는 컴포넌트)
