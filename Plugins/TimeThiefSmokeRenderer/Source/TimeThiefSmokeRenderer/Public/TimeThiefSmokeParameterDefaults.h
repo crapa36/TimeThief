@@ -23,7 +23,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 연막 페이드아웃 시간(초).
 	constexpr float SmokeFadeOutDuration = 5.0f;
 	// 초기 연막 밀도.
-	constexpr float InitialDensity = 1.5f;
+	constexpr float InitialDensity = 1.0f;
 
 	// 생성 플룸
 

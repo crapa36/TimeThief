@@ -23,10 +23,6 @@ struct FTimeThiefSmokeVortexParticleShaderData
 
 struct FTimeThiefSmokeCompositeDescriptorShaderData
 {
-	FVector4f LocalToWorld0 = FVector4f::Zero();
-	FVector4f LocalToWorld1 = FVector4f::Zero();
-	FVector4f LocalToWorld2 = FVector4f::Zero();
-	FVector4f LocalToWorld3 = FVector4f::Zero();
 	FVector4f WorldToLocal0 = FVector4f::Zero();
 	FVector4f WorldToLocal1 = FVector4f::Zero();
 	FVector4f WorldToLocal2 = FVector4f::Zero();
@@ -41,14 +37,13 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f GridResolution_UseSparse = FVector4f::Zero();
 	FVector4f BrickGridResolution_SmokeBrickSize = FVector4f::Zero();
 	FVector4f SparseAtlasBrickGridResolution_MaxActive = FVector4f::Zero();
-	FVector4f RenderSteps_Events = FVector4f::Zero();
+	FVector4f RenderSteps_EventsQuality = FVector4f::Zero();
 	FVector4f AnalyticEvents = FVector4f::Zero();
-	FVector4f RenderQuality = FVector4f::Zero();
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData
 {
-	FVector4f OffsetCount = FVector4f::Zero();
+	FVector2f OffsetCount = FVector2f::Zero();
 };
 
 class FTimeThiefSmokeInitCS : public FGlobalShader

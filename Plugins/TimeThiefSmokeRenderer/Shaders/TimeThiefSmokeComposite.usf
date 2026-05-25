@@ -208,6 +208,13 @@ float4 SampleFieldSet(float3 VolumeUVW)
 			BulletSinkTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0));
 }
 
+float SampleDensityField(float3 VolumeUVW)
+{
+	return bUseSparseAtlas != 0u
+		? SampleCompositeSparseFields(VolumeUVW).x
+		: DensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0) + DisplacedDensityTexture.SampleLevel(VolumeSampler, saturate(VolumeUVW), 0.0);
+}
+
 float ComputeInactiveBrickSkip(float3 VolumeUVW, float3 RayUVWDirection, float StepSize)
 {
 	const int3 BrickCoord = ComputeBrickCoord(VolumeUVW);
@@ -272,7 +279,7 @@ float ComputeSelfShadow(float3 VolumeUVW, float3 LightUVWStep, float LightSimula
 			continue;
 		}
 
-		const float ShadowDensity = max(SampleFieldSet(ShadowUVW).x, 0.0);
+		const float ShadowDensity = max(SampleDensityField(ShadowUVW), 0.0);
 		if (ShadowDensity <= 0.0001)
 		{
 			continue;
@@ -350,6 +357,9 @@ void MainPS(
 	const float StableRenderFilamentScale = min(max(RenderFilamentScale, 0.0), MaxResolvedBaseNoiseScale);
 	const float FineNoiseMultiplier = min(1.86, MaxResolvedFineNoiseScale / max(StableRenderNoiseScale, 0.0001));
 	const float FineFilamentMultiplier = min(1.9, MaxResolvedFineNoiseScale / max(StableRenderFilamentScale, 0.0001));
+	const float3 NaturalCoverage = saturate(max(NaturalBoundsExtent, 1.0) / max(BoundsExtent, 1.0));
+	const float NaturalCoverageMax = max(max(NaturalCoverage.x, NaturalCoverage.y), NaturalCoverage.z);
+	const float BoundaryFadeStart = clamp(max(0.90, NaturalCoverageMax + 0.04), 0.82, 0.96);
 	float Transmittance = 1.0;
 	float Scatter = 0.0;
 	float SmokeLightAccum = 0.0;
@@ -412,7 +422,7 @@ void MainPS(
 		const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromValue(Obstacle);
 		const float BoundaryNoise = (TimeThiefSmokeHash13(SampleWorld * 0.007) - 0.5) * 0.04;
 		const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-		const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+		const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 		const float AnalyticBulletOpen = AnalyticBulletEventCount > 0 ? ComputeAnalyticBulletOpen(SampleWorld) : 1.0;
 		const float DensityVisibility = ObstacleOpen * min(BulletMasks.Hard, AnalyticBulletOpen) * BoundaryMask * LifetimeAlpha;
 		float Density = RawDensity * DensityVisibility;
