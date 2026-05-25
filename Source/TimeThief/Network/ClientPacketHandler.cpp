@@ -738,15 +738,15 @@ bool Handle_N_ThrowGrenade(PacketSessionRef& session, const se::game::N_ThrowGre
 	if (!session)
 		return false;
 	
-	if (!pkt.has_entity_id())
+	if (!pkt.has_owner_id() || pkt.owner_id().value() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: pkt has no entity_id"));
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: pkt has no owner_id"));
 		return false;
 	}
 	
-	if (pkt.entity_id().value() == 0)
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: entity_id is 0"));
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_ThrowGrenade: pkt has no entity_id"));
 		return false;
 	}
 	

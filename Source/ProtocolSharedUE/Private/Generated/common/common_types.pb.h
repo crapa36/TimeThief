@@ -59,6 +59,9 @@ PROTOCOLSHAREDUE_API extern PlayerIdDefaultTypeInternal _PlayerId_default_instan
 class Result;
 struct ResultDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern ResultDefaultTypeInternal _Result_default_instance_;
+class Rotator;
+struct RotatorDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern RotatorDefaultTypeInternal _Rotator_default_instance_;
 class Transform;
 struct TransformDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern TransformDefaultTypeInternal _Transform_default_instance_;
@@ -75,6 +78,7 @@ template<> PROTOCOLSHAREDUE_API ::se::common::MovementState* Arena::CreateMaybeM
 template<> PROTOCOLSHAREDUE_API ::se::common::ObjectId* Arena::CreateMaybeMessage<::se::common::ObjectId>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::PlayerId* Arena::CreateMaybeMessage<::se::common::PlayerId>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Result* Arena::CreateMaybeMessage<::se::common::Result>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::common::Rotator* Arena::CreateMaybeMessage<::se::common::Rotator>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Transform* Arena::CreateMaybeMessage<::se::common::Transform>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Vector2* Arena::CreateMaybeMessage<::se::common::Vector2>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::common::Vector3* Arena::CreateMaybeMessage<::se::common::Vector3>(Arena*);
@@ -577,6 +581,176 @@ class PROTOCOLSHAREDUE_API Vector2 final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API Rotator final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.common.Rotator) */ {
+ public:
+  inline Rotator() : Rotator(nullptr) {}
+  ~Rotator() override;
+  explicit PROTOBUF_CONSTEXPR Rotator(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  Rotator(const Rotator& from);
+  Rotator(Rotator&& from) noexcept
+    : Rotator() {
+    *this = ::std::move(from);
+  }
+
+  inline Rotator& operator=(const Rotator& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Rotator& operator=(Rotator&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const Rotator& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Rotator* internal_default_instance() {
+    return reinterpret_cast<const Rotator*>(
+               &_Rotator_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    3;
+
+  friend void swap(Rotator& a, Rotator& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(Rotator* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(Rotator* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  Rotator* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<Rotator>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const Rotator& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const Rotator& from) {
+    Rotator::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(Rotator* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.common.Rotator";
+  }
+  protected:
+  explicit Rotator(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kYawFieldNumber = 1,
+    kPitchFieldNumber = 2,
+    kRollFieldNumber = 3,
+  };
+  // float yaw = 1;
+  void clear_yaw();
+  float yaw() const;
+  void set_yaw(float value);
+  private:
+  float _internal_yaw() const;
+  void _internal_set_yaw(float value);
+  public:
+
+  // float pitch = 2;
+  void clear_pitch();
+  float pitch() const;
+  void set_pitch(float value);
+  private:
+  float _internal_pitch() const;
+  void _internal_set_pitch(float value);
+  public:
+
+  // float roll = 3;
+  void clear_roll();
+  float roll() const;
+  void set_roll(float value);
+  private:
+  float _internal_roll() const;
+  void _internal_set_roll(float value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.common.Rotator)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    float yaw_;
+    float pitch_;
+    float roll_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_common_2fcommon_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API Transform final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.common.Transform) */ {
  public:
@@ -625,7 +799,7 @@ class PROTOCOLSHAREDUE_API Transform final :
                &_Transform_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    3;
+    4;
 
   friend void swap(Transform& a, Transform& b) {
     a.Swap(&b);
@@ -793,7 +967,7 @@ class PROTOCOLSHAREDUE_API MovementState final :
                &_MovementState_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    4;
+    5;
 
   friend void swap(MovementState& a, MovementState& b) {
     a.Swap(&b);
@@ -1014,7 +1188,7 @@ class PROTOCOLSHAREDUE_API PlayerId final :
                &_PlayerId_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    6;
 
   friend void swap(PlayerId& a, PlayerId& b) {
     a.Swap(&b);
@@ -1162,7 +1336,7 @@ class PROTOCOLSHAREDUE_API ObjectId final :
                &_ObjectId_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   friend void swap(ObjectId& a, ObjectId& b) {
     a.Swap(&b);
@@ -1447,6 +1621,70 @@ inline void Vector2::_internal_set_y(float value) {
 inline void Vector2::set_y(float value) {
   _internal_set_y(value);
   // @@protoc_insertion_point(field_set:se.common.Vector2.y)
+}
+
+// -------------------------------------------------------------------
+
+// Rotator
+
+// float yaw = 1;
+inline void Rotator::clear_yaw() {
+  _impl_.yaw_ = 0;
+}
+inline float Rotator::_internal_yaw() const {
+  return _impl_.yaw_;
+}
+inline float Rotator::yaw() const {
+  // @@protoc_insertion_point(field_get:se.common.Rotator.yaw)
+  return _internal_yaw();
+}
+inline void Rotator::_internal_set_yaw(float value) {
+  
+  _impl_.yaw_ = value;
+}
+inline void Rotator::set_yaw(float value) {
+  _internal_set_yaw(value);
+  // @@protoc_insertion_point(field_set:se.common.Rotator.yaw)
+}
+
+// float pitch = 2;
+inline void Rotator::clear_pitch() {
+  _impl_.pitch_ = 0;
+}
+inline float Rotator::_internal_pitch() const {
+  return _impl_.pitch_;
+}
+inline float Rotator::pitch() const {
+  // @@protoc_insertion_point(field_get:se.common.Rotator.pitch)
+  return _internal_pitch();
+}
+inline void Rotator::_internal_set_pitch(float value) {
+  
+  _impl_.pitch_ = value;
+}
+inline void Rotator::set_pitch(float value) {
+  _internal_set_pitch(value);
+  // @@protoc_insertion_point(field_set:se.common.Rotator.pitch)
+}
+
+// float roll = 3;
+inline void Rotator::clear_roll() {
+  _impl_.roll_ = 0;
+}
+inline float Rotator::_internal_roll() const {
+  return _impl_.roll_;
+}
+inline float Rotator::roll() const {
+  // @@protoc_insertion_point(field_get:se.common.Rotator.roll)
+  return _internal_roll();
+}
+inline void Rotator::_internal_set_roll(float value) {
+  
+  _impl_.roll_ = value;
+}
+inline void Rotator::set_roll(float value) {
+  _internal_set_roll(value);
+  // @@protoc_insertion_point(field_set:se.common.Rotator.roll)
 }
 
 // -------------------------------------------------------------------
@@ -1878,6 +2116,8 @@ inline void ObjectId::set_value(uint32_t value) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

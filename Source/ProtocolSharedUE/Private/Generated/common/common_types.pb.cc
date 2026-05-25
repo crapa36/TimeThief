@@ -65,6 +65,21 @@ struct Vector2DefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 Vector2DefaultTypeInternal _Vector2_default_instance_;
+PROTOBUF_CONSTEXPR Rotator::Rotator(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.yaw_)*/0
+  , /*decltype(_impl_.pitch_)*/0
+  , /*decltype(_impl_.roll_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct RotatorDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RotatorDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RotatorDefaultTypeInternal() {}
+  union {
+    Rotator _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RotatorDefaultTypeInternal _Rotator_default_instance_;
 PROTOBUF_CONSTEXPR Transform::Transform(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.position_)*/nullptr
@@ -125,7 +140,7 @@ struct ObjectIdDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ObjectIdDefaultTypeInternal _ObjectId_default_instance_;
 }  // namespace common
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_common_2fcommon_5ftypes_2eproto[7];
+static ::_pb::Metadata file_level_metadata_common_2fcommon_5ftypes_2eproto[8];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_common_2fcommon_5ftypes_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_common_2fcommon_5ftypes_2eproto = nullptr;
 
@@ -155,6 +170,15 @@ const uint32_t TableStruct_common_2fcommon_5ftypes_2eproto::offsets[] PROTOBUF_S
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::common::Vector2, _impl_.x_),
   PROTOBUF_FIELD_OFFSET(::se::common::Vector2, _impl_.y_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::common::Rotator, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::common::Rotator, _impl_.yaw_),
+  PROTOBUF_FIELD_OFFSET(::se::common::Rotator, _impl_.pitch_),
+  PROTOBUF_FIELD_OFFSET(::se::common::Rotator, _impl_.roll_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::common::Transform, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -194,16 +218,18 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 0, -1, -1, sizeof(::se::common::Result)},
   { 8, -1, -1, sizeof(::se::common::Vector3)},
   { 17, -1, -1, sizeof(::se::common::Vector2)},
-  { 25, -1, -1, sizeof(::se::common::Transform)},
-  { 33, -1, -1, sizeof(::se::common::MovementState)},
-  { 45, -1, -1, sizeof(::se::common::PlayerId)},
-  { 52, -1, -1, sizeof(::se::common::ObjectId)},
+  { 25, -1, -1, sizeof(::se::common::Rotator)},
+  { 34, -1, -1, sizeof(::se::common::Transform)},
+  { 42, -1, -1, sizeof(::se::common::MovementState)},
+  { 54, -1, -1, sizeof(::se::common::PlayerId)},
+  { 61, -1, -1, sizeof(::se::common::ObjectId)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
   &::se::common::_Result_default_instance_._instance,
   &::se::common::_Vector3_default_instance_._instance,
   &::se::common::_Vector2_default_instance_._instance,
+  &::se::common::_Rotator_default_instance_._instance,
   &::se::common::_Transform_default_instance_._instance,
   &::se::common::_MovementState_default_instance_._instance,
   &::se::common::_PlayerId_default_instance_._instance,
@@ -216,23 +242,24 @@ const char descriptor_table_protodef_common_2fcommon_5ftypes_2eproto[] PROTOBUF_
   "ode\030\001 \001(\0162\024.se.common.ErrorCode\022\017\n\007messa"
   "ge\030\002 \001(\t\"*\n\007Vector3\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001("
   "\002\022\t\n\001z\030\003 \001(\002\"\037\n\007Vector2\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030"
-  "\002 \001(\002\">\n\tTransform\022$\n\010position\030\001 \001(\0132\022.s"
-  "e.common.Vector3\022\013\n\003yaw\030\002 \001(\002\"\237\001\n\rMoveme"
-  "ntState\022$\n\010position\030\001 \001(\0132\022.se.common.Ve"
-  "ctor3\022\013\n\003yaw\030\002 \001(\002\022\017\n\007aim_yaw\030\003 \001(\002\022\r\n\005p"
-  "itch\030\004 \001(\002\022$\n\010velocity\030\005 \001(\0132\022.se.common"
-  ".Vector2\022\025\n\rmovement_mode\030\006 \001(\005\"\031\n\010Playe"
-  "rId\022\r\n\005value\030\001 \001(\004\"\031\n\010ObjectId\022\r\n\005value\030"
-  "\001 \001(\rb\006proto3"
+  "\002 \001(\002\"3\n\007Rotator\022\013\n\003yaw\030\001 \001(\002\022\r\n\005pitch\030\002"
+  " \001(\002\022\014\n\004roll\030\003 \001(\002\">\n\tTransform\022$\n\010posit"
+  "ion\030\001 \001(\0132\022.se.common.Vector3\022\013\n\003yaw\030\002 \001"
+  "(\002\"\237\001\n\rMovementState\022$\n\010position\030\001 \001(\0132\022"
+  ".se.common.Vector3\022\013\n\003yaw\030\002 \001(\002\022\017\n\007aim_y"
+  "aw\030\003 \001(\002\022\r\n\005pitch\030\004 \001(\002\022$\n\010velocity\030\005 \001("
+  "\0132\022.se.common.Vector2\022\025\n\rmovement_mode\030\006"
+  " \001(\005\"\031\n\010PlayerId\022\r\n\005value\030\001 \001(\004\"\031\n\010Objec"
+  "tId\022\r\n\005value\030\001 \001(\rb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_common_2fcommon_5ftypes_2eproto_deps[1] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
 };
 static ::_pbi::once_flag descriptor_table_common_2fcommon_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_common_2fcommon_5ftypes_2eproto = {
-    false, false, 493, descriptor_table_protodef_common_2fcommon_5ftypes_2eproto,
+    false, false, 546, descriptor_table_protodef_common_2fcommon_5ftypes_2eproto,
     "common/common_types.proto",
-    &descriptor_table_common_2fcommon_5ftypes_2eproto_once, descriptor_table_common_2fcommon_5ftypes_2eproto_deps, 1, 7,
+    &descriptor_table_common_2fcommon_5ftypes_2eproto_once, descriptor_table_common_2fcommon_5ftypes_2eproto_deps, 1, 8,
     schemas, file_default_instances, TableStruct_common_2fcommon_5ftypes_2eproto::offsets,
     file_level_metadata_common_2fcommon_5ftypes_2eproto, file_level_enum_descriptors_common_2fcommon_5ftypes_2eproto,
     file_level_service_descriptors_common_2fcommon_5ftypes_2eproto,
@@ -987,6 +1014,277 @@ void Vector2::InternalSwap(Vector2* other) {
 
 // ===================================================================
 
+class Rotator::_Internal {
+ public:
+};
+
+Rotator::Rotator(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.common.Rotator)
+}
+Rotator::Rotator(const Rotator& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  Rotator* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.yaw_){}
+    , decltype(_impl_.pitch_){}
+    , decltype(_impl_.roll_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.yaw_, &from._impl_.yaw_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.roll_) -
+    reinterpret_cast<char*>(&_impl_.yaw_)) + sizeof(_impl_.roll_));
+  // @@protoc_insertion_point(copy_constructor:se.common.Rotator)
+}
+
+inline void Rotator::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.yaw_){0}
+    , decltype(_impl_.pitch_){0}
+    , decltype(_impl_.roll_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+Rotator::~Rotator() {
+  // @@protoc_insertion_point(destructor:se.common.Rotator)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void Rotator::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void Rotator::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void Rotator::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.common.Rotator)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.yaw_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.roll_) -
+      reinterpret_cast<char*>(&_impl_.yaw_)) + sizeof(_impl_.roll_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* Rotator::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // float yaw = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 13)) {
+          _impl_.yaw_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float pitch = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
+          _impl_.pitch_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float roll = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
+          _impl_.roll_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* Rotator::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.common.Rotator)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // float yaw = 1;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = this->_internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(1, this->_internal_yaw(), target);
+  }
+
+  // float pitch = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_pitch = this->_internal_pitch();
+  uint32_t raw_pitch;
+  memcpy(&raw_pitch, &tmp_pitch, sizeof(tmp_pitch));
+  if (raw_pitch != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_pitch(), target);
+  }
+
+  // float roll = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_roll = this->_internal_roll();
+  uint32_t raw_roll;
+  memcpy(&raw_roll, &tmp_roll, sizeof(tmp_roll));
+  if (raw_roll != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_roll(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.common.Rotator)
+  return target;
+}
+
+size_t Rotator::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.common.Rotator)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // float yaw = 1;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = this->_internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float pitch = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_pitch = this->_internal_pitch();
+  uint32_t raw_pitch;
+  memcpy(&raw_pitch, &tmp_pitch, sizeof(tmp_pitch));
+  if (raw_pitch != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float roll = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_roll = this->_internal_roll();
+  uint32_t raw_roll;
+  memcpy(&raw_roll, &tmp_roll, sizeof(tmp_roll));
+  if (raw_roll != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData Rotator::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    Rotator::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*Rotator::GetClassData() const { return &_class_data_; }
+
+
+void Rotator::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<Rotator*>(&to_msg);
+  auto& from = static_cast<const Rotator&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.common.Rotator)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_yaw = from._internal_yaw();
+  uint32_t raw_yaw;
+  memcpy(&raw_yaw, &tmp_yaw, sizeof(tmp_yaw));
+  if (raw_yaw != 0) {
+    _this->_internal_set_yaw(from._internal_yaw());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_pitch = from._internal_pitch();
+  uint32_t raw_pitch;
+  memcpy(&raw_pitch, &tmp_pitch, sizeof(tmp_pitch));
+  if (raw_pitch != 0) {
+    _this->_internal_set_pitch(from._internal_pitch());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_roll = from._internal_roll();
+  uint32_t raw_roll;
+  memcpy(&raw_roll, &tmp_roll, sizeof(tmp_roll));
+  if (raw_roll != 0) {
+    _this->_internal_set_roll(from._internal_roll());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void Rotator::CopyFrom(const Rotator& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.common.Rotator)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool Rotator::IsInitialized() const {
+  return true;
+}
+
+void Rotator::InternalSwap(Rotator* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(Rotator, _impl_.roll_)
+      + sizeof(Rotator::_impl_.roll_)
+      - PROTOBUF_FIELD_OFFSET(Rotator, _impl_.yaw_)>(
+          reinterpret_cast<char*>(&_impl_.yaw_),
+          reinterpret_cast<char*>(&other->_impl_.yaw_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata Rotator::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_common_2fcommon_5ftypes_2eproto_getter, &descriptor_table_common_2fcommon_5ftypes_2eproto_once,
+      file_level_metadata_common_2fcommon_5ftypes_2eproto[3]);
+}
+
+// ===================================================================
+
 class Transform::_Internal {
  public:
   static const ::se::common::Vector3& position(const Transform* msg);
@@ -1218,7 +1516,7 @@ void Transform::InternalSwap(Transform* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata Transform::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_common_2fcommon_5ftypes_2eproto_getter, &descriptor_table_common_2fcommon_5ftypes_2eproto_once,
-      file_level_metadata_common_2fcommon_5ftypes_2eproto[3]);
+      file_level_metadata_common_2fcommon_5ftypes_2eproto[4]);
 }
 
 // ===================================================================
@@ -1595,7 +1893,7 @@ void MovementState::InternalSwap(MovementState* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata MovementState::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_common_2fcommon_5ftypes_2eproto_getter, &descriptor_table_common_2fcommon_5ftypes_2eproto_once,
-      file_level_metadata_common_2fcommon_5ftypes_2eproto[4]);
+      file_level_metadata_common_2fcommon_5ftypes_2eproto[5]);
 }
 
 // ===================================================================
@@ -1773,7 +2071,7 @@ void PlayerId::InternalSwap(PlayerId* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata PlayerId::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_common_2fcommon_5ftypes_2eproto_getter, &descriptor_table_common_2fcommon_5ftypes_2eproto_once,
-      file_level_metadata_common_2fcommon_5ftypes_2eproto[5]);
+      file_level_metadata_common_2fcommon_5ftypes_2eproto[6]);
 }
 
 // ===================================================================
@@ -1951,7 +2249,7 @@ void ObjectId::InternalSwap(ObjectId* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata ObjectId::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_common_2fcommon_5ftypes_2eproto_getter, &descriptor_table_common_2fcommon_5ftypes_2eproto_once,
-      file_level_metadata_common_2fcommon_5ftypes_2eproto[6]);
+      file_level_metadata_common_2fcommon_5ftypes_2eproto[7]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -1969,6 +2267,10 @@ Arena::CreateMaybeMessage< ::se::common::Vector3 >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::common::Vector2*
 Arena::CreateMaybeMessage< ::se::common::Vector2 >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::common::Vector2 >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::common::Rotator*
+Arena::CreateMaybeMessage< ::se::common::Rotator >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::common::Rotator >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::common::Transform*
 Arena::CreateMaybeMessage< ::se::common::Transform >(Arena* arena) {

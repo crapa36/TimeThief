@@ -41,6 +41,7 @@
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
+#include "Weapon/Components/ThrowableNetworkSyncComponent.h"
 #include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
@@ -280,6 +281,37 @@ void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
 	Request.set_item_id(Itemid);
 	
 	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Use Item Id=%u"), Itemid);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData)
+{
+	se::game::C_GrenadeMoveSyncReq Request;
+	auto* ObjectIdPtr = Request.mutable_entity_id();
+	ObjectIdPtr->set_value(MoveData.ObjectId);
+	auto* PositionPtr = Request.mutable_position();
+	PositionPtr->set_x(MoveData.Location.X);
+	PositionPtr->set_y(MoveData.Location.Y);
+	PositionPtr->set_z(MoveData.Location.Z);
+	auto* RotationPtr = Request.mutable_rotation();
+	RotationPtr->set_yaw(MoveData.Rotation.Yaw);
+	RotationPtr->set_pitch(MoveData.Rotation.Pitch);
+	RotationPtr->set_roll(MoveData.Rotation.Roll);
+	auto* VelocityPtr = Request.mutable_velocity();
+	VelocityPtr->set_x(MoveData.Velocity.X);
+	VelocityPtr->set_y(MoveData.Velocity.Y);
+	VelocityPtr->set_z(MoveData.Velocity.Z);
+
+	// 빈번한 패킷이므로 로그 미출력
+	// UE_LOG(LogTemp, Log, TEXT("[GrenadeMoveSync] ObjectId=%u Pos=(%.1f, %.1f, %.1f) Vel=(%.2f, %.2f, %.2f)"),
+	// 	MoveData.ObjectId,
+	// 	MoveData.Location.X,
+	// 	MoveData.Location.Y,
+	// 	MoveData.Location.Z,
+	// 	MoveData.Velocity.X,
+	// 	MoveData.Velocity.Y,
+	// 	MoveData.Velocity.Z);
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }

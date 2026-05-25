@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ItemCommons.h"
+#include "Actors/NetworkActor.h"
 #include "Weapon/TimeThiefThrowableTypes.h"
 #include "TimeThiefThrowableProjectile.generated.h"
 
@@ -10,9 +11,10 @@ class APawn;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
+class UThrowableNetworkSyncComponent;
 
 UCLASS()
-class TIMETHIEF_API ATimeThiefThrowableProjectile : public AActor
+class TIMETHIEF_API ATimeThiefThrowableProjectile : public ANetworkActor
 {
 	GENERATED_BODY()
 
@@ -46,6 +48,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Throwable")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
+	
+	// Network용 Projectile Movement Sync 컴포넌트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="TimeThief|Throwable|Network")
+	TObjectPtr<UThrowableNetworkSyncComponent> ThrowableNetworkSyncComponent;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Runtime")
 	EItemID ThrowableItemID = EItemID::SIZE;

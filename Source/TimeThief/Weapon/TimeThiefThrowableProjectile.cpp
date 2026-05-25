@@ -12,6 +12,7 @@
 #include "Particles/ParticleSystem.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
+#include "Components/ThrowableNetworkSyncComponent.h"
 
 ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
 {
@@ -39,6 +40,8 @@ ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
 	ProjectileMovementComponent->Friction = ActiveSettings.Friction;
 	ProjectileMovementComponent->bAutoActivate = false;
 	ProjectileMovementComponent->OnProjectileBounce.AddDynamic(this, &ATimeThiefThrowableProjectile::OnProjectileBounce);
+	
+	ThrowableNetworkSyncComponent = CreateDefaultSubobject<UThrowableNetworkSyncComponent>(TEXT("ThrowableNetworkSyncComponent"));
 }
 
 void ATimeThiefThrowableProjectile::InitializeThrowable(EItemID InItemID, AActor* InOwnerActor, APawn* InInstigatorPawn)

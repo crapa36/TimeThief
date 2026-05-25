@@ -6069,12 +6069,31 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kEntityIdFieldNumber = 1,
-    kStartPositionFieldNumber = 3,
-    kDirectionFieldNumber = 4,
-    kGrenadeTypeFieldNumber = 2,
+    kOwnerIdFieldNumber = 1,
+    kEntityIdFieldNumber = 2,
+    kStartPositionFieldNumber = 4,
+    kDirectionFieldNumber = 5,
+    kGrenadeTypeFieldNumber = 3,
   };
-  // .se.common.ObjectId entity_id = 1;
+  // .se.common.ObjectId owner_id = 1;
+  bool has_owner_id() const;
+  private:
+  bool _internal_has_owner_id() const;
+  public:
+  void clear_owner_id();
+  const ::se::common::ObjectId& owner_id() const;
+  PROTOBUF_NODISCARD ::se::common::ObjectId* release_owner_id();
+  ::se::common::ObjectId* mutable_owner_id();
+  void set_allocated_owner_id(::se::common::ObjectId* owner_id);
+  private:
+  const ::se::common::ObjectId& _internal_owner_id() const;
+  ::se::common::ObjectId* _internal_mutable_owner_id();
+  public:
+  void unsafe_arena_set_allocated_owner_id(
+      ::se::common::ObjectId* owner_id);
+  ::se::common::ObjectId* unsafe_arena_release_owner_id();
+
+  // .se.common.ObjectId entity_id = 2;
   bool has_entity_id() const;
   private:
   bool _internal_has_entity_id() const;
@@ -6092,7 +6111,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
       ::se::common::ObjectId* entity_id);
   ::se::common::ObjectId* unsafe_arena_release_entity_id();
 
-  // .se.common.Vector3 start_position = 3;
+  // .se.common.Vector3 start_position = 4;
   bool has_start_position() const;
   private:
   bool _internal_has_start_position() const;
@@ -6110,7 +6129,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
       ::se::common::Vector3* start_position);
   ::se::common::Vector3* unsafe_arena_release_start_position();
 
-  // .se.common.Vector3 direction = 4;
+  // .se.common.Vector3 direction = 5;
   bool has_direction() const;
   private:
   bool _internal_has_direction() const;
@@ -6128,7 +6147,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
       ::se::common::Vector3* direction);
   ::se::common::Vector3* unsafe_arena_release_direction();
 
-  // uint32 grenade_type = 2;
+  // uint32 grenade_type = 3;
   void clear_grenade_type();
   uint32_t grenade_type() const;
   void set_grenade_type(uint32_t value);
@@ -6145,6 +6164,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
+    ::se::common::ObjectId* owner_id_;
     ::se::common::ObjectId* entity_id_;
     ::se::common::Vector3* start_position_;
     ::se::common::Vector3* direction_;
@@ -6279,7 +6299,8 @@ class PROTOCOLSHAREDUE_API C_GrenadeMoveSyncReq final :
   enum : int {
     kEntityIdFieldNumber = 1,
     kPositionFieldNumber = 2,
-    kVelocityFieldNumber = 3,
+    kRotationFieldNumber = 3,
+    kVelocityFieldNumber = 4,
   };
   // .se.common.ObjectId entity_id = 1;
   bool has_entity_id() const;
@@ -6317,7 +6338,25 @@ class PROTOCOLSHAREDUE_API C_GrenadeMoveSyncReq final :
       ::se::common::Vector3* position);
   ::se::common::Vector3* unsafe_arena_release_position();
 
-  // .se.common.Vector3 velocity = 3;
+  // .se.common.Rotator rotation = 3;
+  bool has_rotation() const;
+  private:
+  bool _internal_has_rotation() const;
+  public:
+  void clear_rotation();
+  const ::se::common::Rotator& rotation() const;
+  PROTOBUF_NODISCARD ::se::common::Rotator* release_rotation();
+  ::se::common::Rotator* mutable_rotation();
+  void set_allocated_rotation(::se::common::Rotator* rotation);
+  private:
+  const ::se::common::Rotator& _internal_rotation() const;
+  ::se::common::Rotator* _internal_mutable_rotation();
+  public:
+  void unsafe_arena_set_allocated_rotation(
+      ::se::common::Rotator* rotation);
+  ::se::common::Rotator* unsafe_arena_release_rotation();
+
+  // .se.common.Vector3 velocity = 4;
   bool has_velocity() const;
   private:
   bool _internal_has_velocity() const;
@@ -6345,6 +6384,7 @@ class PROTOCOLSHAREDUE_API C_GrenadeMoveSyncReq final :
   struct Impl_ {
     ::se::common::ObjectId* entity_id_;
     ::se::common::Vector3* position_;
+    ::se::common::Rotator* rotation_;
     ::se::common::Vector3* velocity_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -6476,7 +6516,8 @@ class PROTOCOLSHAREDUE_API N_GrenadeMoveSync final :
   enum : int {
     kEntityIdFieldNumber = 1,
     kPositionFieldNumber = 2,
-    kVelocityFieldNumber = 3,
+    kRotationFieldNumber = 3,
+    kVelocityFieldNumber = 4,
   };
   // .se.common.ObjectId entity_id = 1;
   bool has_entity_id() const;
@@ -6514,7 +6555,25 @@ class PROTOCOLSHAREDUE_API N_GrenadeMoveSync final :
       ::se::common::Vector3* position);
   ::se::common::Vector3* unsafe_arena_release_position();
 
-  // .se.common.Vector3 velocity = 3;
+  // .se.common.Rotator rotation = 3;
+  bool has_rotation() const;
+  private:
+  bool _internal_has_rotation() const;
+  public:
+  void clear_rotation();
+  const ::se::common::Rotator& rotation() const;
+  PROTOBUF_NODISCARD ::se::common::Rotator* release_rotation();
+  ::se::common::Rotator* mutable_rotation();
+  void set_allocated_rotation(::se::common::Rotator* rotation);
+  private:
+  const ::se::common::Rotator& _internal_rotation() const;
+  ::se::common::Rotator* _internal_mutable_rotation();
+  public:
+  void unsafe_arena_set_allocated_rotation(
+      ::se::common::Rotator* rotation);
+  ::se::common::Rotator* unsafe_arena_release_rotation();
+
+  // .se.common.Vector3 velocity = 4;
   bool has_velocity() const;
   private:
   bool _internal_has_velocity() const;
@@ -6542,6 +6601,7 @@ class PROTOCOLSHAREDUE_API N_GrenadeMoveSync final :
   struct Impl_ {
     ::se::common::ObjectId* entity_id_;
     ::se::common::Vector3* position_;
+    ::se::common::Rotator* rotation_;
     ::se::common::Vector3* velocity_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
@@ -16978,7 +17038,92 @@ inline void C_ThrowGrenadeReq::set_allocated_direction(::se::common::Vector3* di
 
 // N_ThrowGrenade
 
-// .se.common.ObjectId entity_id = 1;
+// .se.common.ObjectId owner_id = 1;
+inline bool N_ThrowGrenade::_internal_has_owner_id() const {
+  return this != internal_default_instance() && _impl_.owner_id_ != nullptr;
+}
+inline bool N_ThrowGrenade::has_owner_id() const {
+  return _internal_has_owner_id();
+}
+inline const ::se::common::ObjectId& N_ThrowGrenade::_internal_owner_id() const {
+  const ::se::common::ObjectId* p = _impl_.owner_id_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::ObjectId&>(
+      ::se::common::_ObjectId_default_instance_);
+}
+inline const ::se::common::ObjectId& N_ThrowGrenade::owner_id() const {
+  // @@protoc_insertion_point(field_get:se.game.N_ThrowGrenade.owner_id)
+  return _internal_owner_id();
+}
+inline void N_ThrowGrenade::unsafe_arena_set_allocated_owner_id(
+    ::se::common::ObjectId* owner_id) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.owner_id_);
+  }
+  _impl_.owner_id_ = owner_id;
+  if (owner_id) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_ThrowGrenade.owner_id)
+}
+inline ::se::common::ObjectId* N_ThrowGrenade::release_owner_id() {
+  
+  ::se::common::ObjectId* temp = _impl_.owner_id_;
+  _impl_.owner_id_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::common::ObjectId* N_ThrowGrenade::unsafe_arena_release_owner_id() {
+  // @@protoc_insertion_point(field_release:se.game.N_ThrowGrenade.owner_id)
+  
+  ::se::common::ObjectId* temp = _impl_.owner_id_;
+  _impl_.owner_id_ = nullptr;
+  return temp;
+}
+inline ::se::common::ObjectId* N_ThrowGrenade::_internal_mutable_owner_id() {
+  
+  if (_impl_.owner_id_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::ObjectId>(GetArenaForAllocation());
+    _impl_.owner_id_ = p;
+  }
+  return _impl_.owner_id_;
+}
+inline ::se::common::ObjectId* N_ThrowGrenade::mutable_owner_id() {
+  ::se::common::ObjectId* _msg = _internal_mutable_owner_id();
+  // @@protoc_insertion_point(field_mutable:se.game.N_ThrowGrenade.owner_id)
+  return _msg;
+}
+inline void N_ThrowGrenade::set_allocated_owner_id(::se::common::ObjectId* owner_id) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.owner_id_);
+  }
+  if (owner_id) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(owner_id));
+    if (message_arena != submessage_arena) {
+      owner_id = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, owner_id, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.owner_id_ = owner_id;
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_ThrowGrenade.owner_id)
+}
+
+// .se.common.ObjectId entity_id = 2;
 inline bool N_ThrowGrenade::_internal_has_entity_id() const {
   return this != internal_default_instance() && _impl_.entity_id_ != nullptr;
 }
@@ -17063,7 +17208,7 @@ inline void N_ThrowGrenade::set_allocated_entity_id(::se::common::ObjectId* enti
   // @@protoc_insertion_point(field_set_allocated:se.game.N_ThrowGrenade.entity_id)
 }
 
-// uint32 grenade_type = 2;
+// uint32 grenade_type = 3;
 inline void N_ThrowGrenade::clear_grenade_type() {
   _impl_.grenade_type_ = 0u;
 }
@@ -17083,7 +17228,7 @@ inline void N_ThrowGrenade::set_grenade_type(uint32_t value) {
   // @@protoc_insertion_point(field_set:se.game.N_ThrowGrenade.grenade_type)
 }
 
-// .se.common.Vector3 start_position = 3;
+// .se.common.Vector3 start_position = 4;
 inline bool N_ThrowGrenade::_internal_has_start_position() const {
   return this != internal_default_instance() && _impl_.start_position_ != nullptr;
 }
@@ -17168,7 +17313,7 @@ inline void N_ThrowGrenade::set_allocated_start_position(::se::common::Vector3* 
   // @@protoc_insertion_point(field_set_allocated:se.game.N_ThrowGrenade.start_position)
 }
 
-// .se.common.Vector3 direction = 4;
+// .se.common.Vector3 direction = 5;
 inline bool N_ThrowGrenade::_internal_has_direction() const {
   return this != internal_default_instance() && _impl_.direction_ != nullptr;
 }
@@ -17427,7 +17572,92 @@ inline void C_GrenadeMoveSyncReq::set_allocated_position(::se::common::Vector3* 
   // @@protoc_insertion_point(field_set_allocated:se.game.C_GrenadeMoveSyncReq.position)
 }
 
-// .se.common.Vector3 velocity = 3;
+// .se.common.Rotator rotation = 3;
+inline bool C_GrenadeMoveSyncReq::_internal_has_rotation() const {
+  return this != internal_default_instance() && _impl_.rotation_ != nullptr;
+}
+inline bool C_GrenadeMoveSyncReq::has_rotation() const {
+  return _internal_has_rotation();
+}
+inline const ::se::common::Rotator& C_GrenadeMoveSyncReq::_internal_rotation() const {
+  const ::se::common::Rotator* p = _impl_.rotation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::Rotator&>(
+      ::se::common::_Rotator_default_instance_);
+}
+inline const ::se::common::Rotator& C_GrenadeMoveSyncReq::rotation() const {
+  // @@protoc_insertion_point(field_get:se.game.C_GrenadeMoveSyncReq.rotation)
+  return _internal_rotation();
+}
+inline void C_GrenadeMoveSyncReq::unsafe_arena_set_allocated_rotation(
+    ::se::common::Rotator* rotation) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.rotation_);
+  }
+  _impl_.rotation_ = rotation;
+  if (rotation) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.C_GrenadeMoveSyncReq.rotation)
+}
+inline ::se::common::Rotator* C_GrenadeMoveSyncReq::release_rotation() {
+  
+  ::se::common::Rotator* temp = _impl_.rotation_;
+  _impl_.rotation_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::common::Rotator* C_GrenadeMoveSyncReq::unsafe_arena_release_rotation() {
+  // @@protoc_insertion_point(field_release:se.game.C_GrenadeMoveSyncReq.rotation)
+  
+  ::se::common::Rotator* temp = _impl_.rotation_;
+  _impl_.rotation_ = nullptr;
+  return temp;
+}
+inline ::se::common::Rotator* C_GrenadeMoveSyncReq::_internal_mutable_rotation() {
+  
+  if (_impl_.rotation_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::Rotator>(GetArenaForAllocation());
+    _impl_.rotation_ = p;
+  }
+  return _impl_.rotation_;
+}
+inline ::se::common::Rotator* C_GrenadeMoveSyncReq::mutable_rotation() {
+  ::se::common::Rotator* _msg = _internal_mutable_rotation();
+  // @@protoc_insertion_point(field_mutable:se.game.C_GrenadeMoveSyncReq.rotation)
+  return _msg;
+}
+inline void C_GrenadeMoveSyncReq::set_allocated_rotation(::se::common::Rotator* rotation) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.rotation_);
+  }
+  if (rotation) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(rotation));
+    if (message_arena != submessage_arena) {
+      rotation = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, rotation, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.rotation_ = rotation;
+  // @@protoc_insertion_point(field_set_allocated:se.game.C_GrenadeMoveSyncReq.rotation)
+}
+
+// .se.common.Vector3 velocity = 4;
 inline bool C_GrenadeMoveSyncReq::_internal_has_velocity() const {
   return this != internal_default_instance() && _impl_.velocity_ != nullptr;
 }
@@ -17686,7 +17916,92 @@ inline void N_GrenadeMoveSync::set_allocated_position(::se::common::Vector3* pos
   // @@protoc_insertion_point(field_set_allocated:se.game.N_GrenadeMoveSync.position)
 }
 
-// .se.common.Vector3 velocity = 3;
+// .se.common.Rotator rotation = 3;
+inline bool N_GrenadeMoveSync::_internal_has_rotation() const {
+  return this != internal_default_instance() && _impl_.rotation_ != nullptr;
+}
+inline bool N_GrenadeMoveSync::has_rotation() const {
+  return _internal_has_rotation();
+}
+inline const ::se::common::Rotator& N_GrenadeMoveSync::_internal_rotation() const {
+  const ::se::common::Rotator* p = _impl_.rotation_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::Rotator&>(
+      ::se::common::_Rotator_default_instance_);
+}
+inline const ::se::common::Rotator& N_GrenadeMoveSync::rotation() const {
+  // @@protoc_insertion_point(field_get:se.game.N_GrenadeMoveSync.rotation)
+  return _internal_rotation();
+}
+inline void N_GrenadeMoveSync::unsafe_arena_set_allocated_rotation(
+    ::se::common::Rotator* rotation) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.rotation_);
+  }
+  _impl_.rotation_ = rotation;
+  if (rotation) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_GrenadeMoveSync.rotation)
+}
+inline ::se::common::Rotator* N_GrenadeMoveSync::release_rotation() {
+  
+  ::se::common::Rotator* temp = _impl_.rotation_;
+  _impl_.rotation_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::common::Rotator* N_GrenadeMoveSync::unsafe_arena_release_rotation() {
+  // @@protoc_insertion_point(field_release:se.game.N_GrenadeMoveSync.rotation)
+  
+  ::se::common::Rotator* temp = _impl_.rotation_;
+  _impl_.rotation_ = nullptr;
+  return temp;
+}
+inline ::se::common::Rotator* N_GrenadeMoveSync::_internal_mutable_rotation() {
+  
+  if (_impl_.rotation_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::Rotator>(GetArenaForAllocation());
+    _impl_.rotation_ = p;
+  }
+  return _impl_.rotation_;
+}
+inline ::se::common::Rotator* N_GrenadeMoveSync::mutable_rotation() {
+  ::se::common::Rotator* _msg = _internal_mutable_rotation();
+  // @@protoc_insertion_point(field_mutable:se.game.N_GrenadeMoveSync.rotation)
+  return _msg;
+}
+inline void N_GrenadeMoveSync::set_allocated_rotation(::se::common::Rotator* rotation) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.rotation_);
+  }
+  if (rotation) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(rotation));
+    if (message_arena != submessage_arena) {
+      rotation = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, rotation, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.rotation_ = rotation;
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_GrenadeMoveSync.rotation)
+}
+
+// .se.common.Vector3 velocity = 4;
 inline bool N_GrenadeMoveSync::_internal_has_velocity() const {
   return this != internal_default_instance() && _impl_.velocity_ != nullptr;
 }

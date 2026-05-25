@@ -488,7 +488,8 @@ struct C_ThrowGrenadeReqDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_ThrowGrenadeReqDefaultTypeInternal _C_ThrowGrenadeReq_default_instance_;
 PROTOBUF_CONSTEXPR N_ThrowGrenade::N_ThrowGrenade(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.entity_id_)*/nullptr
+    /*decltype(_impl_.owner_id_)*/nullptr
+  , /*decltype(_impl_.entity_id_)*/nullptr
   , /*decltype(_impl_.start_position_)*/nullptr
   , /*decltype(_impl_.direction_)*/nullptr
   , /*decltype(_impl_.grenade_type_)*/0u
@@ -506,6 +507,7 @@ PROTOBUF_CONSTEXPR C_GrenadeMoveSyncReq::C_GrenadeMoveSyncReq(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
   , /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.rotation_)*/nullptr
   , /*decltype(_impl_.velocity_)*/nullptr
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct C_GrenadeMoveSyncReqDefaultTypeInternal {
@@ -521,6 +523,7 @@ PROTOBUF_CONSTEXPR N_GrenadeMoveSync::N_GrenadeMoveSync(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
   , /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.rotation_)*/nullptr
   , /*decltype(_impl_.velocity_)*/nullptr
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct N_GrenadeMoveSyncDefaultTypeInternal {
@@ -1377,6 +1380,7 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
   ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.owner_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.entity_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.grenade_type_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_ThrowGrenade, _impl_.start_position_),
@@ -1389,6 +1393,7 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::C_GrenadeMoveSyncReq, _impl_.entity_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::C_GrenadeMoveSyncReq, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::game::C_GrenadeMoveSyncReq, _impl_.rotation_),
   PROTOBUF_FIELD_OFFSET(::se::game::C_GrenadeMoveSyncReq, _impl_.velocity_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_GrenadeMoveSync, _internal_metadata_),
@@ -1398,6 +1403,7 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::N_GrenadeMoveSync, _impl_.entity_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_GrenadeMoveSync, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_GrenadeMoveSync, _impl_.rotation_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_GrenadeMoveSync, _impl_.velocity_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::C_GrenadeExplosionReq, _internal_metadata_),
@@ -1758,48 +1764,48 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 249, -1, -1, sizeof(::se::game::N_MonsterFire)},
   { 260, -1, -1, sizeof(::se::game::C_ThrowGrenadeReq)},
   { 269, -1, -1, sizeof(::se::game::N_ThrowGrenade)},
-  { 279, -1, -1, sizeof(::se::game::C_GrenadeMoveSyncReq)},
-  { 288, -1, -1, sizeof(::se::game::N_GrenadeMoveSync)},
-  { 297, -1, -1, sizeof(::se::game::C_GrenadeExplosionReq)},
-  { 305, -1, -1, sizeof(::se::game::N_GrenadeExplosion)},
-  { 313, -1, -1, sizeof(::se::game::N_ProjectileExplosion)},
-  { 322, -1, -1, sizeof(::se::game::N_WeaponStatChanged)},
-  { 330, -1, -1, sizeof(::se::game::N_WeaponStatSnapshot)},
-  { 337, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
-  { 344, -1, -1, sizeof(::se::game::N_UseAbility)},
-  { 352, -1, -1, sizeof(::se::game::N_EntityHit)},
-  { 361, -1, -1, sizeof(::se::game::N_KillPlayer)},
-  { 369, -1, -1, sizeof(::se::game::C_UseItemReq)},
-  { 376, -1, -1, sizeof(::se::game::S_UseItemRes)},
-  { 385, -1, -1, sizeof(::se::game::N_UseItem)},
-  { 393, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
-  { 400, -1, -1, sizeof(::se::game::N_ChestInteracted)},
-  { 408, -1, -1, sizeof(::se::game::C_PickupItemReq)},
-  { 415, -1, -1, sizeof(::se::game::N_PickupItem)},
-  { 423, -1, -1, sizeof(::se::game::C_EquipItemReq)},
-  { 430, -1, -1, sizeof(::se::game::S_EquipItemRes)},
-  { 439, -1, -1, sizeof(::se::game::N_EquipItem)},
-  { 447, -1, -1, sizeof(::se::game::C_UseStoreReq)},
-  { 455, -1, -1, sizeof(::se::game::S_UseStoreRes)},
-  { 466, -1, -1, sizeof(::se::game::N_ItemGained)},
-  { 475, -1, -1, sizeof(::se::game::N_ItemLost)},
-  { 484, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
-  { 491, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
-  { 498, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
-  { 507, -1, -1, sizeof(::se::game::N_HealthChanged)},
-  { 516, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
-  { 525, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
-  { 533, -1, -1, sizeof(::se::game::N_SpeedChanged)},
-  { 540, -1, -1, sizeof(::se::game::N_TimePointChanged)},
-  { 548, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
-  { 555, -1, -1, sizeof(::se::game::N_SkillUnlock)},
-  { 562, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
-  { 570, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
-  { 580, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
-  { 587, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 594, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 602, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 609, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 280, -1, -1, sizeof(::se::game::C_GrenadeMoveSyncReq)},
+  { 290, -1, -1, sizeof(::se::game::N_GrenadeMoveSync)},
+  { 300, -1, -1, sizeof(::se::game::C_GrenadeExplosionReq)},
+  { 308, -1, -1, sizeof(::se::game::N_GrenadeExplosion)},
+  { 316, -1, -1, sizeof(::se::game::N_ProjectileExplosion)},
+  { 325, -1, -1, sizeof(::se::game::N_WeaponStatChanged)},
+  { 333, -1, -1, sizeof(::se::game::N_WeaponStatSnapshot)},
+  { 340, -1, -1, sizeof(::se::game::C_UseAbilityReq)},
+  { 347, -1, -1, sizeof(::se::game::N_UseAbility)},
+  { 355, -1, -1, sizeof(::se::game::N_EntityHit)},
+  { 364, -1, -1, sizeof(::se::game::N_KillPlayer)},
+  { 372, -1, -1, sizeof(::se::game::C_UseItemReq)},
+  { 379, -1, -1, sizeof(::se::game::S_UseItemRes)},
+  { 388, -1, -1, sizeof(::se::game::N_UseItem)},
+  { 396, -1, -1, sizeof(::se::game::C_ChestInteractReq)},
+  { 403, -1, -1, sizeof(::se::game::N_ChestInteracted)},
+  { 411, -1, -1, sizeof(::se::game::C_PickupItemReq)},
+  { 418, -1, -1, sizeof(::se::game::N_PickupItem)},
+  { 426, -1, -1, sizeof(::se::game::C_EquipItemReq)},
+  { 433, -1, -1, sizeof(::se::game::S_EquipItemRes)},
+  { 442, -1, -1, sizeof(::se::game::N_EquipItem)},
+  { 450, -1, -1, sizeof(::se::game::C_UseStoreReq)},
+  { 458, -1, -1, sizeof(::se::game::S_UseStoreRes)},
+  { 469, -1, -1, sizeof(::se::game::N_ItemGained)},
+  { 478, -1, -1, sizeof(::se::game::N_ItemLost)},
+  { 487, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
+  { 494, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
+  { 501, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
+  { 510, -1, -1, sizeof(::se::game::N_HealthChanged)},
+  { 519, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
+  { 528, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
+  { 536, -1, -1, sizeof(::se::game::N_SpeedChanged)},
+  { 543, -1, -1, sizeof(::se::game::N_TimePointChanged)},
+  { 551, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
+  { 558, -1, -1, sizeof(::se::game::N_SkillUnlock)},
+  { 565, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
+  { 573, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
+  { 583, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
+  { 590, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 597, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 605, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 612, -1, -1, sizeof(::se::game::N_TimeStormChange)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1966,112 +1972,115 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "q\022\024\n\014grenade_type\030\001 \001(\r\022*\n\016start_positio"
   "n\030\002 \001(\0132\022.se.common.Vector3\022%\n\tdirection"
   "\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\230 \220\265\030\001\230\265\030"
-  "\004\"\260\001\n\016N_ThrowGrenade\022&\n\tentity_id\030\001 \001(\0132"
-  "\023.se.common.ObjectId\022\024\n\014grenade_type\030\002 \001"
-  "(\r\022*\n\016start_position\030\003 \001(\0132\022.se.common.V"
-  "ector3\022%\n\tdirection\030\004 \001(\0132\022.se.common.Ve"
-  "ctor3:\r\210\265\030\231 \220\265\030\002\230\265\030\004\"\231\001\n\024C_GrenadeMoveSy"
-  "ncReq\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obj"
-  "ectId\022$\n\010position\030\002 \001(\0132\022.se.common.Vect"
-  "or3\022$\n\010velocity\030\003 \001(\0132\022.se.common.Vector"
-  "3:\r\210\265\030\232 \220\265\030\001\230\265\030\004\"\226\001\n\021N_GrenadeMoveSync\022&"
-  "\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022$"
-  "\n\010position\030\002 \001(\0132\022.se.common.Vector3\022$\n\010"
-  "velocity\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\233"
-  " \220\265\030\002\230\265\030\004\"t\n\025C_GrenadeExplosionReq\022&\n\ten"
-  "tity_id\030\001 \001(\0132\023.se.common.ObjectId\022$\n\010po"
-  "sition\030\002 \001(\0132\022.se.common.Vector3:\r\210\265\030\234 \220"
-  "\265\030\001\230\265\030\004\"q\n\022N_GrenadeExplosion\022&\n\tentity_"
+  "\004\"\327\001\n\016N_ThrowGrenade\022%\n\010owner_id\030\001 \001(\0132\023"
+  ".se.common.ObjectId\022&\n\tentity_id\030\002 \001(\0132\023"
+  ".se.common.ObjectId\022\024\n\014grenade_type\030\003 \001("
+  "\r\022*\n\016start_position\030\004 \001(\0132\022.se.common.Ve"
+  "ctor3\022%\n\tdirection\030\005 \001(\0132\022.se.common.Vec"
+  "tor3:\r\210\265\030\231 \220\265\030\002\230\265\030\004\"\277\001\n\024C_GrenadeMoveSyn"
+  "cReq\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obje"
+  "ctId\022$\n\010position\030\002 \001(\0132\022.se.common.Vecto"
+  "r3\022$\n\010rotation\030\003 \001(\0132\022.se.common.Rotator"
+  "\022$\n\010velocity\030\004 \001(\0132\022.se.common.Vector3:\r"
+  "\210\265\030\232 \220\265\030\001\230\265\030\004\"\274\001\n\021N_GrenadeMoveSync\022&\n\te"
+  "ntity_id\030\001 \001(\0132\023.se.common.ObjectId\022$\n\010p"
+  "osition\030\002 \001(\0132\022.se.common.Vector3\022$\n\010rot"
+  "ation\030\003 \001(\0132\022.se.common.Rotator\022$\n\010veloc"
+  "ity\030\004 \001(\0132\022.se.common.Vector3:\r\210\265\030\233 \220\265\030\002"
+  "\230\265\030\004\"t\n\025C_GrenadeExplosionReq\022&\n\tentity_"
   "id\030\001 \001(\0132\023.se.common.ObjectId\022$\n\010positio"
-  "n\030\002 \001(\0132\022.se.common.Vector3:\r\210\265\030\235 \220\265\030\002\230\265"
-  "\030\004\"\216\001\n\025N_ProjectileExplosion\022&\n\tentity_i"
-  "d\030\001 \001(\0132\023.se.common.ObjectId\022$\n\010position"
-  "\030\002 \001(\0132\022.se.common.Vector3\022\030\n\020explosion_"
-  "radius\030\003 \001(\002:\r\210\265\030\236 \220\265\030\002\230\265\030\004\"`\n\023N_WeaponS"
-  "tatChanged\022\021\n\tweapon_id\030\001 \001(\r\022\'\n\005stats\030\002"
-  " \003(\0132\030.se.game.WeaponStatValue:\r\210\265\030\242 \220\265\030"
-  "\002\230\265\030\004\"Q\n\024N_WeaponStatSnapshot\022*\n\005stats\030\002"
-  " \003(\0132\033.se.game.WeaponSlotSnapshot:\r\210\265\030\243 "
-  "\220\265\030\002\230\265\030\004\"4\n\017C_UseAbilityReq\022\022\n\nability_i"
-  "d\030\001 \001(\r:\r\210\265\030\254 \220\265\030\001\230\265\030\004\"Y\n\014N_UseAbility\022&"
-  "\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\022"
-  "\n\nability_id\030\002 \001(\r:\r\210\265\030\255 \220\265\030\002\230\265\030\004\"~\n\013N_E"
-  "ntityHit\022&\n\tentity_id\030\001 \001(\0132\023.se.common."
-  "ObjectId\022(\n\014hit_position\030\002 \001(\0132\022.se.comm"
-  "on.Vector3\022\016\n\006damage\030\003 \001(\r:\r\210\265\030\266 \220\265\030\002\230\265\030"
-  "\004\"m\n\014N_KillPlayer\022&\n\tkiller_id\030\001 \001(\0132\023.s"
-  "e.common.ObjectId\022&\n\tvictim_id\030\002 \001(\0132\023.s"
-  "e.common.ObjectId:\r\210\265\030\336 \220\265\030\002\230\265\030\004\".\n\014C_Us"
-  "eItemReq\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\350 \220\265\030\001\230\265\030\004"
-  "\"b\n\014S_UseItemRes\022\017\n\007success\030\001 \001(\010\022!\n\006res"
-  "ult\030\002 \001(\0132\021.se.common.Result\022\017\n\007item_id\030"
-  "\003 \001(\r:\r\210\265\030\351 \220\265\030\002\230\265\030\004\"S\n\tN_UseItem\022&\n\tent"
-  "ity_id\030\001 \001(\0132\023.se.common.ObjectId\022\017\n\007ite"
-  "m_id\030\002 \001(\r:\r\210\265\030\352 \220\265\030\002\230\265\030\004\"Q\n\022C_ChestInte"
-  "ractReq\022,\n\017chest_entity_id\030\001 \001(\0132\023.se.co"
-  "mmon.ObjectId:\r\210\265\030\362 \220\265\030\001\230\265\030\004\"x\n\021N_ChestI"
-  "nteracted\022&\n\tentity_id\030\001 \001(\0132\023.se.common"
-  ".ObjectId\022,\n\017chest_entity_id\030\002 \001(\0132\023.se."
-  "common.ObjectId:\r\210\265\030\363 \220\265\030\002\230\265\030\004\"M\n\017C_Pick"
-  "upItemReq\022+\n\016item_entity_id\030\001 \001(\0132\023.se.c"
-  "ommon.ObjectId:\r\210\265\030\374 \220\265\030\001\230\265\030\004\"r\n\014N_Picku"
-  "pItem\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obj"
-  "ectId\022+\n\016item_entity_id\030\002 \001(\0132\023.se.commo"
-  "n.ObjectId:\r\210\265\030\375 \220\265\030\002\230\265\030\004\"0\n\016C_EquipItem"
-  "Req\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\206!\220\265\030\001\230\265\030\004\"d\n\016S"
-  "_EquipItemRes\022\017\n\007success\030\001 \001(\010\022!\n\006result"
-  "\030\002 \001(\0132\021.se.common.Result\022\017\n\007item_id\030\003 \001"
-  "(\r:\r\210\265\030\207!\220\265\030\002\230\265\030\004\"U\n\013N_EquipItem\022&\n\tenti"
-  "ty_id\030\001 \001(\0132\023.se.common.ObjectId\022\017\n\007item"
-  "_id\030\002 \001(\r:\r\210\265\030\210!\220\265\030\002\230\265\030\004\"c\n\rC_UseStoreRe"
-  "q\022,\n\017store_entity_id\030\001 \001(\0132\023.se.common.O"
-  "bjectId\022\025\n\rstore_item_id\030\002 \001(\r:\r\210\265\030\220!\220\265\030"
-  "\001\230\265\030\004\"\221\001\n\rS_UseStoreRes\022\017\n\007success\030\001 \001(\010"
-  "\022!\n\006result\030\002 \001(\0132\021.se.common.Result\022\025\n\rs"
-  "tore_item_id\030\003 \001(\r\022\021\n\tnew_price\030\004 \001(\005\022\023\n"
-  "\013is_sold_out\030\005 \001(\010:\r\210\265\030\221!\220\265\030\002\230\265\030\004\"V\n\014N_I"
-  "temGained\022\017\n\007item_id\030\001 \001(\r\022\024\n\014new_quanti"
-  "ty\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210\265\030\232!\220\265\030\002\230\265\030"
-  "\004\"T\n\nN_ItemLost\022\017\n\007item_id\030\001 \001(\r\022\024\n\014new_"
-  "quantity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210\265\030\233!\220"
-  "\265\030\002\230\265\030\004\"B\n\016N_ItemSnapshot\022!\n\005items\030\001 \003(\013"
-  "2\022.se.game.ItemStack:\r\210\265\030\234!\220\265\030\002\230\265\030\004\"H\n\021C"
-  "_SetSavePointReq\022$\n\010position\030\001 \001(\0132\022.se."
-  "common.Vector3:\r\210\265\030\302!\220\265\030\001\230\265\030\004\"|\n\021S_SetSa"
-  "vePointRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 "
-  "\001(\0132\021.se.common.Result\022$\n\010position\030\003 \001(\013"
-  "2\022.se.common.Vector3:\r\210\265\030\303!\220\265\030\002\230\265\030\004\"k\n\017N"
-  "_HealthChanged\022&\n\tentity_id\030\001 \001(\0132\023.se.c"
-  "ommon.ObjectId\022\022\n\nnew_health\030\002 \001(\005\022\r\n\005de"
-  "lta\030\003 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n\022N_MaxHealthC"
-  "hanged\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Ob"
-  "jectId\022\026\n\016new_max_health\030\002 \001(\005\022\032\n\022new_cu"
-  "rrent_health\030\003 \001(\005:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"M\n\020N_H"
-  "ealthSnapshot\022\026\n\016current_health\030\001 \001(\005\022\022\n"
-  "\nmax_health\030\002 \001(\005:\r\210\265\030\316!\220\265\030\002\230\265\030\004\"2\n\016N_Sp"
-  "eedChanged\022\021\n\tnew_speed\030\001 \001(\002:\r\210\265\030\321!\220\265\030\002"
-  "\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n\017new_time_p"
-  "oints\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\326!\220\265\030\002\230\265\030"
-  "\004\"9\n\023N_TimePointSnapshot\022\023\n\013time_points\030"
-  "\001 \001(\005:\r\210\265\030\327!\220\265\030\002\230\265\030\004\"0\n\rN_SkillUnlock\022\020\n"
-  "\010skill_id\030\001 \001(\r:\r\210\265\030\340!\220\265\030\002\230\265\030\004\"F\n\017C_Skil"
-  "lEquipReq\022\020\n\010skill_id\030\001 \001(\r\022\022\n\nslot_inde"
-  "x\030\002 \001(\r:\r\210\265\030\341!\220\265\030\001\230\265\030\004\"z\n\017S_SkillEquipRe"
-  "s\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se."
-  "common.Result\022\020\n\010skill_id\030\003 \001(\r\022\022\n\nslot_"
-  "index\030\004 \001(\r:\r\210\265\030\342!\220\265\030\002\230\265\030\004\"B\n\025N_SkillUnl"
-  "ockSnapshot\022\032\n\022unlocked_skill_ids\030\001 \003(\r:"
-  "\r\210\265\030\343!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDied\022&\n\tentity"
-  "_id\030\001 \001(\0132\023.se.common.ObjectId:\r\210\265\030\246\"\220\265\030"
-  "\002\230\265\030\004\"s\n\021N_EntityRespawned\022&\n\tentity_id\030"
-  "\001 \001(\0132\023.se.common.ObjectId\022\'\n\ttransform\030"
-  "\002 \001(\0132\024.se.common.Transform:\r\210\265\030\247\"\220\265\030\002\230\265"
-  "\030\004\"J\n\021N_EntityDestroyed\022&\n\tentity_id\030\001 \001"
-  "(\0132\023.se.common.ObjectId:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204"
-  "\001\n\021N_TimeStormChange\022\"\n\006center\030\001 \001(\0132\022.s"
-  "e.common.Vector3\022\016\n\006radius\030\002 \001(\002\022\024\n\014wait"
-  "ing_time\030\003 \001(\002\022\026\n\016shrinking_time\030\004 \001(\002:\r"
-  "\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
+  "n\030\002 \001(\0132\022.se.common.Vector3:\r\210\265\030\234 \220\265\030\001\230\265"
+  "\030\004\"q\n\022N_GrenadeExplosion\022&\n\tentity_id\030\001 "
+  "\001(\0132\023.se.common.ObjectId\022$\n\010position\030\002 \001"
+  "(\0132\022.se.common.Vector3:\r\210\265\030\235 \220\265\030\002\230\265\030\004\"\216\001"
+  "\n\025N_ProjectileExplosion\022&\n\tentity_id\030\001 \001"
+  "(\0132\023.se.common.ObjectId\022$\n\010position\030\002 \001("
+  "\0132\022.se.common.Vector3\022\030\n\020explosion_radiu"
+  "s\030\003 \001(\002:\r\210\265\030\236 \220\265\030\002\230\265\030\004\"`\n\023N_WeaponStatCh"
+  "anged\022\021\n\tweapon_id\030\001 \001(\r\022\'\n\005stats\030\002 \003(\0132"
+  "\030.se.game.WeaponStatValue:\r\210\265\030\242 \220\265\030\002\230\265\030\004"
+  "\"Q\n\024N_WeaponStatSnapshot\022*\n\005stats\030\002 \003(\0132"
+  "\033.se.game.WeaponSlotSnapshot:\r\210\265\030\243 \220\265\030\002\230"
+  "\265\030\004\"4\n\017C_UseAbilityReq\022\022\n\nability_id\030\001 \001"
+  "(\r:\r\210\265\030\254 \220\265\030\001\230\265\030\004\"Y\n\014N_UseAbility\022&\n\tent"
+  "ity_id\030\001 \001(\0132\023.se.common.ObjectId\022\022\n\nabi"
+  "lity_id\030\002 \001(\r:\r\210\265\030\255 \220\265\030\002\230\265\030\004\"~\n\013N_Entity"
+  "Hit\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Objec"
+  "tId\022(\n\014hit_position\030\002 \001(\0132\022.se.common.Ve"
+  "ctor3\022\016\n\006damage\030\003 \001(\r:\r\210\265\030\266 \220\265\030\002\230\265\030\004\"m\n\014"
+  "N_KillPlayer\022&\n\tkiller_id\030\001 \001(\0132\023.se.com"
+  "mon.ObjectId\022&\n\tvictim_id\030\002 \001(\0132\023.se.com"
+  "mon.ObjectId:\r\210\265\030\336 \220\265\030\002\230\265\030\004\".\n\014C_UseItem"
+  "Req\022\017\n\007item_id\030\001 \001(\r:\r\210\265\030\350 \220\265\030\001\230\265\030\004\"b\n\014S"
+  "_UseItemRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002"
+  " \001(\0132\021.se.common.Result\022\017\n\007item_id\030\003 \001(\r"
+  ":\r\210\265\030\351 \220\265\030\002\230\265\030\004\"S\n\tN_UseItem\022&\n\tentity_i"
+  "d\030\001 \001(\0132\023.se.common.ObjectId\022\017\n\007item_id\030"
+  "\002 \001(\r:\r\210\265\030\352 \220\265\030\002\230\265\030\004\"Q\n\022C_ChestInteractR"
+  "eq\022,\n\017chest_entity_id\030\001 \001(\0132\023.se.common."
+  "ObjectId:\r\210\265\030\362 \220\265\030\001\230\265\030\004\"x\n\021N_ChestIntera"
+  "cted\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obje"
+  "ctId\022,\n\017chest_entity_id\030\002 \001(\0132\023.se.commo"
+  "n.ObjectId:\r\210\265\030\363 \220\265\030\002\230\265\030\004\"M\n\017C_PickupIte"
+  "mReq\022+\n\016item_entity_id\030\001 \001(\0132\023.se.common"
+  ".ObjectId:\r\210\265\030\374 \220\265\030\001\230\265\030\004\"r\n\014N_PickupItem"
+  "\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectId"
+  "\022+\n\016item_entity_id\030\002 \001(\0132\023.se.common.Obj"
+  "ectId:\r\210\265\030\375 \220\265\030\002\230\265\030\004\"0\n\016C_EquipItemReq\022\017"
+  "\n\007item_id\030\001 \001(\r:\r\210\265\030\206!\220\265\030\001\230\265\030\004\"d\n\016S_Equi"
+  "pItemRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001("
+  "\0132\021.se.common.Result\022\017\n\007item_id\030\003 \001(\r:\r\210"
+  "\265\030\207!\220\265\030\002\230\265\030\004\"U\n\013N_EquipItem\022&\n\tentity_id"
+  "\030\001 \001(\0132\023.se.common.ObjectId\022\017\n\007item_id\030\002"
+  " \001(\r:\r\210\265\030\210!\220\265\030\002\230\265\030\004\"c\n\rC_UseStoreReq\022,\n\017"
+  "store_entity_id\030\001 \001(\0132\023.se.common.Object"
+  "Id\022\025\n\rstore_item_id\030\002 \001(\r:\r\210\265\030\220!\220\265\030\001\230\265\030\004"
+  "\"\221\001\n\rS_UseStoreRes\022\017\n\007success\030\001 \001(\010\022!\n\006r"
+  "esult\030\002 \001(\0132\021.se.common.Result\022\025\n\rstore_"
+  "item_id\030\003 \001(\r\022\021\n\tnew_price\030\004 \001(\005\022\023\n\013is_s"
+  "old_out\030\005 \001(\010:\r\210\265\030\221!\220\265\030\002\230\265\030\004\"V\n\014N_ItemGa"
+  "ined\022\017\n\007item_id\030\001 \001(\r\022\024\n\014new_quantity\030\002 "
+  "\001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210\265\030\232!\220\265\030\002\230\265\030\004\"T\n\n"
+  "N_ItemLost\022\017\n\007item_id\030\001 \001(\r\022\024\n\014new_quant"
+  "ity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210\265\030\233!\220\265\030\002\230\265"
+  "\030\004\"B\n\016N_ItemSnapshot\022!\n\005items\030\001 \003(\0132\022.se"
+  ".game.ItemStack:\r\210\265\030\234!\220\265\030\002\230\265\030\004\"H\n\021C_SetS"
+  "avePointReq\022$\n\010position\030\001 \001(\0132\022.se.commo"
+  "n.Vector3:\r\210\265\030\302!\220\265\030\001\230\265\030\004\"|\n\021S_SetSavePoi"
+  "ntRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021"
+  ".se.common.Result\022$\n\010position\030\003 \001(\0132\022.se"
+  ".common.Vector3:\r\210\265\030\303!\220\265\030\002\230\265\030\004\"k\n\017N_Heal"
+  "thChanged\022&\n\tentity_id\030\001 \001(\0132\023.se.common"
+  ".ObjectId\022\022\n\nnew_health\030\002 \001(\005\022\r\n\005delta\030\003"
+  " \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n\022N_MaxHealthChange"
+  "d\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectI"
+  "d\022\026\n\016new_max_health\030\002 \001(\005\022\032\n\022new_current"
+  "_health\030\003 \001(\005:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"M\n\020N_Health"
+  "Snapshot\022\026\n\016current_health\030\001 \001(\005\022\022\n\nmax_"
+  "health\030\002 \001(\005:\r\210\265\030\316!\220\265\030\002\230\265\030\004\"2\n\016N_SpeedCh"
+  "anged\022\021\n\tnew_speed\030\001 \001(\002:\r\210\265\030\321!\220\265\030\002\230\265\030\004\""
+  "K\n\022N_TimePointChanged\022\027\n\017new_time_points"
+  "\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210\265\030\326!\220\265\030\002\230\265\030\004\"9\n\023"
+  "N_TimePointSnapshot\022\023\n\013time_points\030\001 \001(\005"
+  ":\r\210\265\030\327!\220\265\030\002\230\265\030\004\"0\n\rN_SkillUnlock\022\020\n\010skil"
+  "l_id\030\001 \001(\r:\r\210\265\030\340!\220\265\030\002\230\265\030\004\"F\n\017C_SkillEqui"
+  "pReq\022\020\n\010skill_id\030\001 \001(\r\022\022\n\nslot_index\030\002 \001"
+  "(\r:\r\210\265\030\341!\220\265\030\001\230\265\030\004\"z\n\017S_SkillEquipRes\022\017\n\007"
+  "success\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.commo"
+  "n.Result\022\020\n\010skill_id\030\003 \001(\r\022\022\n\nslot_index"
+  "\030\004 \001(\r:\r\210\265\030\342!\220\265\030\002\230\265\030\004\"B\n\025N_SkillUnlockSn"
+  "apshot\022\032\n\022unlocked_skill_ids\030\001 \003(\r:\r\210\265\030\343"
+  "!\220\265\030\002\230\265\030\004\"E\n\014N_EntityDied\022&\n\tentity_id\030\001"
+  " \001(\0132\023.se.common.ObjectId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004"
+  "\"s\n\021N_EntityRespawned\022&\n\tentity_id\030\001 \001(\013"
+  "2\023.se.common.ObjectId\022\'\n\ttransform\030\002 \001(\013"
+  "2\024.se.common.Transform:\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n"
+  "\021N_EntityDestroyed\022&\n\tentity_id\030\001 \001(\0132\023."
+  "se.common.ObjectId:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_"
+  "TimeStormChange\022\"\n\006center\030\001 \001(\0132\022.se.com"
+  "mon.Vector3\022\016\n\006radius\030\002 \001(\002\022\024\n\014waiting_t"
+  "ime\030\003 \001(\002\022\026\n\016shrinking_time\030\004 \001(\002:\r\210\265\030\260\""
+  "\220\265\030\002\230\265\030\004b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -2082,7 +2091,7 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 7541, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 7656, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
     &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 77,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
@@ -9136,11 +9145,16 @@ void C_ThrowGrenadeReq::InternalSwap(C_ThrowGrenadeReq* other) {
 
 class N_ThrowGrenade::_Internal {
  public:
+  static const ::se::common::ObjectId& owner_id(const N_ThrowGrenade* msg);
   static const ::se::common::ObjectId& entity_id(const N_ThrowGrenade* msg);
   static const ::se::common::Vector3& start_position(const N_ThrowGrenade* msg);
   static const ::se::common::Vector3& direction(const N_ThrowGrenade* msg);
 };
 
+const ::se::common::ObjectId&
+N_ThrowGrenade::_Internal::owner_id(const N_ThrowGrenade* msg) {
+  return *msg->_impl_.owner_id_;
+}
 const ::se::common::ObjectId&
 N_ThrowGrenade::_Internal::entity_id(const N_ThrowGrenade* msg) {
   return *msg->_impl_.entity_id_;
@@ -9152,6 +9166,12 @@ N_ThrowGrenade::_Internal::start_position(const N_ThrowGrenade* msg) {
 const ::se::common::Vector3&
 N_ThrowGrenade::_Internal::direction(const N_ThrowGrenade* msg) {
   return *msg->_impl_.direction_;
+}
+void N_ThrowGrenade::clear_owner_id() {
+  if (GetArenaForAllocation() == nullptr && _impl_.owner_id_ != nullptr) {
+    delete _impl_.owner_id_;
+  }
+  _impl_.owner_id_ = nullptr;
 }
 void N_ThrowGrenade::clear_entity_id() {
   if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
@@ -9181,13 +9201,17 @@ N_ThrowGrenade::N_ThrowGrenade(const N_ThrowGrenade& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   N_ThrowGrenade* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.entity_id_){nullptr}
+      decltype(_impl_.owner_id_){nullptr}
+    , decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.start_position_){nullptr}
     , decltype(_impl_.direction_){nullptr}
     , decltype(_impl_.grenade_type_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_owner_id()) {
+    _this->_impl_.owner_id_ = new ::se::common::ObjectId(*from._impl_.owner_id_);
+  }
   if (from._internal_has_entity_id()) {
     _this->_impl_.entity_id_ = new ::se::common::ObjectId(*from._impl_.entity_id_);
   }
@@ -9206,7 +9230,8 @@ inline void N_ThrowGrenade::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.entity_id_){nullptr}
+      decltype(_impl_.owner_id_){nullptr}
+    , decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.start_position_){nullptr}
     , decltype(_impl_.direction_){nullptr}
     , decltype(_impl_.grenade_type_){0u}
@@ -9225,6 +9250,7 @@ N_ThrowGrenade::~N_ThrowGrenade() {
 
 inline void N_ThrowGrenade::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.owner_id_;
   if (this != internal_default_instance()) delete _impl_.entity_id_;
   if (this != internal_default_instance()) delete _impl_.start_position_;
   if (this != internal_default_instance()) delete _impl_.direction_;
@@ -9240,6 +9266,10 @@ void N_ThrowGrenade::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
+  if (GetArenaForAllocation() == nullptr && _impl_.owner_id_ != nullptr) {
+    delete _impl_.owner_id_;
+  }
+  _impl_.owner_id_ = nullptr;
   if (GetArenaForAllocation() == nullptr && _impl_.entity_id_ != nullptr) {
     delete _impl_.entity_id_;
   }
@@ -9262,33 +9292,41 @@ const char* N_ThrowGrenade::_InternalParse(const char* ptr, ::_pbi::ParseContext
     uint32_t tag;
     ptr = ::_pbi::ReadTag(ptr, &tag);
     switch (tag >> 3) {
-      // .se.common.ObjectId entity_id = 1;
+      // .se.common.ObjectId owner_id = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_owner_id(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.ObjectId entity_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
           ptr = ctx->ParseMessage(_internal_mutable_entity_id(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // uint32 grenade_type = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+      // uint32 grenade_type = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           _impl_.grenade_type_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 start_position = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+      // .se.common.Vector3 start_position = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_start_position(), ptr);
           CHK_(ptr);
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 direction = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+      // .se.common.Vector3 direction = 5;
+      case 5:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 42)) {
           ptr = ctx->ParseMessage(_internal_mutable_direction(), ptr);
           CHK_(ptr);
         } else
@@ -9323,30 +9361,37 @@ uint8_t* N_ThrowGrenade::_InternalSerialize(
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // .se.common.ObjectId entity_id = 1;
+  // .se.common.ObjectId owner_id = 1;
+  if (this->_internal_has_owner_id()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::owner_id(this),
+        _Internal::owner_id(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.ObjectId entity_id = 2;
   if (this->_internal_has_entity_id()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::entity_id(this),
+      InternalWriteMessage(2, _Internal::entity_id(this),
         _Internal::entity_id(this).GetCachedSize(), target, stream);
   }
 
-  // uint32 grenade_type = 2;
+  // uint32 grenade_type = 3;
   if (this->_internal_grenade_type() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_grenade_type(), target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(3, this->_internal_grenade_type(), target);
   }
 
-  // .se.common.Vector3 start_position = 3;
+  // .se.common.Vector3 start_position = 4;
   if (this->_internal_has_start_position()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(3, _Internal::start_position(this),
+      InternalWriteMessage(4, _Internal::start_position(this),
         _Internal::start_position(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.Vector3 direction = 4;
+  // .se.common.Vector3 direction = 5;
   if (this->_internal_has_direction()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(4, _Internal::direction(this),
+      InternalWriteMessage(5, _Internal::direction(this),
         _Internal::direction(this).GetCachedSize(), target, stream);
   }
 
@@ -9366,28 +9411,35 @@ size_t N_ThrowGrenade::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // .se.common.ObjectId entity_id = 1;
+  // .se.common.ObjectId owner_id = 1;
+  if (this->_internal_has_owner_id()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.owner_id_);
+  }
+
+  // .se.common.ObjectId entity_id = 2;
   if (this->_internal_has_entity_id()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.entity_id_);
   }
 
-  // .se.common.Vector3 start_position = 3;
+  // .se.common.Vector3 start_position = 4;
   if (this->_internal_has_start_position()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.start_position_);
   }
 
-  // .se.common.Vector3 direction = 4;
+  // .se.common.Vector3 direction = 5;
   if (this->_internal_has_direction()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
         *_impl_.direction_);
   }
 
-  // uint32 grenade_type = 2;
+  // uint32 grenade_type = 3;
   if (this->_internal_grenade_type() != 0) {
     total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_grenade_type());
   }
@@ -9410,6 +9462,10 @@ void N_ThrowGrenade::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const :
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
+  if (from._internal_has_owner_id()) {
+    _this->_internal_mutable_owner_id()->::se::common::ObjectId::MergeFrom(
+        from._internal_owner_id());
+  }
   if (from._internal_has_entity_id()) {
     _this->_internal_mutable_entity_id()->::se::common::ObjectId::MergeFrom(
         from._internal_entity_id());
@@ -9445,9 +9501,9 @@ void N_ThrowGrenade::InternalSwap(N_ThrowGrenade* other) {
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(N_ThrowGrenade, _impl_.grenade_type_)
       + sizeof(N_ThrowGrenade::_impl_.grenade_type_)
-      - PROTOBUF_FIELD_OFFSET(N_ThrowGrenade, _impl_.entity_id_)>(
-          reinterpret_cast<char*>(&_impl_.entity_id_),
-          reinterpret_cast<char*>(&other->_impl_.entity_id_));
+      - PROTOBUF_FIELD_OFFSET(N_ThrowGrenade, _impl_.owner_id_)>(
+          reinterpret_cast<char*>(&_impl_.owner_id_),
+          reinterpret_cast<char*>(&other->_impl_.owner_id_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ThrowGrenade::GetMetadata() const {
@@ -9462,6 +9518,7 @@ class C_GrenadeMoveSyncReq::_Internal {
  public:
   static const ::se::common::ObjectId& entity_id(const C_GrenadeMoveSyncReq* msg);
   static const ::se::common::Vector3& position(const C_GrenadeMoveSyncReq* msg);
+  static const ::se::common::Rotator& rotation(const C_GrenadeMoveSyncReq* msg);
   static const ::se::common::Vector3& velocity(const C_GrenadeMoveSyncReq* msg);
 };
 
@@ -9472,6 +9529,10 @@ C_GrenadeMoveSyncReq::_Internal::entity_id(const C_GrenadeMoveSyncReq* msg) {
 const ::se::common::Vector3&
 C_GrenadeMoveSyncReq::_Internal::position(const C_GrenadeMoveSyncReq* msg) {
   return *msg->_impl_.position_;
+}
+const ::se::common::Rotator&
+C_GrenadeMoveSyncReq::_Internal::rotation(const C_GrenadeMoveSyncReq* msg) {
+  return *msg->_impl_.rotation_;
 }
 const ::se::common::Vector3&
 C_GrenadeMoveSyncReq::_Internal::velocity(const C_GrenadeMoveSyncReq* msg) {
@@ -9488,6 +9549,12 @@ void C_GrenadeMoveSyncReq::clear_position() {
     delete _impl_.position_;
   }
   _impl_.position_ = nullptr;
+}
+void C_GrenadeMoveSyncReq::clear_rotation() {
+  if (GetArenaForAllocation() == nullptr && _impl_.rotation_ != nullptr) {
+    delete _impl_.rotation_;
+  }
+  _impl_.rotation_ = nullptr;
 }
 void C_GrenadeMoveSyncReq::clear_velocity() {
   if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
@@ -9507,6 +9574,7 @@ C_GrenadeMoveSyncReq::C_GrenadeMoveSyncReq(const C_GrenadeMoveSyncReq& from)
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.rotation_){nullptr}
     , decltype(_impl_.velocity_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -9516,6 +9584,9 @@ C_GrenadeMoveSyncReq::C_GrenadeMoveSyncReq(const C_GrenadeMoveSyncReq& from)
   }
   if (from._internal_has_position()) {
     _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  if (from._internal_has_rotation()) {
+    _this->_impl_.rotation_ = new ::se::common::Rotator(*from._impl_.rotation_);
   }
   if (from._internal_has_velocity()) {
     _this->_impl_.velocity_ = new ::se::common::Vector3(*from._impl_.velocity_);
@@ -9530,6 +9601,7 @@ inline void C_GrenadeMoveSyncReq::SharedCtor(
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.rotation_){nullptr}
     , decltype(_impl_.velocity_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}
   };
@@ -9548,6 +9620,7 @@ inline void C_GrenadeMoveSyncReq::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete _impl_.entity_id_;
   if (this != internal_default_instance()) delete _impl_.position_;
+  if (this != internal_default_instance()) delete _impl_.rotation_;
   if (this != internal_default_instance()) delete _impl_.velocity_;
 }
 
@@ -9569,6 +9642,10 @@ void C_GrenadeMoveSyncReq::Clear() {
     delete _impl_.position_;
   }
   _impl_.position_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.rotation_ != nullptr) {
+    delete _impl_.rotation_;
+  }
+  _impl_.rotation_ = nullptr;
   if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
     delete _impl_.velocity_;
   }
@@ -9598,9 +9675,17 @@ const char* C_GrenadeMoveSyncReq::_InternalParse(const char* ptr, ::_pbi::ParseC
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 velocity = 3;
+      // .se.common.Rotator rotation = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_rotation(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 velocity = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_velocity(), ptr);
           CHK_(ptr);
         } else
@@ -9649,10 +9734,17 @@ uint8_t* C_GrenadeMoveSyncReq::_InternalSerialize(
         _Internal::position(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.Vector3 velocity = 3;
+  // .se.common.Rotator rotation = 3;
+  if (this->_internal_has_rotation()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(3, _Internal::rotation(this),
+        _Internal::rotation(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 velocity = 4;
   if (this->_internal_has_velocity()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(3, _Internal::velocity(this),
+      InternalWriteMessage(4, _Internal::velocity(this),
         _Internal::velocity(this).GetCachedSize(), target, stream);
   }
 
@@ -9686,7 +9778,14 @@ size_t C_GrenadeMoveSyncReq::ByteSizeLong() const {
         *_impl_.position_);
   }
 
-  // .se.common.Vector3 velocity = 3;
+  // .se.common.Rotator rotation = 3;
+  if (this->_internal_has_rotation()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.rotation_);
+  }
+
+  // .se.common.Vector3 velocity = 4;
   if (this->_internal_has_velocity()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -9718,6 +9817,10 @@ void C_GrenadeMoveSyncReq::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, c
   if (from._internal_has_position()) {
     _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
         from._internal_position());
+  }
+  if (from._internal_has_rotation()) {
+    _this->_internal_mutable_rotation()->::se::common::Rotator::MergeFrom(
+        from._internal_rotation());
   }
   if (from._internal_has_velocity()) {
     _this->_internal_mutable_velocity()->::se::common::Vector3::MergeFrom(
@@ -9760,6 +9863,7 @@ class N_GrenadeMoveSync::_Internal {
  public:
   static const ::se::common::ObjectId& entity_id(const N_GrenadeMoveSync* msg);
   static const ::se::common::Vector3& position(const N_GrenadeMoveSync* msg);
+  static const ::se::common::Rotator& rotation(const N_GrenadeMoveSync* msg);
   static const ::se::common::Vector3& velocity(const N_GrenadeMoveSync* msg);
 };
 
@@ -9770,6 +9874,10 @@ N_GrenadeMoveSync::_Internal::entity_id(const N_GrenadeMoveSync* msg) {
 const ::se::common::Vector3&
 N_GrenadeMoveSync::_Internal::position(const N_GrenadeMoveSync* msg) {
   return *msg->_impl_.position_;
+}
+const ::se::common::Rotator&
+N_GrenadeMoveSync::_Internal::rotation(const N_GrenadeMoveSync* msg) {
+  return *msg->_impl_.rotation_;
 }
 const ::se::common::Vector3&
 N_GrenadeMoveSync::_Internal::velocity(const N_GrenadeMoveSync* msg) {
@@ -9786,6 +9894,12 @@ void N_GrenadeMoveSync::clear_position() {
     delete _impl_.position_;
   }
   _impl_.position_ = nullptr;
+}
+void N_GrenadeMoveSync::clear_rotation() {
+  if (GetArenaForAllocation() == nullptr && _impl_.rotation_ != nullptr) {
+    delete _impl_.rotation_;
+  }
+  _impl_.rotation_ = nullptr;
 }
 void N_GrenadeMoveSync::clear_velocity() {
   if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
@@ -9805,6 +9919,7 @@ N_GrenadeMoveSync::N_GrenadeMoveSync(const N_GrenadeMoveSync& from)
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.rotation_){nullptr}
     , decltype(_impl_.velocity_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -9814,6 +9929,9 @@ N_GrenadeMoveSync::N_GrenadeMoveSync(const N_GrenadeMoveSync& from)
   }
   if (from._internal_has_position()) {
     _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  if (from._internal_has_rotation()) {
+    _this->_impl_.rotation_ = new ::se::common::Rotator(*from._impl_.rotation_);
   }
   if (from._internal_has_velocity()) {
     _this->_impl_.velocity_ = new ::se::common::Vector3(*from._impl_.velocity_);
@@ -9828,6 +9946,7 @@ inline void N_GrenadeMoveSync::SharedCtor(
   new (&_impl_) Impl_{
       decltype(_impl_.entity_id_){nullptr}
     , decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.rotation_){nullptr}
     , decltype(_impl_.velocity_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}
   };
@@ -9846,6 +9965,7 @@ inline void N_GrenadeMoveSync::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   if (this != internal_default_instance()) delete _impl_.entity_id_;
   if (this != internal_default_instance()) delete _impl_.position_;
+  if (this != internal_default_instance()) delete _impl_.rotation_;
   if (this != internal_default_instance()) delete _impl_.velocity_;
 }
 
@@ -9867,6 +9987,10 @@ void N_GrenadeMoveSync::Clear() {
     delete _impl_.position_;
   }
   _impl_.position_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.rotation_ != nullptr) {
+    delete _impl_.rotation_;
+  }
+  _impl_.rotation_ = nullptr;
   if (GetArenaForAllocation() == nullptr && _impl_.velocity_ != nullptr) {
     delete _impl_.velocity_;
   }
@@ -9896,9 +10020,17 @@ const char* N_GrenadeMoveSync::_InternalParse(const char* ptr, ::_pbi::ParseCont
         } else
           goto handle_unusual;
         continue;
-      // .se.common.Vector3 velocity = 3;
+      // .se.common.Rotator rotation = 3;
       case 3:
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_rotation(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 velocity = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
           ptr = ctx->ParseMessage(_internal_mutable_velocity(), ptr);
           CHK_(ptr);
         } else
@@ -9947,10 +10079,17 @@ uint8_t* N_GrenadeMoveSync::_InternalSerialize(
         _Internal::position(this).GetCachedSize(), target, stream);
   }
 
-  // .se.common.Vector3 velocity = 3;
+  // .se.common.Rotator rotation = 3;
+  if (this->_internal_has_rotation()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(3, _Internal::rotation(this),
+        _Internal::rotation(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 velocity = 4;
   if (this->_internal_has_velocity()) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
-      InternalWriteMessage(3, _Internal::velocity(this),
+      InternalWriteMessage(4, _Internal::velocity(this),
         _Internal::velocity(this).GetCachedSize(), target, stream);
   }
 
@@ -9984,7 +10123,14 @@ size_t N_GrenadeMoveSync::ByteSizeLong() const {
         *_impl_.position_);
   }
 
-  // .se.common.Vector3 velocity = 3;
+  // .se.common.Rotator rotation = 3;
+  if (this->_internal_has_rotation()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.rotation_);
+  }
+
+  // .se.common.Vector3 velocity = 4;
   if (this->_internal_has_velocity()) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
@@ -10016,6 +10162,10 @@ void N_GrenadeMoveSync::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, cons
   if (from._internal_has_position()) {
     _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
         from._internal_position());
+  }
+  if (from._internal_has_rotation()) {
+    _this->_internal_mutable_rotation()->::se::common::Rotator::MergeFrom(
+        from._internal_rotation());
   }
   if (from._internal_has_velocity()) {
     _this->_internal_mutable_velocity()->::se::common::Vector3::MergeFrom(
