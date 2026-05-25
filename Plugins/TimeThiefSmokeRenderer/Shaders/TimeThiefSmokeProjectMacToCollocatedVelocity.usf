@@ -1,0 +1,172 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_PROJECT_MAC_TO_COLLOCATED_VELOCITY_PARAMETERS
+
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+bool ResolveSmokeCellCoord(uint3 DispatchThreadId, uint3 GroupId, uint3 GroupThreadId, out uint3 OutCellCoord)
+{
+	if (bUseActiveBrickDispatch == 0u)
+	{
+		OutCellCoord = DispatchThreadId;
+		return all(OutCellCoord < uint3(GridResolution));
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const uint ActiveBrickCount = min(ActiveBrickCountBuffer[0], (uint)max(MaxActiveSmokeBricks, 1));
+	const uint GroupsPerBrickAxis = (uint)((SafeBrickSize + 3) / 4);
+	const uint GroupsPerBrick = max(GroupsPerBrickAxis * GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const uint LocalGroupIndex = GroupId.x;
+	const uint ActiveBrickIndex = GroupId.y;
+	if (ActiveBrickIndex >= ActiveBrickCount || LocalGroupIndex >= GroupsPerBrick)
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint LocalGroupX = LocalGroupIndex % GroupsPerBrickAxis;
+	const uint LocalGroupY = (LocalGroupIndex / GroupsPerBrickAxis) % GroupsPerBrickAxis;
+	const uint LocalGroupZ = LocalGroupIndex / max(GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const int3 LocalCellCoord = int3(LocalGroupX, LocalGroupY, LocalGroupZ) * 4 + int3(GroupThreadId);
+	if (any(LocalCellCoord >= int3(SafeBrickSize, SafeBrickSize, SafeBrickSize)))
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint4 ActiveBrick = ActiveBricks[ActiveBrickIndex];
+	const int3 BrickCoord = clamp(int3(ActiveBrick.xyz), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 CellCoord = BrickCoord * SafeBrickSize + LocalCellCoord;
+	OutCellCoord = uint3(CellCoord);
+	return all(CellCoord >= int3(0, 0, 0)) && all(CellCoord < GridResolution);
+}
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadU(int3 Coord)
+{
+	return FaceVelocityUIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadV(int3 Coord)
+{
+	return FaceVelocityVIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadW(int3 Coord)
+{
+	return FaceVelocityWIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float3 LoadFaceOpen(int3 Coord)
+{
+	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+}
+
+float3 LoadSolidVelocity(int3 Coord)
+{
+	return ObstacleVelocityTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+}
+
+float ProjectUFace(int3 Coord)
+{
+	if (Coord.x <= 0)
+	{
+		return 0.0;
+	}
+
+	const int3 LeftCoord = Coord - int3(1, 0, 0);
+	const float FaceOpen = LoadFaceOpen(Coord).x;
+	const float3 CenterSolidVelocity = LoadSolidVelocity(Coord);
+	const float SolidU = 0.5 * (CenterSolidVelocity.x + LoadSolidVelocity(LeftCoord).x);
+	const float InvCellSize = 1.0 / max(CellSize.x, 1.0);
+	return lerp(SolidU, LoadU(Coord) - (LoadPressure(Coord) - LoadPressure(LeftCoord)) * InvCellSize, FaceOpen);
+}
+
+float ProjectVFace(int3 Coord)
+{
+	if (Coord.y <= 0)
+	{
+		return 0.0;
+	}
+
+	const int3 BackCoord = Coord - int3(0, 1, 0);
+	const float FaceOpen = LoadFaceOpen(Coord).y;
+	const float3 CenterSolidVelocity = LoadSolidVelocity(Coord);
+	const float SolidV = 0.5 * (CenterSolidVelocity.y + LoadSolidVelocity(BackCoord).y);
+	const float InvCellSize = 1.0 / max(CellSize.y, 1.0);
+	return lerp(SolidV, LoadV(Coord) - (LoadPressure(Coord) - LoadPressure(BackCoord)) * InvCellSize, FaceOpen);
+}
+
+float ProjectWFace(int3 Coord)
+{
+	if (Coord.z <= 0)
+	{
+		return 0.0;
+	}
+
+	const int3 BottomCoord = Coord - int3(0, 0, 1);
+	const float FaceOpen = LoadFaceOpen(Coord).z;
+	const float3 CenterSolidVelocity = LoadSolidVelocity(Coord);
+	const float SolidW = 0.5 * (CenterSolidVelocity.z + LoadSolidVelocity(BottomCoord).z);
+	const float InvCellSize = 1.0 / max(CellSize.z, 1.0);
+	return lerp(SolidW, LoadW(Coord) - (LoadPressure(Coord) - LoadPressure(BottomCoord)) * InvCellSize, FaceOpen);
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
+{
+	uint3 CellCoord = uint3(0, 0, 0);
+	if (!ResolveSmokeCellCoord(DispatchThreadId, GroupId, GroupThreadId, CellCoord))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(CellCoord);
+	if (bUseActiveBrickDispatch == 0u && !IsSparseSimulationCellActive(CellCoord))
+	{
+		OutVelocity[CellCoord] = float4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+
+	const float3 UVW = TimeThiefSmokeVoxelUVW(CellCoord, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
+	if (OpenMask <= 0.01)
+	{
+		OutVelocity[CellCoord] = float4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+
+	const float U0 = ProjectUFace(Coord);
+	const float V0 = ProjectVFace(Coord);
+	const float W0 = ProjectWFace(Coord);
+	const float U1 = Coord.x >= GridResolution.x - 1 ? 0.0 : ProjectUFace(Coord + int3(1, 0, 0));
+	const float V1 = Coord.y >= GridResolution.y - 1 ? 0.0 : ProjectVFace(Coord + int3(0, 1, 0));
+	const float W1 = Coord.z >= GridResolution.z - 1 ? 0.0 : ProjectWFace(Coord + int3(0, 0, 1));
+
+	const float3 Velocity = float3(
+		0.5 * (U0 + U1),
+		0.5 * (V0 + V1),
+		0.5 * (W0 + W1));
+
+	OutVelocity[CellCoord] = float4(Velocity * OpenMask, 0.0);
+}

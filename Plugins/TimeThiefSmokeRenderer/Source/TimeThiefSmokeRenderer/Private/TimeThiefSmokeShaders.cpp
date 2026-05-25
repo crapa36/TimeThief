@@ -14,10 +14,13 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildBrickOccupancyCS, "/TimeThiefSmokeSh
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildEventBrickMasksCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildEventBrickMasks.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeExpandBrickOccupancyCS, "/TimeThiefSmokeShaders/TimeThiefSmokeExpandBrickOccupancy.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeScatterSparseAtlasCS, "/TimeThiefSmokeShaders/TimeThiefSmokeScatterSparseAtlas.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildActiveBrickListCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildActiveBrickList.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildSparseScatterArgsCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildSparseScatterArgs.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeWarpCS, "/TimeThiefSmokeShaders/TimeThiefSmokeWarp.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeDivergenceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeDivergence.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildMacVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildMacVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeMacDivergenceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeMacDivergence.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildMacDivergenceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildMacDivergence.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePressureJacobiCS, "/TimeThiefSmokeShaders/TimeThiefSmokePressureJacobi.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePressureResidualCS, "/TimeThiefSmokeShaders/TimeThiefSmokePressureResidual.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePressureRestrictCS, "/TimeThiefSmokeShaders/TimeThiefSmokePressureRestrict.usf", "MainCS", SF_Compute);
@@ -25,5 +28,6 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePressureProlongateAddCS, "/TimeThiefSmoke
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeProjectVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectMacVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeProjectMacVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeMacToCollocatedVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeMacToCollocatedVelocity.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectMacToCollocatedVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeProjectMacToCollocatedVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeCompositePS, "/TimeThiefSmokeShaders/TimeThiefSmokeComposite.usf", "MainPS", SF_Pixel);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeCompositeMultiPS, "/TimeThiefSmokeShaders/TimeThiefSmokeCompositeMulti.usf", "MainPS", SF_Pixel);

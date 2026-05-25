@@ -15,6 +15,43 @@ bool IsSparseSimulationCellActive(uint3 CellCoord)
 	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
 }
 
+bool ResolveSmokeCellCoord(uint3 DispatchThreadId, uint3 GroupId, uint3 GroupThreadId, out uint3 OutCellCoord)
+{
+	if (bUseActiveBrickDispatch == 0u)
+	{
+		OutCellCoord = DispatchThreadId;
+		return all(OutCellCoord < uint3(GridResolution));
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const uint ActiveBrickCount = min(ActiveBrickCountBuffer[0], (uint)max(MaxActiveSmokeBricks, 1));
+	const uint GroupsPerBrickAxis = (uint)((SafeBrickSize + 3) / 4);
+	const uint GroupsPerBrick = max(GroupsPerBrickAxis * GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const uint LocalGroupIndex = GroupId.x;
+	const uint ActiveBrickIndex = GroupId.y;
+	if (ActiveBrickIndex >= ActiveBrickCount || LocalGroupIndex >= GroupsPerBrick)
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint LocalGroupX = LocalGroupIndex % GroupsPerBrickAxis;
+	const uint LocalGroupY = (LocalGroupIndex / GroupsPerBrickAxis) % GroupsPerBrickAxis;
+	const uint LocalGroupZ = LocalGroupIndex / max(GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const int3 LocalCellCoord = int3(LocalGroupX, LocalGroupY, LocalGroupZ) * 4 + int3(GroupThreadId);
+	if (any(LocalCellCoord >= int3(SafeBrickSize, SafeBrickSize, SafeBrickSize)))
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint4 ActiveBrick = ActiveBricks[ActiveBrickIndex];
+	const int3 BrickCoord = clamp(int3(ActiveBrick.xyz), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 CellCoord = BrickCoord * SafeBrickSize + LocalCellCoord;
+	OutCellCoord = uint3(CellCoord);
+	return all(CellCoord >= int3(0, 0, 0)) && all(CellCoord < GridResolution);
+}
+
 uint FlattenBrickCoordForEventBins(int3 BrickCoord)
 {
 	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
@@ -90,36 +127,37 @@ float TimeThiefSmokeSourceObstacleOpen(float SourceDistance, float SourceRadius)
 }
 
 [numthreads(4, 4, 4)]
-void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 {
-	if (any(DispatchThreadId >= GridResolution))
+	uint3 CellCoord = uint3(0, 0, 0);
+	if (!ResolveSmokeCellCoord(DispatchThreadId, GroupId, GroupThreadId, CellCoord))
 	{
 		return;
 	}
 
-	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	if (bUseActiveBrickDispatch == 0u && !IsSparseSimulationCellActive(CellCoord))
 	{
 		const float FadeOutAlpha = saturate(max(AgeSeconds - DurationSeconds, 0.0) / max(SmokeFadeOutDuration, 0.001));
 		const float EffectiveDissipation = DensityDissipation + FadeOutAlpha * (1.0 + DensityDissipation);
 		const float DensityDecay = exp2(-max(EffectiveDissipation, 0.0) * DeltaSeconds);
 		const float VelocityDecay = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
-		const int3 Coord = int3(DispatchThreadId);
+		const int3 Coord = int3(CellCoord);
 		const float Cutout = BulletCutoutTexture.Load(int4(Coord, 0));
 		const float Sink = BulletSinkTexture.Load(int4(Coord, 0));
-		OutDensity[DispatchThreadId] = max(DensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
-		OutDisplacedDensity[DispatchThreadId] = max(DisplacedDensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
-		OutVelocity[DispatchThreadId] = float4(VelocityIn.Load(int4(Coord, 0)).xyz * VelocityDecay, 0.0);
-		OutCutout[DispatchThreadId] = Cutout > 1.0
+		OutDensity[CellCoord] = max(DensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
+		OutDisplacedDensity[CellCoord] = max(DisplacedDensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
+		OutVelocity[CellCoord] = float4(VelocityIn.Load(int4(Coord, 0)).xyz * VelocityDecay, 0.0);
+		OutCutout[CellCoord] = Cutout > 1.0
 			? max(1.0, Cutout - DeltaSeconds / BulletWakeCutoutLife)
 			: max(0.0, Cutout - DeltaSeconds / BulletWakeReleaseDuration);
-		OutSink[DispatchThreadId] = max(Sink * exp2(-DeltaSeconds / BulletWakeSinkLife), 0.0);
+		OutSink[CellCoord] = max(Sink * exp2(-DeltaSeconds / BulletWakeSinkLife), 0.0);
 		return;
 	}
 
-	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float3 UVW = TimeThiefSmokeVoxelUVW(CellCoord, GridResolution);
 	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
-	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
-	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(CellCoord, GridResolution, BoundsExtent, LocalToWorld);
+	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(CellCoord, GridResolution, BoundsExtent);
 	const float3 SmokeOrigin = mul(float4(0.0, 0.0, 0.0, 1.0), LocalToWorld).xyz;
 	const float3 SmokeUp = normalize(mul(float4(0.0, 0.0, 1.0, 0.0), LocalToWorld).xyz + 0.0001);
 	const float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
@@ -139,7 +177,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float SourceObstacleOpen = 0.0;
 	bool bEventSourceInfluence = false;
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
-	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
+	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
 	[loop]
 	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
@@ -361,9 +399,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);
-	OutDensity[DispatchThreadId] = clamp(Density * OutputOpenMask, 0.0, 2.8);
-	OutDisplacedDensity[DispatchThreadId] = clamp(DisplacedDensity * OutputOpenMask, 0.0, 2.8);
-	OutVelocity[DispatchThreadId] = float4(AdvectedVelocity * OutputOpenMask, 0.0);
-	OutCutout[DispatchThreadId] = BulletCutout;
-	OutSink[DispatchThreadId] = BulletSink;
+	OutDensity[CellCoord] = clamp(Density * OutputOpenMask, 0.0, 2.8);
+	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OutputOpenMask, 0.0, 2.8);
+	OutVelocity[CellCoord] = float4(AdvectedVelocity * OutputOpenMask, 0.0);
+	OutCutout[CellCoord] = BulletCutout;
+	OutSink[CellCoord] = BulletSink;
 }

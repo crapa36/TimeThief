@@ -3,6 +3,55 @@
 
 TIME_THIEF_SMOKE_PRESSURE_RESIDUAL_PARAMETERS
 
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+bool ResolveSmokeCellCoord(uint3 DispatchThreadId, uint3 GroupId, uint3 GroupThreadId, out uint3 OutCellCoord)
+{
+	if (bUseActiveBrickDispatch == 0u)
+	{
+		OutCellCoord = DispatchThreadId;
+		return all(OutCellCoord < uint3(GridResolution));
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const uint ActiveBrickCount = min(ActiveBrickCountBuffer[0], (uint)max(MaxActiveSmokeBricks, 1));
+	const uint GroupsPerBrickAxis = (uint)((SafeBrickSize + 3) / 4);
+	const uint GroupsPerBrick = max(GroupsPerBrickAxis * GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const uint LocalGroupIndex = GroupId.x;
+	const uint ActiveBrickIndex = GroupId.y;
+	if (ActiveBrickIndex >= ActiveBrickCount || LocalGroupIndex >= GroupsPerBrick)
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint LocalGroupX = LocalGroupIndex % GroupsPerBrickAxis;
+	const uint LocalGroupY = (LocalGroupIndex / GroupsPerBrickAxis) % GroupsPerBrickAxis;
+	const uint LocalGroupZ = LocalGroupIndex / max(GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const int3 LocalCellCoord = int3(LocalGroupX, LocalGroupY, LocalGroupZ) * 4 + int3(GroupThreadId);
+	if (any(LocalCellCoord >= int3(SafeBrickSize, SafeBrickSize, SafeBrickSize)))
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint4 ActiveBrick = ActiveBricks[ActiveBrickIndex];
+	const int3 BrickCoord = clamp(int3(ActiveBrick.xyz), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 CellCoord = BrickCoord * SafeBrickSize + LocalCellCoord;
+	OutCellCoord = uint3(CellCoord);
+	return all(CellCoord >= int3(0, 0, 0)) && all(CellCoord < GridResolution);
+}
+
 int3 ClampSmokeCoord(int3 Coord)
 {
 	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
@@ -49,17 +98,24 @@ float AccumulateNeighborPressure(int3 Coord, int3 Offset, float Weight, float Ax
 }
 
 [numthreads(4, 4, 4)]
-void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 {
-	if (any(DispatchThreadId >= GridResolution))
+	uint3 CellCoord = uint3(0, 0, 0);
+	if (!ResolveSmokeCellCoord(DispatchThreadId, GroupId, GroupThreadId, CellCoord))
 	{
 		return;
 	}
 
-	const int3 Coord = int3(DispatchThreadId);
+	const int3 Coord = int3(CellCoord);
+	if (bUseActiveBrickDispatch == 0u && !IsSparseSimulationCellActive(CellCoord))
+	{
+		OutDivergence[CellCoord] = 0.0;
+		return;
+	}
+
 	if (LoadOpen(Coord) <= 0.01)
 	{
-		OutDivergence[DispatchThreadId] = 0.0;
+		OutDivergence[CellCoord] = 0.0;
 		return;
 	}
 
@@ -84,5 +140,5 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float Laplacian = NeighborPressure - CenterPressure * Denominator;
 	const float Divergence = DivergenceIn.Load(int4(Coord, 0));
 
-	OutDivergence[DispatchThreadId] = Divergence - Laplacian;
+	OutDivergence[CellCoord] = Divergence - Laplacian;
 }
