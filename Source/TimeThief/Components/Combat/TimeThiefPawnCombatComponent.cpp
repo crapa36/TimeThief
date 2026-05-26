@@ -363,6 +363,9 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 		}
 		break;
 	case ECombatNotifyType::Throw:
+		// TODO: Throw 관련 모션과 정보를 넘기는 함수 파이프라인 구현 필요
+		//		 Local의 경우 해당 패킷에서 가지는 Entity Id를 통해서 수류탄 Actor를 생성해야 함, (로컬의 경우, Throw 액션과 수류탄 생성을 분리)
+		//		 Remote의 경우 애니메이션처리와 함께, Entity Id를 통해서 수류탄 Actor를 생성해야 함
 		UE_LOG(LogTemp, Verbose, TEXT("Remote_AttackRequest: Throw notify received."));
 		break;
 	default:
