@@ -1,22 +1,17 @@
 #include "DataAssets/TimeThiefThrowableData.h"
 
-#include "Actors/TimeThiefSmokeDebugVolume.h"
-
 FTimeThiefThrowableDefinition UTimeThiefThrowableData::MakeDefaultDefinition(EItemID ItemID)
 {
 	FTimeThiefThrowableDefinition Definition;
-	Definition.ProjectileSettings.SmokeDebugVolumeClass = ATimeThiefSmokeDebugVolume::StaticClass();
 
 	switch (ItemID)
 	{
 	case EItemID::Grenade:
 		Definition.ProjectileSettings.bApplyRadialDamage = true;
-		Definition.ProjectileSettings.bSpawnSmokeDebugVolume = false;
 		Definition.ProjectileSettings.bDrawDamageDebug = true;
 		break;
 	case EItemID::SmokeGrenade:
 		Definition.ProjectileSettings.bApplyRadialDamage = false;
-		Definition.ProjectileSettings.bSpawnSmokeDebugVolume = true;
 		Definition.ProjectileSettings.bDrawDamageDebug = false;
 		break;
 	default:

@@ -8,6 +8,7 @@
 #include "TimeThiefThrowableProjectile.generated.h"
 
 class APawn;
+class ATimeThiefSmokeVolume;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
@@ -35,7 +36,7 @@ protected:
 	void ExplodeOnce();
 	void ApplyRadialThrowableDamage(const FVector& ExplosionLocation);
 	void PlayDetonationEffects(const FVector& ExplosionLocation);
-	void SpawnSmokeDebug(const FVector& SmokeLocation);
+	void SpawnSmokeVolume(const FVector& SmokeLocation);
 	void ApplyProjectileSettings();
 	void PlayCollisionSound(const FHitResult& ImpactResult, const FVector& ImpactVelocity);
 

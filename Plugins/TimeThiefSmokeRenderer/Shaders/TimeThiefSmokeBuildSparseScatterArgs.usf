@@ -1,0 +1,11 @@
+#include "/Engine/Private/Common.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_SPARSE_SCATTER_ARGS_PARAMETERS
+
+[numthreads(1, 1, 1)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	const uint ActiveBrickCount = min(ActiveBrickCountBuffer[0], (uint)max(MaxActiveSmokeBricks, 1));
+	WriteDispatchIndirectArgs(OutSparseScatterIndirectArgs, 0, max(SparseScatterGroupsPerBrick, 1u), ActiveBrickCount, 1u);
+}

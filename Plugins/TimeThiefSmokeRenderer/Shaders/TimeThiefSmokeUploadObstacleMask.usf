@@ -1,0 +1,97 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+struct FTimeThiefSmokeObstaclePrimitive
+{
+	float4 CenterRadius;
+	float4 AxisHalfLength;
+	float4 ExtentsShape;
+	float4 Rotation;
+};
+
+int3 GridResolution;
+float3 BoundsExtent;
+int ObstaclePrimitiveCount;
+float FarDistanceCm;
+float SurfaceFeatherCm;
+StructuredBuffer<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
+RWTexture3D<float> OutObstacleSdfTexture;
+RWTexture3D<float4> OutObstacleVelocityTexture;
+RWTexture3D<float4> OutObstacleFaceOpenTexture;
+
+float ObstaclePrimitiveSdf(FTimeThiefSmokeObstaclePrimitive Primitive, float3 LocalPosition)
+{
+	const float Shape = round(Primitive.ExtentsShape.w);
+	const float3 Center = Primitive.CenterRadius.xyz;
+	const float Radius = Primitive.CenterRadius.w;
+	const float3 Extents = max(Primitive.ExtentsShape.xyz, 1.0);
+	const float3 Delta = LocalPosition - Center;
+
+	if (Shape < 0.5)
+	{
+		return length(Delta) - Radius;
+	}
+
+	if (Shape < 1.5)
+	{
+		const float3 Axis = normalize(Primitive.AxisHalfLength.xyz + float3(0.0, 0.0, 0.0001));
+		const float HalfSegment = max(Primitive.AxisHalfLength.w, 0.0);
+		const float Along = clamp(dot(Delta, Axis), -HalfSegment, HalfSegment);
+		return length(Delta - Axis * Along) - Radius;
+	}
+
+	if (Shape < 2.5)
+	{
+		return TimeThiefSmokeBoxSdf(TimeThiefSmokeInverseRotateByQuat(Delta, Primitive.Rotation), Extents);
+	}
+
+	return TimeThiefSmokeBoxSdf(Delta, Extents);
+}
+
+float ObstacleFieldSdf(float3 LocalPosition)
+{
+	float Phi = max(FarDistanceCm, 1.0);
+	[loop]
+	for (int PrimitiveIndex = 0; PrimitiveIndex < ObstaclePrimitiveCount; ++PrimitiveIndex)
+	{
+		Phi = min(Phi, ObstaclePrimitiveSdf(ObstaclePrimitives[PrimitiveIndex], LocalPosition));
+	}
+	return Phi;
+}
+
+float ComputeFaceOpen(float PhiA, float PhiB)
+{
+	if (PhiA <= 0.0 && PhiB <= 0.0)
+	{
+		return 0.0;
+	}
+	if (PhiA > 0.0 && PhiB > 0.0)
+	{
+		return 1.0;
+	}
+	return saturate(max(PhiA, PhiB) / max(abs(PhiA) + abs(PhiB), 0.0001));
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+	const float3 CellSize = (BoundsExtent * 2.0) / max(float3(GridResolution), 1.0);
+	const float Phi = ObstacleFieldSdf(LocalPosition);
+	const float PhiMinusX = DispatchThreadId.x > 0 ? ObstacleFieldSdf(LocalPosition - float3(CellSize.x, 0.0, 0.0)) : -1.0;
+	const float PhiMinusY = DispatchThreadId.y > 0 ? ObstacleFieldSdf(LocalPosition - float3(0.0, CellSize.y, 0.0)) : -1.0;
+	const float PhiMinusZ = DispatchThreadId.z > 0 ? ObstacleFieldSdf(LocalPosition - float3(0.0, 0.0, CellSize.z)) : -1.0;
+
+	OutObstacleSdfTexture[DispatchThreadId] = Phi;
+	OutObstacleVelocityTexture[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+	OutObstacleFaceOpenTexture[DispatchThreadId] = float4(
+		ComputeFaceOpen(Phi, PhiMinusX),
+		ComputeFaceOpen(Phi, PhiMinusY),
+		ComputeFaceOpen(Phi, PhiMinusZ),
+		TimeThiefSmokeObstacleOpenFromSdf(Phi, SurfaceFeatherCm));
+}

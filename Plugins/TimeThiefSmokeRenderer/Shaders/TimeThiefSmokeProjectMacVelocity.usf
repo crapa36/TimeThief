@@ -1,0 +1,89 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_PROJECT_MAC_VELOCITY_PARAMETERS
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), ObstacleSdfSurfaceFeatherCm);
+}
+
+float3 LoadFaceOpen(int3 Coord)
+{
+	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+}
+
+float3 LoadSolidVelocity(int3 Coord)
+{
+	return ObstacleVelocityTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
+	const float CenterPressure = LoadPressure(Coord);
+	const float3 FaceOpenMinus = LoadFaceOpen(Coord);
+	const float3 CenterSolidVelocity = LoadSolidVelocity(Coord);
+
+	float U = FaceVelocityUIn.Load(int4(Coord, 0));
+	float V = FaceVelocityVIn.Load(int4(Coord, 0));
+	float W = FaceVelocityWIn.Load(int4(Coord, 0));
+
+	if (Coord.x <= 0)
+	{
+		U = 0.0;
+	}
+	else
+	{
+		const int3 LeftCoord = Coord - int3(1, 0, 0);
+		const float FaceOpen = FaceOpenMinus.x;
+		const float SolidU = 0.5 * (CenterSolidVelocity.x + LoadSolidVelocity(LeftCoord).x);
+		U = lerp(SolidU, U - (CenterPressure - LoadPressure(LeftCoord)) * InvCellSize.x, FaceOpen);
+	}
+
+	if (Coord.y <= 0)
+	{
+		V = 0.0;
+	}
+	else
+	{
+		const int3 BackCoord = Coord - int3(0, 1, 0);
+		const float FaceOpen = FaceOpenMinus.y;
+		const float SolidV = 0.5 * (CenterSolidVelocity.y + LoadSolidVelocity(BackCoord).y);
+		V = lerp(SolidV, V - (CenterPressure - LoadPressure(BackCoord)) * InvCellSize.y, FaceOpen);
+	}
+
+	if (Coord.z <= 0)
+	{
+		W = 0.0;
+	}
+	else
+	{
+		const int3 BottomCoord = Coord - int3(0, 0, 1);
+		const float FaceOpen = FaceOpenMinus.z;
+		const float SolidW = 0.5 * (CenterSolidVelocity.z + LoadSolidVelocity(BottomCoord).z);
+		W = lerp(SolidW, W - (CenterPressure - LoadPressure(BottomCoord)) * InvCellSize.z, FaceOpen);
+	}
+
+	OutFaceVelocityU[DispatchThreadId] = U;
+	OutFaceVelocityV[DispatchThreadId] = V;
+	OutFaceVelocityW[DispatchThreadId] = W;
+}

@@ -1,0 +1,186 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_WARP_PARAMETERS
+
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+uint FlattenBrickCoordForEventBins(int3 BrickCoord)
+{
+	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
+	return (uint)(SafeCoord.x + SafeCoord.y * BrickGridResolution.x + SafeCoord.z * BrickGridResolution.x * BrickGridResolution.y);
+}
+
+uint4 GetEventBrickMask(uint3 CellCoord)
+{
+	if (bUseEventBrickBins == 0u)
+	{
+		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
+}
+
+bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
+{
+	const uint WordIndex = (uint)EventIndex >> 5u;
+	const uint Bit = 1u << ((uint)EventIndex & 31u);
+	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
+	return (Word & Bit) != 0u;
+}
+
+float3 SafeNormalize(float3 Value)
+{
+	return normalize(Value + float3(0.0001, 0.0001, 0.0001));
+}
+
+float3 MakeSideAxis(float3 Direction)
+{
+	const float3 Up = abs(Direction.z) < 0.86 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0);
+	return SafeNormalize(cross(Direction, Up));
+}
+
+float ComputeWarpStrand(float3 Radial, float3 Side, float3 Up, float BackAlong, float ThreadRadius, float Seed, float StrandIndex)
+{
+	const float Phase = BackAlong * (0.026 + StrandIndex * 0.004) + Seed * (0.011 + StrandIndex * 0.003);
+	const float OffsetScale = ThreadRadius * lerp(0.42, 1.08, TimeThiefSmokeHash13(float3(Seed * 0.017, StrandIndex, 2.91)));
+	const float3 Offset =
+		Side * sin(Phase) * OffsetScale +
+		Up * cos(Phase * (0.63 + StrandIndex * 0.11) + StrandIndex * 1.83) * OffsetScale * 0.72;
+	return 1.0 - smoothstep(ThreadRadius * 0.24, ThreadRadius, length(Radial - Offset));
+}
+
+float ComputeActorWarpSource(float3 WorldPosition, float Density, float CellLength, FTimeThiefSmokeEventShaderData Event)
+{
+	const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
+	if (EventType != 2)
+	{
+		return 0.0;
+	}
+
+	const float Seed = Event.TypeShapeAgeSeed.w;
+	const float3 EventPosition = Event.PositionRadius.xyz;
+	const float Radius = max(Event.PositionRadius.w, 1.0);
+	const float Strength = saturate(Event.ExtentsStrength.w);
+	const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
+
+	const float3 Direction = SafeNormalize(Event.DirectionLength.xyz);
+	const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
+	const float TrailLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+	const float3 ToCell = WorldPosition - EventPosition;
+	const float InfluenceRadius = TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale);
+	if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
+	{
+		return 0.0;
+	}
+
+	const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
+	const float MotionMask = smoothstep(ActorAirflowMinSpeed, ActorAirflowFullSpeed, ActorSpeed);
+	if (MotionMask <= 0.0)
+	{
+		return 0.0;
+	}
+
+	const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
+	const float OutsideShape = smoothstep(-max(ShapeRadius * 0.05, 1.0), max(ShapeRadius * 0.16, 1.0), ShapeSdf);
+	const float Along = dot(ToCell, Direction);
+	const float BackAlong = clamp(-Along, 0.0, TrailLength);
+	const float BehindMask = saturate(-Along / max(ShapeRadius * 0.35, 1.0));
+	if (BehindMask <= 0.0)
+	{
+		return 0.0;
+	}
+
+	const float3 TrailClosest = EventPosition - Direction * BackAlong;
+	const float3 Radial = WorldPosition - TrailClosest;
+	const float3 Side = MakeSideAxis(Direction);
+	const float3 Up = SafeNormalize(cross(Side, Direction));
+	float3 WakeStreetDirection = Direction;
+	const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, TrailLength, CellLength, ActorWakeStreetLaneInnerRadiusScale, WakeStreetDirection);
+	const float ThreadRadius = clamp(
+		ShapeRadius * WarpTrailRadiusScale * lerp(WarpTrailThreadRadiusStartScale, WarpTrailThreadRadiusEndScale, saturate(BackAlong / max(TrailLength, 1.0))),
+		WarpTrailThreadMinRadius,
+		max(ShapeRadius * WarpTrailThreadMaxShapeRadiusScale, WarpTrailThreadMinRadius));
+	const float AxialFade =
+		(1.0 - smoothstep(TrailLength * WarpTrailAxialFadeStartScale, TrailLength, BackAlong)) *
+		saturate(BackAlong / max(ThreadRadius * WarpTrailAxialRiseRadiusScale, 1.0));
+	const float Strand =
+		max(
+			max(
+				ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius, Seed, 0.0),
+				ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.78, Seed + 37.0, 1.0)),
+			max(
+				max(
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.66, Seed + 71.0, 2.0),
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.58, Seed + 113.0, 3.0)),
+				max(
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.52, Seed + 149.0, 4.0),
+					ComputeWarpStrand(Radial, Side, Up, BackAlong, ThreadRadius * 0.47, Seed + 191.0, 5.0))));
+	const float Halo = 1.0 - smoothstep(ThreadRadius * WarpTrailHaloInnerRadiusScale, ThreadRadius * WarpTrailHaloOuterRadiusScale, length(Radial));
+	const float WarpEnvelope = max(Strand * WarpTrailStrandGain + Halo * WarpTrailHaloGain, WakeStreet * WarpTrailWakeStreetGain);
+	const float WakeAxial = max(AxialFade * BehindMask, WakeStreet);
+	const float Breakup = lerp(
+		0.45,
+		1.15,
+		TimeThiefSmokeValueNoise(float3(BackAlong * 0.035, Seed * 0.009, dot(WorldPosition, float3(0.008, 0.005, 0.011)))));
+	const float DensityFactor = lerp(WarpTrailDensityFactorMin, 1.0, smoothstep(0.0, WarpTrailDensityFactorFullDensity, Density));
+	return saturate(WarpEnvelope * WakeAxial * Breakup * DensityFactor * Strength * WarpBudget * MotionMask * OutsideShape * max(WarpTrailIntensity, 0.0));
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutWarp[DispatchThreadId] = 0.0;
+		return;
+	}
+
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
+	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
+	const int3 Coord = int3(DispatchThreadId);
+	const float Density = max(DensityIn.Load(int4(Coord, 0)) + DisplacedDensityIn.Load(int4(Coord, 0)), 0.0) * OpenMask;
+	const float3 WorldVelocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+	const float3 LocalVelocity = mul(float4(WorldVelocity, 0.0), WorldToLocal).xyz;
+	const float3 AdvectedUVW = saturate(UVW - LocalVelocity * SafeDeltaSeconds / max(BoundsExtent * 2.0, 1.0));
+	float Warp = max(WarpIn.SampleLevel(VolumeSampler, AdvectedUVW, 0.0), 0.0) * exp2(-max(WarpTrailDecayRate, 0.0) * SafeDeltaSeconds);
+
+	float Source = 0.0;
+	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
+	const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+	const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		{
+			continue;
+		}
+
+		Source = max(Source, ComputeActorWarpSource(WorldPosition, Density, MaxGridCellSize, Events[EventIndex]));
+	}
+
+	const float AvailableWarpBudget = 1.0 - saturate(Warp * WarpTrailAvailableBudgetScale);
+	Warp = saturate(Warp + Source * AvailableWarpBudget);
+	OutWarp[DispatchThreadId] = Warp * OpenMask;
+}

@@ -1,0 +1,73 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_VORTEX_BRICK_MASKS_PARAMETERS
+
+uint FlattenBrickCoord(uint3 BrickCoord)
+{
+	const uint3 BrickGrid = uint3(BrickGridResolution);
+	return BrickCoord.x + BrickCoord.y * BrickGrid.x + BrickCoord.z * BrickGrid.x * BrickGrid.y;
+}
+
+void SetParticleBit(inout uint4 Mask, int ParticleIndex)
+{
+	const uint Bit = 1u << (ParticleIndex & 31);
+	if (ParticleIndex < 32)
+	{
+		Mask.x |= Bit;
+	}
+	else if (ParticleIndex < 64)
+	{
+		Mask.y |= Bit;
+	}
+	else if (ParticleIndex < 96)
+	{
+		Mask.z |= Bit;
+	}
+	else
+	{
+		Mask.w |= Bit;
+	}
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(BrickGridResolution)))
+	{
+		return;
+	}
+
+	const int3 VoxelGridResolution = BrickGridResolution * SmokeBrickSize;
+	const float3 GridResolutionFloat = max(float3(VoxelGridResolution), 1.0);
+	const int3 BrickMinCoord = int3(DispatchThreadId) * SmokeBrickSize;
+	const int3 BrickMaxCoord = min((int3(DispatchThreadId) + int3(1, 1, 1)) * SmokeBrickSize, VoxelGridResolution);
+	const float3 MinUVW = float3(BrickMinCoord) / GridResolutionFloat;
+	const float3 MaxUVW = float3(BrickMaxCoord) / GridResolutionFloat;
+	const float3 BrickMin = (MinUVW * 2.0 - 1.0) * BoundsExtent;
+	const float3 BrickMax = (MaxUVW * 2.0 - 1.0) * BoundsExtent;
+	const float3 BrickCenter = (BrickMin + BrickMax) * 0.5;
+	const float3 BrickHalfExtent = max((BrickMax - BrickMin) * 0.5, float3(1.0, 1.0, 1.0));
+	const float InfluenceRadius = max(VortexParticleSplatRadius, 1.0);
+	uint4 Mask = uint4(0u, 0u, 0u, 0u);
+
+	const int SafeParticleCount = min(VortexParticleCount, MaxVortexParticleCount);
+	[loop]
+	for (int ParticleIndex = 0; ParticleIndex < SafeParticleCount; ++ParticleIndex)
+	{
+		const FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticles[ParticleIndex];
+		if (Particle.LocalPositionLife.w <= 0.0 || Particle.VelocityStrength.w <= 0.0)
+		{
+			continue;
+		}
+
+		const float3 Delta = abs(Particle.LocalPositionLife.xyz - BrickCenter) - BrickHalfExtent;
+		const float DistanceSq = dot(max(Delta, 0.0), max(Delta, 0.0));
+		if (DistanceSq <= InfluenceRadius * InfluenceRadius)
+		{
+			SetParticleBit(Mask, ParticleIndex);
+		}
+	}
+
+	OutVortexBrickMasks[FlattenBrickCoord(DispatchThreadId)] = Mask;
+}

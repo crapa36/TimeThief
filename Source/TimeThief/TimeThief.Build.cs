@@ -29,10 +29,12 @@ public class TimeThief : ModuleRules
             "GameFeatures",
             "Json",
             "JsonUtilities",
+            "Niagara",
             "Protobuf",
             "ProtocolSharedUE",
             "AnimGraphRuntime",
             "DeveloperSettings",
+            "TimeThiefSmokeRenderer",
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]

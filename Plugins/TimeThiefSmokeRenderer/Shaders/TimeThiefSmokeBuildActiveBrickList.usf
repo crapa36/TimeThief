@@ -1,0 +1,26 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_ACTIVE_BRICK_LIST_PARAMETERS
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= BrickGridResolution))
+	{
+		return;
+	}
+
+	const uint BrickIndirection = BrickOccupancyTexture.Load(int4(int3(DispatchThreadId), 0));
+	if (BrickIndirection == 0u)
+	{
+		return;
+	}
+
+	uint ActiveBrickIndex = 0u;
+	InterlockedAdd(BrickAllocator[0], 1u, ActiveBrickIndex);
+	if (ActiveBrickIndex < (uint)max(MaxActiveSmokeBricks, 1))
+	{
+		OutActiveBricks[ActiveBrickIndex] = uint4(DispatchThreadId, BrickIndirection);
+	}
+}

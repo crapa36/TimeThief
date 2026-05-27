@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefWeaponTrail.h"
 #include "Utils/Random32.h"
@@ -163,6 +164,11 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 			ETimeThiefWeaponTrailType::ShotgunPellet,
 			MuzzleLocation,
 			TrailEndLocation);
+
+		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+		{
+			SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, TrailEndLocation, 0.65f, static_cast<int32>(RandomSeed + PelletIndex * 104729u));
+		}
 
 		PelletResult.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, PelletAimDir);
 		if (bWeaponHit)

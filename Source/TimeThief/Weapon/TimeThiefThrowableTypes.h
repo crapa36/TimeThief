@@ -4,7 +4,6 @@
 #include "ItemCommons.h"
 #include "TimeThiefThrowableTypes.generated.h"
 
-class ATimeThiefSmokeDebugVolume;
 class UAnimSequenceBase;
 class UNiagaraSystem;
 class UParticleSystem;
@@ -78,18 +77,6 @@ struct FTimeThiefThrowableProjectileSettings
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Damage")
 	float DamageOuterRadius = 450.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke")
-	bool bSpawnSmokeDebugVolume = false;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke")
-	TSubclassOf<ATimeThiefSmokeDebugVolume> SmokeDebugVolumeClass;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke")
-	float SmokeRadius = 450.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Smoke")
-	float SmokeDuration = 12.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Effects")
 	TObjectPtr<UNiagaraSystem> DetonationNiagaraEffect;
