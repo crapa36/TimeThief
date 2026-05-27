@@ -97,7 +97,7 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 	{
-		SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, DebugEndLocation, 1.0f, FMath::Rand());
+		SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, TrailEndLocation, 1.0f, FMath::Rand());
 	}
 
 	Result.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, CameraAimDir);

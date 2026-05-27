@@ -167,7 +167,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 
 		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 		{
-			SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, DebugEndLocation, 0.65f, static_cast<int32>(RandomSeed + PelletIndex * 104729u));
+			SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, TrailEndLocation, 0.65f, static_cast<int32>(RandomSeed + PelletIndex * 104729u));
 		}
 
 		PelletResult.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, PelletAimDir);
