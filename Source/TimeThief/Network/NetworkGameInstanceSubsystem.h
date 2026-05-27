@@ -24,6 +24,7 @@
 #include "NetworkGameInstanceSubsystem.generated.h"
 
 class ATimeThiefPlayerCharacter;
+struct FThrowableMoveSnapshot;
 struct FRemoteAttackNotify;
 struct FEntityRuntimeEntry;
 struct FMoveSyncData;
@@ -79,6 +80,8 @@ public:
 	void SendItemPickUp(uint32 ItemEntityId);
 	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
+	void SendUseItem(uint32 Itemid);
+	void SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData);
 	
 private:
 	void ConnectToServer();
@@ -128,6 +131,8 @@ public:
 	void HandleAim(const se::game::N_Aim& pkt);
 	void HandleFire(const se::game::N_Fire& Pkt);
 	void HandleAttack(const se::game::N_Attack& Pkt);
+	void HandleMonsterFire(const se::game::N_MonsterFire& Pkt);
+	void HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt);
 	void HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt);
 	void HandleReload(const se::game::N_Reload& Pkt);
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
@@ -204,6 +209,10 @@ private:
 	ATimeThiefPlayerCharacter* GetLocalPlayerPawn();
 	
 public:
+	void ResetLoadingGate();
+	void SetLocalPlayerInputEnabled(bool bCond);
+	
+public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")
 	void RequestSetNickname(const FString& Nickname);
 	
@@ -218,6 +227,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Network|Room")
 	void RequestRoomLeave();
+	
+	void TrySendLoadingComplete();
 	
 	// Testing
 public:
@@ -282,5 +293,11 @@ private:
 	FRoomState RoomState;
 	
 	TMap<uint32, FEntityRuntimeEntry> EntityEntries;
+	
+private:
+	bool bReceivedRoomEnterRes = false;
+	bool bReceivedEntitiesSpawn = false;
+	bool bReceivedPlayerInitSetup = false;
+	bool bSentLoadingComplete = false;
 	
 };

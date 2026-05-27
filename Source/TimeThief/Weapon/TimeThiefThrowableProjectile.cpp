@@ -13,6 +13,7 @@
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "Weapon/TimeThiefWeaponTrail.h"
+#include "Components/ThrowableNetworkSyncComponent.h"
 
 ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
 {
@@ -42,6 +43,8 @@ ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
 	ProjectileMovementComponent->OnProjectileBounce.AddDynamic(this, &ATimeThiefThrowableProjectile::OnProjectileBounce);
 
 	WeaponTrail = CreateDefaultSubobject<UTimeThiefWeaponTrail>(TEXT("WeaponTrail"));
+	
+	ThrowableNetworkSyncComponent = CreateDefaultSubobject<UThrowableNetworkSyncComponent>(TEXT("ThrowableNetworkSyncComponent"));
 }
 
 void ATimeThiefThrowableProjectile::InitializeThrowable(EItemID InItemID, AActor* InOwnerActor, APawn* InInstigatorPawn)

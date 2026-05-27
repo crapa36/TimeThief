@@ -38,4 +38,10 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> StoreClass;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> TestMonster;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> CatMonster;
+	
 };

@@ -7,6 +7,7 @@
 #include "Components/TextBlock.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 
 void UInventoryItemEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
@@ -34,6 +35,15 @@ void UInventoryItemEntryWidget::OnSlotClicked()
 	
 	if (Item.IsValid())
 	{
+		if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+		{
+			if (NGIS->IsConnected())
+			{
+				NGIS->SendUseItem(static_cast<uint32>(ItemID));
+				return;;
+			}
+		}
+		
 		if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 		{
 			Player->GetInventoryComponent()->RemoveItem(ItemID, 1);

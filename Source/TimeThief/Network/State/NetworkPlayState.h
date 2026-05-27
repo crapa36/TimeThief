@@ -14,6 +14,8 @@ enum class ENetworkPlayState : uint8
 	MatchMaking,
 	MatchingSucc,
 	EnteringRoom,
+	LoadingRoom,
+	WaitingGameStart,
 	InRoom,
 	LeavingRoom,
 };

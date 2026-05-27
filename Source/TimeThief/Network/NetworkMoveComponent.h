@@ -40,6 +40,10 @@ public:
 	
 	FVector GetMoveStep() const { return MoveStep; }
 	
+	void StopVisualMovement();
+	void ResumeVisualMovement();
+	void ResetInterpolationToCurrent();
+	
 public:
 	void HandleActionEvent(const FNetworkActionEvent& ActionEvent);
 	
@@ -63,6 +67,7 @@ private:
 	void TickServer(float DeltaTime);
 	
 	void ApplyRemoteInterpolation(float DeltaTime);
+	void ApplyServerInterpolation(float DeltaTime);
 	void SnapToTarget();
 	FVector2D BuildSyntheticVelocity2D(const FVector& FromPosition, const FVector& ToPosition, float DeltaSeconds, const FVector2D& FallbackVelocity) const;
 	

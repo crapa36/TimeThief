@@ -200,6 +200,18 @@ void UTimeThiefPlayerCombatComponent::ApplyUpgradeStatsToActiveWeapon()
 	}
 }
 
+void UTimeThiefPlayerCombatComponent::ForceStopCombatInput()
+{
+	bIsFireInputHeld = false;
+
+	if (MasterWeaponPtr)
+	{
+		MasterWeaponPtr->StopFire();
+	}
+
+	StopAiming();
+}
+
 void UTimeThiefPlayerCombatComponent::OnEquipFinished()
 {
 	Super::OnEquipFinished();
