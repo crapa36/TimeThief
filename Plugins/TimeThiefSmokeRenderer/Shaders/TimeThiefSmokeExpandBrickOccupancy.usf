@@ -43,14 +43,18 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		uint AtlasIndex = 0u;
 		InterlockedAdd(BrickAllocator[0], 1u, AtlasIndex);
 		const uint MaxAtlasBricks = (uint)max(MaxActiveSmokeBricks, 1);
+		const uint MaxListBricks = (uint)max(MaxActiveListBricks, 1);
 		if (AtlasIndex < MaxAtlasBricks)
 		{
 			BrickIndirection = AtlasIndex + 1u;
-			OutActiveBricks[AtlasIndex] = uint4(DispatchThreadId, BrickIndirection);
 		}
 		else
 		{
 			BrickIndirection = MaxAtlasBricks + 1u;
+		}
+		if (AtlasIndex < MaxListBricks)
+		{
+			OutActiveBricks[AtlasIndex] = uint4(DispatchThreadId, BrickIndirection);
 		}
 	}
 

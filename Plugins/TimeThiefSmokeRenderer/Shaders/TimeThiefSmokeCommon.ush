@@ -121,6 +121,13 @@ float TimeThiefSmokeFilamentMask(float3 P, float Time, float Contrast)
 	return pow(Threads, max(Contrast, 0.1));
 }
 
+float TimeThiefSmokeFastFilamentMask(float3 P, float Time, float Contrast)
+{
+	const float Ridge = TimeThiefSmokeRidgedFBM(P + float3(Time * 0.19, -Time * 0.13, Time * 0.07));
+	const float Threads = saturate(Ridge * 1.22 - 0.24);
+	return pow(Threads, max(Contrast * 0.82, 0.1));
+}
+
 float TimeThiefSmokeRenderDensityNoise(float3 P, float Time, float RawDensity, float BoundaryMask, float Strength, float FineMultiplier)
 {
 	const float S = saturate(Strength);
@@ -132,12 +139,19 @@ float TimeThiefSmokeRenderDensityNoise(float3 P, float Time, float RawDensity, f
 	const float3 Q = P + float3(Time * 0.19, -Time * 0.11, Time * 0.07);
 	const float Base = TimeThiefSmokeFBM(Q);
 	const float BaseShape = smoothstep(0.22, 0.82, Base);
-	const float Detail = TimeThiefSmokeRidgedFBM(Q * max(FineMultiplier, 1.0) + BaseShape * 0.37 - Time * 0.29);
 	const float DensityEdge = 1.0 - smoothstep(0.18, 1.15, RawDensity);
 	const float BoundaryEdge = 1.0 - smoothstep(0.55, 0.98, BoundaryMask);
 	const float DenseCoreFade = 1.0 - smoothstep(1.3, 2.4, RawDensity);
 	const float ErosionGate = saturate(max(DensityEdge, BoundaryEdge) * DenseCoreFade);
-	const float InteriorDetail = Detail * smoothstep(0.45, 1.55, RawDensity) * 0.06;
+	const float InteriorDetailGate = smoothstep(0.45, 1.55, RawDensity) * (1.0 - smoothstep(1.8, 2.5, RawDensity));
+	const float DetailGate = saturate(max(ErosionGate, InteriorDetailGate));
+	float Detail = 0.5;
+	[branch]
+	if (DetailGate > 0.02)
+	{
+		Detail = TimeThiefSmokeRidgedFBM(Q * max(FineMultiplier, 1.0) + BaseShape * 0.37 - Time * 0.29);
+	}
+	const float InteriorDetail = Detail * InteriorDetailGate * 0.06;
 	const float Clump = lerp(0.74, 1.28, BaseShape);
 	const float Target = clamp(Clump - Detail * ErosionGate * lerp(0.3, 0.58, S) + InteriorDetail, 0.46, 1.48);
 	return lerp(1.0, Target, S);
@@ -346,6 +360,11 @@ float TimeThiefSmokeExplosionInfluenceRadius(FTimeThiefSmokeEventShaderData Even
 {
 	const float Radius = max(Event.PositionRadius.w, 1.0);
 	return Radius * 1.55;
+}
+
+float TimeThiefSmokePlumeSourceInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	return max(Event.PositionRadius.w * 2.2, 1.0);
 }
 
 float3 TimeThiefSmokeWakeSideAxis(float3 Direction)

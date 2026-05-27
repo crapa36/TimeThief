@@ -88,6 +88,8 @@ void ComputeAdvectionLimiterBounds(
 	out float3 VelocityMax)
 {
 	const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
+	const float3 GridPosition = UVW * float3(GridResolution) - 0.5;
+	const int3 BaseCoord = (int3)floor(GridPosition);
 	DensityMin = 999999.0;
 	DensityMax = -999999.0;
 	DisplacedDensityMin = 999999.0;
@@ -96,15 +98,16 @@ void ComputeAdvectionLimiterBounds(
 	VelocityMax = float3(-999999.0, -999999.0, -999999.0);
 
 	[unroll]
-	for (int Z = -1; Z <= 1; ++Z)
+	for (int Z = 0; Z <= 1; ++Z)
 	{
 		[unroll]
-		for (int Y = -1; Y <= 1; ++Y)
+		for (int Y = 0; Y <= 1; ++Y)
 		{
 			[unroll]
-			for (int X = -1; X <= 1; ++X)
+			for (int X = 0; X <= 1; ++X)
 			{
-				const float3 SampleUVW = saturate(UVW + float3(X, Y, Z) * Texel);
+				const int3 SampleCoord = clamp(BaseCoord + int3(X, Y, Z), int3(0, 0, 0), GridResolution - 1);
+				const float3 SampleUVW = (float3(SampleCoord) + 0.5) * Texel;
 				const float SampleDensity = DensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
 				const float SampleDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
 				const float3 SampleVelocity = VelocityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0).xyz;

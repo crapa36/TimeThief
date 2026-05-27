@@ -122,15 +122,29 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 		const float Strength = max(Event.ExtentsStrength.w, 0.0) * max(EventVortexStrength, 0.0);
 		const float3 ToCell = WorldPosition - EventPosition;
 		const float ShapeRadius = max(Radius, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
-		const float InfluenceRadius = EventType == 0
-			? TimeThiefSmokeBulletWakeInfluenceRadius(Event, BulletWakeCutoutFeather)
-			: (EventType == 1 ? TimeThiefSmokeExplosionInfluenceRadius(Event) : TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale));
+		float InfluenceRadius = 0.0;
+		if (EventType == 0u)
+		{
+			InfluenceRadius = TimeThiefSmokeBulletWakeInfluenceRadius(Event, BulletWakeCutoutFeather);
+		}
+		else if (EventType == 1u)
+		{
+			InfluenceRadius = TimeThiefSmokeExplosionInfluenceRadius(Event);
+		}
+		else if (EventType == 2u)
+		{
+			InfluenceRadius = TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale);
+		}
+		else
+		{
+			continue;
+		}
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;
 		}
 
-		if (EventType == 0)
+		if (EventType == 0u)
 		{
 			const float HalfLength = max(Length * 0.5, 1.0);
 			const float Along = clamp(dot(ToCell, Direction), -HalfLength, HalfLength);
@@ -146,7 +160,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			Force += Tangent * SpinSign * (Core + Shell * 1.65) * Strength * AgeFade * 640.0;
 			Force += CurlNoise * Shell * Strength * AgeFade * 190.0;
 		}
-		else if (EventType == 1)
+		else if (EventType == 1u)
 		{
 			const float Distance = length(ToCell);
 			const float3 RadialDirection = SafeNormalize(ToCell);
@@ -159,7 +173,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			Force += Tangent * Shell * Strength * Fade * 760.0;
 			Force += CurlNoise * (Shell * 0.85 + Core * 0.18) * Strength * Fade * 320.0;
 		}
-		else
+		else if (EventType == 2u)
 		{
 			const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
 			const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);

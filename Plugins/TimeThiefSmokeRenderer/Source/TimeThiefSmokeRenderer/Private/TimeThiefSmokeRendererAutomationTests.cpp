@@ -155,10 +155,6 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::BulletWakeReleaseDuration >= TimeThiefSmokeParameterDefaults::BulletWakeMinLifeSeconds &&
 		TimeThiefSmokeParameterDefaults::BulletWakeSinkLife >= TimeThiefSmokeParameterDefaults::BulletWakeMinLifeSeconds);
 	TestTrue(
-		TEXT("Analytic bullet cutout feather keeps a positive smooth edge"),
-		TimeThiefSmokeParameterDefaults::AnalyticBulletCutoutFeatherRadiusScale > 0.0f &&
-		TimeThiefSmokeParameterDefaults::AnalyticBulletCutoutMinFeather > 0.0f);
-	TestTrue(
 		TEXT("Bullet wake hold core keeps an ordered smoothstep range"),
 		TimeThiefSmokeParameterDefaults::BulletWakeHoldCoreInnerRadiusScale > 0.0f &&
 		TimeThiefSmokeParameterDefaults::BulletWakeHoldCoreOuterRadiusScale > TimeThiefSmokeParameterDefaults::BulletWakeHoldCoreInnerRadiusScale);

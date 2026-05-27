@@ -38,9 +38,8 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f GridResolution_UseSparse = FVector4f::Zero();
 	FVector4f BrickGridResolution_SmokeBrickSize = FVector4f::Zero();
 	FVector4f SparseAtlasBrickGridResolution_MaxActive = FVector4f::Zero();
-	FVector4f RenderSteps_EventsQuality = FVector4f::Zero();
-	FVector4f AnalyticEvents = FVector4f::Zero();
-	FVector4f AnalyticBulletControls = FVector4f::Zero();
+	FVector4f RenderSteps_Quality = FVector4f::Zero();
+	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
 	FVector4f RaymarchControls = FVector4f::Zero();
 };
 
@@ -299,39 +298,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokePressureResidualCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePressureResidualCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePressureResidualCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_PRESSURE_RESIDUAL_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FTimeThiefSmokePressureRestrictCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePressureRestrictCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePressureRestrictCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_PRESSURE_RESTRICT_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FTimeThiefSmokePressureProlongateAddCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePressureProlongateAddCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePressureProlongateAddCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_PRESSURE_PROLONGATE_ADD_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeProjectVelocityCS : public FGlobalShader
 {
 public:
@@ -376,17 +342,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeCompositePS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeCompositePS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeCompositePS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_COMPOSITE_PS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeCompositeMultiPS : public FGlobalShader
 {
 public:
@@ -404,7 +359,6 @@ public:
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData>, TileSmokeRanges)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, TileSmokeIndices)
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeEventShaderData>, Events)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneColorTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneDepthTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture0)

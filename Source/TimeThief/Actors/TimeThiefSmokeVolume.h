@@ -51,13 +51,9 @@ private:
 	FVector ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FVector& OutPreviousLocation);
 	float EstimateWarpDensityAtWorldPosition(const FVector& WorldPosition) const;
 	ESmokeInteractionShape ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const;
-	void ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event);
 	void MarkObstacleFieldDirty();
 	void RebuildStaticObstacleField();
-	void BuildActiveBoundsCells(const FVector& BoundsExtent, const FTransform& SmokeTransform, const TArray<FTimeThiefSmokeObstaclePrimitive>& StaticObstaclePrimitives);
-	float ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent, const TArray<FIntVector>& ActiveCellCoords) const;
 	void UpdateSmokeBounds();
-	void DrawDebugSmoke() const;
 
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Smoke|Runtime")
 	int32 SmokeId = INDEX_NONE;
@@ -67,11 +63,8 @@ private:
 	float ActorInteractionAccumulator = 0.0f;
 	float SmokeAgeSeconds = 0.0f;
 	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
-	TArray<uint8> ActiveBoundsCells;
 	int32 ObstacleFieldResolution = 0;
-	FIntVector ActiveBoundsCellGrid = FIntVector::ZeroValue;
 	uint32 ObstacleFieldRevision = 0;
-	FVector BoundsClusterLocalOffset = FVector::ZeroVector;
 	bool bHasSolidObstacleField = false;
 	bool bObstacleFieldRebuildPending = false;
 };

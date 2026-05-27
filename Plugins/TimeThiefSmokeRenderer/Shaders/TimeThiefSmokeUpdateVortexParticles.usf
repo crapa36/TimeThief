@@ -137,7 +137,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 WorldPosition = mul(float4(Particle.LocalPositionLife.xyz, 1.0), LocalToWorld).xyz;
 		float3 ActorDirection = 0.0;
 		const float ActorWake = DenseVortexActorWakeSeed(WorldPosition, ActorDirection);
-		if (OpenMask < 0.08 || BulletDetail < 0.06 || (Density < 0.015 && ActorWake < 0.02))
+		if (OpenMask < 0.08 || (Density < 0.015 && ActorWake < 0.02 && BulletDetail < 0.06))
 		{
 			OutVortexParticles[ParticleIndex] = DenseVortexDeadParticle();
 			return;
@@ -171,8 +171,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	float3 ActorDirection = 0.0;
 	const float ActorWake = DenseVortexActorWakeSeed(CandidateWorld, ActorDirection);
 	const float ExplosionShell = DenseVortexExplosionShellSeed(CandidateWorld);
-	const float SpawnChance = saturate(max(max(EdgeWeight * smoothstep(0.04, 0.32, CellDensity), SurfaceShear), max(ExplosionShell, ActorWake))) *
-		OpenMask * BulletDetail;
+	const float DensityEdgeSeed = EdgeWeight * smoothstep(0.04, 0.32, CellDensity);
+	const float BulletSeed = BulletDetail * smoothstep(0.015, 0.18, CellDensity);
+	const float EventSeed = max(ExplosionShell, ActorWake);
+	const float SpawnChance = saturate(max(max(DensityEdgeSeed, SurfaceShear), max(EventSeed, BulletSeed)) * OpenMask);
 	const float SpawnRoll = TimeThiefSmokeHash13(float3((float)ParticleIndex * 0.37, SpawnStep, 91.7));
 	if (SpawnChance < 0.18 || SpawnRoll > SpawnChance * 0.72)
 	{
@@ -184,7 +186,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 Axis = normalize(cross(normalize(Gradient + 0.0001), Curl) + ActorDirection * ActorWake + 0.0001);
 	FTimeThiefSmokeVortexParticleShaderData OutParticle;
 	OutParticle.LocalPositionLife = float4(CandidateLocal, SafeLife * lerp(0.55, 1.0, Random.z));
-	OutParticle.VelocityStrength = float4(Curl * VortexParticleStrength * 0.24 * SafeSelfWobbleParticleScale + normalize(CandidateVelocity + 0.0001) * VortexParticleStrength * SurfaceShear * 0.48 * SafeSelfWobbleParticleScale + ActorDirection * VortexParticleStrength * ActorWake, VortexParticleStrength * SpawnChance);
+	OutParticle.VelocityStrength = float4(Curl * VortexParticleStrength * 0.24 * SafeSelfWobbleParticleScale + normalize(CandidateVelocity + 0.0001) * VortexParticleStrength * SurfaceShear * 0.48 * SafeSelfWobbleParticleScale + ActorDirection * VortexParticleStrength * ActorWake, VortexParticleStrength * SpawnChance * lerp(0.85, 1.25, saturate(max(BulletDetail, EventSeed))));
 	OutParticle.AxisSeed = float4(Axis, SpawnRoll);
 	OutVortexParticles[ParticleIndex] = OutParticle;
 }

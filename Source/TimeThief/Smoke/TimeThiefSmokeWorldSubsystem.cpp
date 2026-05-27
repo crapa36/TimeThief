@@ -18,6 +18,12 @@ namespace TimeThiefSmoke
 		FBox ClusterBounds = FBox(EForceInit::ForceInit);
 	};
 
+	const FTimeThiefSmokeRendererSettings& GetDefaultRendererSettings()
+	{
+		static const FTimeThiefSmokeRendererSettings Settings;
+		return Settings;
+	}
+
 	FBox MakeSmokeWorldBounds(const FTimeThiefSmokeRendererVolume& Volume, const FVector3f& Extent)
 	{
 		const FVector3f SafeExtent = FVector3f(
@@ -90,7 +96,6 @@ namespace TimeThiefSmoke
 	{
 		return A.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
 			B.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
-			A.Settings.PressureSolver == B.Settings.PressureSolver &&
 			A.Settings.SmokeGridResolution == B.Settings.SmokeGridResolution &&
 			A.Settings.SmokeBrickSize == B.Settings.SmokeBrickSize &&
 			A.Settings.MaxActiveSmokeBricks == B.Settings.MaxActiveSmokeBricks &&
@@ -296,23 +301,28 @@ namespace TimeThiefSmoke
 			static_cast<float>(FMath::Max(MinDelta.Z, MaxDelta.Z)));
 	}
 
-	FTimeThiefSmokeRendererEvent MakeClusterSourceEvent(const FTimeThiefSmokeRendererVolume& Volume, const int32 ClusterSmokeId)
+	bool TryMakeClusterSourceEvent(const FTimeThiefSmokeRendererVolume& Volume, const int32 ClusterSmokeId, FTimeThiefSmokeRendererEvent& OutSourceEvent)
 	{
-		FTimeThiefSmokeRendererEvent SourceEvent;
-		SourceEvent.SmokeId = ClusterSmokeId;
-		SourceEvent.Type = ETimeThiefSmokeRendererInteractionType::PlumeSource;
-		SourceEvent.Shape = ETimeThiefSmokeRendererInteractionShape::Sphere;
-		SourceEvent.Position = Volume.LocalToWorld.GetLocation();
-		SourceEvent.PreviousPosition = SourceEvent.Position;
-		SourceEvent.Direction = Volume.LocalToWorld.TransformVector(FVector3f(0.0f, 0.0f, 1.0f)).GetSafeNormal();
-		SourceEvent.Radius = FMath::Max(Volume.Settings.PlumeSourceRadius, 1.0f);
-		SourceEvent.Length = SourceEvent.Radius * 2.0f;
-		SourceEvent.NormalizedAge = Volume.Settings.PlumeEmissionDuration > KINDA_SMALL_NUMBER
+		const float NormalizedAge = Volume.Settings.PlumeEmissionDuration > KINDA_SMALL_NUMBER
 			? Volume.AgeSeconds / Volume.Settings.PlumeEmissionDuration
 			: 1.0f;
-		SourceEvent.Strength = SourceEvent.NormalizedAge <= 1.25f ? 1.0f : 0.0f;
-		SourceEvent.Seed = Volume.SmokeId;
-		return SourceEvent;
+		if (NormalizedAge > 1.25f)
+		{
+			return false;
+		}
+
+		OutSourceEvent.SmokeId = ClusterSmokeId;
+		OutSourceEvent.Type = ETimeThiefSmokeRendererInteractionType::PlumeSource;
+		OutSourceEvent.Shape = ETimeThiefSmokeRendererInteractionShape::Sphere;
+		OutSourceEvent.Position = Volume.LocalToWorld.GetLocation();
+		OutSourceEvent.PreviousPosition = OutSourceEvent.Position;
+		OutSourceEvent.Direction = Volume.LocalToWorld.TransformVector(FVector3f(0.0f, 0.0f, 1.0f)).GetSafeNormal();
+		OutSourceEvent.Radius = FMath::Max(Volume.Settings.PlumeSourceRadius, 1.0f);
+		OutSourceEvent.Length = OutSourceEvent.Radius * 2.0f;
+		OutSourceEvent.NormalizedAge = NormalizedAge;
+		OutSourceEvent.Strength = 1.0f;
+		OutSourceEvent.Seed = Volume.SmokeId;
+		return true;
 	}
 
 	FTimeThiefSmokeRendererVolume MakeClusterVolume(const TArray<FPendingRendererSmokeVolume*>& ClusterMembers)
@@ -363,7 +373,11 @@ namespace TimeThiefSmoke
 
 		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
 		{
-			ClusterVolume.SourceEvents.Add(MakeClusterSourceEvent(Member->Volume, ClusterVolume.SmokeId));
+			FTimeThiefSmokeRendererEvent SourceEvent;
+			if (TryMakeClusterSourceEvent(Member->Volume, ClusterVolume.SmokeId, SourceEvent))
+			{
+				ClusterVolume.SourceEvents.Add(SourceEvent);
+			}
 		}
 
 		return ClusterVolume;
@@ -839,7 +853,7 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.ObstacleFieldRevision = SmokeVolume->GetObstacleFieldRevision();
 		RendererVolume.ObstaclePrimitives = SmokeVolume->GetObstaclePrimitives();
 		RendererVolume.bHasSolidObstacleField = SmokeVolume->HasSolidObstacleField();
-		RendererVolume.Settings = FTimeThiefSmokeRendererSettings();
+		RendererVolume.Settings = TimeThiefSmoke::GetDefaultRendererSettings();
 
 		TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume = PendingVolumes.AddDefaulted_GetRef();
 		PendingVolume.Volume = MoveTemp(RendererVolume);

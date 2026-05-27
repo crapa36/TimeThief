@@ -5,13 +5,10 @@
 #include "Components/PrimitiveComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/ShapeComponent.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
-#include "HAL/IConsoleManager.h"
-#include "HAL/PlatformTime.h"
 #include "PhysicsEngine/AggregateGeom.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
@@ -33,65 +30,9 @@ namespace TimeThiefSmokeVolume
 	const FName BlockMovementTag(TEXT("BlockMovement"));
 	const FName IgnoreTag(TEXT("Ignore"));
 
-	int32 GetSmokeProfileMode()
-	{
-		if (IConsoleVariable* ProfileCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.TimeThiefSmoke.Profile")))
-		{
-			return ProfileCVar->GetInt();
-		}
-
-		return TimeThiefSmokeParameterDefaults::ProfileModeDefault;
-	}
-
-	int32 CountSetCells(const TArray<uint8>& Cells)
-	{
-		int32 Count = 0;
-		for (const uint8 Cell : Cells)
-		{
-			Count += Cell != 0 ? 1 : 0;
-		}
-
-		return Count;
-	}
-
-	int32 CountBucketReferences(const TArray<TArray<int32>>& Buckets)
-	{
-		int32 Count = 0;
-		for (const TArray<int32>& Bucket : Buckets)
-		{
-			Count += Bucket.Num();
-		}
-
-		return Count;
-	}
-
-	bool IsCellCoordValid(const FIntVector& Coord, const FIntVector& CellGrid)
-	{
-		return Coord.X >= 0 && Coord.Y >= 0 && Coord.Z >= 0 &&
-			Coord.X < CellGrid.X && Coord.Y < CellGrid.Y && Coord.Z < CellGrid.Z;
-	}
-
 	int32 FlattenCellCoord(const FIntVector& Coord, const FIntVector& CellGrid)
 	{
 		return Coord.X + Coord.Y * CellGrid.X + Coord.Z * CellGrid.X * CellGrid.Y;
-	}
-
-	FVector CellCoordToLocalCenter(const FIntVector& Coord, const FVector& BoundsExtent, const FVector& ClusterOffset, const FIntVector& CellGrid)
-	{
-		const FVector Alpha(
-			(static_cast<float>(Coord.X) + 0.5f) / static_cast<float>(CellGrid.X),
-			(static_cast<float>(Coord.Y) + 0.5f) / static_cast<float>(CellGrid.Y),
-			(static_cast<float>(Coord.Z) + 0.5f) / static_cast<float>(CellGrid.Z));
-		return ((Alpha * 2.0f) - FVector::OneVector) * BoundsExtent + ClusterOffset;
-	}
-
-	FVector ClampClusterOffset(const FVector& Offset, const FVector& BoundsExtent)
-	{
-		const FVector MaxOffset = BoundsExtent * TimeThiefSmokeParameterDefaults::BoundsClusterMaxOffsetRatio;
-		return FVector(
-			FMath::Clamp(Offset.X, -MaxOffset.X, MaxOffset.X),
-			FMath::Clamp(Offset.Y, -MaxOffset.Y, MaxOffset.Y),
-			FMath::Clamp(Offset.Z, -MaxOffset.Z, MaxOffset.Z));
 	}
 
 	float SmoothStep01(float Alpha)
@@ -103,26 +44,6 @@ namespace TimeThiefSmokeVolume
 	FVector MakeObstacleMaskQueryExtent(const FVector& CellHalfExtent, float Inflation)
 	{
 		return FVector(Inflation).ComponentMax(CellHalfExtent * TimeThiefSmokeParameterDefaults::ObstacleMaskCellFootprintRatio);
-	}
-
-	FVector MakeBoundsCellObstacleQueryExtent(const FVector& CellHalfExtent)
-	{
-		return FVector(TimeThiefSmokeParameterDefaults::ObstacleMaskInflation).ComponentMax(CellHalfExtent * TimeThiefSmokeParameterDefaults::BoundsCellObstacleFootprintRatio);
-	}
-
-	float GetSourceClearRadius()
-	{
-		return TimeThiefSmokeParameterDefaults::PlumeSourceRadius * TimeThiefSmokeParameterDefaults::ObstacleSourceClearRadiusScale;
-	}
-
-	bool DoesBoxOverlapSourceClearRadius(const FVector& LocalCenter, const FVector& CellHalfExtent)
-	{
-		const FVector Delta = LocalCenter.GetAbs() - CellHalfExtent;
-		const FVector OutsideDelta(
-			FMath::Max(Delta.X, 0.0f),
-			FMath::Max(Delta.Y, 0.0f),
-			FMath::Max(Delta.Z, 0.0f));
-		return OutsideDelta.SizeSquared() <= FMath::Square(GetSourceClearRadius());
 	}
 
 	FBox MakeWorldAabbFromOrientedBox(const FVector& Center, const FQuat& Rotation, const FVector& Extent)
@@ -206,6 +127,106 @@ namespace TimeThiefSmokeVolume
 		}
 	}
 
+	struct FSmokeObstacleCandidateCacheEntry
+	{
+		uint64 Key = 0;
+		TArray<TWeakObjectPtr<UPrimitiveComponent>> Candidates;
+		uint32 LastUsedFrame = 0;
+	};
+
+	TArray<FSmokeObstacleCandidateCacheEntry> GObstacleCandidateCache;
+
+	void MixObstacleQueryHash(uint64& Hash, uint64 Value)
+	{
+		Hash ^= Value + 0x9e3779b97f4a7c15ull + (Hash << 6) + (Hash >> 2);
+	}
+
+	void MixObstacleQueryFloat(uint64& Hash, double Value, double UnitsPerCm = 10.0)
+	{
+		MixObstacleQueryHash(Hash, static_cast<uint64>(static_cast<int64>(FMath::RoundToDouble(Value * UnitsPerCm))));
+	}
+
+	void MixObstacleQueryVector(uint64& Hash, const FVector& Value, double UnitsPerCm = 10.0)
+	{
+		MixObstacleQueryFloat(Hash, Value.X, UnitsPerCm);
+		MixObstacleQueryFloat(Hash, Value.Y, UnitsPerCm);
+		MixObstacleQueryFloat(Hash, Value.Z, UnitsPerCm);
+	}
+
+	void MixObstacleQueryTransform(uint64& Hash, const FTransform& Transform)
+	{
+		MixObstacleQueryVector(Hash, Transform.GetLocation());
+		const FQuat Rotation = Transform.GetRotation();
+		MixObstacleQueryFloat(Hash, Rotation.X, 100000.0);
+		MixObstacleQueryFloat(Hash, Rotation.Y, 100000.0);
+		MixObstacleQueryFloat(Hash, Rotation.Z, 100000.0);
+		MixObstacleQueryFloat(Hash, Rotation.W, 100000.0);
+		MixObstacleQueryVector(Hash, Transform.GetScale3D(), 10000.0);
+	}
+
+	uint64 MakeObstacleCandidateQueryCacheKey(
+		const UWorld* World,
+		const ATimeThiefSmokeVolume* SmokeVolume,
+		const FTransform& SmokeTransform,
+		const FVector& BoundsExtent,
+		const FVector& QueryExtent)
+	{
+		uint64 Hash = 0xcbf29ce484222325ull;
+		MixObstacleQueryHash(Hash, reinterpret_cast<uint64>(World));
+		MixObstacleQueryTransform(Hash, SmokeTransform);
+		MixObstacleQueryVector(Hash, BoundsExtent);
+		MixObstacleQueryVector(Hash, QueryExtent);
+		if (const AActor* OwnerActor = SmokeVolume ? SmokeVolume->GetOwner() : nullptr)
+		{
+			MixObstacleQueryHash(Hash, static_cast<uint64>(OwnerActor->GetUniqueID()));
+		}
+		if (const APawn* InstigatorPawn = SmokeVolume ? SmokeVolume->GetInstigator() : nullptr)
+		{
+			MixObstacleQueryHash(Hash, static_cast<uint64>(InstigatorPawn->GetUniqueID()));
+		}
+		return Hash;
+	}
+
+	const FSmokeObstacleCandidateCacheEntry* FindObstacleCandidateCacheEntry(uint64 Key)
+	{
+		const uint32 CurrentFrame = static_cast<uint32>(GFrameCounter);
+		for (FSmokeObstacleCandidateCacheEntry& Entry : GObstacleCandidateCache)
+		{
+			if (Entry.Key == Key && Entry.LastUsedFrame == CurrentFrame)
+			{
+				return &Entry;
+			}
+		}
+		return nullptr;
+	}
+
+	void StoreObstacleCandidateCacheEntry(uint64 Key, const TArray<TWeakObjectPtr<UPrimitiveComponent>>& Candidates)
+	{
+		FSmokeObstacleCandidateCacheEntry* Entry = nullptr;
+		if (GObstacleCandidateCache.Num() >= TimeThiefSmokeParameterDefaults::ObstacleMaskCacheMaxEntries)
+		{
+			int32 OldestIndex = 0;
+			uint32 OldestFrame = GObstacleCandidateCache[0].LastUsedFrame;
+			for (int32 EntryIndex = 1; EntryIndex < GObstacleCandidateCache.Num(); ++EntryIndex)
+			{
+				if (GObstacleCandidateCache[EntryIndex].LastUsedFrame < OldestFrame)
+				{
+					OldestFrame = GObstacleCandidateCache[EntryIndex].LastUsedFrame;
+					OldestIndex = EntryIndex;
+				}
+			}
+			Entry = &GObstacleCandidateCache[OldestIndex];
+		}
+		else
+		{
+			Entry = &GObstacleCandidateCache.AddDefaulted_GetRef();
+		}
+
+		Entry->Key = Key;
+		Entry->Candidates = Candidates;
+		Entry->LastUsedFrame = static_cast<uint32>(GFrameCounter);
+	}
+
 	void QuerySmokeObstacleCandidates(
 		UWorld* World,
 		const ATimeThiefSmokeVolume* SmokeVolume,
@@ -230,6 +251,21 @@ namespace TimeThiefSmokeVolume
 			}
 		}
 
+		const uint64 QueryCacheKey = MakeObstacleCandidateQueryCacheKey(World, SmokeVolume, SmokeTransform, BoundsExtent, QueryExtent);
+		if (const FSmokeObstacleCandidateCacheEntry* CacheEntry = FindObstacleCandidateCacheEntry(QueryCacheKey))
+		{
+			for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : CacheEntry->Candidates)
+			{
+				UPrimitiveComponent* PrimitiveComponent = Candidate.Get();
+				if (IsSmokeProjectileObstacleComponent(PrimitiveComponent, SmokeVolume) && !AddedCandidates.Contains(PrimitiveComponent))
+				{
+					AddedCandidates.Add(PrimitiveComponent);
+					OutCandidates.Add(PrimitiveComponent);
+				}
+			}
+			return;
+		}
+
 		FCollisionObjectQueryParams ObjectQueryParams;
 		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
@@ -243,21 +279,13 @@ namespace TimeThiefSmokeVolume
 			BoundsShape,
 			QueryParams);
 		AddSmokeObstacleCandidates(Overlaps, SmokeVolume, AddedCandidates, OutCandidates);
+		StoreObstacleCandidateCacheEntry(QueryCacheKey, OutCandidates);
 	}
-
-	struct FSmokeObstacleCandidateRecord
-	{
-		TWeakObjectPtr<UPrimitiveComponent> Component;
-		FBox LocalBounds = FBox(EForceInit::ForceInit);
-		FBox WorldBounds = FBox(EForceInit::ForceInit);
-	};
 
 	struct FSmokeObstacleFieldCacheEntry
 	{
 		uint64 Key = 0;
 		TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
-		TArray<uint8> ActiveBoundsCells;
-		FIntVector ActiveBoundsCellGrid = FIntVector::ZeroValue;
 		int32 ObstacleFieldResolution = 0;
 		uint32 LastUsedFrame = 0;
 		bool bHasSolidObstacleField = false;
@@ -298,7 +326,6 @@ namespace TimeThiefSmokeVolume
 		const FTransform& SmokeTransform,
 		const FVector& NaturalBoundsExtent,
 		const FVector& RenderBoundsExtent,
-		const FVector& BoundsClusterOffset,
 		int32 Resolution,
 		const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates)
 	{
@@ -307,11 +334,9 @@ namespace TimeThiefSmokeVolume
 		MixObstacleMaskHash(Hash, static_cast<uint64>(Resolution));
 		MixObstacleMaskHash(Hash, static_cast<uint64>(TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives));
 		MixObstacleMaskHash(Hash, TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask ? 1ull : 0ull);
-		MixObstacleMaskHash(Hash, TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster ? 1ull : 0ull);
 		MixObstacleMaskTransform(Hash, SmokeTransform);
 		MixObstacleMaskVector(Hash, NaturalBoundsExtent);
 		MixObstacleMaskVector(Hash, RenderBoundsExtent);
-		MixObstacleMaskVector(Hash, BoundsClusterOffset);
 
 		for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
 		{
@@ -350,8 +375,6 @@ namespace TimeThiefSmokeVolume
 	void StoreObstacleFieldCacheEntry(
 		uint64 Key,
 		const TArray<FTimeThiefSmokeObstaclePrimitive>& ObstaclePrimitives,
-		const TArray<uint8>& ActiveBoundsCells,
-		const FIntVector& ActiveBoundsCellGrid,
 		int32 ObstacleFieldResolution,
 		bool bHasSolidObstacleField)
 	{
@@ -377,8 +400,6 @@ namespace TimeThiefSmokeVolume
 
 		Entry->Key = Key;
 		Entry->ObstaclePrimitives = ObstaclePrimitives;
-		Entry->ActiveBoundsCells = ActiveBoundsCells;
-		Entry->ActiveBoundsCellGrid = ActiveBoundsCellGrid;
 		Entry->ObstacleFieldResolution = ObstacleFieldResolution;
 		Entry->LastUsedFrame = static_cast<uint32>(GFrameCounter);
 		Entry->bHasSolidObstacleField = bHasSolidObstacleField;
@@ -744,69 +765,6 @@ namespace TimeThiefSmokeVolume
 		}
 	}
 
-	void BuildObstacleCandidateBuckets(
-		const TArray<TWeakObjectPtr<UPrimitiveComponent>>& StaticObstacleCandidates,
-		const FTransform& SmokeTransform,
-		const FVector& BoundsExtent,
-		const FVector& ClusterOffset,
-		const FVector& QueryExtent,
-		const FIntVector& CellGrid,
-		TArray<FSmokeObstacleCandidateRecord>& OutRecords,
-		TArray<TArray<int32>>& OutCellBuckets)
-	{
-		OutRecords.Reset();
-		const int32 CellCount = CellGrid.X * CellGrid.Y * CellGrid.Z;
-		OutCellBuckets.Reset();
-		OutCellBuckets.SetNum(CellCount);
-		if (CellCount <= 0)
-		{
-			return;
-		}
-
-		for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
-		{
-			UPrimitiveComponent* PrimitiveComponent = Candidate.Get();
-			if (!PrimitiveComponent)
-			{
-				continue;
-			}
-
-			FSmokeObstacleCandidateRecord& Record = OutRecords.AddDefaulted_GetRef();
-			Record.Component = PrimitiveComponent;
-			Record.WorldBounds = PrimitiveComponent->Bounds.GetBox();
-			Record.LocalBounds = MakeLocalBoundsFromWorldAabb(Record.WorldBounds, SmokeTransform);
-			AddObstacleCandidateToCellBuckets(OutRecords.Num() - 1, Record.LocalBounds, BoundsExtent, ClusterOffset, QueryExtent, CellGrid, OutCellBuckets);
-		}
-	}
-
-	bool AnyCandidateRecordOverlapsBox(
-		const TArray<FSmokeObstacleCandidateRecord>& CandidateRecords,
-		const TArray<int32>& CandidateIndices,
-		const FBox& QueryBounds,
-		const FVector& BoxCenter,
-		const FQuat& BoxRotation,
-		const FCollisionShape& BoxShape)
-	{
-		for (const int32 CandidateIndex : CandidateIndices)
-		{
-			if (!CandidateRecords.IsValidIndex(CandidateIndex))
-			{
-				continue;
-			}
-
-			const FSmokeObstacleCandidateRecord& Record = CandidateRecords[CandidateIndex];
-			const UPrimitiveComponent* PrimitiveComponent = Record.Component.Get();
-			if (PrimitiveComponent &&
-				Record.WorldBounds.Intersect(QueryBounds) &&
-				PrimitiveComponent->OverlapComponent(BoxCenter, BoxRotation, BoxShape))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 #if WITH_DEV_AUTOMATION_TESTS
 	int32 CountObstacleBucketReferences(const TArray<TArray<int32>>& CellBuckets, const int32 CandidateIndex)
 	{
@@ -887,9 +845,6 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(AActor* InOwnerActor, APawn* I
 		SmokeId = TimeThiefSmokeVolume::GNextSmokeId++;
 	}
 	SmokeAgeSeconds = 0.0f;
-	BoundsClusterLocalOffset = FVector::ZeroVector;
-	ActiveBoundsCells.Reset();
-	ActiveBoundsCellGrid = FIntVector::ZeroValue;
 	PreviousComponentLocations.Reset();
 	ActorWarpDensityAccumulations.Reset();
 
@@ -1072,14 +1027,6 @@ void ATimeThiefSmokeVolume::HandleExplosionShock(const FVector& Center, float Ra
 
 void ATimeThiefSmokeVolume::ApplyInteractionEvent(const FTimeThiefSmokeInteractionEvent& Event)
 {
-	if (Event.Type == ESmokeInteractionType::ExplosionShock)
-	{
-		if (Event.NormalizedAge <= KINDA_SMALL_NUMBER)
-		{
-			ShiftBoundsClusterForExplosion(Event);
-		}
-	}
-
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 	{
 		SmokeSubsystem->RecordRendererEvent(Event);
@@ -1123,11 +1070,6 @@ void ATimeThiefSmokeVolume::Tick(float DeltaTime)
 	SmokeAgeSeconds += FMath::Max(0.0f, DeltaTime);
 	FlushPendingObstacleFieldRebuild();
 	GatherActorPushEvents(DeltaTime);
-
-	if (TimeThiefSmokeParameterDefaults::bDrawDebugBounds)
-	{
-		DrawDebugSmoke();
-	}
 }
 
 void ATimeThiefSmokeVolume::GatherActorPushEvents(float DeltaTime)
@@ -1262,19 +1204,25 @@ void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveCom
 	float MaxDensity = FMath::Max3(CurrentDensity, PreviousDensity, MidDensity);
 	int32 DensitySampleCount = 3;
 	const FVector ProbeExtent = PrimitiveComponent->Bounds.BoxExtent * 0.55f;
-	const FVector ProbeAxes[3] =
+	const FVector AbsDirection(FMath::Abs(OutEvent.Direction.X), FMath::Abs(OutEvent.Direction.Y), FMath::Abs(OutEvent.Direction.Z));
+	FVector ProbeAxis = OutEvent.Direction * FVector::DotProduct(ProbeExtent, AbsDirection);
+	if (ProbeAxis.SizeSquared() <= 1.0)
 	{
-		FVector(ProbeExtent.X, 0.0, 0.0),
-		FVector(0.0, ProbeExtent.Y, 0.0),
-		FVector(0.0, 0.0, ProbeExtent.Z)
-	};
-	for (const FVector& ProbeAxis : ProbeAxes)
-	{
-		if (ProbeAxis.SizeSquared() <= 1.0)
+		if (ProbeExtent.X >= ProbeExtent.Y && ProbeExtent.X >= ProbeExtent.Z)
 		{
-			continue;
+			ProbeAxis = FVector(ProbeExtent.X, 0.0, 0.0);
 		}
-
+		else if (ProbeExtent.Y >= ProbeExtent.Z)
+		{
+			ProbeAxis = FVector(0.0, ProbeExtent.Y, 0.0);
+		}
+		else
+		{
+			ProbeAxis = FVector(0.0, 0.0, ProbeExtent.Z);
+		}
+	}
+	if (ProbeAxis.SizeSquared() > 1.0)
+	{
 		const float PositiveDensity = EstimateWarpDensityAtWorldPosition(CurrentBoundsOrigin + ProbeAxis);
 		const float NegativeDensity = EstimateWarpDensityAtWorldPosition(CurrentBoundsOrigin - ProbeAxis);
 		DensitySum += PositiveDensity + NegativeDensity;
@@ -1380,24 +1328,6 @@ ESmokeInteractionShape ATimeThiefSmokeVolume::ResolvePrimitiveShape(UPrimitiveCo
 	return ESmokeInteractionShape::Box;
 }
 
-void ATimeThiefSmokeVolume::ShiftBoundsClusterForExplosion(const FTimeThiefSmokeInteractionEvent& Event)
-{
-	if (!TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster)
-	{
-		return;
-	}
-
-	const FVector WorldDirection = (GetActorLocation() - Event.Position).GetSafeNormal(UE_SMALL_NUMBER, Event.Direction.GetSafeNormal(UE_SMALL_NUMBER, FVector::UpVector));
-	const float ShiftDistance = Event.Extents.X * TimeThiefSmokeParameterDefaults::ExplosionImpulseDuration * TimeThiefSmokeParameterDefaults::ExplosionBoundsShiftScale * Event.Strength;
-	const FVector LocalShift = GetActorTransform().InverseTransformVectorNoScale(WorldDirection * ShiftDistance);
-	const FVector PreviousOffset = BoundsClusterLocalOffset;
-	BoundsClusterLocalOffset = TimeThiefSmokeVolume::ClampClusterOffset(BoundsClusterLocalOffset + LocalShift, GetCurrentSmokeBoundsExtent());
-	if (!BoundsClusterLocalOffset.Equals(PreviousOffset, 1.0f))
-	{
-		MarkObstacleFieldDirty();
-	}
-}
-
 void ATimeThiefSmokeVolume::MarkObstacleFieldDirty()
 {
 	bObstacleFieldRebuildPending = true;
@@ -1405,17 +1335,13 @@ void ATimeThiefSmokeVolume::MarkObstacleFieldDirty()
 
 void ATimeThiefSmokeVolume::RebuildStaticObstacleField()
 {
-	const int32 ProfileMode = TimeThiefSmokeVolume::GetSmokeProfileMode();
-	const double RebuildStartSeconds = ProfileMode != 0 ? FPlatformTime::Seconds() : 0.0;
 	bObstacleFieldRebuildPending = false;
 	ObstaclePrimitives.Reset();
 	ObstacleFieldResolution = 0;
-	ActiveBoundsCells.Reset();
-	ActiveBoundsCellGrid = FIntVector::ZeroValue;
 	bHasSolidObstacleField = false;
 
 	UWorld* World = GetWorld();
-	if (!World || (!TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask && !TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster))
+	if (!World || !TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
 	{
 		++ObstacleFieldRevision;
 		return;
@@ -1442,32 +1368,28 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField()
 	}
 
 	TArray<TWeakObjectPtr<UPrimitiveComponent>> StaticObstacleCandidates;
-	if (TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
+	TimeThiefSmokeVolume::QuerySmokeObstacleCandidates(
+		World,
+		this,
+		SmokeTransform,
+		BoundsExtent,
+		ObstacleQueryExtent,
+		QueryParams,
+		StaticObstacleCandidates);
+	StaticObstacleCandidates.Sort([](const TWeakObjectPtr<UPrimitiveComponent>& Left, const TWeakObjectPtr<UPrimitiveComponent>& Right)
 	{
-		TimeThiefSmokeVolume::QuerySmokeObstacleCandidates(
-			World,
-			this,
-			SmokeTransform,
-			BoundsExtent,
-			ObstacleQueryExtent,
-			QueryParams,
-			StaticObstacleCandidates);
-		StaticObstacleCandidates.Sort([](const TWeakObjectPtr<UPrimitiveComponent>& Left, const TWeakObjectPtr<UPrimitiveComponent>& Right)
-		{
-			const UPrimitiveComponent* LeftComponent = Left.Get();
-			const UPrimitiveComponent* RightComponent = Right.Get();
-			const uint32 LeftId = LeftComponent ? LeftComponent->GetUniqueID() : 0u;
-			const uint32 RightId = RightComponent ? RightComponent->GetUniqueID() : 0u;
-			return LeftId < RightId;
-		});
-	}
+		const UPrimitiveComponent* LeftComponent = Left.Get();
+		const UPrimitiveComponent* RightComponent = Right.Get();
+		const uint32 LeftId = LeftComponent ? LeftComponent->GetUniqueID() : 0u;
+		const uint32 RightId = RightComponent ? RightComponent->GetUniqueID() : 0u;
+		return LeftId < RightId;
+	});
 
 	const uint64 ObstacleCacheKey = TimeThiefSmokeVolume::MakeObstacleMaskCacheKey(
 		World,
 		SmokeTransform,
 		NaturalBoundsExtent,
 		BoundsExtent,
-		BoundsClusterLocalOffset,
 		Resolution,
 		StaticObstacleCandidates);
 	if (const TimeThiefSmokeVolume::FSmokeObstacleFieldCacheEntry* CacheEntry = TimeThiefSmokeVolume::FindObstacleFieldCacheEntry(ObstacleCacheKey))
@@ -1475,296 +1397,44 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField()
 		if (CacheEntry->ObstacleFieldResolution == Resolution)
 		{
 			ObstaclePrimitives = CacheEntry->ObstaclePrimitives;
-			ActiveBoundsCells = CacheEntry->ActiveBoundsCells;
-			ActiveBoundsCellGrid = CacheEntry->ActiveBoundsCellGrid;
 			ObstacleFieldResolution = CacheEntry->ObstacleFieldResolution;
 			bHasSolidObstacleField = CacheEntry->bHasSolidObstacleField;
 			++ObstacleFieldRevision;
-			if (ProfileMode != 0)
-			{
-				UE_LOG(LogTimeThief, Log, TEXT("SmokeObstacleProfile Id=%d Cache=Hit Candidates=%d Primitives=%d ActiveCells=%d Solid=%d Resolution=%d TotalMs=%.3f"),
-					SmokeId,
-					StaticObstacleCandidates.Num(),
-					ObstaclePrimitives.Num(),
-					TimeThiefSmokeVolume::CountSetCells(ActiveBoundsCells),
-					bHasSolidObstacleField ? 1 : 0,
-					ObstacleFieldResolution,
-					(FPlatformTime::Seconds() - RebuildStartSeconds) * 1000.0);
-			}
 			return;
 		}
 	}
 
-	const double CandidateQueryEndSeconds = ProfileMode != 0 ? FPlatformTime::Seconds() : 0.0;
-	if (TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
+	ObstaclePrimitives.Reserve(StaticObstacleCandidates.Num());
+	for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
 	{
-		ObstaclePrimitives.Reserve(StaticObstacleCandidates.Num());
-		for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
+		if (ObstaclePrimitives.Num() >= TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives)
 		{
-			if (ObstaclePrimitives.Num() >= TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives)
-			{
-				break;
-			}
+			break;
+		}
 
-			if (TimeThiefSmokeVolume::AddBodySetupObstaclePrimitives(
-				Candidate.Get(),
-				SmokeTransform,
-				ObstaclePrimitives,
-				TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives))
-			{
-				continue;
-			}
+		if (TimeThiefSmokeVolume::AddBodySetupObstaclePrimitives(
+			Candidate.Get(),
+			SmokeTransform,
+			ObstaclePrimitives,
+			TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives))
+		{
+			continue;
+		}
 
-			FTimeThiefSmokeObstaclePrimitive Primitive;
-			if (TimeThiefSmokeVolume::MakeObstaclePrimitive(Candidate.Get(), SmokeTransform, Primitive))
-			{
-				ObstaclePrimitives.Add(Primitive);
-			}
+		FTimeThiefSmokeObstaclePrimitive Primitive;
+		if (TimeThiefSmokeVolume::MakeObstaclePrimitive(Candidate.Get(), SmokeTransform, Primitive))
+		{
+			ObstaclePrimitives.Add(Primitive);
 		}
 	}
 	bHasSolidObstacleField = !ObstaclePrimitives.IsEmpty();
 
-	const double BucketBuildEndSeconds = ProfileMode != 0 ? FPlatformTime::Seconds() : 0.0;
-	if (TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster)
-	{
-		BuildActiveBoundsCells(NaturalBoundsExtent, SmokeTransform, ObstaclePrimitives);
-	}
-	else
-	{
-		ActiveBoundsCells.Reset();
-		ActiveBoundsCellGrid = FIntVector::ZeroValue;
-	}
-
-	const double ActiveBoundsEndSeconds = ProfileMode != 0 ? FPlatformTime::Seconds() : 0.0;
 	++ObstacleFieldRevision;
 	TimeThiefSmokeVolume::StoreObstacleFieldCacheEntry(
 		ObstacleCacheKey,
 		ObstaclePrimitives,
-		ActiveBoundsCells,
-		ActiveBoundsCellGrid,
 		ObstacleFieldResolution,
 		bHasSolidObstacleField);
-	if (ProfileMode != 0)
-	{
-		UE_LOG(LogTimeThief, Log, TEXT("SmokeObstacleProfile Id=%d Cache=Miss Candidates=%d Primitives=%d ActiveCells=%d Solid=%d Resolution=%d QueryMs=%.3f PrimitiveMs=%.3f ActiveMs=%.3f TotalMs=%.3f"),
-			SmokeId,
-			StaticObstacleCandidates.Num(),
-			ObstaclePrimitives.Num(),
-			TimeThiefSmokeVolume::CountSetCells(ActiveBoundsCells),
-			bHasSolidObstacleField ? 1 : 0,
-			Resolution,
-			(CandidateQueryEndSeconds - RebuildStartSeconds) * 1000.0,
-			(BucketBuildEndSeconds - CandidateQueryEndSeconds) * 1000.0,
-			(ActiveBoundsEndSeconds - BucketBuildEndSeconds) * 1000.0,
-			(ActiveBoundsEndSeconds - RebuildStartSeconds) * 1000.0);
-	}
-}
-
-void ATimeThiefSmokeVolume::BuildActiveBoundsCells(
-	const FVector& BoundsExtent,
-	const FTransform& SmokeTransform,
-	const TArray<FTimeThiefSmokeObstaclePrimitive>& StaticObstaclePrimitives)
-{
-	if (!TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster)
-	{
-		return;
-	}
-
-	ActiveBoundsCellGrid = TimeThiefSmokeParameterDefaults::GetBoundsCellGrid();
-	const int32 CellCount = ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y * ActiveBoundsCellGrid.Z;
-	const int32 MaxActiveCells = TimeThiefSmokeParameterDefaults::MaxActiveBoundsCells;
-	TArray<uint8> BlockedCells;
-	BlockedCells.Init(0, CellCount);
-	ActiveBoundsCells.Init(0, CellCount);
-	TArray<FIntVector> SourceSeedCells;
-	SourceSeedCells.Reserve(CellCount);
-
-	const FVector CellHalfExtent(
-		BoundsExtent.X / static_cast<float>(ActiveBoundsCellGrid.X),
-		BoundsExtent.Y / static_cast<float>(ActiveBoundsCellGrid.Y),
-		BoundsExtent.Z / static_cast<float>(ActiveBoundsCellGrid.Z));
-	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeBoundsCellObstacleQueryExtent(CellHalfExtent);
-	const bool bUseStaticObstacleField = TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask && !StaticObstaclePrimitives.IsEmpty();
-
-	for (int32 Z = 0; Z < ActiveBoundsCellGrid.Z; ++Z)
-	{
-		for (int32 Y = 0; Y < ActiveBoundsCellGrid.Y; ++Y)
-		{
-			for (int32 X = 0; X < ActiveBoundsCellGrid.X; ++X)
-			{
-				const FIntVector Coord(X, Y, Z);
-				const FVector LocalCenter = TimeThiefSmokeVolume::CellCoordToLocalCenter(Coord, BoundsExtent, BoundsClusterLocalOffset, ActiveBoundsCellGrid);
-				const bool bSourceCell = TimeThiefSmokeVolume::DoesBoxOverlapSourceClearRadius(LocalCenter, CellHalfExtent);
-				const bool bOutsideBounds = (LocalCenter.GetAbs() - BoundsExtent).GetMax() > 0.0f;
-				const int32 CellIndex = TimeThiefSmokeVolume::FlattenCellCoord(Coord, ActiveBoundsCellGrid);
-				const bool bBlocked = bOutsideBounds ||
-					(!bSourceCell &&
-						bUseStaticObstacleField &&
-						TimeThiefSmokeVolume::AnyObstaclePrimitiveBlocksCell(StaticObstaclePrimitives, LocalCenter, ObstacleQueryExtent));
-
-				if (bSourceCell)
-				{
-					SourceSeedCells.Add(Coord);
-				}
-
-				if (bBlocked)
-				{
-					BlockedCells[CellIndex] = 1;
-				}
-			}
-		}
-	}
-
-	TArray<FIntVector> Queue;
-	Queue.Reserve(CellCount);
-	TArray<uint8> QueuedCells;
-	QueuedCells.Init(0, CellCount);
-	const auto EnqueueOpenCell = [&Queue, &QueuedCells, &BlockedCells](const FIntVector& Coord, const FIntVector& CellGrid)
-	{
-		if (!TimeThiefSmokeVolume::IsCellCoordValid(Coord, CellGrid))
-		{
-			return;
-		}
-		const int32 CellIndex = TimeThiefSmokeVolume::FlattenCellCoord(Coord, CellGrid);
-		if (BlockedCells[CellIndex] != 0 || QueuedCells[CellIndex] != 0)
-		{
-			return;
-		}
-		QueuedCells[CellIndex] = 1;
-		Queue.Add(Coord);
-	};
-	for (const FIntVector& SourceCoord : SourceSeedCells)
-	{
-		EnqueueOpenCell(SourceCoord, ActiveBoundsCellGrid);
-	}
-
-	FIntVector StartCoord(
-		ActiveBoundsCellGrid.X / 2,
-		ActiveBoundsCellGrid.Y / 2,
-		ActiveBoundsCellGrid.Z / 2);
-	if (Queue.IsEmpty() &&
-		(!TimeThiefSmokeVolume::IsCellCoordValid(StartCoord, ActiveBoundsCellGrid) ||
-			BlockedCells[TimeThiefSmokeVolume::FlattenCellCoord(StartCoord, ActiveBoundsCellGrid)] != 0))
-	{
-		float BestDistanceSq = TNumericLimits<float>::Max();
-		for (int32 CellIndex = 0; CellIndex < CellCount; ++CellIndex)
-		{
-			if (BlockedCells[CellIndex] != 0)
-			{
-				continue;
-			}
-
-			const FIntVector Coord(
-				CellIndex % ActiveBoundsCellGrid.X,
-				(CellIndex / ActiveBoundsCellGrid.X) % ActiveBoundsCellGrid.Y,
-				CellIndex / (ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y));
-			const FVector CellDelta(
-				static_cast<float>(Coord.X - ActiveBoundsCellGrid.X / 2),
-				static_cast<float>(Coord.Y - ActiveBoundsCellGrid.Y / 2),
-				static_cast<float>(Coord.Z - ActiveBoundsCellGrid.Z / 2));
-			const float DistanceSq = CellDelta.SizeSquared();
-			if (DistanceSq < BestDistanceSq)
-			{
-				BestDistanceSq = DistanceSq;
-				StartCoord = Coord;
-			}
-		}
-	}
-
-	if (Queue.IsEmpty() && !TimeThiefSmokeVolume::IsCellCoordValid(StartCoord, ActiveBoundsCellGrid))
-	{
-		return;
-	}
-
-	if (Queue.IsEmpty())
-	{
-		EnqueueOpenCell(StartCoord, ActiveBoundsCellGrid);
-	}
-	int32 ReadIndex = 0;
-	int32 ActiveCount = 0;
-
-	static const FIntVector Neighbors[] =
-	{
-		FIntVector(1, 0, 0),
-		FIntVector(-1, 0, 0),
-		FIntVector(0, 1, 0),
-		FIntVector(0, -1, 0),
-		FIntVector(0, 0, 1),
-		FIntVector(0, 0, -1)
-	};
-
-	while (ReadIndex < Queue.Num() && ActiveCount < MaxActiveCells)
-	{
-		const FIntVector Coord = Queue[ReadIndex++];
-		if (!TimeThiefSmokeVolume::IsCellCoordValid(Coord, ActiveBoundsCellGrid))
-		{
-			continue;
-		}
-
-		const int32 CellIndex = TimeThiefSmokeVolume::FlattenCellCoord(Coord, ActiveBoundsCellGrid);
-		if (BlockedCells[CellIndex] != 0 || ActiveBoundsCells[CellIndex] != 0)
-		{
-			continue;
-		}
-
-		ActiveBoundsCells[CellIndex] = 1;
-		++ActiveCount;
-
-		for (const FIntVector& Neighbor : Neighbors)
-		{
-			const FIntVector NextCoord = Coord + Neighbor;
-			EnqueueOpenCell(NextCoord, ActiveBoundsCellGrid);
-		}
-	}
-}
-
-float ATimeThiefSmokeVolume::ComputeLocalActiveBoundsOpen(const FVector& LocalPosition, const FVector& BoundsExtent, const TArray<FIntVector>& ActiveCellCoords) const
-{
-	if (!TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster || ActiveCellCoords.IsEmpty())
-	{
-		return 1.0f;
-	}
-
-	if (LocalPosition.SizeSquared() <= FMath::Square(TimeThiefSmokeVolume::GetSourceClearRadius()))
-	{
-		return 1.0f;
-	}
-
-	const FVector Relative = LocalPosition - BoundsClusterLocalOffset;
-	const FVector Alpha = (Relative / BoundsExtent) * 0.5f + FVector(0.5f);
-	const FVector CellPosition(
-		Alpha.X * static_cast<float>(ActiveBoundsCellGrid.X),
-		Alpha.Y * static_cast<float>(ActiveBoundsCellGrid.Y),
-		Alpha.Z * static_cast<float>(ActiveBoundsCellGrid.Z));
-
-	const float FeatherCells = FMath::Max(TimeThiefSmokeParameterDefaults::ActiveBoundsOpenFeatherCells, KINDA_SMALL_NUMBER);
-	float NearestDistanceSq = TNumericLimits<float>::Max();
-	for (const FIntVector& Coord : ActiveCellCoords)
-	{
-		const FVector CellMin(static_cast<float>(Coord.X), static_cast<float>(Coord.Y), static_cast<float>(Coord.Z));
-		const FVector CellMax = CellMin + FVector::OneVector;
-		const FVector Delta(
-			FMath::Max(FMath::Max(CellMin.X - CellPosition.X, 0.0f), CellPosition.X - CellMax.X),
-			FMath::Max(FMath::Max(CellMin.Y - CellPosition.Y, 0.0f), CellPosition.Y - CellMax.Y),
-			FMath::Max(FMath::Max(CellMin.Z - CellPosition.Z, 0.0f), CellPosition.Z - CellMax.Z));
-		NearestDistanceSq = FMath::Min(NearestDistanceSq, Delta.SizeSquared());
-		if (NearestDistanceSq <= KINDA_SMALL_NUMBER)
-		{
-			return 1.0f;
-		}
-	}
-
-	if (NearestDistanceSq == TNumericLimits<float>::Max())
-	{
-		return 0.0f;
-	}
-
-	if (NearestDistanceSq >= FMath::Square(FeatherCells))
-	{
-		return 0.0f;
-	}
-
-	return 1.0f - TimeThiefSmokeVolume::SmoothStep01(FMath::Sqrt(NearestDistanceSq) / FeatherCells);
 }
 
 void ATimeThiefSmokeVolume::UpdateSmokeBounds()
@@ -1772,70 +1442,6 @@ void ATimeThiefSmokeVolume::UpdateSmokeBounds()
 	if (SmokeBoundsComponent)
 	{
 		SmokeBoundsComponent->SetBoxExtent(GetCurrentSmokeBoundsExtent(), true);
-	}
-}
-
-void ATimeThiefSmokeVolume::DrawDebugSmoke() const
-{
-	if (!GetWorld() || !SmokeBoundsComponent)
-	{
-		return;
-	}
-
-	DrawDebugBox(
-		GetWorld(),
-		SmokeBoundsComponent->GetComponentLocation(),
-		SmokeBoundsComponent->GetScaledBoxExtent(),
-		SmokeBoundsComponent->GetComponentQuat(),
-		FColor::Cyan,
-		false,
-		0.0f,
-		0,
-		1.5f);
-
-	DrawDebugBox(
-		GetWorld(),
-		SmokeBoundsComponent->GetComponentLocation(),
-		GetCurrentSmokeRenderBoundsExtent() * SmokeBoundsComponent->GetComponentScale(),
-		SmokeBoundsComponent->GetComponentQuat(),
-		FColor(180, 80, 255),
-		false,
-		0.0f,
-		0,
-		1.0f);
-
-	if (TimeThiefSmokeParameterDefaults::bUseBoundsCellCluster && !ActiveBoundsCells.IsEmpty())
-	{
-		const FVector BoundsExtent = GetCurrentSmokeBoundsExtent();
-		const FVector CellExtent(
-			BoundsExtent.X / static_cast<float>(ActiveBoundsCellGrid.X),
-			BoundsExtent.Y / static_cast<float>(ActiveBoundsCellGrid.Y),
-			BoundsExtent.Z / static_cast<float>(ActiveBoundsCellGrid.Z));
-		const FTransform SmokeTransform = GetActorTransform();
-
-		for (int32 CellIndex = 0; CellIndex < ActiveBoundsCells.Num(); ++CellIndex)
-		{
-			if (ActiveBoundsCells[CellIndex] == 0)
-			{
-				continue;
-			}
-
-			const FIntVector Coord(
-				CellIndex % ActiveBoundsCellGrid.X,
-				(CellIndex / ActiveBoundsCellGrid.X) % ActiveBoundsCellGrid.Y,
-				CellIndex / (ActiveBoundsCellGrid.X * ActiveBoundsCellGrid.Y));
-			const FVector LocalCenter = TimeThiefSmokeVolume::CellCoordToLocalCenter(Coord, BoundsExtent, BoundsClusterLocalOffset, ActiveBoundsCellGrid);
-			DrawDebugBox(
-				GetWorld(),
-				SmokeTransform.TransformPosition(LocalCenter),
-				CellExtent * 0.48f,
-				SmokeTransform.GetRotation(),
-				FColor::Green,
-				false,
-				0.0f,
-				0,
-				0.75f);
-		}
 	}
 }
 

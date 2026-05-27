@@ -48,7 +48,8 @@ void AccumulateVortexParticle(
 	const float Core = 1.0 - smoothstep(0.0, SafeCore, Distance);
 	const float LifeMask = saturate(Particle.LocalPositionLife.w / 0.35);
 	const float DensityMask = saturate(Density * 0.82);
-	const float Weight = saturate(max(Shell, Core * 0.65) * LifeMask * DensityMask * BulletMasks.Detail);
+	const float BulletDetailGain = lerp(0.72, 1.2, BulletMasks.Detail);
+	const float Weight = saturate(max(Shell, Core * 0.65) * LifeMask * DensityMask * BulletDetailGain);
 	const float3 Axis = normalize(Particle.AxisSeed.xyz + 0.0001);
 	const float3 Radial = Offset / max(Distance, 1.0);
 	const float3 Tangent = normalize(cross(Axis, Radial) + 0.0001);
@@ -77,7 +78,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Cutout, Sink);
 	float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
 
-	if (OpenMask <= 0.01 || BulletMasks.Detail <= 0.01 || Density <= 0.001)
+	if (OpenMask <= 0.01 || Density <= 0.001)
 	{
 		OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
 		return;

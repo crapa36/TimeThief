@@ -16,9 +16,17 @@ float BrickEventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 	{
 		return TimeThiefSmokeExplosionInfluenceRadius(Event);
 	}
-	return max(
-		TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
-		TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+	if (EventType == 2u)
+	{
+		return max(
+			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
+			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+	}
+	if (EventType == 3u)
+	{
+		return TimeThiefSmokePlumeSourceInfluenceRadius(Event);
+	}
+	return 0.0;
 }
 
 float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)
@@ -65,9 +73,9 @@ bool IsActiveCell(int3 Coord)
 {
 	const float Density = DensityTexture.Load(int4(Coord, 0)) + DisplacedDensityTexture.Load(int4(Coord, 0));
 	const float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
-	const float Warp = WarpTexture.Load(int4(Coord, 0));
-	const float Cutout = BulletCutoutTexture.Load(int4(Coord, 0));
-	const float Sink = BulletSinkTexture.Load(int4(Coord, 0));
+	const float Warp = bCheckWarpChannel != 0u ? WarpTexture.Load(int4(Coord, 0)) : 0.0;
+	const float Cutout = bCheckBulletChannels != 0u ? BulletCutoutTexture.Load(int4(Coord, 0)) : 0.0;
+	const float Sink = bCheckBulletChannels != 0u ? BulletSinkTexture.Load(int4(Coord, 0)) : 0.0;
 	if (Density > 0.001 || Warp > 0.001 || Cutout > 0.001 || Sink > 0.001)
 	{
 		return true;

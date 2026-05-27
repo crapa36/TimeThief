@@ -25,12 +25,6 @@ enum class ETimeThiefSmokeSimulationBackend : uint8
 	SparseMac = 1
 };
 
-enum class ETimeThiefSmokePressureSolver : uint8
-{
-	JacobiLegacy = 0,
-	Multigrid = 1
-};
-
 enum class ETimeThiefSmokeObstaclePrimitiveShape : uint8
 {
 	Sphere = 0,
@@ -52,7 +46,6 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	FTimeThiefSmokeRendererSettings();
 
 	ETimeThiefSmokeSimulationBackend SimulationBackend;
-	ETimeThiefSmokePressureSolver PressureSolver;
 	int32 SmokeGridResolution;
 	int32 PressureIterations;
 	int32 RenderStepCount;
