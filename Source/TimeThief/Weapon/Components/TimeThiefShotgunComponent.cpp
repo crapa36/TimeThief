@@ -5,7 +5,8 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
-#include "DrawDebugHelpers.h"
+#include "Weapon/TimeThiefMasterWeapon.h"
+#include "Weapon/TimeThiefWeaponTrail.h"
 #include "Utils/Random32.h"
 #include "Utils/TimeThiefAimStatics.h"
 
@@ -65,6 +66,12 @@ uint32 UTimeThiefShotgunComponent::GetCombatAttackShotSeed() const
 	return LastShotSeed;
 }
 
+void UTimeThiefShotgunComponent::SetRemoteShotSeed(uint32 InShotSeed)
+{
+	RemoteShotSeed = InShotSeed;
+	bHasRemoteShotSeed = true;
+}
+
 TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 {
 	TArray<FShotgunHitResult> Results;
@@ -102,9 +109,16 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 		MuzzleLocation,
 		UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, CenterTargetLocation, CameraAimDir));
 
+	UWorld* World = GetWorld();
+	check(World);
+	ATimeThiefMasterWeapon* MasterWeapon = CastChecked<ATimeThiefMasterWeapon>(GetOwner());
+	UTimeThiefWeaponTrail* WeaponTrail = MasterWeapon->GetWeaponTrail();
+	check(WeaponTrail);
+
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
-	const uint32 RandomSeed = FMath::Rand();
+	const uint32 RandomSeed = bHasRemoteShotSeed ? RemoteShotSeed : FMath::Rand();
+	bHasRemoteShotSeed = false;
 	LastShotSeed = RandomSeed;
 	FRandom32 SeededRandom(RandomSeed);
 
@@ -143,12 +157,12 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 			true,
 			true);
 
-		const FVector DebugEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
-		DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Orange, false, 2.0f, 0, 1.0f);
-		if (bWeaponHit)
-		{
-			DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
-		}
+		const FVector TrailEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
+		WeaponTrail->DrawHitscanTrail(
+			*World,
+			ETimeThiefWeaponTrailType::ShotgunPellet,
+			MuzzleLocation,
+			TrailEndLocation);
 
 		PelletResult.FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, TargetLocation, PelletAimDir);
 		if (bWeaponHit)

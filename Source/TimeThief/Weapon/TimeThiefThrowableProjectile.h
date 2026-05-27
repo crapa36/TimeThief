@@ -10,6 +10,8 @@ class APawn;
 class UProjectileMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
+class UTimeThiefWeaponTrail;
+class UNiagaraComponent;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefThrowableProjectile : public AActor
@@ -46,6 +48,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Throwable")
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWeaponTrail> WeaponTrail;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ActiveTrailComponent;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Runtime")
 	EItemID ThrowableItemID = EItemID::SIZE;

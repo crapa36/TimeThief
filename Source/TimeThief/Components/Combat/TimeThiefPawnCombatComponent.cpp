@@ -254,6 +254,11 @@ FVector UTimeThiefPawnCombatComponent::GetEffectiveShotOrigin() const
 {
 	if (MasterWeaponPtr)
 	{
+		if (const UTimeThiefWeaponComponentBase* CurrentWeapon = MasterWeaponPtr->GetActiveWeaponComponent())
+		{
+			return CurrentWeapon->GetMuzzleLocation();
+		}
+
 		return MasterWeaponPtr->GetActorLocation();
 	}
 
@@ -328,6 +333,7 @@ void UTimeThiefPawnCombatComponent::Remote_AttackRequest(const FRemoteAttackNoti
 		break;
 	case ECombatNotifyType::Fire:
 		Remote_SyncAimLocation(AttackRequest.Origin, AttackRequest.Direction);
+		CachedRemoteShotSeed = AttackRequest.ShotSeed;
 		++RemoteFireNotifyCount;
 		if (AttackRequest.WeaponId != 0)
 		{
@@ -457,6 +463,7 @@ void UTimeThiefPawnCombatComponent::Remote_SyncFireAction()
 	if (UTimeThiefWeaponComponentBase* CurrentWeapon = GetCharacterCurrentEquippedWeapon())
 	{
 		CurrentWeapon->SetRemoteShotSyncData(CachedRemoteShotOrigin, CachedRemoteAimDirection);
+		CurrentWeapon->SetRemoteShotSeed(CachedRemoteShotSeed);
 		CurrentWeapon->ExecuteRemoteFireShot();
 	}
 

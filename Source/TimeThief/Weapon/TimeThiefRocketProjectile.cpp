@@ -1,8 +1,7 @@
-﻿#include "Weapon/TimeThiefRocketProjectile.h"
+#include "Weapon/TimeThiefRocketProjectile.h"
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -11,6 +10,7 @@
 #include "DrawDebugHelpers.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/State/NetworkEntityState.h"
+#include "Weapon/TimeThiefWeaponTrail.h"
 
 ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 {
@@ -40,12 +40,11 @@ ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 	ProjectileMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ProjectileMeshComponent->SetGenerateOverlapEvents(false);
 
-	TrailEffectComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TrailEffectComponent"));
-	TrailEffectComponent->SetupAttachment(CollisionComponent);
-
 	FlightLoopAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("FlightLoopAudioComponent"));
 	FlightLoopAudioComponent->SetupAttachment(CollisionComponent);
 	FlightLoopAudioComponent->bAutoActivate = false;
+
+	WeaponTrail = CreateDefaultSubobject<UTimeThiefWeaponTrail>(TEXT("WeaponTrail"));
 }
 
 void ATimeThiefRocketProjectile::InitializeProjectileSettings(float InInitSpeed, float InExplosionRadius)
@@ -95,6 +94,9 @@ void ATimeThiefRocketProjectile::ActivateProjectile(const FTransform& SpawnTrans
 	ProjectileMovementComponent->Velocity = SpawnTransform.GetRotation().GetForwardVector() * InitialSpeed;
 	ProjectileMovementComponent->Activate();
 
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Rocket, *CollisionComponent);
+
 	if (FlightLoopAudioComponent && FlightLoopSound)
 	{
 		FlightLoopAudioComponent->Play();
@@ -113,6 +115,8 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 {
 	bIsActivated = false;
 	bExploded = true;
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = nullptr;
 	SetActorHiddenInGame(true);
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ProjectileMovementComponent->StopMovementImmediately();
@@ -173,6 +177,14 @@ void ATimeThiefRocketProjectile::BeginPlay()
 	{
 		ProjectileMovementComponent->OnProjectileStop.AddDynamic(this, &ATimeThiefRocketProjectile::ExplodeOnce);
 	}
+}
+
+void ATimeThiefRocketProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = nullptr;
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ATimeThiefRocketProjectile::Tick(float DeltaTime)
@@ -371,6 +383,9 @@ void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& Sp
 		ProjectileMovementComponent->Velocity = InitialVelocity;
 		ProjectileMovementComponent->Activate(true);
 	}
+
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Rocket, *CollisionComponent);
 	
 	if (FlightLoopAudioComponent && FlightLoopSound)
 	{

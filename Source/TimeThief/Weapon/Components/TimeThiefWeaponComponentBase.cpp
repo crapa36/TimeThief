@@ -254,6 +254,10 @@ void UTimeThiefWeaponComponentBase::SetRemoteShotSyncData(const FVector& InOrigi
 	RemoteShotDirection = InDirection.GetSafeNormal();
 }
 
+void UTimeThiefWeaponComponentBase::SetRemoteShotSeed(uint32 InShotSeed)
+{
+}
+
 void UTimeThiefWeaponComponentBase::OnReloadStarted()
 {
 	if (auto AnimInstance = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor())->GetMesh()->GetAnimInstance();

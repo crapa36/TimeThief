@@ -11,6 +11,7 @@ class UTimeThiefWeaponComponentBase;
 class UTimeThiefRifleComponent;
 class UTimeThiefShotgunComponent;
 class UTimeThiefRocketLauncherComponent;
+class UTimeThiefWeaponTrail;
 class UStaticMesh;
 
 UCLASS()
@@ -41,6 +42,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	UTimeThiefWeaponComponentBase* GetActiveWeaponComponent() const { return ActiveWeaponComponent; }
 
+	UTimeThiefWeaponTrail* GetWeaponTrail() const { return WeaponTrail;	}
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon")
 	UTimeThiefWeaponComponentBase* GetWeaponComponentByTag(FGameplayTag WeaponTag) const;
 
@@ -64,6 +67,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
 	TObjectPtr<UTimeThiefRocketLauncherComponent> RocketLauncherComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWeaponTrail> WeaponTrail;
 
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Weapon|Runtime")
 	TObjectPtr<UTimeThiefWeaponComponentBase> ActiveWeaponComponent;

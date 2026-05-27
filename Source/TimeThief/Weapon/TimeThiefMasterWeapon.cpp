@@ -5,6 +5,7 @@
 #include "Weapon/Components/TimeThiefRifleComponent.h"
 #include "Weapon/Components/TimeThiefShotgunComponent.h"
 #include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
+#include "Weapon/TimeThiefWeaponTrail.h"
 #include "TimeThiefGameplayTags.h"
 #include "MorphingMesh/Core/LiquidMeshComponent.h"
 
@@ -26,6 +27,8 @@ ATimeThiefMasterWeapon::ATimeThiefMasterWeapon()
 
 	RocketLauncherComponent = CreateDefaultSubobject<UTimeThiefRocketLauncherComponent>(TEXT("RocketLauncherComponent"));
 	RocketLauncherComponent->SetWeaponTag(GameplayTags.Weapon_RocketLauncher);
+
+	WeaponTrail = CreateDefaultSubobject<UTimeThiefWeaponTrail>(TEXT("WeaponTrail"));
 }
 
 void ATimeThiefMasterWeapon::BeginPlay() 

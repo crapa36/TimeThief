@@ -136,6 +136,7 @@ public:
 	virtual void ExecuteRemoteFireShot();
 	virtual void ExecuteRemoteReload();
 	void SetRemoteShotSyncData(const FVector& InOrigin, const FVector& InDirection);
+	virtual void SetRemoteShotSeed(uint32 InShotSeed);
 
 	void NotifyAmmoChanged();
 	FVector GetMuzzleLocation() const;
