@@ -2,6 +2,7 @@
 
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
+#include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "DataAssets/TimeThiefThrowableData.h"
@@ -11,6 +12,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "TimeThiefGameplayTags.h"
+#include "Network/State/CombatAttackRequest.h"
+#include "Network/State/CombatNotifyType.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefThrowableProjectile.h"
 
@@ -119,6 +122,17 @@ bool UTimeThiefThrowableComponent::TryThrowEquippedThrowable()
 	Projectile->InitializeThrowable(ThrowableItem, PlayerCharacter, PlayerCharacter, ThrowableDefinition.ProjectileSettings);
 	Projectile->SetThrowableMesh();
 	Projectile->LaunchThrowable(ThrowVelocity, ThrowSettings.FuseTime);
+
+	if (UTimeThiefPawnCombatComponent* CombatComponent = PlayerCharacter->FindComponentByClass<UTimeThiefPawnCombatComponent>())
+	{
+		FCombatAttackRequest Request{};
+		Request.NotifyType = ECombatNotifyType::Throw;
+		Request.WeaponId = ResolveGrenadeTypeForFutureNetwork(ThrowableItem);
+		Request.Origin = ThrowOrigin;
+		Request.Direction = ThrowVelocity.GetSafeNormal();
+		CombatComponent->BroadcastCombatAttackRequest(Request);
+	}
+
 	PlayThrowAnimation(PlayerCharacter, ThrowSettings);
 	PlayThrowSound(ThrowSettings, ThrowOrigin);
 

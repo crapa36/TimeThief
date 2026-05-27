@@ -86,6 +86,7 @@ void UNetworkCombatSyncComponent::HandleLocalAttackRequest(const FCombatAttackRe
 	case ECombatNotifyType::Throw:
 		{
 			se::game::C_ThrowGrenadeReq Request;
+			Request.set_grenade_type(AttackRequest.WeaponId);
 			auto* StartPos = Request.mutable_start_position();
 			StartPos->set_x(AttackRequest.Origin.X);
 			StartPos->set_y(AttackRequest.Origin.Y);
