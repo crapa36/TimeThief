@@ -148,6 +148,72 @@ void ATimeThiefThrowableProjectile::SetThrowableMesh()
 	}
 }
 
+void ATimeThiefThrowableProjectile::InitializeNetworkSyncAsLocalOwner(uint32 ObjectId)
+{
+	if (ThrowableNetworkSyncComponent)
+	{
+		ThrowableNetworkSyncComponent->InitializeAsLocalOwner(ObjectId);
+	}
+}
+
+void ATimeThiefThrowableProjectile::InitializeNetworkSyncAsRemoteProxy(uint32 ObjectId)
+{
+	if (ThrowableNetworkSyncComponent)
+	{
+		ThrowableNetworkSyncComponent->InitializeAsRemoteProxy(ObjectId);
+	}
+}
+
+void ATimeThiefThrowableProjectile::PushRemoteMoveSnapshot(const FThrowableMoveSnapshot& Snapshot)
+{
+	if (ThrowableNetworkSyncComponent)
+	{
+		ThrowableNetworkSyncComponent->PushRemoteSnapshot(Snapshot);
+	}
+}
+
+void ATimeThiefThrowableProjectile::RemoteExplosionEffect(const FVector& ExplosionLocation)
+{
+	UE_LOG(LogTemp, Log, TEXT("[Throwable] Remote explosion effect triggered. Location=%s"), *ExplosionLocation.ToString()); 
+	
+	// 서버 기준 폭발 위치로 보정
+	SetActorLocation(ExplosionLocation);
+
+	// 중복 방지
+	if (bExploded)
+	{
+		return;
+	}
+
+	bExploded = true;
+
+	// Trail 제거
+	if (WeaponTrail)
+	{
+		WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+		ActiveTrailComponent = nullptr;
+	}
+
+	// 이동 중단
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->StopMovementImmediately();
+		ProjectileMovementComponent->Deactivate();
+	}
+
+	// 충돌 제거
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetCollisionEnabled(
+			ECollisionEnabled::NoCollision);
+	}
+
+	// FX / Sound만 재생
+	PlayDetonationEffects(ExplosionLocation);
+
+	Destroy();
+}
+
 void ATimeThiefThrowableProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
@@ -171,6 +237,11 @@ void ATimeThiefThrowableProjectile::ExplodeOnce()
 	if (bExploded)
 	{
 		return;
+	}
+	
+	if (ThrowableNetworkSyncComponent)
+	{
+		ThrowableNetworkSyncComponent->SendExplosionSync();
 	}
 
 	bExploded = true;

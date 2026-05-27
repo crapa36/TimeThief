@@ -5,6 +5,7 @@
 #include "ItemCommons.h"
 #include "Actors/NetworkActor.h"
 #include "Weapon/TimeThiefThrowableTypes.h"
+
 #include "TimeThiefThrowableProjectile.generated.h"
 
 class APawn;
@@ -14,6 +15,7 @@ class UStaticMeshComponent;
 class UTimeThiefWeaponTrail;
 class UNiagaraComponent;
 class UThrowableNetworkSyncComponent;
+struct FThrowableMoveSnapshot;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefThrowableProjectile : public ANetworkActor
@@ -28,6 +30,13 @@ public:
 	void LaunchThrowable(const FVector& InitialVelocity, float InFuseTime);
 	void SetThrowableMesh();
 
+public:
+	void InitializeNetworkSyncAsLocalOwner(uint32 ObjectId);
+	void InitializeNetworkSyncAsRemoteProxy(uint32 ObjectId);
+	void PushRemoteMoveSnapshot(const FThrowableMoveSnapshot& Snapshot);
+	
+	void RemoteExplosionEffect(const FVector& ExplosionLocation);
+	
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

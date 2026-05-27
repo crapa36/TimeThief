@@ -82,6 +82,7 @@ public:
 	void SendChestInteract(uint32 ChestEntityId);
 	void SendUseItem(uint32 Itemid);
 	void SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData);
+	void SendGrenadeExplosion(uint32 GrenadeEntityId, const FVector& Location);
 	
 private:
 	void ConnectToServer();
@@ -200,8 +201,10 @@ private:
 	
 	void ApplyRemoteAttackNotifyToActor(uint32 EntityId, const FRemoteAttackNotify& Notify);
 	
-	bool IsLocalPlayerEntity(uint32 EntityId) const;
 	TSubclassOf<AActor> ResolveActorClass(const FNetworkEntityState& EntityState) const;
+	
+public:
+	bool IsLocalPlayerEntity(uint32 EntityId) const;
 	
 private:
 	bool LoadClientConfig();
@@ -254,6 +257,10 @@ private:
 	
 private:
 	void ClearRoomState();
+	
+public:
+	void NetworkEntryAdd(uint32 EntityId, const FEntityRuntimeEntry& Entry);
+	void NetworkEntryRemove(uint32 EntityId);
 	
 public:
 	const UTimeThiefPawnData* GetDefaultPawnData() const { return DefaultLocalPlayerPawnData; }

@@ -44,7 +44,7 @@ void UThrowableNetworkSyncComponent::TickComponent(float DeltaTime, ELevelTick T
 		break;
 		
 	default:
-		UE_LOG(LogTemp, Error, TEXT("Unknown NetRole %d"), NetRole);
+		// UE_LOG(LogTemp, Error, TEXT("Unknown NetRole %d"), NetRole);
 		break;
 	}
 }
@@ -53,13 +53,23 @@ void UThrowableNetworkSyncComponent::InitializeAsLocalOwner(uint32 InObjectId)
 {
 	ObjectId = InObjectId;
 	NetRole = EThrowableNetRole::LocalOwner;
+
+	CachedNetworkActor = Cast<ANetworkActor>(GetOwner());
+	CachedProjectileMovement = GetOwner()
+		? GetOwner()->FindComponentByClass<UProjectileMovementComponent>()
+		: nullptr;
 }
 
 void UThrowableNetworkSyncComponent::InitializeAsRemoteProxy(uint32 InObjectId)
 {
 	ObjectId = InObjectId;
 	NetRole = EThrowableNetRole::RemoteProxy;
-	
+
+	CachedNetworkActor = Cast<ANetworkActor>(GetOwner());
+	CachedProjectileMovement = GetOwner()
+		? GetOwner()->FindComponentByClass<UProjectileMovementComponent>()
+		: nullptr;
+
 	DisableLocalProjectileSimulation();
 }
 
@@ -97,6 +107,22 @@ void UThrowableNetworkSyncComponent::PushRemoteSnapshot(const FThrowableMoveSnap
 
 	InterpElapsed = 0.0f;
 	bHasInterpolationTarget = true;
+}
+
+void UThrowableNetworkSyncComponent::SendExplosionSync()
+{
+	AActor* Owner = GetOwner();
+	if (!Owner || ObjectId == 0)
+	{
+		return;;
+	}
+	
+	const FVector Location = Owner->GetActorLocation();
+	
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->SendGrenadeExplosion(ObjectId, Location);
+	}
 }
 
 void UThrowableNetworkSyncComponent::TickLocalOwner(float DeltaTime)
@@ -153,12 +179,12 @@ void UThrowableNetworkSyncComponent::ApplyRemoteInterpolation(float DeltaTime)
 	const FVector CurrentLocation = Owner->GetActorLocation();
 	const float Distance = FVector::Dist(CurrentLocation, InterpTargetLocation);
 
-	if (Distance > SnapDistance)
-	{
-		Owner->SetActorLocationAndRotation(InterpTargetLocation, InterpTargetRotation);
-		bHasInterpolationTarget = false;
-		return;
-	}
+	// if (Distance > SnapDistance)
+	// {
+	// 	Owner->SetActorLocationAndRotation(InterpTargetLocation, InterpTargetRotation);
+	// 	bHasInterpolationTarget = false;
+	// 	return;
+	// }
 
 	const float Duration = FMath::Max(RemoteInterpolationDelay, KINDA_SMALL_NUMBER);
 

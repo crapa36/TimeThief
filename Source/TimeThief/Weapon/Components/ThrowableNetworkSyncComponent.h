@@ -63,6 +63,8 @@ public:
 	
 	void PushRemoteSnapshot(const FThrowableMoveSnapshot& Snapshot);
 	
+	void SendExplosionSync();
+	
 private:
 	void TickLocalOwner(float DeltaTime);
 	void TickRemoteProxy(float DeltaTime);

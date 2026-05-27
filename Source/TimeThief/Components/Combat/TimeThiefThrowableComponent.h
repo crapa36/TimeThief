@@ -11,6 +11,7 @@ class ATimeThiefPlayerCharacter;
 class ATimeThiefThrowableProjectile;
 class UInventorySystemComponent;
 class UTimeThiefThrowableData;
+struct FRemoteAttackNotify;
 
 UCLASS(Blueprintable, ClassGroup = (TimeThief), meta = (BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeThiefThrowableComponent : public UActorComponent
@@ -28,6 +29,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Throwable")
 	bool CanThrowEquippedThrowable() const;
+	
+public:
+	void RemoteThrowGrenade(const FRemoteAttackNotify& Notify);
+	
+private:
+	ATimeThiefThrowableProjectile* SpawnThrowableProjectileFromNetwork(
+		uint32 GrenadeEntityId,
+		EItemID ItemID,
+		const FVector& Origin,
+		const FVector& Direction);
 
 protected:
 	bool CanThrowItem(EItemID ItemID) const;

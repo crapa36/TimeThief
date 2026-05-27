@@ -33,4 +33,7 @@ struct FRemoteAttackNotify
 	
 	UPROPERTY(BlueprintReadWrite)
 	float Range = 0.0f;
+	
+	UPROPERTY(BlueprintReadWrite)
+	int32 SpawnEntityId = 0;
 };

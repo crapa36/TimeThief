@@ -12,8 +12,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "TimeThiefGameplayTags.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/State/CombatAttackRequest.h"
 #include "Network/State/CombatNotifyType.h"
+#include "Network/State/RemoteAttackNotify.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefThrowableProjectile.h"
 
@@ -98,36 +100,43 @@ bool UTimeThiefThrowableComponent::TryThrowEquippedThrowable()
 		return false;
 	}
 
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = PlayerCharacter;
-	SpawnParams.Instigator = PlayerCharacter;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	const FTransform SpawnTransform(ThrowVelocity.Rotation(), ThrowOrigin);
-	ATimeThiefThrowableProjectile* Projectile = World->SpawnActor<ATimeThiefThrowableProjectile>(
-		ThrowableProjectileClass,
-		SpawnTransform,
-		SpawnParams);
-
-	if (!Projectile)
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
-#if !UE_BUILD_SHIPPING
-		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] Throw failed: projectile spawn returned null. Origin=%s Velocity=%s"),
-			*ThrowOrigin.ToCompactString(),
-			*ThrowVelocity.ToCompactString());
-#endif
-		return false;
-	}
+		if (!NGIS->IsConnected())
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = PlayerCharacter;
+			SpawnParams.Instigator = PlayerCharacter;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	Projectile->InitializeThrowable(ThrowableItem, PlayerCharacter, PlayerCharacter, ThrowableDefinition.ProjectileSettings);
-	Projectile->SetThrowableMesh();
-	Projectile->LaunchThrowable(ThrowVelocity, ThrowSettings.FuseTime);
+			const FTransform SpawnTransform(ThrowVelocity.Rotation(), ThrowOrigin);
+			ATimeThiefThrowableProjectile* Projectile = World->SpawnActor<ATimeThiefThrowableProjectile>(
+				ThrowableProjectileClass,
+				SpawnTransform,
+				SpawnParams);
+
+			if (!Projectile)
+			{
+#if !UE_BUILD_SHIPPING
+				UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] Throw failed: projectile spawn returned null. Origin=%s Velocity=%s"),
+					*ThrowOrigin.ToCompactString(),
+					*ThrowVelocity.ToCompactString());
+#endif
+				return false;
+			}
+
+			Projectile->InitializeThrowable(ThrowableItem, PlayerCharacter, PlayerCharacter, ThrowableDefinition.ProjectileSettings);
+			Projectile->SetThrowableMesh();
+			Projectile->LaunchThrowable(ThrowVelocity, ThrowSettings.FuseTime);
+		}
+	}
 
 	if (UTimeThiefPawnCombatComponent* CombatComponent = PlayerCharacter->FindComponentByClass<UTimeThiefPawnCombatComponent>())
 	{
 		FCombatAttackRequest Request{};
 		Request.NotifyType = ECombatNotifyType::Throw;
-		Request.WeaponId = ResolveGrenadeTypeForFutureNetwork(ThrowableItem);
+		// Request.WeaponId = ResolveGrenadeTypeForFutureNetwork(ThrowableItem);
+		Request.WeaponId = static_cast<uint32>(ThrowableItem);
 		Request.Origin = ThrowOrigin;
 		Request.Direction = ThrowVelocity.GetSafeNormal();
 		CombatComponent->BroadcastCombatAttackRequest(Request);
@@ -159,6 +168,131 @@ bool UTimeThiefThrowableComponent::TryThrowEquippedThrowable()
 bool UTimeThiefThrowableComponent::CanThrowEquippedThrowable() const
 {
 	return CanThrowItem(GetEquippedThrowableItem());
+}
+
+void UTimeThiefThrowableComponent::RemoteThrowGrenade(const FRemoteAttackNotify& Notify)
+{
+	UE_LOG(LogTemp, Warning, TEXT("RemoteThrowGrenade called: AttackerEntityId=%u SpawnEntityId=%u WeaponId=%u Origin=%s Direction=%s"),
+		Notify.AttackerEntityId,
+		Notify.SpawnEntityId,
+		Notify.WeaponId,
+		*Notify.Origin.ToCompactString(),
+		*Notify.Direction.ToCompactString());
+	
+	const uint32 GrenadeEntityId = Notify.SpawnEntityId;
+	const EItemID ItemID = static_cast<EItemID>(Notify.WeaponId);
+
+	if (GrenadeEntityId == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("RemoteThrowGrenade failed: invalid grenade entity id"));
+		return;
+	}
+
+	SpawnThrowableProjectileFromNetwork(
+		GrenadeEntityId,
+		ItemID,
+		Notify.Origin,
+		Notify.Direction);
+}
+
+ATimeThiefThrowableProjectile* UTimeThiefThrowableComponent::SpawnThrowableProjectileFromNetwork(uint32 GrenadeEntityId,
+                                                                                                 EItemID ItemID, const FVector& Origin, const FVector& Direction)
+{
+	UWorld* World = GetWorld();
+	AActor* OwnerActor = GetOwner();
+	APawn* InstigatorPawn = Cast<APawn>(OwnerActor);
+
+	if (!World || !ThrowableProjectileClass || !OwnerActor)
+	{
+		return nullptr;
+	}
+
+	const FTimeThiefThrowableDefinition Definition = ResolveThrowableDefinition(ItemID);
+	const FTimeThiefThrowableThrowSettings& ThrowSettings = Definition.ThrowSettings;
+
+	FVector ThrowDirection = Direction.GetSafeNormal();
+	if (ThrowDirection.IsNearlyZero())
+	{
+		ThrowDirection = OwnerActor->GetActorForwardVector();
+	}
+
+	const FVector InitialVelocity =
+		ThrowDirection * ThrowSettings.ThrowSpeed;
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = OwnerActor;
+	SpawnParams.Instigator = InstigatorPawn;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	ATimeThiefThrowableProjectile* Projectile =
+		World->SpawnActor<ATimeThiefThrowableProjectile>(
+			ThrowableProjectileClass,
+			FTransform(InitialVelocity.Rotation(), Origin),
+			SpawnParams);
+
+	if (!Projectile)
+	{
+		return nullptr;
+	}
+
+	Projectile->InitializeThrowable(ItemID, OwnerActor, InstigatorPawn, Definition.ProjectileSettings);
+	Projectile->SetThrowableMesh();
+	
+	bool bIsLocalOwner = false;
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		auto* PlayerPawn = Cast<ATimeThiefPlayerCharacter>(InstigatorPawn);
+		if (PlayerPawn)
+		{
+			uint32 PlayerPawnEntityId = PlayerPawn->GetEntityId();
+			
+			bIsLocalOwner = NGIS->IsLocalPlayerEntity(PlayerPawnEntityId);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] Could not determine local ownership for grenade. InstigatorPawn=%s"),
+				*GetNameSafe(InstigatorPawn));
+		}
+	}
+	
+	if (bIsLocalOwner)
+	{
+		Projectile->InitializeNetworkSyncAsLocalOwner(GrenadeEntityId);
+		Projectile->LaunchThrowable(InitialVelocity, ThrowSettings.FuseTime);
+	}
+	else
+	{
+		Projectile->InitializeNetworkSyncAsRemoteProxy(GrenadeEntityId);
+
+		// RemoteProxy는 ProjectileMovement로 직접 날리면 안 됨.
+		// 이후 GrenadeMoveSync 패킷으로 보간만 함.
+	}
+
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		FEntityRuntimeEntry EntityEntry;
+		EntityEntry.EntityId = GrenadeEntityId;
+		EntityEntry.Actor = Projectile;
+		FNetworkEntityState& EntityState = EntityEntry.State;
+		EntityState.EntityId = GrenadeEntityId;
+	
+		EntityState.ObjectType = se::common::OBJ_PROJECTILE;
+		EntityState.TemplateId = static_cast<uint32>(ItemID);
+
+		NGIS->NetworkEntryAdd(GrenadeEntityId, EntityEntry);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] Failed to register network grenade: NetworkGameInstanceSubsystem not found."));
+	}
+
+	if (ATimeThiefPlayerCharacter* PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(OwnerActor))
+	{
+		PlayThrowAnimation(PlayerCharacter, ThrowSettings);
+		PlayThrowSound(ThrowSettings, Origin);
+	}
+
+	return Projectile;
 }
 
 bool UTimeThiefThrowableComponent::CanThrowItem(EItemID ItemID) const

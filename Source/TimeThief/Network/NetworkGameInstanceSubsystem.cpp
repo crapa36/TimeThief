@@ -41,6 +41,7 @@
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
+#include "Weapon/TimeThiefThrowableProjectile.h"
 #include "Weapon/Components/ThrowableNetworkSyncComponent.h"
 #include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
@@ -312,6 +313,26 @@ void UNetworkGameInstanceSubsystem::SendGrenadeMoveSync(const FThrowableMoveSnap
 	// 	MoveData.Velocity.X,
 	// 	MoveData.Velocity.Y,
 	// 	MoveData.Velocity.Z);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendGrenadeExplosion(uint32 GrenadeEntityId, const FVector& Location)
+{
+	se::game::C_GrenadeExplosionReq Request;
+	auto* GrenadeIdPtr = Request.mutable_entity_id();
+	GrenadeIdPtr->set_value(GrenadeEntityId);
+	auto* PositionPtr = Request.mutable_position();
+	PositionPtr->set_x(Location.X);
+	PositionPtr->set_y(Location.Y);
+	PositionPtr->set_z(Location.Z);
+	
+	// UE_LOG(LogTemp, Log, TEXT("[GrenadeExplosion] GrenadeEntityId=%u Pos=(%.1f, %.1f, %.1f)"),
+	// 	GrenadeEntityId,
+	// 	Location.X,
+	// 	Location.Y,
+	// 	Location.Z);
+	
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -1396,9 +1417,11 @@ void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGr
 		return;
 	}
 	
+	const uint32 OwnerId = Pkt.owner_id().value();
 	const uint32 EntityId = Pkt.entity_id().value();
 	FRemoteAttackNotify Notify{};
-	Notify.AttackerEntityId = EntityId;
+	Notify.AttackerEntityId = OwnerId;
+	Notify.SpawnEntityId = EntityId;
 	Notify.NotifyType = ECombatNotifyType::Throw;
 	Notify.WeaponId = Pkt.grenade_type();
 	const auto& Origin = Pkt.start_position();
@@ -1406,7 +1429,7 @@ void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGr
 	const auto& Dir = Pkt.direction();
 	Notify.Direction = FVector(Dir.x(), Dir.y(), Dir.z());
 	
-	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
+	ApplyRemoteAttackNotifyToActor(OwnerId, Notify);
 }
 
 void UNetworkGameInstanceSubsystem::HandleReload(const se::game::N_Reload& Pkt)
@@ -1574,10 +1597,67 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 
 void UNetworkGameInstanceSubsystem::HandleGrenadeMoveSync(const se::game::N_GrenadeMoveSync& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find actor for grenade move sync. EntityId=%u"), EntityId);
+		return;
+	}
+	
+	if (auto* GrenadeComp = Cast<ATimeThiefThrowableProjectile>(EntityEntry->Actor.Get()))
+	{
+		const auto& Position = Pkt.position();
+		const auto& Rotation = Pkt.rotation();
+		const auto& Velocity = Pkt.velocity();
+		FThrowableMoveSnapshot Snapshot;
+		Snapshot.ObjectId = EntityId;
+		Snapshot.Location = FVector(Position.x(), Position.y(), Position.z());
+		Snapshot.Rotation = FRotator(Rotation.pitch(), Rotation.yaw(), Rotation.roll());
+		Snapshot.Velocity = FVector(Velocity.x(), Velocity.y(), Velocity.z());
+		GrenadeComp->PushRemoteMoveSnapshot(Snapshot);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find grenade component for move sync. EntityId=%u Actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleGrenadeExplosion(const se::game::N_GrenadeExplosion& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find actor for grenade explosion. EntityId=%u"), EntityId);
+		return;
+	}
+	
+	if (auto* GrenadeComp = Cast<ATimeThiefThrowableProjectile>(EntityEntry->Actor.Get()))
+	{
+		const FVector ExplosionLocation = FVector(Pkt.position().x(), Pkt.position().y(), Pkt.position().z());
+		GrenadeComp->RemoteExplosionEffect(ExplosionLocation);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find grenade component for explosion. EntityId=%u Actor=%s"), EntityId, *GetNameSafe(EntityEntry->Actor.Get()));
+	}
+	
+	RemoveEntity(EntityId);
 }
 
 void UNetworkGameInstanceSubsystem::HandleProjectileExplosion(const se::game::N_ProjectileExplosion& Pkt)
@@ -2906,6 +2986,16 @@ void UNetworkGameInstanceSubsystem::ClearRoomState()
 	RoomState = FRoomState();
 }
 
+void UNetworkGameInstanceSubsystem::NetworkEntryAdd(uint32 EntityId, const FEntityRuntimeEntry& Entry)
+{
+	EntityEntries.Add(EntityId, Entry);
+}
+
+void UNetworkGameInstanceSubsystem::NetworkEntryRemove(uint32 EntityId)
+{
+	EntityEntries.Remove(EntityId);
+}
+
 AActor* UNetworkGameInstanceSubsystem::FindEntityActor(uint32 EntityId) const
 {
 	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
@@ -3206,10 +3296,10 @@ void UNetworkGameInstanceSubsystem::ApplyAllEntityStates()
 
 void UNetworkGameInstanceSubsystem::ApplyRemoteAttackNotifyToActor(uint32 EntityId, const FRemoteAttackNotify& Notify)
 {
-	if (IsLocalPlayerEntity(EntityId))
-	{
-		return;
-	}
+	// if (IsLocalPlayerEntity(EntityId))
+	// {
+	// 	return;
+	// }
 
 	AActor* Actor = FindEntityActor(EntityId);
 	if (Actor == nullptr)
