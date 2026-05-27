@@ -37,9 +37,11 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Game/ItemPoolWorldSubsystem.h"
 #include "Game/ItemSettings.h"
+#include "Monster/TimeThiefMonster.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
+#include "Weapon/Components/ThrowableNetworkSyncComponent.h"
 #include "Weapon/Components/TimeThiefRocketLauncherComponent.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
@@ -279,6 +281,37 @@ void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
 	Request.set_item_id(Itemid);
 	
 	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Use Item Id=%u"), Itemid);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData)
+{
+	se::game::C_GrenadeMoveSyncReq Request;
+	auto* ObjectIdPtr = Request.mutable_entity_id();
+	ObjectIdPtr->set_value(MoveData.ObjectId);
+	auto* PositionPtr = Request.mutable_position();
+	PositionPtr->set_x(MoveData.Location.X);
+	PositionPtr->set_y(MoveData.Location.Y);
+	PositionPtr->set_z(MoveData.Location.Z);
+	auto* RotationPtr = Request.mutable_rotation();
+	RotationPtr->set_yaw(MoveData.Rotation.Yaw);
+	RotationPtr->set_pitch(MoveData.Rotation.Pitch);
+	RotationPtr->set_roll(MoveData.Rotation.Roll);
+	auto* VelocityPtr = Request.mutable_velocity();
+	VelocityPtr->set_x(MoveData.Velocity.X);
+	VelocityPtr->set_y(MoveData.Velocity.Y);
+	VelocityPtr->set_z(MoveData.Velocity.Z);
+
+	// 빈번한 패킷이므로 로그 미출력
+	// UE_LOG(LogTemp, Log, TEXT("[GrenadeMoveSync] ObjectId=%u Pos=(%.1f, %.1f, %.1f) Vel=(%.2f, %.2f, %.2f)"),
+	// 	MoveData.ObjectId,
+	// 	MoveData.Location.X,
+	// 	MoveData.Location.Y,
+	// 	MoveData.Location.Z,
+	// 	MoveData.Velocity.X,
+	// 	MoveData.Velocity.Y,
+	// 	MoveData.Velocity.Z);
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -1278,6 +1311,80 @@ void UNetworkGameInstanceSubsystem::HandleFire(const se::game::N_Fire& Pkt)
 
 void UNetworkGameInstanceSubsystem::HandleAttack(const se::game::N_Attack& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	const uint32 AttackType = Pkt.attack_type();
+	
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Attack;		// Attack이 아닐 수 있다
+	// TODO: Attack Type 다른 거 올 수 도 있는거 확인하기 
+	Notify.AttackId = AttackType;
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
+}
+
+void UNetworkGameInstanceSubsystem::HandleMonsterFire(const se::game::N_MonsterFire& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Fire;
+	Notify.AttackId = Pkt.attack_type();
+	const auto& Origin = Pkt.start_position();
+	const auto& Dir = Pkt.direction();
+	Notify.Origin = FVector(Origin.x(), Origin.y(), Origin.z());
+	Notify.Direction = FVector(Dir.x(), Dir.y(), Dir.z());
+	Notify.Range = Pkt.range();
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
+}
+
+void UNetworkGameInstanceSubsystem::HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.monster_id().value();
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	if (EntityEntry == nullptr || EntityEntry->Actor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMonsterTarget: Missing actor for EntityId=%u"), EntityId);
+		return;
+	}
+	
+	const uint32 TargetId = Pkt.target_id().value();
+	FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetId);
+	if (TargetEntry == nullptr and TargetId != 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMonsterTarget: Missing target actor for TargetId=%u"), TargetId);
+	}
+	
+	if (auto MonsterPawn = Cast<ATimeThiefMonster>(EntityEntry->Actor.Get()))
+	{
+		MonsterPawn->SetTarget(TargetId, TargetEntry ? TargetEntry->Actor.Get() : nullptr);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] HandleMonsterTarget: Missing MonsterComponent for EntityId=%u"), EntityId);
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt)
@@ -1448,26 +1555,20 @@ void UNetworkGameInstanceSubsystem::HandleEntityHit(const se::game::N_EntityHit&
 	}
 	
 	// UE_LOG(LogTemp, Log, TEXT("[Network] HandleEntityHit: EntityId=%u"), Pkt.entity_id().value());
-	
+	const uint32 TargetEntityId = Pkt.entity_id().value();
 	const FVector HitPosition = FVector(Pkt.hit_position().x(), Pkt.hit_position().y(), Pkt.hit_position().z());
 	
-	const uint32 TargetEntityId = Pkt.entity_id().value();
 	if (TargetEntityId == 0) 
 	{
 		// TODO: Entity가 아니라 벽 같은 것에 맞은 것
 	}
 	else
 	{
-		FEntityRuntimeEntry* TargetEntry = EntityEntries.Find(TargetEntityId);
-		if (TargetEntry == nullptr || TargetEntry->Actor == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to find target actor for EntityHit. EntityId=%u"), TargetEntityId);
-			return;
-		}
+		FRemoteAttackNotify Notify{};
+		Notify.NotifyType = ECombatNotifyType::Hit;
+		Notify.Origin = HitPosition;
 	
-		auto* HitActor = TargetEntry->Actor.Get();
-		// TODO: 해당 Actor에 대한 Hit 처리 (Pos에 근사한 위치에 Hit Effect)
-		//		 Damage는 충격량 정도
+		ApplyRemoteAttackNotifyToActor(TargetEntityId, Notify);
 	}
 }
 
@@ -1819,21 +1920,25 @@ void UNetworkGameInstanceSubsystem::HandleEntityDied(const se::game::N_EntityDie
 		return;
 	}
 	
-	auto TTCharacter = dynamic_cast<ATimeThiefCharacterBase*>(Actor);
-	if (TTCharacter == nullptr)
-	{
-		return;
-	}
-	
-	if (EntityId == LocalPlayerEntityId)
-	{
-		// 로컬 플레이어 사망 처리 후 컨트롤 불가하게
+	if (auto TTCharacter = Cast<ATimeThiefCharacterBase>(Actor))
+	{		// 캐릭터가 죽는 경우에만 OnDeath 호출, 몬스터나 다른 Entity는 별도의 연출이 필요할 수 있음
+		// if (EntityId == LocalPlayerEntityId)
+		// {
+		// 	// 로컬 플레이어 사망 처리 후 컨트롤 불가하게
+		// 	TTCharacter->OnDeath();
+		// }
+		// else
+		// {
+		// 	// 타 플레이어는 사망 연출 진행
+		// 	TTCharacter->OnDeath();
+		// }
+		
 		TTCharacter->OnDeath();
 	}
-	else
+	else if (auto Monster = Cast<ATimeThiefMonster>(Actor))
 	{
-		// 타 플레이어는 사망 연출 진행
-		TTCharacter->OnDeath();
+		// 몬스터 사망 처리
+		Monster->OnDeathNetwork();
 	}
 }
 
@@ -1863,21 +1968,27 @@ void UNetworkGameInstanceSubsystem::HandleEntityRespawned(const se::game::N_Enti
 		return;
 	}
 	
-	auto TTCharacter = dynamic_cast<ATimeThiefCharacterBase*>(Actor);
-	if (TTCharacter == nullptr)
-	{
-		return;
-	}
-	
-	if (EntityId == LocalPlayerEntityId)
-	{
-		// 로컬 플레이어 부활 처리 후 컨트롤 가능하게
+	if (auto TTCharacter = Cast<ATimeThiefCharacterBase>(Actor))
+	{		// 캐릭터가 부활하는 경우에만 OnRespawn 호출, 몬스터나 다른 Entity는 별도의 연출이 필요할 수 있음
+		// if (EntityId == LocalPlayerEntityId)
+		// {
+		// 	// 로컬 플레이어 부활 처리 후 컨트롤 가능하게
+		// 	TTCharacter->HandleRespawnFromServer(RespawnPosition);
+		// }
+		// else
+		// {
+		// 	// 타 플레이어는 부활 연출 진행
+		// 	TTCharacter->HandleRespawnFromServer(RespawnPosition);
+		// }
+		
 		TTCharacter->HandleRespawnFromServer(RespawnPosition);
 	}
-	else
+	else if (auto Monster = Cast<ATimeThiefMonster>(Actor))
 	{
-		// 타 플레이어는 부활 연출 진행
-		TTCharacter->HandleRespawnFromServer(RespawnPosition);
+		FRotator Rotation(0.f, Yaw, 0.f);
+		
+		// 몬스터 부활 처리
+		Monster->OnRespawnNetwork(RespawnPosition, Rotation);
 	}
 }
 
@@ -2288,12 +2399,19 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 	}
 	else if (EntityState.ObjectType == se::common::OBJ_MONSTER)
 	{
-		// TODO: 몬스터는 TemplateId에 따라서도 달라질 수 있으므로, ObjectType이 몬스터일 때는 TemplateId도 같이 고려하여 클래스를 결정하는 로직 필요
-		//		 그리고 아래 Test Monster 부분 제거
-		UE_LOG(LogTemp, Warning, TEXT("[Network] Monster spawn logic is not implemented yet. Using TestMonsterClass for all monsters."));
-		if (SpawnData->TestMonster)
+		switch (EntityState.TemplateId)
 		{
-			return SpawnData->TestMonster;
+		case 2:
+			if (SpawnData->CatMonster)
+			{
+				return SpawnData->CatMonster;
+			}
+			
+		default:
+			if (SpawnData->TestMonster)
+			{
+				return SpawnData->TestMonster;
+			}
 		}
 	}
 	

@@ -103,6 +103,7 @@ protected:
 	FVector CachedRemoteShotOrigin = FVector::ZeroVector;
 	FVector CachedRemoteAimLocation = FVector::ZeroVector;
 	FVector CachedRemoteAimDirection = FVector::ForwardVector;
+	uint32 CachedRemoteShotSeed = 0;
 	int32 RemoteFireNotifyCount = 0;
 	int32 RemoteFireWeaponCorrectionCount = 0;
 

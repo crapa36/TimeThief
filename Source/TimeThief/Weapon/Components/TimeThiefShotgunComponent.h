@@ -43,6 +43,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void ExecuteFireShot() override;
 	virtual uint32 GetCombatAttackShotSeed() const override;
+	virtual void SetRemoteShotSeed(uint32 InShotSeed) override;
 	TArray<FShotgunHitResult> PerformPelletHitScan();
 	void ApplyDamage(const TArray<FShotgunHitResult>& HitResults);
 
@@ -72,4 +73,6 @@ public:
 	float HorizontalRecoil = 3.0f;
 
 	uint32 LastShotSeed = 0;
+	uint32 RemoteShotSeed = 0;
+	bool bHasRemoteShotSeed = false;
 };

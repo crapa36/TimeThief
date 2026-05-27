@@ -14,6 +14,8 @@
 #include "TimeThiefSmokeParameterDefaults.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "TimerManager.h"
+#include "Weapon/TimeThiefWeaponTrail.h"
+#include "Components/ThrowableNetworkSyncComponent.h"
 
 ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
 {
@@ -41,6 +43,10 @@ ATimeThiefThrowableProjectile::ATimeThiefThrowableProjectile()
 	ProjectileMovementComponent->Friction = ActiveSettings.Friction;
 	ProjectileMovementComponent->bAutoActivate = false;
 	ProjectileMovementComponent->OnProjectileBounce.AddDynamic(this, &ATimeThiefThrowableProjectile::OnProjectileBounce);
+
+	WeaponTrail = CreateDefaultSubobject<UTimeThiefWeaponTrail>(TEXT("WeaponTrail"));
+	
+	ThrowableNetworkSyncComponent = CreateDefaultSubobject<UThrowableNetworkSyncComponent>(TEXT("ThrowableNetworkSyncComponent"));
 }
 
 void ATimeThiefThrowableProjectile::InitializeThrowable(EItemID InItemID, AActor* InOwnerActor, APawn* InInstigatorPawn)
@@ -101,6 +107,9 @@ void ATimeThiefThrowableProjectile::LaunchThrowable(const FVector& InitialVeloci
 		ProjectileMovementComponent->Activate(true);
 	}
 
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Grenade, *CollisionComponent);
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().SetTimer(FuseTimerHandle, this, &ATimeThiefThrowableProjectile::HandleFuseExpired, FMath::Max(0.1f, InFuseTime), false);
@@ -143,6 +152,9 @@ void ATimeThiefThrowableProjectile::SetThrowableMesh()
 
 void ATimeThiefThrowableProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = nullptr;
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(FuseTimerHandle);
@@ -165,6 +177,8 @@ void ATimeThiefThrowableProjectile::ExplodeOnce()
 
 	bExploded = true;
 	const FVector EffectLocation = GetActorLocation();
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = nullptr;
 
 	if (ProjectileMovementComponent)
 	{

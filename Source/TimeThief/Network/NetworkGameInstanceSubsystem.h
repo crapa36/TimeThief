@@ -24,6 +24,7 @@
 #include "NetworkGameInstanceSubsystem.generated.h"
 
 class ATimeThiefPlayerCharacter;
+struct FThrowableMoveSnapshot;
 struct FRemoteAttackNotify;
 struct FEntityRuntimeEntry;
 struct FMoveSyncData;
@@ -80,6 +81,7 @@ public:
 	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
 	void SendUseItem(uint32 Itemid);
+	void SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData);
 	
 private:
 	void ConnectToServer();
@@ -129,6 +131,8 @@ public:
 	void HandleAim(const se::game::N_Aim& pkt);
 	void HandleFire(const se::game::N_Fire& Pkt);
 	void HandleAttack(const se::game::N_Attack& Pkt);
+	void HandleMonsterFire(const se::game::N_MonsterFire& Pkt);
+	void HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt);
 	void HandleThrowGrenade(const se::game::N_ThrowGrenade& Pkt);
 	void HandleReload(const se::game::N_Reload& Pkt);
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);

@@ -13,7 +13,7 @@ class USoundBase;
 class UStaticMesh;
 class UStaticMeshComponent;
 
-enum ECombatNotifyType : uint8;
+enum class ECombatNotifyType : uint8;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChangedSignature, int32, int32);
 
@@ -136,6 +136,7 @@ public:
 	virtual void ExecuteRemoteFireShot();
 	virtual void ExecuteRemoteReload();
 	void SetRemoteShotSyncData(const FVector& InOrigin, const FVector& InDirection);
+	virtual void SetRemoteShotSeed(uint32 InShotSeed);
 
 	void NotifyAmmoChanged();
 	FVector GetMuzzleLocation() const;

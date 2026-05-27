@@ -5,8 +5,8 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "DrawDebugHelpers.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
+#include "Weapon/TimeThiefWeaponTrail.h"
 #include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefRifleComponent::UTimeThiefRifleComponent()
@@ -83,12 +83,17 @@ FRifleHitResult UTimeThiefRifleComponent::PerformHitScan()
 		true,
 		true);
 
-	const FVector DebugEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
-	DrawDebugLine(GetWorld(), MuzzleLocation, DebugEndLocation, FColor::Red, false, 2.0f, 0, 1.0f);
-	if (bWeaponHit)
-	{
-		DrawDebugPoint(GetWorld(), DebugEndLocation, 5.0f, FColor::Green, false, 2.0f);
-	}
+	const FVector TrailEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
+	UWorld* World = GetWorld();
+	check(World);
+	ATimeThiefMasterWeapon* MasterWeapon = CastChecked<ATimeThiefMasterWeapon>(GetOwner());
+	UTimeThiefWeaponTrail* WeaponTrail = MasterWeapon->GetWeaponTrail();
+	check(WeaponTrail);
+	WeaponTrail->DrawHitscanTrail(
+		*World,
+		ETimeThiefWeaponTrailType::Rifle,
+		MuzzleLocation,
+		TrailEndLocation);
 
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 	{

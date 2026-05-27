@@ -7,7 +7,8 @@
 class UProjectileMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
-class UParticleSystemComponent;
+class UTimeThiefWeaponTrail;
+class UNiagaraComponent;
 class UAudioComponent;
 class UParticleSystem;
 class USoundBase;
@@ -33,6 +34,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	virtual void Tick(float DeltaTime) override;
 
@@ -54,8 +56,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
 	TObjectPtr<UStaticMeshComponent> ProjectileMeshComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
-	TObjectPtr<UParticleSystemComponent> TrailEffectComponent;
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWeaponTrail> WeaponTrail;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ActiveTrailComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
 	TObjectPtr<UAudioComponent> FlightLoopAudioComponent;
