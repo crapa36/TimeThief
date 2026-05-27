@@ -6,7 +6,17 @@
 
 class APawn;
 class UWorld;
-struct FCollisionObjectQueryParams;
+
+struct TIMETHIEF_API FTimeThiefAimHelperState
+{
+	FVector SmoothedTargetLocation = FVector::ZeroVector;
+	FVector RawTargetLocation = FVector::ZeroVector;
+	FVector BlendStartLocation = FVector::ZeroVector;
+	float BlendElapsedTime = 0.0f;
+	bool bHasTargetLocation = false;
+	bool bWasUsingCloseHitSkip = false;
+	bool bIsSmoothing = false;
+};
 
 UCLASS()
 class TIMETHIEF_API UTimeThiefAimStatics : public UBlueprintFunctionLibrary
@@ -14,6 +24,13 @@ class TIMETHIEF_API UTimeThiefAimStatics : public UBlueprintFunctionLibrary
 	GENERATED_BODY()
 
 public:
+	static constexpr float AimHelperCloseHitSkipDistance = 250.0f;
+	static constexpr float AimHelperCloseHitSkipHysteresis = 25.0f;
+	static constexpr float AimHelperJumpAngleDegrees = 4.0f;
+	static constexpr float AimHelperSettleTime = 0.5f;
+	static constexpr float AimHelperSnapDistance = 1.0f;
+	static constexpr int32 AimHelperMaxCloseHitSkipCount = 4;
+
 	static FVector NormalizeAimDirection(
 		const FVector& Direction,
 		const FVector& FallbackDirection = FVector::ForwardVector);
@@ -31,11 +48,6 @@ public:
 
 	static FRotator ResolveAimRotationFromDirection(
 		const FVector& Direction,
-		const FRotator& FallbackRotation = FRotator::ZeroRotator);
-
-	static FRotator ResolveRelativeAimRotation(
-		const FRotator& BaseRotation,
-		const FVector& AimDirection,
 		const FRotator& FallbackRotation = FRotator::ZeroRotator);
 
 	static void ResolveRelativeAimPitchYaw(
@@ -75,6 +87,25 @@ public:
 		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
 
+	static void ResetAimHelperState(
+		FTimeThiefAimHelperState& InOutAimHelperState,
+		const FVector& TargetLocation,
+		bool bUsingCloseHitSkip);
+
+	static FVector UpdateAimHelperTargetFromView(
+		FTimeThiefAimHelperState& InOutAimHelperState,
+		UWorld* World,
+		const FVector& ViewLocation,
+		const FVector& ViewDirection,
+		float Range,
+		const TArray<AActor*>& ActorsToIgnore,
+		const FVector& DistanceOrigin,
+		const FVector& AimOrigin,
+		float DeltaTime,
+		ECollisionChannel TraceChannel = ECC_Visibility,
+		bool bTraceComplex = false,
+		bool bReturnPhysicalMaterial = false);
+
 	static bool TraceLine(
 		UWorld* World,
 		const FVector& TraceStart,
@@ -82,16 +113,6 @@ public:
 		const TArray<AActor*>& ActorsToIgnore,
 		FHitResult& OutHitResult,
 		ECollisionChannel TraceChannel = ECC_Visibility,
-		bool bTraceComplex = false,
-		bool bReturnPhysicalMaterial = false);
-	
-	static bool TraceLineByObjectType(
-		UWorld* World,
-		const FVector& TraceStart,
-		const FVector& TraceEnd,
-		const FCollisionObjectQueryParams& ObjectQueryParams,
-		const TArray<AActor*>& ActorsToIgnore,
-		FHitResult& OutHitResult,
 		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
 };

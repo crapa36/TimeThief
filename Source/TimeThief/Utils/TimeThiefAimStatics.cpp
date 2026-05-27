@@ -1,27 +1,140 @@
 #include "Utils/TimeThiefAimStatics.h"
 
+#include "CollisionQueryParams.h"
+#include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 
-namespace
+static FCollisionQueryParams BuildTraceParams(const TArray<AActor*>& ActorsToIgnore, bool bTraceComplex, bool bReturnPhysicalMaterial)
 {
-	FCollisionQueryParams BuildTraceParams(const TArray<AActor*>& ActorsToIgnore, bool bTraceComplex, bool bReturnPhysicalMaterial)
-	{
-		FCollisionQueryParams QueryParams;
-		QueryParams.bTraceComplex = bTraceComplex;
-		QueryParams.bReturnPhysicalMaterial = bReturnPhysicalMaterial;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefAimTrace), bTraceComplex);
+	QueryParams.bReturnPhysicalMaterial = bReturnPhysicalMaterial;
+	QueryParams.AddIgnoredActors(ActorsToIgnore);
+	return QueryParams;
+}
 
-		for (AActor* ActorToIgnore : ActorsToIgnore)
+static bool IsWithinAimHelperCloseHitDistance(const FVector& DistanceOrigin, const FVector& HitLocation, bool bWasUsingCloseHitSkip)
+{
+	const float CloseHitDistance = bWasUsingCloseHitSkip
+		? UTimeThiefAimStatics::AimHelperCloseHitSkipDistance + UTimeThiefAimStatics::AimHelperCloseHitSkipHysteresis
+		: UTimeThiefAimStatics::AimHelperCloseHitSkipDistance;
+	return FVector::DistSquared(DistanceOrigin, HitLocation) < FMath::Square(CloseHitDistance);
+}
+
+static float SmoothStep(float Alpha)
+{
+	return Alpha * Alpha * (3.0f - (2.0f * Alpha));
+}
+
+static void StartAimHelperBlend(FTimeThiefAimHelperState& InOutAimHelperState)
+{
+	InOutAimHelperState.BlendStartLocation = InOutAimHelperState.SmoothedTargetLocation;
+	InOutAimHelperState.BlendElapsedTime = 0.0f;
+	InOutAimHelperState.bIsSmoothing = true;
+}
+
+static bool IsAimHelperTargetJump(
+	const FVector& Origin,
+	const FVector& CurrentTargetLocation,
+	const FVector& NewTargetLocation)
+{
+	const FVector CurrentDirection = (CurrentTargetLocation - Origin).GetSafeNormal();
+	const FVector NewDirection = (NewTargetLocation - Origin).GetSafeNormal();
+	if (CurrentDirection.IsNearlyZero() || NewDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	const float Dot = FMath::Clamp(FVector::DotProduct(CurrentDirection, NewDirection), -1.0f, 1.0f);
+	const float DeltaAngle = FMath::RadiansToDegrees(FMath::Acos(Dot));
+	return DeltaAngle >= UTimeThiefAimStatics::AimHelperJumpAngleDegrees;
+}
+
+static bool TraceViewTarget(
+	UWorld* World,
+	const FVector& ViewLocation,
+	const FVector& ViewDirection,
+	float Range,
+	const FCollisionQueryParams& QueryParams,
+	FHitResult& OutHitResult,
+	FVector& OutTargetLocation,
+	ECollisionChannel TraceChannel)
+{
+	OutHitResult = FHitResult();
+	OutTargetLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(ViewLocation, ViewDirection, Range);
+	if (!World)
+	{
+		return false;
+	}
+
+	const bool bHit = World->LineTraceSingleByChannel(OutHitResult, ViewLocation, OutTargetLocation, TraceChannel, QueryParams);
+	if (bHit && OutHitResult.bBlockingHit)
+	{
+		OutTargetLocation = OutHitResult.ImpactPoint;
+	}
+	return bHit;
+}
+
+static FVector ResolveAimHelperRawTargetFromView(
+	UWorld* World,
+	const FVector& ViewLocation,
+	const FVector& ViewDirection,
+	float Range,
+	const TArray<AActor*>& ActorsToIgnore,
+	const FVector& DistanceOrigin,
+	bool bWasUsingCloseHitSkip,
+	bool& bOutUsingCloseHitSkip,
+	ECollisionChannel TraceChannel,
+	bool bTraceComplex,
+	bool bReturnPhysicalMaterial)
+{
+	bOutUsingCloseHitSkip = false;
+
+	FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
+	FHitResult Hit;
+	FVector TargetLocation = FVector::ZeroVector;
+	if (!TraceViewTarget(World, ViewLocation, ViewDirection, Range, QueryParams, Hit, TargetLocation, TraceChannel) || !Hit.bBlockingHit)
+	{
+		return TargetLocation;
+	}
+
+	if (!IsWithinAimHelperCloseHitDistance(DistanceOrigin, Hit.ImpactPoint, bWasUsingCloseHitSkip))
+	{
+		return Hit.ImpactPoint;
+	}
+
+	UPrimitiveComponent* HitComponent = Hit.GetComponent();
+	if (!HitComponent)
+	{
+		return Hit.ImpactPoint;
+	}
+
+	bOutUsingCloseHitSkip = true;
+	QueryParams.AddIgnoredComponent(HitComponent);
+
+	for (int32 SkipCount = 0; SkipCount < UTimeThiefAimStatics::AimHelperMaxCloseHitSkipCount; ++SkipCount)
+	{
+		if (!TraceViewTarget(World, ViewLocation, ViewDirection, Range, QueryParams, Hit, TargetLocation, TraceChannel) || !Hit.bBlockingHit)
 		{
-			if (ActorToIgnore)
-			{
-				QueryParams.AddIgnoredActor(ActorToIgnore);
-			}
+			return TargetLocation;
 		}
 
-		return QueryParams;
+		if (!IsWithinAimHelperCloseHitDistance(DistanceOrigin, Hit.ImpactPoint, bWasUsingCloseHitSkip))
+		{
+			return Hit.ImpactPoint;
+		}
+
+		HitComponent = Hit.GetComponent();
+		if (!HitComponent)
+		{
+			return TargetLocation;
+		}
+
+		QueryParams.AddIgnoredComponent(HitComponent);
 	}
+
+	return TargetLocation;
 }
 
 FVector UTimeThiefAimStatics::NormalizeAimDirection(const FVector& Direction, const FVector& FallbackDirection)
@@ -70,15 +183,6 @@ FRotator UTimeThiefAimStatics::ResolveAimRotationFromDirection(
 	}
 
 	return SafeDirection.Rotation();
-}
-
-FRotator UTimeThiefAimStatics::ResolveRelativeAimRotation(
-	const FRotator& BaseRotation,
-	const FVector& AimDirection,
-	const FRotator& FallbackRotation)
-{
-	const FRotator AimRotation = ResolveAimRotationFromDirection(AimDirection, FallbackRotation);
-	return (AimRotation - BaseRotation).GetNormalized();
 }
 
 void UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
@@ -168,13 +272,104 @@ bool UTimeThiefAimStatics::TraceFromView(
 	bool bTraceComplex,
 	bool bReturnPhysicalMaterial)
 {
-	OutTraceEnd = ResolveAimTargetLocation(ViewLocation, ViewDirection, Range);
-	const bool bHit = TraceLine(World, ViewLocation, OutTraceEnd, ActorsToIgnore, OutHitResult, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
-	if (bHit && OutHitResult.bBlockingHit)
+	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
+	return TraceViewTarget(World, ViewLocation, ViewDirection, Range, QueryParams, OutHitResult, OutTraceEnd, TraceChannel);
+}
+
+void UTimeThiefAimStatics::ResetAimHelperState(
+	FTimeThiefAimHelperState& InOutAimHelperState,
+	const FVector& TargetLocation,
+	bool bUsingCloseHitSkip)
+{
+	InOutAimHelperState.SmoothedTargetLocation = TargetLocation;
+	InOutAimHelperState.RawTargetLocation = TargetLocation;
+	InOutAimHelperState.BlendStartLocation = TargetLocation;
+	InOutAimHelperState.BlendElapsedTime = 0.0f;
+	InOutAimHelperState.bHasTargetLocation = true;
+	InOutAimHelperState.bWasUsingCloseHitSkip = bUsingCloseHitSkip;
+	InOutAimHelperState.bIsSmoothing = false;
+}
+
+FVector UTimeThiefAimStatics::UpdateAimHelperTargetFromView(
+	FTimeThiefAimHelperState& InOutAimHelperState,
+	UWorld* World,
+	const FVector& ViewLocation,
+	const FVector& ViewDirection,
+	float Range,
+	const TArray<AActor*>& ActorsToIgnore,
+	const FVector& DistanceOrigin,
+	const FVector& AimOrigin,
+	float DeltaTime,
+	ECollisionChannel TraceChannel,
+	bool bTraceComplex,
+	bool bReturnPhysicalMaterial)
+{
+	bool bUsingCloseHitSkip = false;
+	const FVector RawTargetLocation = ResolveAimHelperRawTargetFromView(
+		World,
+		ViewLocation,
+		ViewDirection,
+		Range,
+		ActorsToIgnore,
+		DistanceOrigin,
+		InOutAimHelperState.bWasUsingCloseHitSkip,
+		bUsingCloseHitSkip,
+		TraceChannel,
+		bTraceComplex,
+		bReturnPhysicalMaterial);
+
+	if (!InOutAimHelperState.bHasTargetLocation)
 	{
-		OutTraceEnd = OutHitResult.ImpactPoint;
+		ResetAimHelperState(InOutAimHelperState, RawTargetLocation, bUsingCloseHitSkip);
+		return RawTargetLocation;
 	}
-	return bHit;
+
+	const bool bCloseHitSkipStateChanged = InOutAimHelperState.bWasUsingCloseHitSkip != bUsingCloseHitSkip;
+	const bool bTargetJumped = IsAimHelperTargetJump(
+		AimOrigin,
+		InOutAimHelperState.SmoothedTargetLocation,
+		RawTargetLocation);
+	const bool bRawTargetChangedDuringBlend = InOutAimHelperState.bIsSmoothing && IsAimHelperTargetJump(
+		AimOrigin,
+		InOutAimHelperState.RawTargetLocation,
+		RawTargetLocation);
+
+	if (bCloseHitSkipStateChanged || (!InOutAimHelperState.bIsSmoothing && bTargetJumped) || bRawTargetChangedDuringBlend)
+	{
+		StartAimHelperBlend(InOutAimHelperState);
+	}
+
+	InOutAimHelperState.RawTargetLocation = RawTargetLocation;
+	InOutAimHelperState.bWasUsingCloseHitSkip = bUsingCloseHitSkip;
+
+	if (!InOutAimHelperState.bIsSmoothing)
+	{
+		InOutAimHelperState.SmoothedTargetLocation = RawTargetLocation;
+		return InOutAimHelperState.SmoothedTargetLocation;
+	}
+
+	if (DeltaTime <= 0.0f)
+	{
+		return InOutAimHelperState.SmoothedTargetLocation;
+	}
+
+	InOutAimHelperState.BlendElapsedTime += DeltaTime;
+	const float BlendAlpha = UTimeThiefAimStatics::AimHelperSettleTime > KINDA_SMALL_NUMBER
+		? FMath::Clamp(InOutAimHelperState.BlendElapsedTime / UTimeThiefAimStatics::AimHelperSettleTime, 0.0f, 1.0f)
+		: 1.0f;
+	InOutAimHelperState.SmoothedTargetLocation = FMath::Lerp(
+		InOutAimHelperState.BlendStartLocation,
+		InOutAimHelperState.RawTargetLocation,
+		SmoothStep(BlendAlpha));
+
+	if (BlendAlpha >= 1.0f || FVector::DistSquared(InOutAimHelperState.SmoothedTargetLocation, InOutAimHelperState.RawTargetLocation) <= FMath::Square(UTimeThiefAimStatics::AimHelperSnapDistance))
+	{
+		InOutAimHelperState.SmoothedTargetLocation = InOutAimHelperState.RawTargetLocation;
+		InOutAimHelperState.bIsSmoothing = false;
+		InOutAimHelperState.BlendElapsedTime = 0.0f;
+	}
+
+	return InOutAimHelperState.SmoothedTargetLocation;
 }
 
 bool UTimeThiefAimStatics::TraceLine(
@@ -194,23 +389,4 @@ bool UTimeThiefAimStatics::TraceLine(
 
 	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
 	return World->LineTraceSingleByChannel(OutHitResult, TraceStart, TraceEnd, TraceChannel, QueryParams);
-}
-
-bool UTimeThiefAimStatics::TraceLineByObjectType(
-	UWorld* World,
-	const FVector& TraceStart,
-	const FVector& TraceEnd,
-	const FCollisionObjectQueryParams& ObjectQueryParams,
-	const TArray<AActor*>& ActorsToIgnore,
-	FHitResult& OutHitResult,
-	bool bTraceComplex,
-	bool bReturnPhysicalMaterial)
-{
-	if (!World)
-	{
-		return false;
-	}
-
-	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
-	return World->LineTraceSingleByObjectType(OutHitResult, TraceStart, TraceEnd, ObjectQueryParams, QueryParams);
 }

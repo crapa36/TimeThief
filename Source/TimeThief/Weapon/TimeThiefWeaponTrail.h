@@ -57,8 +57,8 @@ private:
 	inline static const FName TrailWidthParameterName{TEXT("User.TrailWidth")};
 	inline static const FName TrailLifetimeParameterName{TEXT("User.TrailLifetime")};
 
-	inline static const FTimeThiefWeaponTrailStyle RifleTrail{4.0f, 0.5f};
-	inline static const FTimeThiefWeaponTrailStyle ShotgunPelletTrail{4.0f, 0.5f};
+	inline static const FTimeThiefWeaponTrailStyle RifleTrail{5.0f, 1.0f};
+	inline static const FTimeThiefWeaponTrailStyle ShotgunPelletTrail{5.0f, 1.0f};
 	inline static const FTimeThiefWeaponTrailStyle RocketTrail{5.0f, 2.0f};
 	inline static const FTimeThiefWeaponTrailStyle GrenadeTrail{3.0f, 2.0f};
 

@@ -247,7 +247,7 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	UpdateLocalWorldAimLocation();
+	UpdateLocalWorldAimLocation(DeltaTime);
 	SyncAimToServer();
 	ApplyAimYawOverflowRotation(DeltaTime);
 	UpdateAimFOV(DeltaTime);
@@ -265,7 +265,7 @@ void UTimeThiefPlayerCombatComponent::Server_SyncAim_Implementation(float InAimY
 	FRotator RelativeRot(InAimPitch, InAimYaw, 0.0f);
 	FVector WorldDir = OwningCharacter->GetActorTransform().TransformVectorNoScale(RelativeRot.Vector());
 	
-	CachedWorldAimLocation = Origin + (WorldDir * AimTraceRange);
+	UTimeThiefAimStatics::ResetAimHelperState(AimHelperState, Origin + (WorldDir * AimTraceRange), false);
 
 	if (IMovableNetworkEntityInterface* Movable = Cast<IMovableNetworkEntityInterface>(OwningCharacter))
 	{
@@ -310,11 +310,11 @@ FVector UTimeThiefPlayerCombatComponent::GetAimDirection() const
 {
 	return UTimeThiefAimStatics::ResolveAimDirectionToTarget(
 		GetEffectiveShotOrigin(),
-		CachedWorldAimLocation,
+		GetWorldAimLocation(),
 		GetOwner()->GetActorForwardVector());
 }
 
-void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
+void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation(float DeltaTime)
 {
 	APawn* OwningPawn = GetPawn<APawn>();
 	if (!OwningPawn || !OwningPawn->IsLocallyControlled())
@@ -326,10 +326,11 @@ void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
 	FVector ViewDirection = OwningPawn->GetActorForwardVector();
 	if (!UTimeThiefAimStatics::ResolveAimView(OwningPawn, ViewLocation, ViewDirection))
 	{
-		CachedWorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(
+		const FVector RawTargetLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(
 			GetEffectiveShotOrigin(),
 			OwningPawn->GetActorForwardVector(),
 			AimTraceRange);
+		UTimeThiefAimStatics::ResetAimHelperState(AimHelperState, RawTargetLocation, false);
 		return;
 	}
 
@@ -341,18 +342,16 @@ void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
 		ActorsToIgnore.Add(MasterWeaponPtr);
 	}
 
-	FHitResult HitResult;
-	FVector TraceEnd = FVector::ZeroVector;
-	const bool bBlockingHit = UTimeThiefAimStatics::TraceFromView(
+	UTimeThiefAimStatics::UpdateAimHelperTargetFromView(
+		AimHelperState,
 		GetWorld(),
 		ViewLocation,
 		ViewDirection,
 		AimTraceRange,
 		ActorsToIgnore,
-		HitResult,
-		TraceEnd);
-
-	CachedWorldAimLocation = bBlockingHit ? HitResult.ImpactPoint : TraceEnd;
+		OwningPawn->GetActorLocation(),
+		GetEffectiveShotOrigin(),
+		DeltaTime);
 }
 
 void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTime)
@@ -412,7 +411,7 @@ void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTim
 		return;
 	}
 	
-	if (CachedWorldAimLocation.IsNearlyZero())
+	if (GetWorldAimLocation().IsNearlyZero())
 	{
 		return;
 	}
