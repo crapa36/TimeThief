@@ -122,6 +122,18 @@ void ComputeAdvectionLimiterBounds(
 	}
 }
 
+float3 ApplySimulationBoundsNoOutflow(float3 LocalPosition, float3 WorldVelocity)
+{
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 BoundaryAlpha = abs(LocalPosition) / SafeBoundsExtent;
+	const float3 BoundaryWeight = smoothstep(float3(0.84, 0.84, 0.84), float3(0.985, 0.985, 0.985), BoundaryAlpha);
+	const float3 LocalSign = sign(LocalPosition);
+	float3 LocalVelocity = mul(float4(WorldVelocity, 0.0), WorldToLocal).xyz;
+	const float3 OutwardLocalVelocity = max(LocalVelocity * LocalSign, 0.0) * LocalSign;
+	LocalVelocity -= OutwardLocalVelocity * BoundaryWeight;
+	return mul(float4(LocalVelocity, 0.0), LocalToWorld).xyz;
+}
+
 float TimeThiefSmokeSourceObstacleOpen(float SourceDistance, float SourceRadius)
 {
 	const float SafeSourceRadius = max(SourceRadius, 1.0);
@@ -163,12 +175,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(CellCoord, GridResolution, BoundsExtent);
 	const float3 SmokeOrigin = mul(float4(0.0, 0.0, 0.0, 1.0), LocalToWorld).xyz;
 	const float3 SmokeUp = normalize(mul(float4(0.0, 0.0, 1.0, 0.0), LocalToWorld).xyz + 0.0001);
-	const float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+	const float3 Velocity = ApplySimulationBoundsNoOutflow(LocalPosition, VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz);
 	const float3 PreviousWorld = WorldPosition - Velocity * DeltaSeconds;
 	const float3 PreviousLocal = mul(float4(PreviousWorld, 1.0), WorldToLocal).xyz;
 	const float3 PreviousUVW = PreviousLocal / max(BoundsExtent, 1.0) * 0.5 + 0.5;
+	const bool bPreviousInsideVolume = TimeThiefSmokeInsideUVW(PreviousUVW);
+	const float3 HalfTexel = 0.5 / max(float3(GridResolution), 1.0);
+	const float3 PreviousSampleUVW = clamp(PreviousUVW, HalfTexel, 1.0 - HalfTexel);
+	const float3 PreviousSampleLocal = (PreviousSampleUVW * 2.0 - 1.0) * BoundsExtent;
 	float BulletCutout = max(BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0);
-	float BulletSink = TimeThiefSmokeInsideUVW(PreviousUVW) ? max(BulletSinkTexture.SampleLevel(VolumeSampler, PreviousUVW, 0.0), 0.0) : 0.0;
+	float BulletSink = bPreviousInsideVolume ? max(BulletSinkTexture.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0), 0.0) : 0.0;
 	BulletCutout = BulletCutout > 1.0
 		? max(1.0, BulletCutout - DeltaSeconds / BulletWakeCutoutLife)
 		: max(0.0, BulletCutout - DeltaSeconds / BulletWakeReleaseDuration);
@@ -272,14 +288,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	float Density = 0.0;
 	float DisplacedDensity = 0.0;
 	float3 AdvectedVelocity = float3(0.0, 0.0, 0.0);
-	const float PreviousOpenMask = TimeThiefSmokeInsideUVW(PreviousUVW)
-		? TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, PreviousUVW, ObstacleSdfSurfaceFeatherCm)
-		: 0.0;
+	const float PreviousOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, PreviousSampleUVW, ObstacleSdfSurfaceFeatherCm);
 	if (PreviousOpenMask > 0.01)
 	{
-		Density = DensityIn.SampleLevel(VolumeSampler, PreviousUVW, 0.0);
-		DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, PreviousUVW, 0.0);
-		AdvectedVelocity = VelocityIn.SampleLevel(VolumeSampler, PreviousUVW, 0.0).xyz;
+		Density = DensityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0);
+		DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0);
+		AdvectedVelocity = ApplySimulationBoundsNoOutflow(PreviousSampleLocal, VelocityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0).xyz);
 	}
 
 	const float CurrentDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
@@ -297,7 +311,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		dot(Velocity, Velocity) > 1.0 ||
 		bBulletInfluence ||
 		bSourceInfluence;
-	if (bUseMacCormackAdvection != 0 && bUseLimiterForCell && PreviousOpenMask > 0.01)
+	if (bUseMacCormackAdvection != 0 && bUseLimiterForCell && bPreviousInsideVolume && PreviousOpenMask > 0.01)
 	{
 		const float3 ForwardWorld = PreviousWorld + AdvectedVelocity * DeltaSeconds;
 		const float3 ForwardLocal = mul(float4(ForwardWorld, 1.0), WorldToLocal).xyz;
@@ -315,7 +329,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 			float DisplacedDensityMax = 0.0;
 			float3 VelocityMin = float3(0.0, 0.0, 0.0);
 			float3 VelocityMax = float3(0.0, 0.0, 0.0);
-			ComputeAdvectionLimiterBounds(PreviousUVW, DensityMin, DensityMax, DisplacedDensityMin, DisplacedDensityMax, VelocityMin, VelocityMax);
+			ComputeAdvectionLimiterBounds(PreviousSampleUVW, DensityMin, DensityMax, DisplacedDensityMin, DisplacedDensityMax, VelocityMin, VelocityMax);
 			Density = clamp(CorrectedDensity, max(DensityMin, 0.0), min(DensityMax, SmokeDensityMax));
 			DisplacedDensity = clamp(CorrectedDisplacedDensity, max(DisplacedDensityMin, 0.0), min(DisplacedDensityMax, SmokeDensityMax));
 			AdvectedVelocity = clamp(CorrectedVelocity, VelocityMin, VelocityMax);
@@ -400,6 +414,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float VelocityVentilation = NaturalVentilation * (1.0 - DisplacedDominance * 0.75);
 	AdvectedVelocity *= exp2(-VelocityVentilation * VelocityVentilation * (4.0 + max(VelocityDamping, 0.0)) * DeltaSeconds);
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
+	AdvectedVelocity = ApplySimulationBoundsNoOutflow(LocalPosition, AdvectedVelocity);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);
 	OutDensity[CellCoord] = clamp(Density * OutputOpenMask, 0.0, 2.8);

@@ -115,6 +115,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		// Explosion is a momentum impulse. Density is preserved here and moves through advection.
 		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
 		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
+		const float DisplacementWeight = saturate(PressureWeight * Strength * ShockFade * SafeDeltaSeconds * 2.0);
+		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
+		NaturalDensity -= ShiftedDensity;
+		DisplacedDensity += ShiftedDensity;
 	}
 
 	OutDensity[DispatchThreadId] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
