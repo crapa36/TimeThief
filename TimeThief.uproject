@@ -55,6 +55,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "TimeThiefSmokeRenderer",
+			"Enabled": true
+		},
+		{
 			"Name": "DLSS",
 			"Enabled": true,
 			"Optional": true,

@@ -1,0 +1,228 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_DYNAMIC_OBSTACLE_PARAMETERS
+
+float3 SafeNormalize(float3 Value)
+{
+	return normalize(Value + float3(0.0001, 0.0001, 0.0001));
+}
+
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+bool ResolveSmokeCellCoord(uint3 DispatchThreadId, uint3 GroupId, uint3 GroupThreadId, out uint3 OutCellCoord)
+{
+	if (bUseActiveBrickDispatch == 0u)
+	{
+		OutCellCoord = DispatchThreadId;
+		return all(OutCellCoord < uint3(GridResolution));
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const uint ActiveBrickCount = min(ActiveBrickCountBuffer[0], (uint)max(MaxActiveSmokeBricks, 1));
+	const uint GroupsPerBrickAxis = (uint)((SafeBrickSize + 3) / 4);
+	const uint GroupsPerBrick = max(GroupsPerBrickAxis * GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const uint LocalGroupIndex = GroupId.x;
+	const uint ActiveBrickIndex = GroupId.y;
+	if (ActiveBrickIndex >= ActiveBrickCount || LocalGroupIndex >= GroupsPerBrick)
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint LocalGroupX = LocalGroupIndex % GroupsPerBrickAxis;
+	const uint LocalGroupY = (LocalGroupIndex / max(GroupsPerBrickAxis, 1u)) % GroupsPerBrickAxis;
+	const uint LocalGroupZ = LocalGroupIndex / max(GroupsPerBrickAxis * GroupsPerBrickAxis, 1u);
+	const int3 LocalCellCoord = int3(LocalGroupX, LocalGroupY, LocalGroupZ) * 4 + int3(GroupThreadId);
+	if (any(LocalCellCoord >= int3(SafeBrickSize, SafeBrickSize, SafeBrickSize)))
+	{
+		OutCellCoord = uint3(0, 0, 0);
+		return false;
+	}
+
+	const uint4 ActiveBrick = ActiveBricks[ActiveBrickIndex];
+	const int3 BrickCoord = clamp(int3(ActiveBrick.xyz), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 CellCoord = BrickCoord * SafeBrickSize + LocalCellCoord;
+	OutCellCoord = uint3(CellCoord);
+	return all(CellCoord >= int3(0, 0, 0)) && all(CellCoord < GridResolution);
+}
+
+uint FlattenBrickCoordForEventBins(int3 BrickCoord)
+{
+	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
+	return (uint)(SafeCoord.x + SafeCoord.y * BrickGridResolution.x + SafeCoord.z * BrickGridResolution.x * BrickGridResolution.y);
+}
+
+uint4 GetEventBrickMask(uint3 CellCoord)
+{
+	if (bUseEventBrickBins == 0u)
+	{
+		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
+}
+
+bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
+{
+	const uint WordIndex = (uint)EventIndex >> 5u;
+	const uint Bit = 1u << ((uint)EventIndex & 31u);
+	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
+	return (Word & Bit) != 0u;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
+{
+	uint3 CellCoord = uint3(0, 0, 0);
+	if (!ResolveSmokeCellCoord(DispatchThreadId, GroupId, GroupThreadId, CellCoord))
+	{
+		return;
+	}
+
+	if (bUseActiveBrickDispatch == 0u && !IsSparseSimulationCellActive(CellCoord))
+	{
+		const int3 Coord = int3(CellCoord);
+		OutDensity[CellCoord] = DensityIn.Load(int4(Coord, 0));
+		OutDisplacedDensity[CellCoord] = DisplacedDensityIn.Load(int4(Coord, 0));
+		OutVelocity[CellCoord] = VelocityIn.Load(int4(Coord, 0));
+		return;
+	}
+
+	const float3 UVW = TimeThiefSmokeVoxelUVW(CellCoord, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
+	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(CellCoord, GridResolution, BoundsExtent, LocalToWorld);
+	const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
+	float NaturalDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+	float DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+	float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+
+	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		{
+			continue;
+		}
+
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
+		if (EventType != 2)
+		{
+			continue;
+		}
+
+		const float Radius = max(Event.PositionRadius.w, 1.0);
+		const float3 Direction = SafeNormalize(Event.DirectionLength.xyz);
+		const float Strength = saturate(Event.ExtentsStrength.w);
+		const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
+		const float3 ToCell = WorldPosition - Event.PositionRadius.xyz;
+		const float TrailLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+		const float InfluenceRadius = max(
+			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
+			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
+		{
+			continue;
+		}
+
+		const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
+		const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);
+		const float3 SolidVelocity = Direction * max(Event.PreviousPositionSpeed.w, 0.0);
+		const float SolidSpeed = length(SolidVelocity);
+		const float TravelDistance = length(Event.PositionRadius.xyz - Event.PreviousPositionSpeed.xyz);
+		const float EventDeltaSeconds = clamp(TravelDistance / max(SolidSpeed, 1.0), SafeDeltaSeconds, 0.12);
+		const float BoundaryStrength = max(Strength, 0.35);
+		const float Inside = 1.0 - smoothstep(-max(ShapeRadius * 0.045, 1.0), max(ShapeRadius * 0.025, 1.0), ShapeSdf);
+		const float Outside = 1.0 - saturate(Inside);
+		const float BoundaryLayer = (1.0 - smoothstep(max(ShapeRadius * 0.08, 1.0), max(ShapeRadius * 0.48, 2.0), abs(ShapeSdf))) * BoundaryStrength;
+		const float SurfaceBand = (1.0 - smoothstep(max(ShapeRadius * 0.02, 1.0), max(ShapeRadius * 0.22, 2.0), abs(ShapeSdf))) * BoundaryStrength;
+		const float FrontMask = saturate(dot(SurfaceNormal, Direction) * 0.5 + 0.5);
+		const float RearMask = saturate(-dot(SurfaceNormal, Direction) * 0.5 + 0.5);
+		const float3 Tangent = SafeNormalize(Direction - SurfaceNormal * dot(Direction, SurfaceNormal));
+		const float3 RelativeVelocity = SolidVelocity - Velocity;
+		const float ApproachSpeed = max(dot(RelativeVelocity, SurfaceNormal), 0.0);
+		const float3 TangentialSolidVelocity = SolidVelocity - SurfaceNormal * dot(SolidVelocity, SurfaceNormal);
+		const float3 TangentialFluidVelocity = Velocity - SurfaceNormal * dot(Velocity, SurfaceNormal);
+		const float3 NormalCorrection = (SurfaceNormal * dot(SolidVelocity - Velocity, SurfaceNormal)) * SurfaceBand * 0.62;
+		const float3 BoundaryDrag = (TangentialSolidVelocity - TangentialFluidVelocity) * BoundaryLayer * 0.42;
+		const float Along = dot(ToCell, Direction);
+		const float BackAlong = clamp(-Along, 0.0, TrailLength);
+		const float3 TrailClosest = Event.PositionRadius.xyz - Direction * BackAlong;
+		const float TrailDistance = length(WorldPosition - TrailClosest);
+		const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+		const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+		float3 WakeStreetDirection = Direction;
+		const float WakeStreet = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, ShapeRadius, TrailLength, MaxGridCellSize, ActorWakeStreetLaneInnerRadiusScale, WakeStreetDirection);
+		const float WakeMask = max(
+			(1.0 - smoothstep(ShapeRadius * 0.72, ShapeRadius * 2.25, TrailDistance)) *
+			(1.0 - smoothstep(ShapeRadius * 0.35, TrailLength, BackAlong)) *
+			saturate(SolidSpeed / 260.0) * RearMask,
+			WakeStreet * 0.72);
+		const float MotionMask = smoothstep(ActorAirflowMinSpeed, ActorAirflowFullSpeed, SolidSpeed) * saturate(Strength + 0.25);
+		const float SurfaceRedistribution = SurfaceBand * lerp(0.45, 0.45 + FrontMask * 0.55, MotionMask);
+		const float RedistributeWeight = saturate((SurfaceRedistribution + WakeMask * 0.28) * BoundaryStrength * (0.35 + MotionMask * 0.65));
+		float DonorDensity = 0.0;
+		if (RedistributeWeight > 0.0001)
+		{
+			const float3 LocalSurfaceNormal = SafeNormalize(mul(float4(SurfaceNormal, 0.0), WorldToLocal).xyz);
+			const float DonorDistance = max(ShapeRadius * 0.24, 8.0);
+			const float3 DonorUVW = saturate(UVW - LocalSurfaceNormal * DonorDistance / max(BoundsExtent * 2.0, 1.0));
+			const float DonorOpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, DonorUVW, ObstacleSdfSurfaceFeatherCm);
+			DonorDensity = max(DensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, DonorUVW, 0.0), 0.0) * DonorOpenMask;
+		}
+		const float ShapeDistance = max(ShapeSdf, 0.0);
+		const float AirEnvelope =
+			(1.0 - smoothstep(ShapeRadius * 0.42, ShapeRadius * ActorAirflowRadiusScale, ShapeDistance)) *
+			MotionMask *
+			ActorAirflowStrength *
+			Outside;
+		const float FrontAir =
+			AirEnvelope *
+			FrontMask *
+			(1.0 - smoothstep(ShapeRadius * 0.18, ShapeRadius * max(ActorAirflowRadiusScale * 0.76, 0.2), max(Along, 0.0)));
+		const float SideAir =
+			AirEnvelope *
+			saturate(1.0 - abs(dot(SurfaceNormal, Direction))) *
+			(1.0 - smoothstep(ShapeRadius * 0.6, ShapeRadius * ActorAirflowRadiusScale, abs(Along)));
+		const float WakeAir = WakeMask * MotionMask * Outside;
+		const float3 RollAxis = SafeNormalize(cross(SurfaceNormal, Tangent));
+		const float3 ShearRoll = SafeNormalize(cross(RollAxis, SurfaceNormal)) * SolidSpeed * SurfaceBand * RearMask * 0.18;
+		const float3 BowWave = SurfaceNormal * ApproachSpeed * SurfaceBand * FrontMask * 1.25;
+		const float3 WakePull = (Direction * SolidSpeed * 0.24 + Tangent * SolidSpeed * 0.08) * WakeMask + WakeStreetDirection * SolidSpeed * WakeStreet * 0.12;
+		const float3 MovingAirflow =
+			Direction * SolidSpeed * (FrontAir * ActorAirflowFrontStrength + SideAir * ActorAirflowSideStrength * 0.62 + WakeAir * ActorAirflowWakeStrength) +
+			SurfaceNormal * SolidSpeed * (FrontAir * ActorAirflowFrontStrength * 0.72 + SideAir * ActorAirflowSideStrength) +
+			Tangent * SolidSpeed * WakeAir * 0.10;
+		const float FrontCompression = FrontMask * SurfaceBand * saturate(ApproachSpeed / 420.0);
+		const float TotalDensity = NaturalDensity + DisplacedDensity;
+		DisplacedDensity += max(DonorDensity * RedistributeWeight - TotalDensity, 0.0);
+		const float UpdatedTotalDensity = NaturalDensity + DisplacedDensity;
+		const float SmokeInteractionMask = smoothstep(0.0005, 0.035, UpdatedTotalDensity);
+		const float InteractionMask = max(Outside, SurfaceBand) * SmokeInteractionMask;
+		const float3 InteriorEscape = SurfaceNormal * Inside * BoundaryStrength * max(80.0, SolidSpeed * 0.34) * SmokeInteractionMask;
+
+		DisplacedDensity = min(SmokeDensityMax, DisplacedDensity + UpdatedTotalDensity * FrontCompression * InteractionMask * EventDeltaSeconds * 0.65);
+		Velocity += (NormalCorrection + BoundaryDrag) * InteractionMask;
+		Velocity += InteriorEscape;
+		Velocity += (BowWave + WakePull + ShearRoll + MovingAirflow) * InteractionMask * EventDeltaSeconds;
+	}
+
+	OutDensity[CellCoord] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
+	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OpenMask, 0.0, SmokeDensityMax);
+	OutVelocity[CellCoord] = float4(Velocity * OpenMask, 0.0);
+}

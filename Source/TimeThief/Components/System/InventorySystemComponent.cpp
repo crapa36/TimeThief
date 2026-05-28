@@ -69,11 +69,11 @@ void UInventorySystemComponent::OnRegister()
 			ItemQuantities.Last()->ItemID = ItemID;
 		}
 
-		if (ThrowableEquipment == EItemID::SIZE && FindInventoryObject(EItemID::Grenade))
+		if (ThrowableEquipment == EItemID::SIZE && FindInventoryObject(EItemID::SmokeGrenade))
 		{
-			SetThrowableEquipment(EItemID::Grenade);
+			SetThrowableEquipment(EItemID::SmokeGrenade);
 #if !UE_BUILD_SHIPPING
-			UE_LOG(LogTemp, Log, TEXT("[ThrowableDebug][Inventory] Default throwable equipment set to Grenade."));
+			UE_LOG(LogTemp, Log, TEXT("[ThrowableDebug][Inventory] Default throwable equipment set to SmokeGrenade."));
 #endif
 		}
 	}

@@ -1,0 +1,140 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_EVENT_BRICK_MASKS_PARAMETERS
+
+uint FlattenBrickCoordForEventMask(int3 BrickCoord)
+{
+	const int3 SafeCoord = clamp(BrickCoord, int3(0, 0, 0), BrickGridResolution - 1);
+	return (uint)(SafeCoord.x + SafeCoord.y * BrickGridResolution.x + SafeCoord.z * BrickGridResolution.x * BrickGridResolution.y);
+}
+
+float EventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
+
+	if (EventType == 0u)
+	{
+		return TimeThiefSmokeBulletWakeInfluenceRadius(Event, BulletWakeCutoutFeather);
+	}
+	if (EventType == 1u)
+	{
+		return TimeThiefSmokeExplosionInfluenceRadius(Event);
+	}
+	if (EventType == 2u)
+	{
+		return max(
+			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
+			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+	}
+	if (EventType == 3u)
+	{
+		return TimeThiefSmokePlumeSourceInfluenceRadius(Event);
+	}
+	return 0.0;
+}
+
+float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)
+{
+	const float SafeBrickSize = max((float)SmokeBrickSize, 1.0);
+	const float3 SafeGridResolution = max(float3(GridResolution), 1.0);
+	const float3 BrickMinUVW = saturate((float3(BrickCoord) * SafeBrickSize) / SafeGridResolution);
+	const float3 BrickMaxUVW = saturate((float3(BrickCoord + int3(1, 1, 1)) * SafeBrickSize) / SafeGridResolution);
+	const float3 CenterUVW = (BrickMinUVW + BrickMaxUVW) * 0.5;
+	const float3 HalfExtentLocal = max((BrickMaxUVW - BrickMinUVW) * BoundsExtent, 1.0);
+	OutBrickRadius = length(HalfExtentLocal) + 2.0;
+
+	const float3 LocalPosition = (CenterUVW * 2.0 - 1.0) * BoundsExtent;
+	return mul(float4(LocalPosition, 1.0), LocalToWorld).xyz;
+}
+
+FTimeThiefSmokeEventShaderData LoadMaskEvent(uint EventSetIndex, int EventIndex)
+{
+	if (EventSetIndex == 0u)
+	{
+		return Events0[EventIndex];
+	}
+	if (EventSetIndex == 1u)
+	{
+		return Events1[EventIndex];
+	}
+	if (EventSetIndex == 2u)
+	{
+		return Events2[EventIndex];
+	}
+	return Events3[EventIndex];
+}
+
+uint4 BuildEventBrickMask(uint EventSetIndex, int EventCount, float3 CenterWorld, float BrickRadius)
+{
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+	uint4 Mask = uint4(0u, 0u, 0u, 0u);
+
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = LoadMaskEvent(EventSetIndex, EventIndex);
+		if (Event.ExtentsStrength.w <= 0.001)
+		{
+			continue;
+		}
+
+		const float InfluenceRadius = EventInfluenceRadius(Event) + BrickRadius;
+		const float3 ToBrick = CenterWorld - Event.PositionRadius.xyz;
+		if (dot(ToBrick, ToBrick) > InfluenceRadius * InfluenceRadius)
+		{
+			continue;
+		}
+
+		const uint WordIndex = (uint)EventIndex >> 5u;
+		const uint Bit = 1u << ((uint)EventIndex & 31u);
+		if (WordIndex == 0u)
+		{
+			Mask.x |= Bit;
+		}
+		else if (WordIndex == 1u)
+		{
+			Mask.y |= Bit;
+		}
+		else if (WordIndex == 2u)
+		{
+			Mask.z |= Bit;
+		}
+		else
+		{
+			Mask.w |= Bit;
+		}
+	}
+
+	return Mask;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(int3(DispatchThreadId) >= BrickGridResolution))
+	{
+		return;
+	}
+
+	const int3 BrickCoord = int3(DispatchThreadId);
+	float BrickRadius = 1.0;
+	const float3 CenterWorld = BrickCenterWorld(BrickCoord, BrickRadius);
+	const uint MaskIndex = FlattenBrickCoordForEventMask(BrickCoord);
+	if (EventCount0 > 0)
+	{
+		OutEventBrickMasks0[MaskIndex] = BuildEventBrickMask(0u, EventCount0, CenterWorld, BrickRadius);
+	}
+	if (EventCount1 > 0)
+	{
+		OutEventBrickMasks1[MaskIndex] = BuildEventBrickMask(1u, EventCount1, CenterWorld, BrickRadius);
+	}
+	if (EventCount2 > 0)
+	{
+		OutEventBrickMasks2[MaskIndex] = BuildEventBrickMask(2u, EventCount2, CenterWorld, BrickRadius);
+	}
+	if (EventCount3 > 0)
+	{
+		OutEventBrickMasks3[MaskIndex] = BuildEventBrickMask(3u, EventCount3, CenterWorld, BrickRadius);
+	}
+}

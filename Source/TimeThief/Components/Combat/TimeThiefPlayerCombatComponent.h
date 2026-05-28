@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Utils/TimeThiefAimStatics.h"
 #include "TimeThiefPlayerCombatComponent.generated.h"
 
 class ATimeThiefMasterWeapon;
@@ -30,7 +31,7 @@ public:
 	void StopAiming();
 	
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
-	FVector GetWorldAimLocation() const { return CachedWorldAimLocation; }
+	FVector GetWorldAimLocation() const { return AimHelperState.SmoothedTargetLocation; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
@@ -73,14 +74,14 @@ protected:
 
 private:
 	void UpdateAimFOV(float DeltaTime);
-	void UpdateLocalWorldAimLocation();
+	void UpdateLocalWorldAimLocation(float DeltaTime);
 	void ApplyAimYawOverflowRotation(float DeltaTime);
 	void SyncAimToServer();
 	
 	FVector GetAimDirection() const;
 	
 	float DefaultMaxWalkSpeed = 0.0f;
-	FVector CachedWorldAimLocation = FVector::ZeroVector;
+	FTimeThiefAimHelperState AimHelperState;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UCameraComponent> CachedThirdPersonCamera;

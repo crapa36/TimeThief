@@ -1,0 +1,132 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_SPLAT_VORTEX_PARTICLES_PARAMETERS
+
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+uint FlattenBrickCoord(uint3 BrickCoord)
+{
+	const uint3 BrickGrid = uint3(BrickGridResolution);
+	return BrickCoord.x + BrickCoord.y * BrickGrid.x + BrickCoord.z * BrickGrid.x * BrickGrid.y;
+}
+
+void AccumulateVortexParticle(
+	int ParticleIndex,
+	float3 LocalPosition,
+	float Density,
+	FTimeThiefSmokeBulletOpenMasks BulletMasks,
+	float SafeRadius,
+	float SafeCore,
+	inout float3 SplatVelocity)
+{
+	const FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticles[ParticleIndex];
+	if (Particle.LocalPositionLife.w <= 0.0 || Particle.VelocityStrength.w <= 0.0)
+	{
+		return;
+	}
+
+	const float3 Offset = LocalPosition - Particle.LocalPositionLife.xyz;
+	const float DistanceSq = dot(Offset, Offset);
+	if (DistanceSq > SafeRadius * SafeRadius)
+	{
+		return;
+	}
+
+	const float Distance = sqrt(DistanceSq);
+	const float Shell = 1.0 - smoothstep(SafeCore, SafeRadius, Distance);
+	const float Core = 1.0 - smoothstep(0.0, SafeCore, Distance);
+	const float LifeMask = saturate(Particle.LocalPositionLife.w / 0.35);
+	const float DensityMask = saturate(Density * 0.82);
+	const float BulletDetailGain = lerp(0.72, 1.2, BulletMasks.Detail);
+	const float Weight = saturate(max(Shell, Core * 0.65) * LifeMask * DensityMask * BulletDetailGain);
+	const float3 Axis = normalize(Particle.AxisSeed.xyz + 0.0001);
+	const float3 Radial = Offset / max(Distance, 1.0);
+	const float3 Tangent = normalize(cross(Axis, Radial) + 0.0001);
+	SplatVelocity += (Tangent * Particle.VelocityStrength.w + Particle.VelocityStrength.xyz * 0.35) * Weight;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutVelocity[DispatchThreadId] = VelocityIn.Load(int4(int3(DispatchThreadId), 0));
+		return;
+	}
+
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
+	const float Density = max(DensityIn.SampleLevel(VolumeSampler, UVW, 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * OpenMask;
+	const float Cutout = BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0);
+	const float Sink = BulletSinkTexture.SampleLevel(VolumeSampler, UVW, 0.0);
+	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Cutout, Sink);
+	float3 Velocity = VelocityIn.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+
+	if (OpenMask <= 0.01 || Density <= 0.001)
+	{
+		OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+		return;
+	}
+
+	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+	const float SafeRadius = max(VortexParticleSplatRadius, 1.0);
+	const float SafeCore = clamp(VortexParticleCoreRadius, 1.0, SafeRadius);
+	float3 SplatVelocity = float3(0.0, 0.0, 0.0);
+
+	if (bUseVortexBrickBins != 0)
+	{
+		const uint3 MaxBrickCoord = uint3(max(BrickGridResolution - int3(1, 1, 1), int3(0, 0, 0)));
+		const uint3 BrickCoord = min(DispatchThreadId / max((uint)SmokeBrickSize, 1u), MaxBrickCoord);
+		const uint4 Mask = VortexBrickMasks[FlattenBrickCoord(BrickCoord)];
+		[unroll]
+		for (int WordIndex = 0; WordIndex < 4; ++WordIndex)
+		{
+			uint Word = WordIndex == 0 ? Mask.x : (WordIndex == 1 ? Mask.y : (WordIndex == 2 ? Mask.z : Mask.w));
+			[loop]
+			while (Word != 0u)
+			{
+				const uint BitIndex = firstbitlow(Word);
+				const int ParticleIndex = WordIndex * 32 + (int)BitIndex;
+				if (ParticleIndex < min(VortexParticleCount, MaxVortexParticleCount))
+				{
+					AccumulateVortexParticle(ParticleIndex, LocalPosition, Density, BulletMasks, SafeRadius, SafeCore, SplatVelocity);
+				}
+				Word &= Word - 1u;
+			}
+		}
+	}
+	else
+	{
+		[loop]
+		for (int ParticleIndex = 0; ParticleIndex < min(VortexParticleCount, MaxVortexParticleCount); ++ParticleIndex)
+		{
+			AccumulateVortexParticle(ParticleIndex, LocalPosition, Density, BulletMasks, SafeRadius, SafeCore, SplatVelocity);
+		}
+	}
+
+	Velocity += SplatVelocity;
+	const float MaxSpeed = max(MaxSmokeVelocity, 1.0);
+	const float Speed = length(Velocity);
+	if (Speed > MaxSpeed)
+	{
+		Velocity *= MaxSpeed / max(Speed, 0.0001);
+	}
+
+	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+}

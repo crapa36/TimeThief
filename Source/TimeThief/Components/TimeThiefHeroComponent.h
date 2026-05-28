@@ -70,9 +70,7 @@ private:
 	void Input_ToggleInventory(const FInputActionValue& Value);
 	void Input_WheelMenu(const FInputActionValue& Value);
 	void Input_SavePoint(const FInputActionValue& Value);
-	void Input_ThrowFallback(const FInputActionValue& Value);
-	void BindThrowFallbackInput(UTimeThiefInputComponent* TimeThiefIC);
-	
+
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")
 	TObjectPtr<const UTimeThiefPawnData> PawnData;

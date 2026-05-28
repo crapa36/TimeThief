@@ -1,0 +1,62 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_MAC_TO_COLLOCATED_VELOCITY_PARAMETERS
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadU(int3 Coord)
+{
+	return FaceVelocityUIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadV(int3 Coord)
+{
+	return FaceVelocityVIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadW(int3 Coord)
+{
+	return FaceVelocityWIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float LoadOpen(int3 Coord)
+{
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), ObstacleSdfSurfaceFeatherCm);
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float OpenMask = TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, UVW, ObstacleSdfSurfaceFeatherCm);
+	if (OpenMask <= 0.01)
+	{
+		OutVelocity[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+
+	const float U0 = LoadU(Coord);
+	const float V0 = LoadV(Coord);
+	const float W0 = LoadW(Coord);
+	const float U1 = Coord.x >= GridResolution.x - 1 ? 0.0 : LoadU(Coord + int3(1, 0, 0));
+	const float V1 = Coord.y >= GridResolution.y - 1 ? 0.0 : LoadV(Coord + int3(0, 1, 0));
+	const float W1 = Coord.z >= GridResolution.z - 1 ? 0.0 : LoadW(Coord + int3(0, 0, 1));
+
+	const float3 Velocity = float3(
+		0.5 * (U0 + U1),
+		0.5 * (V0 + V1),
+		0.5 * (W0 + W1));
+
+	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+}

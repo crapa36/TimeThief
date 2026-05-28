@@ -1,0 +1,558 @@
+#pragma once
+
+struct FTimeThiefSmokeEventShaderData
+{
+	float4 PositionRadius;
+	float4 DirectionLength;
+	float4 ExtentsStrength;
+	float4 Rotation;
+	float4 TypeShapeAgeSeed;
+	float4 PreviousPositionSpeed;
+};
+
+struct FTimeThiefSmokeVortexParticleShaderData
+{
+	float4 LocalPositionLife;
+	float4 VelocityStrength;
+	float4 AxisSeed;
+};
+
+struct FTimeThiefSmokeBulletOpenMasks
+{
+	float Hard;
+	float Sink;
+	float Source;
+	float Detail;
+	float Edge;
+};
+
+float TimeThiefSmokeHash13(float3 P)
+{
+	P = frac(P * 0.1031);
+	P += dot(P, P.yzx + 33.33);
+	return frac((P.x + P.y) * P.z);
+}
+
+float3 TimeThiefSmokeHash33(float3 P)
+{
+	return float3(
+		TimeThiefSmokeHash13(P + float3(11.17, 3.31, 19.73)),
+		TimeThiefSmokeHash13(P + float3(23.83, 29.91, 7.57)),
+		TimeThiefSmokeHash13(P + float3(5.43, 17.19, 31.37)));
+}
+
+float TimeThiefSmokeValueNoise(float3 P)
+{
+	const float3 Cell = floor(P);
+	const float3 Local = frac(P);
+	const float3 Smooth = Local * Local * (3.0 - 2.0 * Local);
+
+	const float V000 = TimeThiefSmokeHash13(Cell + float3(0.0, 0.0, 0.0));
+	const float V100 = TimeThiefSmokeHash13(Cell + float3(1.0, 0.0, 0.0));
+	const float V010 = TimeThiefSmokeHash13(Cell + float3(0.0, 1.0, 0.0));
+	const float V110 = TimeThiefSmokeHash13(Cell + float3(1.0, 1.0, 0.0));
+	const float V001 = TimeThiefSmokeHash13(Cell + float3(0.0, 0.0, 1.0));
+	const float V101 = TimeThiefSmokeHash13(Cell + float3(1.0, 0.0, 1.0));
+	const float V011 = TimeThiefSmokeHash13(Cell + float3(0.0, 1.0, 1.0));
+	const float V111 = TimeThiefSmokeHash13(Cell + float3(1.0, 1.0, 1.0));
+
+	const float X00 = lerp(V000, V100, Smooth.x);
+	const float X10 = lerp(V010, V110, Smooth.x);
+	const float X01 = lerp(V001, V101, Smooth.x);
+	const float X11 = lerp(V011, V111, Smooth.x);
+	const float Y0 = lerp(X00, X10, Smooth.y);
+	const float Y1 = lerp(X01, X11, Smooth.y);
+	return lerp(Y0, Y1, Smooth.z);
+}
+
+float TimeThiefSmokeFBM(float3 P)
+{
+	float Sum = 0.0;
+	float Amplitude = 0.5;
+	float Normalizer = 0.0;
+
+	[unroll]
+	for (int Octave = 0; Octave < 4; ++Octave)
+	{
+		Sum += TimeThiefSmokeValueNoise(P) * Amplitude;
+		Normalizer += Amplitude;
+		P = P * 2.03 + float3(17.1, 31.7, 11.3);
+		Amplitude *= 0.5;
+	}
+
+	return Sum / max(Normalizer, 0.0001);
+}
+
+float TimeThiefSmokeRidgedFBM(float3 P)
+{
+	float Sum = 0.0;
+	float Amplitude = 0.5;
+	float Normalizer = 0.0;
+
+	[unroll]
+	for (int Octave = 0; Octave < 4; ++Octave)
+	{
+		const float Ridge = 1.0 - abs(TimeThiefSmokeValueNoise(P) * 2.0 - 1.0);
+		Sum += Ridge * Ridge * Amplitude;
+		Normalizer += Amplitude;
+		P = P * 2.07 + float3(29.3, 5.7, 43.1);
+		Amplitude *= 0.5;
+	}
+
+	return Sum / max(Normalizer, 0.0001);
+}
+
+float3 TimeThiefSmokeDomainWarp(float3 P, float Time)
+{
+	return (float3(
+		TimeThiefSmokeFBM(P + float3(13.1, 7.7, 3.3) + Time),
+		TimeThiefSmokeFBM(P + float3(2.5, 19.3, 11.9) - Time * 0.73),
+		TimeThiefSmokeFBM(P + float3(23.7, 5.1, 17.4) + Time * 0.41)) - 0.5) * 2.0;
+}
+
+float TimeThiefSmokeFilamentMask(float3 P, float Time, float Contrast)
+{
+	const float3 TimeOffsetA = float3(Time * 0.23, -Time * 0.17, Time * 0.31);
+	const float3 TimeOffsetB = float3(-Time * 0.29, Time * 0.19, -Time * 0.11);
+	const float3 Warp = TimeThiefSmokeDomainWarp(P * 0.47, Time * 0.59);
+	const float RidgeA = TimeThiefSmokeRidgedFBM(P + Warp * 1.43 + TimeOffsetA);
+	const float RidgeB = TimeThiefSmokeRidgedFBM(P * 1.73 - Warp * 0.82 + TimeOffsetB);
+	const float Threads = saturate(RidgeA * 0.62 + RidgeB * 0.58 - 0.34);
+	return pow(Threads, max(Contrast, 0.1));
+}
+
+float TimeThiefSmokeFastFilamentMask(float3 P, float Time, float Contrast)
+{
+	const float Ridge = TimeThiefSmokeRidgedFBM(P + float3(Time * 0.19, -Time * 0.13, Time * 0.07));
+	const float Threads = saturate(Ridge * 1.22 - 0.24);
+	return pow(Threads, max(Contrast * 0.82, 0.1));
+}
+
+float TimeThiefSmokeRenderDensityNoise(float3 P, float Time, float RawDensity, float BoundaryMask, float Strength, float FineMultiplier)
+{
+	const float S = saturate(Strength);
+	if (S <= 0.001)
+	{
+		return 1.0;
+	}
+
+	const float3 Q = P + float3(Time * 0.19, -Time * 0.11, Time * 0.07);
+	const float Base = TimeThiefSmokeFBM(Q);
+	const float BaseShape = smoothstep(0.22, 0.82, Base);
+	const float DensityEdge = 1.0 - smoothstep(0.18, 1.15, RawDensity);
+	const float BoundaryEdge = 1.0 - smoothstep(0.55, 0.98, BoundaryMask);
+	const float DenseCoreFade = 1.0 - smoothstep(1.3, 2.4, RawDensity);
+	const float ErosionGate = saturate(max(DensityEdge, BoundaryEdge) * DenseCoreFade);
+	const float InteriorDetailGate = smoothstep(0.45, 1.55, RawDensity) * (1.0 - smoothstep(1.8, 2.5, RawDensity));
+	const float DetailGate = saturate(max(ErosionGate, InteriorDetailGate));
+	float Detail = 0.5;
+	[branch]
+	if (DetailGate > 0.02)
+	{
+		Detail = TimeThiefSmokeRidgedFBM(Q * max(FineMultiplier, 1.0) + BaseShape * 0.37 - Time * 0.29);
+	}
+	const float InteriorDetail = Detail * InteriorDetailGate * 0.06;
+	const float Clump = lerp(0.74, 1.28, BaseShape);
+	const float Target = clamp(Clump - Detail * ErosionGate * lerp(0.3, 0.58, S) + InteriorDetail, 0.46, 1.48);
+	return lerp(1.0, Target, S);
+}
+
+float TimeThiefSmokeHenyeyGreenstein(float CosTheta, float Anisotropy)
+{
+	const float G = clamp(Anisotropy, -0.85, 0.85);
+	const float G2 = G * G;
+	const float Denominator = max(1.0 + G2 - 2.0 * G * clamp(CosTheta, -1.0, 1.0), 0.05);
+	return (1.0 - G2) / max(pow(Denominator, 1.5), 0.001);
+}
+
+float TimeThiefSmokeDirectionalPhase(float3 WorldRayDirection, float3 WorldLightDirection, float Anisotropy)
+{
+	const float3 SafeRayDirection = normalize(WorldRayDirection + float3(0.0, 0.0, 0.0001));
+	const float3 SafeLightDirection = normalize(WorldLightDirection + float3(0.0, 0.0, 0.0001));
+	const float CosTheta = dot(SafeRayDirection, SafeLightDirection);
+	const float Primary = TimeThiefSmokeHenyeyGreenstein(CosTheta, Anisotropy);
+	const float Secondary = TimeThiefSmokeHenyeyGreenstein(CosTheta, -abs(Anisotropy) * 0.35);
+	return clamp(lerp(Secondary, Primary, 0.82), 0.72, 1.38);
+}
+
+float3 TimeThiefSmokePotential(float3 P, float Time)
+{
+	return float3(
+		TimeThiefSmokeValueNoise(P + float3(13.1, 7.7, 3.3) + Time),
+		TimeThiefSmokeValueNoise(P + float3(2.5, 19.3, 11.9) - Time * 0.73),
+		TimeThiefSmokeValueNoise(P + float3(23.7, 5.1, 17.4) + Time * 0.41));
+}
+
+float3 TimeThiefSmokeCurlNoise(float3 P, float Time)
+{
+	const float E = 0.31;
+	const float3 Dx = float3(E, 0.0, 0.0);
+	const float3 Dy = float3(0.0, E, 0.0);
+	const float3 Dz = float3(0.0, 0.0, E);
+	const float3 Py1 = TimeThiefSmokePotential(P + Dy, Time);
+	const float3 Py0 = TimeThiefSmokePotential(P - Dy, Time);
+	const float3 Pz1 = TimeThiefSmokePotential(P + Dz, Time);
+	const float3 Pz0 = TimeThiefSmokePotential(P - Dz, Time);
+	const float3 Px1 = TimeThiefSmokePotential(P + Dx, Time);
+	const float3 Px0 = TimeThiefSmokePotential(P - Dx, Time);
+
+	const float X = (Py1.z - Py0.z) - (Pz1.y - Pz0.y);
+	const float Y = (Pz1.x - Pz0.x) - (Px1.z - Px0.z);
+	const float Z = (Px1.y - Px0.y) - (Py1.x - Py0.x);
+	return normalize(float3(X, Y, Z) / (2.0 * E) + 0.0001);
+}
+
+float TimeThiefSmokeSoftSphere(float Distance, float Radius)
+{
+	const float SafeRadius = max(Radius, 1.0);
+	return 1.0 - smoothstep(SafeRadius * 0.35, SafeRadius, Distance);
+}
+
+float TimeThiefSmokeRenderBoundaryMask(float3 SimulationLocal, float3 BoundsExtent, float3 NaturalBoundsExtent, float BoundaryNoise)
+{
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 SafeNaturalBoundsExtent = max(NaturalBoundsExtent, 1.0);
+	const float3 NaturalCoverage = saturate(SafeNaturalBoundsExtent / SafeBoundsExtent);
+	const float NaturalCoverageMax = max(max(NaturalCoverage.x, NaturalCoverage.y), NaturalCoverage.z);
+	const float FadeStart = clamp(max(0.90, NaturalCoverageMax + 0.04), 0.82, 0.96);
+	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
+	return 1.0 - smoothstep(FadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
+}
+
+float TimeThiefSmokeNaturalBoundsMask(float3 SimulationLocal, float3 BoundsExtent, float3 NaturalBoundsExtent, float BoundaryNoise)
+{
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 SafeNaturalBoundsExtent = max(NaturalBoundsExtent, 1.0);
+	const float3 NaturalCoverage = max(saturate(SafeNaturalBoundsExtent / SafeBoundsExtent), 0.001);
+	const float3 NaturalLocal = SimulationLocal / NaturalCoverage;
+	const float EllipsoidDistance = length(NaturalLocal / float3(1.0, 1.0, 0.86));
+	return 1.0 - smoothstep(0.86, 1.04, EllipsoidDistance + BoundaryNoise);
+}
+
+float3 TimeThiefSmokeVoxelLocal(uint3 Voxel, int3 GridResolution, float3 BoundsExtent)
+{
+	const float3 UVW = (float3(Voxel) + 0.5) / max(float3(GridResolution), 1.0);
+	return (UVW * 2.0 - 1.0) * BoundsExtent;
+}
+
+float3 TimeThiefSmokeVoxelWorld(uint3 Voxel, int3 GridResolution, float3 BoundsExtent, float4x4 LocalToWorld)
+{
+	return mul(float4(TimeThiefSmokeVoxelLocal(Voxel, GridResolution, BoundsExtent), 1.0), LocalToWorld).xyz;
+}
+
+float3 TimeThiefSmokeVoxelUVW(uint3 Voxel, int3 GridResolution)
+{
+	return (float3(Voxel) + 0.5) / max(float3(GridResolution), 1.0);
+}
+
+bool TimeThiefSmokeInsideUVW(float3 UVW)
+{
+	return all(UVW >= 0.0) && all(UVW <= 1.0);
+}
+
+float TimeThiefSmokeObstacleOpenFromSdf(float Phi, float SurfaceFeatherCm)
+{
+	const float Feather = max(SurfaceFeatherCm, 0.001);
+	return smoothstep(-Feather, Feather, Phi);
+}
+
+float TimeThiefSmokeObstacleOpenFromValue(float Phi)
+{
+	return TimeThiefSmokeObstacleOpenFromSdf(Phi, 32.0);
+}
+
+float TimeThiefSmokeObstacleOpen(Texture3D<float> ObstacleTexture, SamplerState VolumeSampler, float3 UVW, float SurfaceFeatherCm)
+{
+	const float Phi = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
+	return TimeThiefSmokeObstacleOpenFromSdf(Phi, SurfaceFeatherCm);
+}
+
+float TimeThiefSmokeObstacleOpen(Texture3D<float> ObstacleTexture, SamplerState VolumeSampler, float3 UVW)
+{
+	const float Phi = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
+	return TimeThiefSmokeObstacleOpenFromValue(Phi);
+}
+
+float3 TimeThiefSmokeObstacleNormal(Texture3D<float> ObstacleTexture, SamplerState VolumeSampler, float3 UVW, float3 CellSize)
+{
+	const float3 Texel = 1.0 / max(float3(1.0, 1.0, 1.0), CellSize);
+	const float X0 = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW - float3(Texel.x, 0.0, 0.0)), 0.0);
+	const float X1 = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW + float3(Texel.x, 0.0, 0.0)), 0.0);
+	const float Y0 = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, Texel.y, 0.0)), 0.0);
+	const float Y1 = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, Texel.y, 0.0)), 0.0);
+	const float Z0 = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW - float3(0.0, 0.0, Texel.z)), 0.0);
+	const float Z1 = ObstacleTexture.SampleLevel(VolumeSampler, saturate(UVW + float3(0.0, 0.0, Texel.z)), 0.0);
+	return normalize(float3(X1 - X0, Y1 - Y0, Z1 - Z0) + float3(0.0, 0.0, 0.0001));
+}
+
+float3 TimeThiefSmokeObstacleFaceOpen(Texture3D<float4> ObstacleFaceOpenTexture, int3 Coord)
+{
+	return ObstacleFaceOpenTexture.Load(int4(Coord, 0)).xyz;
+}
+
+float3 TimeThiefSmokeRotateByQuat(float3 Vector, float4 Quat)
+{
+	return Vector + 2.0 * cross(Quat.xyz, cross(Quat.xyz, Vector) + Quat.w * Vector);
+}
+
+float3 TimeThiefSmokeInverseRotateByQuat(float3 Vector, float4 Quat)
+{
+	return TimeThiefSmokeRotateByQuat(Vector, float4(-Quat.xyz, Quat.w));
+}
+
+float TimeThiefSmokeBoxSdf(float3 LocalPosition, float3 Extents)
+{
+	const float3 Delta = abs(LocalPosition) - max(Extents, float3(1.0, 1.0, 1.0));
+	return length(max(Delta, 0.0)) + min(max(Delta.x, max(Delta.y, Delta.z)), 0.0);
+}
+
+float TimeThiefSmokeCapsuleSdf(float3 LocalPosition, float Radius, float Length)
+{
+	const float HalfSegment = max(Length * 0.5 - Radius, 0.0);
+	const float3 SegmentPoint = float3(0.0, 0.0, clamp(LocalPosition.z, -HalfSegment, HalfSegment));
+	return length(LocalPosition - SegmentPoint) - Radius;
+}
+
+float TimeThiefSmokeEventShapeRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	return max(Event.PositionRadius.w, max(Event.ExtentsStrength.x, max(Event.ExtentsStrength.y, Event.ExtentsStrength.z)));
+}
+
+float TimeThiefSmokeEventContactRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	return max(Event.PositionRadius.w, 1.0);
+}
+
+float TimeThiefSmokeActorInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float RadiusScale)
+{
+	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
+	const float ContactRadius = TimeThiefSmokeEventContactRadius(Event);
+	const float TravelDistance = length(Event.PositionRadius.xyz - Event.PreviousPositionSpeed.xyz);
+	const float CappedTravelDistance = min(TravelDistance, ShapeRadius * 6.0);
+	return ShapeRadius + CappedTravelDistance + ContactRadius * RadiusScale + 2.0;
+}
+
+float TimeThiefSmokeActorWarpTrailLength(FTimeThiefSmokeEventShaderData Event, float TrailLengthScale)
+{
+	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
+	const float Strength = saturate(Event.ExtentsStrength.w);
+	const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
+	return max(
+		ShapeRadius * TrailLengthScale * lerp(0.42, 1.0, WarpBudget) * lerp(0.75, 1.2, Strength),
+		ShapeRadius * 2.0);
+}
+
+float TimeThiefSmokeActorWarpInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float TrailLengthScale)
+{
+	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
+	return TimeThiefSmokeActorWarpTrailLength(Event, TrailLengthScale) + ShapeRadius * 2.6;
+}
+
+float TimeThiefSmokeBulletWakeInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float CutoutFeather)
+{
+	const float Radius = max(Event.PositionRadius.w, 1.0);
+	const float Length = max(Event.DirectionLength.w, Radius * 2.0);
+	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
+	return max(Length * 0.5 + Radius * 2.4 * CutoutFeather, ShapeRadius * 2.4);
+}
+
+float TimeThiefSmokeExplosionInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	const float Radius = max(Event.PositionRadius.w, 1.0);
+	return Radius * 1.55;
+}
+
+float TimeThiefSmokePlumeSourceInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	return max(Event.PositionRadius.w * 2.2, 1.0);
+}
+
+float3 TimeThiefSmokeWakeSideAxis(float3 Direction)
+{
+	const float3 Reference = abs(Direction.z) < 0.92 ? float3(0.0, 0.0, 1.0) : float3(0.0, 1.0, 0.0);
+	return normalize(cross(Reference, Direction) + float3(0.0001, 0.0001, 0.0001));
+}
+
+float TimeThiefSmokeActorWakeStreetMask(float3 WorldPosition, FTimeThiefSmokeEventShaderData Event, float Radius, float WakeLength, float CellLength, float LaneInnerRadiusScale, out float3 OutDirection)
+{
+	const float3 Direction = normalize(Event.DirectionLength.xyz + float3(0.0001, 0.0001, 0.0001));
+	const float Along = dot(WorldPosition - Event.PositionRadius.xyz, -Direction);
+	OutDirection = Direction;
+	if (Along <= 0.0 || Along >= WakeLength)
+	{
+		return 0.0;
+	}
+
+	const float SafeRadius = max(Radius, 1.0);
+	const float SafeCellLength = max(CellLength, 1.0);
+	const float WakeT = saturate(Along / max(WakeLength, 1.0));
+	const float3 Side = TimeThiefSmokeWakeSideAxis(Direction);
+	const float StreetIndex = floor(Along / max(SafeRadius * 1.35, SafeCellLength * 1.5) + Event.TypeShapeAgeSeed.w * 0.013);
+	const float StreetSign = frac(StreetIndex * 0.5) < 0.25 ? -1.0 : 1.0;
+	const float LaneOffset = SafeRadius * lerp(0.18, 0.56, WakeT) * StreetSign;
+	const float3 LaneCenter = Event.PositionRadius.xyz - Direction * Along + Side * LaneOffset;
+	const float3 LaneRadial = WorldPosition - LaneCenter;
+	const float LaneDistance = length(LaneRadial);
+	const float LaneRadius = max(max(SafeRadius * lerp(0.30, 0.68, WakeT), SafeCellLength * 1.65), 2.0);
+	const float LaneMask = 1.0 - smoothstep(LaneRadius * LaneInnerRadiusScale, LaneRadius, LaneDistance);
+	const float AxialMask = (1.0 - smoothstep(SafeRadius * 0.35, WakeLength, Along)) * saturate(Along / max(SafeRadius * 0.45, 1.0));
+	const float3 RollDirection = normalize(cross(Direction, normalize(LaneRadial + Side * StreetSign * SafeRadius * 0.08)) + Side * StreetSign * 0.45 + Direction * 0.18);
+	OutDirection = RollDirection;
+	return saturate(LaneMask * AxialMask);
+}
+
+float TimeThiefSmokeEventSdfAtCenter(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition, float3 EventCenter)
+{
+	const uint Shape = (uint)round(Event.TypeShapeAgeSeed.y);
+	float3 LocalToEvent = WorldPosition - EventCenter;
+	LocalToEvent = TimeThiefSmokeInverseRotateByQuat(LocalToEvent, Event.Rotation);
+	if (Shape == 1u)
+	{
+		return TimeThiefSmokeCapsuleSdf(LocalToEvent, Event.PositionRadius.w, Event.DirectionLength.w);
+	}
+	if (Shape == 2u)
+	{
+		const float ShapeRadius = TimeThiefSmokeEventShapeRadius(Event);
+		return TimeThiefSmokeBoxSdf(LocalToEvent, max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35)));
+	}
+	if (Shape == 3u)
+	{
+		const float3 Axis = normalize(Event.DirectionLength.xyz + float3(0.0001, 0.0001, 0.0001));
+		const float HalfLength = max(Event.DirectionLength.w * 0.5, Event.PositionRadius.w);
+		const float3 Delta = WorldPosition - EventCenter;
+		const float Along = clamp(dot(Delta, Axis), -HalfLength, HalfLength);
+		return length(Delta - Axis * Along) - Event.PositionRadius.w;
+	}
+	return length(LocalToEvent) - Event.PositionRadius.w;
+}
+
+float3 TimeThiefSmokeEventSweptCenter(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition)
+{
+	const float3 CurrentCenter = Event.PositionRadius.xyz;
+	const float3 PreviousCenter = Event.PreviousPositionSpeed.xyz;
+	const float3 Sweep = CurrentCenter - PreviousCenter;
+	const float SweepLengthSq = dot(Sweep, Sweep);
+	if (SweepLengthSq <= 1.0)
+	{
+		return CurrentCenter;
+	}
+
+	const float T = saturate(dot(WorldPosition - PreviousCenter, Sweep) / SweepLengthSq);
+	return lerp(PreviousCenter, CurrentCenter, T);
+}
+
+float TimeThiefSmokeEventSweptSdf(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition)
+{
+	const float3 SweptCenter = TimeThiefSmokeEventSweptCenter(Event, WorldPosition);
+	return min(
+		TimeThiefSmokeEventSdfAtCenter(Event, WorldPosition, Event.PositionRadius.xyz),
+		TimeThiefSmokeEventSdfAtCenter(Event, WorldPosition, SweptCenter));
+}
+
+float3 TimeThiefSmokeEventNormalAtCenter(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition, float3 EventCenter)
+{
+	const uint Shape = (uint)round(Event.TypeShapeAgeSeed.y);
+	const float ShapeRadius = TimeThiefSmokeEventShapeRadius(Event);
+	const float3 LocalToEvent = TimeThiefSmokeInverseRotateByQuat(WorldPosition - EventCenter, Event.Rotation);
+
+	if (Shape == 1u)
+	{
+		const float HalfSegment = max(Event.DirectionLength.w * 0.5 - Event.PositionRadius.w, 0.0);
+		const float3 SegmentPoint = float3(0.0, 0.0, clamp(LocalToEvent.z, -HalfSegment, HalfSegment));
+		return normalize(TimeThiefSmokeRotateByQuat(LocalToEvent - SegmentPoint, Event.Rotation) + float3(0.0001, 0.0001, 0.0001));
+	}
+	if (Shape == 2u)
+	{
+		const float3 Extents = max(Event.ExtentsStrength.xyz, float3(ShapeRadius * 0.35, ShapeRadius * 0.35, ShapeRadius * 0.35));
+		const float3 Delta = abs(LocalToEvent) - Extents;
+		float3 LocalNormal = float3(0.0, 0.0, 0.0);
+		if (any(Delta > 0.0))
+		{
+			LocalNormal = normalize(max(Delta, float3(0.0, 0.0, 0.0)) * sign(LocalToEvent) + float3(0.0001, 0.0001, 0.0001));
+		}
+		else
+		{
+			const float3 InsideDistance = Extents - abs(LocalToEvent);
+			if (InsideDistance.x < InsideDistance.y && InsideDistance.x < InsideDistance.z)
+			{
+				LocalNormal = float3(sign(LocalToEvent.x), 0.0, 0.0);
+			}
+			else if (InsideDistance.y < InsideDistance.z)
+			{
+				LocalNormal = float3(0.0, sign(LocalToEvent.y), 0.0);
+			}
+			else
+			{
+				LocalNormal = float3(0.0, 0.0, sign(LocalToEvent.z));
+			}
+		}
+		return normalize(TimeThiefSmokeRotateByQuat(LocalNormal, Event.Rotation) + float3(0.0001, 0.0001, 0.0001));
+	}
+	if (Shape == 3u)
+	{
+		const float3 Axis = normalize(Event.DirectionLength.xyz + float3(0.0001, 0.0001, 0.0001));
+		const float HalfLength = max(Event.DirectionLength.w * 0.5, Event.PositionRadius.w);
+		const float3 Delta = WorldPosition - EventCenter;
+		const float Along = clamp(dot(Delta, Axis), -HalfLength, HalfLength);
+		return normalize(Delta - Axis * Along + float3(0.0001, 0.0001, 0.0001));
+	}
+	return normalize(WorldPosition - EventCenter + float3(0.0001, 0.0001, 0.0001));
+}
+
+float3 TimeThiefSmokeEventSweptNormal(FTimeThiefSmokeEventShaderData Event, float3 WorldPosition)
+{
+	const float3 CurrentCenter = Event.PositionRadius.xyz;
+	const float3 SweptCenter = TimeThiefSmokeEventSweptCenter(Event, WorldPosition);
+	const float CurrentSdf = TimeThiefSmokeEventSdfAtCenter(Event, WorldPosition, CurrentCenter);
+	const float SweptSdf = TimeThiefSmokeEventSdfAtCenter(Event, WorldPosition, SweptCenter);
+	return TimeThiefSmokeEventNormalAtCenter(Event, WorldPosition, CurrentSdf <= SweptSdf ? CurrentCenter : SweptCenter);
+}
+
+float TimeThiefSmokeSdfWeight(float Sdf, float Feather)
+{
+	const float SafeFeather = max(Feather, 1.0);
+	return 1.0 - smoothstep(-SafeFeather * 0.35, SafeFeather, Sdf);
+}
+
+float TimeThiefSmokeBulletHardOpenFromValues(float Cutout)
+{
+	const float SafeCutout = max(Cutout, 0.0);
+	const float HoldMask = step(1.0, SafeCutout);
+	const float FeatherMask = smoothstep(0.02, 0.68, saturate(SafeCutout));
+	return 1.0 - max(HoldMask, FeatherMask);
+}
+
+float TimeThiefSmokeBulletSinkOpenFromValues(float Sink)
+{
+	return 1.0 - smoothstep(0.04, 0.92, saturate(Sink));
+}
+
+float TimeThiefSmokeBulletSourceOpenFromValues(float Cutout, float Sink)
+{
+	return min(TimeThiefSmokeBulletHardOpenFromValues(Cutout), 1.0 - smoothstep(0.02, 0.62, saturate(Sink)));
+}
+
+float TimeThiefSmokeBulletDetailOpenFromValues(float Cutout, float Sink)
+{
+	return min(TimeThiefSmokeBulletHardOpenFromValues(Cutout), TimeThiefSmokeBulletSinkOpenFromValues(Sink));
+}
+
+float TimeThiefSmokeBulletEdgeMaskFromValues(float Cutout, float Sink)
+{
+	const float SafeCutout = saturate(Cutout);
+	const float SafeSink = saturate(Sink);
+	const float CutoutEdge = smoothstep(0.08, 0.42, SafeCutout) * (1.0 - smoothstep(0.72, 1.0, SafeCutout));
+	const float SinkEdge = smoothstep(0.10, 0.68, SafeSink) * (1.0 - smoothstep(0.78, 1.0, SafeCutout));
+	return saturate(max(CutoutEdge, SinkEdge * 0.7));
+}
+
+FTimeThiefSmokeBulletOpenMasks TimeThiefSmokeBulletOpenMasksFromValues(float Cutout, float Sink)
+{
+	FTimeThiefSmokeBulletOpenMasks Masks;
+	Masks.Hard = TimeThiefSmokeBulletHardOpenFromValues(Cutout);
+	Masks.Sink = TimeThiefSmokeBulletSinkOpenFromValues(Sink);
+	Masks.Source = TimeThiefSmokeBulletSourceOpenFromValues(Cutout, Sink);
+	Masks.Detail = TimeThiefSmokeBulletDetailOpenFromValues(Cutout, Sink);
+	Masks.Edge = TimeThiefSmokeBulletEdgeMaskFromValues(Cutout, Sink);
+	return Masks;
+}

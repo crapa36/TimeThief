@@ -1,0 +1,192 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_UPDATE_VORTEX_PARTICLES_PARAMETERS
+
+float DenseVortexDensityAt(float3 UVW)
+{
+	return TimeThiefSmokeInsideUVW(UVW)
+		? max(DensityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0) + DisplacedDensityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0), 0.0)
+		: 0.0;
+}
+
+float3 DenseVortexDensityGradientAt(float3 UVW)
+{
+	const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
+	return float3(
+		DenseVortexDensityAt(UVW + float3(Texel.x, 0.0, 0.0)) - DenseVortexDensityAt(UVW - float3(Texel.x, 0.0, 0.0)),
+		DenseVortexDensityAt(UVW + float3(0.0, Texel.y, 0.0)) - DenseVortexDensityAt(UVW - float3(0.0, Texel.y, 0.0)),
+		DenseVortexDensityAt(UVW + float3(0.0, 0.0, Texel.z)) - DenseVortexDensityAt(UVW - float3(0.0, 0.0, Texel.z)));
+}
+
+float DenseVortexOpenAt(float3 UVW)
+{
+	return TimeThiefSmokeInsideUVW(UVW) ? TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, saturate(UVW), ObstacleSdfSurfaceFeatherCm) : 0.0;
+}
+
+float DenseVortexBulletDetailAt(float3 UVW)
+{
+	const float Cutout = BulletCutoutTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
+	const float Sink = BulletSinkTexture.SampleLevel(VolumeSampler, saturate(UVW), 0.0);
+	const FTimeThiefSmokeBulletOpenMasks Masks = TimeThiefSmokeBulletOpenMasksFromValues(Cutout, Sink);
+	return Masks.Detail;
+}
+
+float DenseVortexActorWakeSeed(float3 WorldPosition, out float3 OutDirection)
+{
+	float WakeWeight = 0.0;
+	OutDirection = float3(0.0, 0.0, 0.0);
+
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		if ((uint)round(Event.TypeShapeAgeSeed.x) != 2u)
+		{
+			continue;
+		}
+
+		const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
+		const float3 Direction = normalize(Event.DirectionLength.xyz + 0.0001);
+		const float Radius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
+		const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
+		const float MotionMask = smoothstep(ActorAirflowMinSpeed, ActorAirflowFullSpeed, ActorSpeed);
+		if (MotionMask <= 0.001)
+		{
+			continue;
+		}
+
+		const float3 GridCellSize = max((BoundsExtent * 2.0) / max(float3(GridResolution), 1.0), 1.0);
+		const float MaxGridCellSize = max(max(GridCellSize.x, GridCellSize.y), GridCellSize.z);
+		const float Along = dot(WorldPosition - Event.PositionRadius.xyz, -Direction);
+		const float WakeLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+		const float WakeT = saturate(Along / max(WakeLength, 1.0));
+		const float LineRadius = max(max(Radius * lerp(0.16, 0.42, WakeT), MaxGridCellSize * 1.35), 2.0);
+		const float3 Closest = Event.PositionRadius.xyz - Direction * clamp(Along, 0.0, WakeLength);
+		const float Radial = length(WorldPosition - Closest);
+		const float CoreWake = (1.0 - smoothstep(LineRadius * 0.32, LineRadius, Radial)) *
+			(1.0 - smoothstep(Radius * 0.35, WakeLength, Along)) *
+			saturate(Event.ExtentsStrength.w) * WarpBudget * MotionMask;
+		float3 WakeStreetDirection = Direction;
+		const float StreetWake = TimeThiefSmokeActorWakeStreetMask(WorldPosition, Event, Radius, WakeLength, MaxGridCellSize, ActorWakeStreetLaneInnerRadiusScale, WakeStreetDirection) *
+			saturate(Event.ExtentsStrength.w) * WarpBudget * MotionMask;
+		const float Wake = max(CoreWake * 0.55, StreetWake);
+		if (Wake > WakeWeight)
+		{
+			WakeWeight = Wake;
+			OutDirection = StreetWake > CoreWake * 0.55 ? WakeStreetDirection : Direction;
+		}
+	}
+
+	return saturate(WakeWeight);
+}
+
+float DenseVortexExplosionShellSeed(float3 WorldPosition)
+{
+	float ShellWeight = 0.0;
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		if ((uint)round(Event.TypeShapeAgeSeed.x) != 1u)
+		{
+			continue;
+		}
+
+		const float Age = saturate(Event.TypeShapeAgeSeed.z);
+		const float Radius = max(Event.PositionRadius.w, 1.0);
+		const float Distance = length(WorldPosition - Event.PositionRadius.xyz);
+		const float FrontRadius = Radius * lerp(0.12, 1.08, Age);
+		const float FrontThickness = max(Radius * 0.16, 1.0);
+		const float Shell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
+		ShellWeight = max(ShellWeight, Shell * (1.0 - smoothstep(0.86, 1.0, Age)) * saturate(Event.ExtentsStrength.w));
+	}
+	return saturate(ShellWeight);
+}
+
+FTimeThiefSmokeVortexParticleShaderData DenseVortexDeadParticle()
+{
+	FTimeThiefSmokeVortexParticleShaderData Particle;
+	Particle.LocalPositionLife = float4(0.0, 0.0, 0.0, 0.0);
+	Particle.VelocityStrength = float4(0.0, 0.0, 0.0, 0.0);
+	Particle.AxisSeed = float4(0.0, 0.0, 1.0, 0.0);
+	return Particle;
+}
+
+[numthreads(64, 1, 1)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	const uint ParticleIndex = DispatchThreadId.x;
+	if (ParticleIndex >= (uint)VortexParticleCount)
+	{
+		return;
+	}
+
+	FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticlesIn[ParticleIndex];
+	const float SafeLife = max(VortexParticleLifeSeconds, 0.001);
+	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
+	const float SafeSelfWobbleParticleScale = max(SelfWobbleParticleScale, 0.0);
+	if (Particle.LocalPositionLife.w > 0.0)
+	{
+		const float3 UVW = Particle.LocalPositionLife.xyz / max(BoundsExtent, 1.0) * 0.5 + 0.5;
+		const float OpenMask = DenseVortexOpenAt(UVW);
+		const float BulletDetail = DenseVortexBulletDetailAt(UVW);
+		const float Density = DenseVortexDensityAt(UVW);
+		const float3 WorldPosition = mul(float4(Particle.LocalPositionLife.xyz, 1.0), LocalToWorld).xyz;
+		float3 ActorDirection = 0.0;
+		const float ActorWake = DenseVortexActorWakeSeed(WorldPosition, ActorDirection);
+		if (OpenMask < 0.08 || (Density < 0.015 && ActorWake < 0.02 && BulletDetail < 0.06))
+		{
+			OutVortexParticles[ParticleIndex] = DenseVortexDeadParticle();
+			return;
+		}
+
+		const float3 CellVelocity = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0).xyz;
+		const float3 NextWorldPosition = WorldPosition + CellVelocity * DeltaSeconds;
+		const float3 NextLocalPosition = mul(float4(NextWorldPosition, 1.0), WorldToLocal).xyz;
+		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.017 + Particle.AxisSeed.xyz * 1.7, AgeSeconds * 0.18 * SafeSelfWobbleTimeScale + Particle.AxisSeed.w);
+		Particle.LocalPositionLife.xyz = NextLocalPosition;
+		Particle.LocalPositionLife.w = max(0.0, Particle.LocalPositionLife.w - DeltaSeconds);
+		Particle.VelocityStrength.xyz = lerp(Particle.VelocityStrength.xyz, CellVelocity + Curl * Particle.VelocityStrength.w * 0.18 * SafeSelfWobbleParticleScale, saturate(DeltaSeconds * 2.4 * SafeSelfWobbleParticleScale));
+		Particle.VelocityStrength.w *= exp2(-DeltaSeconds / SafeLife);
+		Particle.AxisSeed.xyz = normalize(lerp(Particle.AxisSeed.xyz, Curl, saturate(DeltaSeconds * 1.8 * SafeSelfWobbleParticleScale)) + 0.0001);
+		OutVortexParticles[ParticleIndex] = Particle;
+		return;
+	}
+
+	const float SpawnStep = floor(AgeSeconds * 36.0 * SafeSelfWobbleTimeScale);
+	const float3 Random = TimeThiefSmokeHash33(float3((float)ParticleIndex * 13.17, SpawnStep * 7.31 + 5.0, (float)VortexParticleCount * 0.113));
+	const float3 CandidateUVW = saturate(Random * 0.96 + 0.02);
+	const float3 CandidateLocal = (CandidateUVW * 2.0 - 1.0) * BoundsExtent;
+	const float3 CandidateWorld = mul(float4(CandidateLocal, 1.0), LocalToWorld).xyz;
+	const float CellDensity = DenseVortexDensityAt(CandidateUVW);
+	const float3 CandidateVelocity = VelocityIn.SampleLevel(VolumeSampler, CandidateUVW, 0.0).xyz;
+	const float3 Gradient = DenseVortexDensityGradientAt(CandidateUVW);
+	const float EdgeWeight = saturate(length(Gradient) * VortexDensityGradientScale);
+	const float BulletDetail = DenseVortexBulletDetailAt(CandidateUVW);
+	const float OpenMask = DenseVortexOpenAt(CandidateUVW);
+	const float SurfaceShear = OpenMask * smoothstep(0.03, 0.28, CellDensity) * saturate(length(CandidateVelocity) / 420.0);
+	float3 ActorDirection = 0.0;
+	const float ActorWake = DenseVortexActorWakeSeed(CandidateWorld, ActorDirection);
+	const float ExplosionShell = DenseVortexExplosionShellSeed(CandidateWorld);
+	const float DensityEdgeSeed = EdgeWeight * smoothstep(0.04, 0.32, CellDensity);
+	const float BulletSeed = BulletDetail * smoothstep(0.015, 0.18, CellDensity);
+	const float EventSeed = max(ExplosionShell, ActorWake);
+	const float SpawnChance = saturate(max(max(DensityEdgeSeed, SurfaceShear), max(EventSeed, BulletSeed)) * OpenMask);
+	const float SpawnRoll = TimeThiefSmokeHash13(float3((float)ParticleIndex * 0.37, SpawnStep, 91.7));
+	if (SpawnChance < 0.18 || SpawnRoll > SpawnChance * 0.72)
+	{
+		OutVortexParticles[ParticleIndex] = DenseVortexDeadParticle();
+		return;
+	}
+
+	const float3 Curl = TimeThiefSmokeCurlNoise(CandidateWorld * 0.018 + Gradient * 3.1, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale + SpawnRoll);
+	const float3 Axis = normalize(cross(normalize(Gradient + 0.0001), Curl) + ActorDirection * ActorWake + 0.0001);
+	FTimeThiefSmokeVortexParticleShaderData OutParticle;
+	OutParticle.LocalPositionLife = float4(CandidateLocal, SafeLife * lerp(0.55, 1.0, Random.z));
+	OutParticle.VelocityStrength = float4(Curl * VortexParticleStrength * 0.24 * SafeSelfWobbleParticleScale + normalize(CandidateVelocity + 0.0001) * VortexParticleStrength * SurfaceShear * 0.48 * SafeSelfWobbleParticleScale + ActorDirection * VortexParticleStrength * ActorWake, VortexParticleStrength * SpawnChance * lerp(0.85, 1.25, saturate(max(BulletDetail, EventSeed))));
+	OutParticle.AxisSeed = float4(Axis, SpawnRoll);
+	OutVortexParticles[ParticleIndex] = OutParticle;
+}

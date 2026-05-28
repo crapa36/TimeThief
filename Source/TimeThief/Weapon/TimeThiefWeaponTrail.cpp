@@ -10,13 +10,13 @@
 UTimeThiefWeaponTrail::UTimeThiefWeaponTrail()
 {
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultHitscanTrailSystem(
-		TEXT("/Game/VFX/Weapons/NS_WhiteHitscanTrail.NS_WhiteHitscanTrail"));
-	checkf(DefaultHitscanTrailSystem.Succeeded(), TEXT("Missing Niagara asset: /Game/VFX/Weapons/NS_WhiteHitscanTrail."));
+		TEXT("/Game/Game/VFX/Weapons/NS_WhiteHitscanTrail.NS_WhiteHitscanTrail"));
+	checkf(DefaultHitscanTrailSystem.Succeeded(), TEXT("Missing Niagara asset: /Game/Game/VFX/Weapons/NS_WhiteHitscanTrail."));
 	HitscanTrailSystem = DefaultHitscanTrailSystem.Object;
 
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultProjectileTrailSystem(
-		TEXT("/Game/VFX/Weapons/NS_WhiteProjectileTrail.NS_WhiteProjectileTrail"));
-	checkf(DefaultProjectileTrailSystem.Succeeded(), TEXT("Missing Niagara asset: /Game/VFX/Weapons/NS_WhiteProjectileTrail."));
+		TEXT("/Game/Game/VFX/Weapons/NS_WhiteProjectileTrail.NS_WhiteProjectileTrail"));
+	checkf(DefaultProjectileTrailSystem.Succeeded(), TEXT("Missing Niagara asset: /Game/Game/VFX/Weapons/NS_WhiteProjectileTrail."));
 	ProjectileTrailSystem = DefaultProjectileTrailSystem.Object;
 }
 
@@ -38,7 +38,7 @@ void UTimeThiefWeaponTrail::DrawHitscanTrail(UWorld& World, ETimeThiefWeaponTrai
 
 	if (TrailComponent)
 	{
-		ApplyTrailParameters(*TrailComponent, Start, End, TrailStyle);
+		ApplyTrailParameters(*TrailComponent, Start, End, TrailStyle, GetHitscanLifetime(Start, End, TrailStyle));
 		TrailComponent->Activate();
 	}
 }
@@ -63,7 +63,7 @@ UNiagaraComponent* UTimeThiefWeaponTrail::StartProjectileTrail(ETimeThiefWeaponT
 	{
 		const FTimeThiefWeaponTrailStyle& TrailStyle = GetTrailStyle(TrailType);
 
-		ApplyTrailParameters(*TrailComponent, FVector::ZeroVector, FVector::ZeroVector, TrailStyle);
+		ApplyTrailParameters(*TrailComponent, FVector::ZeroVector, FVector::ZeroVector, TrailStyle, TrailStyle.Lifetime);
 		TrailComponent->Activate();
 	}
 
@@ -100,11 +100,22 @@ const FTimeThiefWeaponTrailStyle& UTimeThiefWeaponTrail::GetTrailStyle(ETimeThie
 	return RifleTrail;
 }
 
-void UTimeThiefWeaponTrail::ApplyTrailParameters(UNiagaraComponent& TrailComponent, const FVector& Start, const FVector& End, const FTimeThiefWeaponTrailStyle& Style) const
+float UTimeThiefWeaponTrail::GetHitscanLifetime(const FVector& Start, const FVector& End, const FTimeThiefWeaponTrailStyle& Style) const
+{
+	const float TrailLength = FVector::Distance(Start, End);
+	const float FadeSpeed = FMath::Max(Style.FadeSpeed, KINDA_SMALL_NUMBER);
+	const float FadeDistance = FMath::Max(Style.FadeDistance, 0.0f);
+
+	return FMath::Max(Style.Lifetime, (TrailLength + FadeDistance) / FadeSpeed);
+}
+
+void UTimeThiefWeaponTrail::ApplyTrailParameters(UNiagaraComponent& TrailComponent, const FVector& Start, const FVector& End, const FTimeThiefWeaponTrailStyle& Style, float Lifetime) const
 {
 	TrailComponent.SetVariablePosition(TrailStartParameterName, Start);
 	TrailComponent.SetVariablePosition(TrailEndParameterName, End);
 	TrailComponent.SetVariableLinearColor(TrailColorParameterName, Style.Color);
 	TrailComponent.SetVariableFloat(TrailWidthParameterName, Style.Width);
-	TrailComponent.SetVariableFloat(TrailLifetimeParameterName, FMath::Max(Style.Lifetime, KINDA_SMALL_NUMBER));
+	TrailComponent.SetVariableFloat(TrailLifetimeParameterName, FMath::Max(Lifetime, KINDA_SMALL_NUMBER));
+	TrailComponent.SetVariableFloat(TrailFadeSpeedParameterName, FMath::Max(Style.FadeSpeed, KINDA_SMALL_NUMBER));
+	TrailComponent.SetVariableFloat(TrailFadeDistanceParameterName, FMath::Max(Style.FadeDistance, KINDA_SMALL_NUMBER));
 }

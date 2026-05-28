@@ -1,0 +1,142 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_BRICK_OCCUPANCY_PARAMETERS
+
+groupshared uint SharedActive;
+
+float BrickEventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
+{
+	const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
+	if (EventType == 0u)
+	{
+		return TimeThiefSmokeBulletWakeInfluenceRadius(Event, BulletWakeCutoutFeather);
+	}
+	if (EventType == 1u)
+	{
+		return TimeThiefSmokeExplosionInfluenceRadius(Event);
+	}
+	if (EventType == 2u)
+	{
+		return max(
+			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
+			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+	}
+	if (EventType == 3u)
+	{
+		return TimeThiefSmokePlumeSourceInfluenceRadius(Event);
+	}
+	return 0.0;
+}
+
+float3 BrickCenterWorld(int3 BrickCoord, out float OutBrickRadius)
+{
+	const float SafeBrickSize = max((float)SmokeBrickSize, 1.0);
+	const float3 SafeGridResolution = max(float3(GridResolution), 1.0);
+	const float3 BrickMinUVW = saturate((float3(BrickCoord) * SafeBrickSize) / SafeGridResolution);
+	const float3 BrickMaxUVW = saturate((float3(BrickCoord + int3(1, 1, 1)) * SafeBrickSize) / SafeGridResolution);
+	const float3 CenterUVW = (BrickMinUVW + BrickMaxUVW) * 0.5;
+	const float3 HalfExtentLocal = max((BrickMaxUVW - BrickMinUVW) * BoundsExtent, 1.0);
+	OutBrickRadius = length(HalfExtentLocal) + 2.0;
+
+	const float3 LocalPosition = (CenterUVW * 2.0 - 1.0) * BoundsExtent;
+	return mul(float4(LocalPosition, 1.0), LocalToWorld).xyz;
+}
+
+bool IsEventActiveBrick(int3 BrickCoord)
+{
+	float BrickRadius = 1.0;
+	const float3 CenterWorld = BrickCenterWorld(BrickCoord, BrickRadius);
+	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+
+	[loop]
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	{
+		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
+		if (Event.ExtentsStrength.w <= 0.001)
+		{
+			continue;
+		}
+
+		const float InfluenceRadius = BrickEventInfluenceRadius(Event) + BrickRadius;
+		const float3 ToBrick = CenterWorld - Event.PositionRadius.xyz;
+		if (dot(ToBrick, ToBrick) <= InfluenceRadius * InfluenceRadius)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool IsActiveCell(int3 Coord)
+{
+	const float Density = DensityTexture.Load(int4(Coord, 0)) + DisplacedDensityTexture.Load(int4(Coord, 0));
+	const float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
+	const float Warp = bCheckWarpChannel != 0u ? WarpTexture.Load(int4(Coord, 0)) : 0.0;
+	const float Cutout = bCheckBulletChannels != 0u ? BulletCutoutTexture.Load(int4(Coord, 0)) : 0.0;
+	const float Sink = bCheckBulletChannels != 0u ? BulletSinkTexture.Load(int4(Coord, 0)) : 0.0;
+	if (Density > 0.001 || Warp > 0.001 || Cutout > 0.001 || Sink > 0.001)
+	{
+		return true;
+	}
+
+	const float VelocityThreshold = max(SparseVelocityActiveThreshold, 0.0);
+	if (dot(Velocity, Velocity) > VelocityThreshold * VelocityThreshold)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+[numthreads(8, 8, 8)]
+void MainCS(uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
+{
+	if (any(int3(GroupId) >= BrickGridResolution))
+	{
+		return;
+	}
+
+	if (all(GroupThreadId == uint3(0, 0, 0)))
+	{
+		SharedActive = 0u;
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	const int BrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickBase = int3(GroupId) * BrickSize;
+	if (all(GroupThreadId == uint3(0, 0, 0)) && IsEventActiveBrick(int3(GroupId)))
+	{
+		SharedActive = 1u;
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	if (SharedActive == 0u)
+	{
+		[loop]
+		for (int Z = int(GroupThreadId.z); Z < BrickSize; Z += 8)
+		{
+			[loop]
+			for (int Y = int(GroupThreadId.y); Y < BrickSize; Y += 8)
+			{
+				[loop]
+				for (int X = int(GroupThreadId.x); X < BrickSize; X += 8)
+				{
+					const int3 Coord = BrickBase + int3(X, Y, Z);
+					if (all(Coord < GridResolution) && IsActiveCell(Coord))
+					{
+						InterlockedOr(SharedActive, 1u);
+					}
+				}
+			}
+		}
+	}
+
+	GroupMemoryBarrierWithGroupSync();
+
+	if (all(GroupThreadId == uint3(0, 0, 0)))
+	{
+		OutBrickOccupancy[GroupId] = SharedActive != 0u ? 1u : 0u;
+	}
+}
