@@ -31,7 +31,7 @@ public:
 	void StopAiming();
 	
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat|Aim")
-	FVector GetWorldAimLocation() const { return AimHelperState.SmoothedTargetLocation; }
+	FVector GetWorldAimLocation() const { return AimHelperState.TargetLocation; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Combat")
 	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
@@ -74,7 +74,7 @@ protected:
 
 private:
 	void UpdateAimFOV(float DeltaTime);
-	void UpdateLocalWorldAimLocation(float DeltaTime);
+	void UpdateLocalWorldAimLocation();
 	void ApplyAimYawOverflowRotation(float DeltaTime);
 	void SyncAimToServer();
 	

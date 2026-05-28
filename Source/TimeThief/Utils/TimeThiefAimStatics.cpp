@@ -22,35 +22,6 @@ static bool IsWithinAimHelperCloseHitDistance(const FVector& DistanceOrigin, con
 	return FVector::DistSquared(DistanceOrigin, HitLocation) < FMath::Square(CloseHitDistance);
 }
 
-static float SmoothStep(float Alpha)
-{
-	return Alpha * Alpha * (3.0f - (2.0f * Alpha));
-}
-
-static void StartAimHelperBlend(FTimeThiefAimHelperState& InOutAimHelperState)
-{
-	InOutAimHelperState.BlendStartLocation = InOutAimHelperState.SmoothedTargetLocation;
-	InOutAimHelperState.BlendElapsedTime = 0.0f;
-	InOutAimHelperState.bIsSmoothing = true;
-}
-
-static bool IsAimHelperTargetJump(
-	const FVector& Origin,
-	const FVector& CurrentTargetLocation,
-	const FVector& NewTargetLocation)
-{
-	const FVector CurrentDirection = (CurrentTargetLocation - Origin).GetSafeNormal();
-	const FVector NewDirection = (NewTargetLocation - Origin).GetSafeNormal();
-	if (CurrentDirection.IsNearlyZero() || NewDirection.IsNearlyZero())
-	{
-		return false;
-	}
-
-	const float Dot = FMath::Clamp(FVector::DotProduct(CurrentDirection, NewDirection), -1.0f, 1.0f);
-	const float DeltaAngle = FMath::RadiansToDegrees(FMath::Acos(Dot));
-	return DeltaAngle >= UTimeThiefAimStatics::AimHelperJumpAngleDegrees;
-}
-
 static bool TraceViewTarget(
 	UWorld* World,
 	const FVector& ViewLocation,
@@ -281,13 +252,9 @@ void UTimeThiefAimStatics::ResetAimHelperState(
 	const FVector& TargetLocation,
 	bool bUsingCloseHitSkip)
 {
-	InOutAimHelperState.SmoothedTargetLocation = TargetLocation;
-	InOutAimHelperState.RawTargetLocation = TargetLocation;
-	InOutAimHelperState.BlendStartLocation = TargetLocation;
-	InOutAimHelperState.BlendElapsedTime = 0.0f;
+	InOutAimHelperState.TargetLocation = TargetLocation;
 	InOutAimHelperState.bHasTargetLocation = true;
 	InOutAimHelperState.bWasUsingCloseHitSkip = bUsingCloseHitSkip;
-	InOutAimHelperState.bIsSmoothing = false;
 }
 
 FVector UTimeThiefAimStatics::UpdateAimHelperTargetFromView(
@@ -298,8 +265,6 @@ FVector UTimeThiefAimStatics::UpdateAimHelperTargetFromView(
 	float Range,
 	const TArray<AActor*>& ActorsToIgnore,
 	const FVector& DistanceOrigin,
-	const FVector& AimOrigin,
-	float DeltaTime,
 	ECollisionChannel TraceChannel,
 	bool bTraceComplex,
 	bool bReturnPhysicalMaterial)
@@ -324,52 +289,9 @@ FVector UTimeThiefAimStatics::UpdateAimHelperTargetFromView(
 		return RawTargetLocation;
 	}
 
-	const bool bCloseHitSkipStateChanged = InOutAimHelperState.bWasUsingCloseHitSkip != bUsingCloseHitSkip;
-	const bool bTargetJumped = IsAimHelperTargetJump(
-		AimOrigin,
-		InOutAimHelperState.SmoothedTargetLocation,
-		RawTargetLocation);
-	const bool bRawTargetChangedDuringBlend = InOutAimHelperState.bIsSmoothing && IsAimHelperTargetJump(
-		AimOrigin,
-		InOutAimHelperState.RawTargetLocation,
-		RawTargetLocation);
-
-	if (bCloseHitSkipStateChanged || (!InOutAimHelperState.bIsSmoothing && bTargetJumped) || bRawTargetChangedDuringBlend)
-	{
-		StartAimHelperBlend(InOutAimHelperState);
-	}
-
-	InOutAimHelperState.RawTargetLocation = RawTargetLocation;
+	InOutAimHelperState.TargetLocation = RawTargetLocation;
 	InOutAimHelperState.bWasUsingCloseHitSkip = bUsingCloseHitSkip;
-
-	if (!InOutAimHelperState.bIsSmoothing)
-	{
-		InOutAimHelperState.SmoothedTargetLocation = RawTargetLocation;
-		return InOutAimHelperState.SmoothedTargetLocation;
-	}
-
-	if (DeltaTime <= 0.0f)
-	{
-		return InOutAimHelperState.SmoothedTargetLocation;
-	}
-
-	InOutAimHelperState.BlendElapsedTime += DeltaTime;
-	const float BlendAlpha = UTimeThiefAimStatics::AimHelperSettleTime > KINDA_SMALL_NUMBER
-		? FMath::Clamp(InOutAimHelperState.BlendElapsedTime / UTimeThiefAimStatics::AimHelperSettleTime, 0.0f, 1.0f)
-		: 1.0f;
-	InOutAimHelperState.SmoothedTargetLocation = FMath::Lerp(
-		InOutAimHelperState.BlendStartLocation,
-		InOutAimHelperState.RawTargetLocation,
-		SmoothStep(BlendAlpha));
-
-	if (BlendAlpha >= 1.0f || FVector::DistSquared(InOutAimHelperState.SmoothedTargetLocation, InOutAimHelperState.RawTargetLocation) <= FMath::Square(UTimeThiefAimStatics::AimHelperSnapDistance))
-	{
-		InOutAimHelperState.SmoothedTargetLocation = InOutAimHelperState.RawTargetLocation;
-		InOutAimHelperState.bIsSmoothing = false;
-		InOutAimHelperState.BlendElapsedTime = 0.0f;
-	}
-
-	return InOutAimHelperState.SmoothedTargetLocation;
+	return InOutAimHelperState.TargetLocation;
 }
 
 bool UTimeThiefAimStatics::TraceLine(
