@@ -49,7 +49,6 @@ private:
 	void GatherActorPushEvents(float DeltaTime);
 	void MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent);
 	FVector ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FVector& OutPreviousLocation);
-	float EstimateWarpDensityAtWorldPosition(const FVector& WorldPosition) const;
 	ESmokeInteractionShape ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const;
 	void MarkObstacleFieldDirty();
 	void RebuildStaticObstacleField();

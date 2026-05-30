@@ -113,6 +113,11 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
 	// 연막 screen rect 여유 픽셀(px). 높을수록 가장자리 누락 감소, 합성 면적 증가.
 	constexpr int32 CompositeScreenRectPadding = 12;
+	constexpr bool bEnableMultiSmokeQualityReduction = true;
+	constexpr float MultiSmokeSelfShadowStepScale = 0.25f;
+	constexpr float MultiSmokeRenderStepScale = 0.55f;
+	constexpr float MultiSmokeInactiveBrickRaymarchSkipScale = 12.0f;
+	constexpr bool bForceFastFilamentForMultiSmoke = true;
 
 	// 빛과 그림자
 
@@ -469,6 +474,7 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float SmokeClusterReleaseMinExpansionCm = 320.0f;
 	// 연막 공간 해시 셀 크기(cm). 높을수록 broadphase 비용 감소, 후보 수 증가.
 	constexpr float SmokeSpatialCellSize = 2400.0f;
+	constexpr bool bEnableClusterObstacleMerge = true;
 
 	// 합성 scissor 기본 사용 여부. 켜면 합성 면적과 비용 감소.
 	constexpr int32 bUseCompositeScissorByDefault = 1;

@@ -194,6 +194,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	float EventSourceDensity = 0.0;
 	float3 EventSourceVelocity = float3(0.0, 0.0, 0.0);
 	float SourceObstacleOpen = 0.0;
+	float ExplosionBoundaryPreserve = 0.0;
 	bool bEventSourceInfluence = false;
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
@@ -231,6 +232,26 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 				EventSourceDensity += SourceWeight * Emission * InitialDensity;
 				EventSourceVelocity += SourceVelocity * SourceWeight * Emission;
 				bEventSourceInfluence = bEventSourceInfluence || SourceWeight * Emission > 0.001;
+			}
+			continue;
+		}
+
+		if (EventType == 1u)
+		{
+			const float Age = saturate(Event.TypeShapeAgeSeed.z);
+			const float3 ToCell = WorldPosition - Event.PositionRadius.xyz;
+			const float Radius = max(Event.PositionRadius.w, 1.0);
+			const float InfluenceRadius = TimeThiefSmokeExplosionInfluenceRadius(Event);
+			if (dot(ToCell, ToCell) <= InfluenceRadius * InfluenceRadius)
+			{
+				const float Distance = length(ToCell);
+				const float FrontRadius = Radius * lerp(0.12, 1.08, Age);
+				const float FrontThickness = max(Radius * 0.16, 1.0);
+				const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
+				const float EvacuatedCore = (1.0 - smoothstep(max(FrontRadius * 0.35, 1.0), max(FrontRadius * 0.92, 2.0), Distance)) *
+					(1.0 - smoothstep(0.72, 1.0, Age));
+				const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
+				ExplosionBoundaryPreserve = max(ExplosionBoundaryPreserve, saturate((ShockShell + EvacuatedCore * 0.55) * max(Event.ExtentsStrength.w, 0.0) * ShockFade));
 			}
 			continue;
 		}
@@ -390,12 +411,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float ChunkNoise = TimeThiefSmokeValueNoise(WorldPosition * 0.018);
 	const float CloudCohesion = lerp(0.72, 1.38, saturate(CloudBillow * 0.58 + ChunkNoise * 0.42));
 	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
-	Density *= BoundaryDamping;
-	DisplacedDensity *= BoundaryDamping;
 	const float NaturalVentilation = saturate(1.0 - NaturalBoundsMask);
-	const float NaturalVentilationDissipation = NaturalVentilation * NaturalVentilation * (4.0 + max(EffectiveDissipation, 0.0) + max(VelocityDamping, 0.0));
+	const float TotalBeforeBoundary = max(Density + DisplacedDensity, 0.0001);
+	const float DisplacedDominance = saturate(DisplacedDensity / TotalBeforeBoundary);
+	const float BoundaryPreserve = saturate(ExplosionBoundaryPreserve + DisplacedDominance * 0.65);
+	const float NaturalBoundaryDamping = lerp(BoundaryDamping, max(BoundaryDamping, 0.82), ExplosionBoundaryPreserve);
+	const float DisplacedBoundaryDamping = lerp(BoundaryDamping, max(BoundaryDamping, 0.96), BoundaryPreserve);
+	Density *= NaturalBoundaryDamping;
+	DisplacedDensity *= DisplacedBoundaryDamping;
+	const float NaturalVentilationDissipation = NaturalVentilation * NaturalVentilation * (4.0 + max(EffectiveDissipation, 0.0) + max(VelocityDamping, 0.0)) * (1.0 - ExplosionBoundaryPreserve * 0.9);
 	const float NaturalVentilationDecay = exp2(-NaturalVentilationDissipation * DeltaSeconds);
-	const float DisplacedDominance = saturate(DisplacedDensity / max(Density + DisplacedDensity, 0.0001));
 	const float DisplacedVentilationDecay = lerp(NaturalVentilationDecay, 1.0, DisplacedDominance);
 	Density *= NaturalVentilationDecay;
 	DisplacedDensity *= DisplacedVentilationDecay;

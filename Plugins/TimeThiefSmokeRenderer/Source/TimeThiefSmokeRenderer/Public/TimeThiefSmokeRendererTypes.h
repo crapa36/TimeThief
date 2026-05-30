@@ -118,6 +118,12 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
 	float RenderFilamentStrength;
 	float RenderFilamentContrast;
 	float RenderFilamentWarpStrength;
+	bool bEnableMultiSmokeQualityReduction;
+	float MultiSmokeSelfShadowStepScale;
+	float MultiSmokeRenderStepScale;
+	float MultiSmokeInactiveBrickRaymarchSkipScale;
+	bool bForceFastFilamentForMultiSmoke;
+	bool bEnableClusterObstacleMerge;
 };
 
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererEvent

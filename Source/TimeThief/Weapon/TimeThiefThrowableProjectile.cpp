@@ -214,6 +214,11 @@ void ATimeThiefThrowableProjectile::RemoteExplosionEffect(const FVector& Explosi
 	// FX / Sound만 재생
 	PlayDetonationEffects(ExplosionLocation);
 
+	if (ThrowableItemID == EItemID::SmokeGrenade)
+	{
+		SpawnSmokeVolume(ExplosionLocation);
+	}
+
 	Destroy();
 }
 

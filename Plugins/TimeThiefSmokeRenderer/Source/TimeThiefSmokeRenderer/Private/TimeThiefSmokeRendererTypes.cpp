@@ -87,6 +87,12 @@ FTimeThiefSmokeRendererSettings::FTimeThiefSmokeRendererSettings()
 	, RenderFilamentStrength(TimeThiefSmokeParameterDefaults::RenderFilamentStrength)
 	, RenderFilamentContrast(TimeThiefSmokeParameterDefaults::RenderFilamentContrast)
 	, RenderFilamentWarpStrength(TimeThiefSmokeParameterDefaults::RenderFilamentWarpStrength)
+	, bEnableMultiSmokeQualityReduction(TimeThiefSmokeParameterDefaults::bEnableMultiSmokeQualityReduction)
+	, MultiSmokeSelfShadowStepScale(TimeThiefSmokeParameterDefaults::MultiSmokeSelfShadowStepScale)
+	, MultiSmokeRenderStepScale(TimeThiefSmokeParameterDefaults::MultiSmokeRenderStepScale)
+	, MultiSmokeInactiveBrickRaymarchSkipScale(TimeThiefSmokeParameterDefaults::MultiSmokeInactiveBrickRaymarchSkipScale)
+	, bForceFastFilamentForMultiSmoke(TimeThiefSmokeParameterDefaults::bForceFastFilamentForMultiSmoke)
+	, bEnableClusterObstacleMerge(TimeThiefSmokeParameterDefaults::bEnableClusterObstacleMerge)
 {
 }
 

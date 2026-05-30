@@ -94,13 +94,15 @@ namespace TimeThiefSmoke
 
 	bool AreSmokeVolumesClusterCompatible(const FTimeThiefSmokeRendererVolume& A, const FTimeThiefSmokeRendererVolume& B)
 	{
+		const bool bObstacleCompatible =
+			(A.Settings.bEnableClusterObstacleMerge && B.Settings.bEnableClusterObstacleMerge) ||
+			(!HasSolidObstacleField(A) && !HasSolidObstacleField(B));
 		return A.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
 			B.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
 			A.Settings.SmokeGridResolution == B.Settings.SmokeGridResolution &&
 			A.Settings.SmokeBrickSize == B.Settings.SmokeBrickSize &&
 			A.Settings.MaxActiveSmokeBricks == B.Settings.MaxActiveSmokeBricks &&
-			!HasSolidObstacleField(A) &&
-			!HasSolidObstacleField(B);
+			bObstacleCompatible;
 	}
 
 	int32 FindClusterRoot(TArray<int32>& Parents, const int32 Index)
@@ -301,12 +303,122 @@ namespace TimeThiefSmoke
 			static_cast<float>(FMath::Max(MinDelta.Z, MaxDelta.Z)));
 	}
 
+	float GetObstaclePrimitivePriorityRadius(const FTimeThiefSmokeObstaclePrimitive& Primitive)
+	{
+		return FMath::Max3(
+			FMath::Max(Primitive.CenterRadius.W, 1.0f),
+			FMath::Max(Primitive.ExtentsShape.X, 1.0f),
+			FMath::Max(Primitive.ExtentsShape.Y, Primitive.ExtentsShape.Z));
+	}
+
+	FTimeThiefSmokeObstaclePrimitive TransformObstaclePrimitiveToClusterLocal(
+		const FTimeThiefSmokeObstaclePrimitive& Primitive,
+		const FTransform3f& MemberLocalToWorld,
+		const FTransform3f& ClusterLocalToWorld)
+	{
+		FTimeThiefSmokeObstaclePrimitive Result = Primitive;
+		const FVector3f MemberCenter(Primitive.CenterRadius.X, Primitive.CenterRadius.Y, Primitive.CenterRadius.Z);
+		const FVector3f WorldCenter = MemberLocalToWorld.TransformPosition(MemberCenter);
+		const FVector3f ClusterCenter = ClusterLocalToWorld.InverseTransformPosition(WorldCenter);
+		Result.CenterRadius.X = ClusterCenter.X;
+		Result.CenterRadius.Y = ClusterCenter.Y;
+		Result.CenterRadius.Z = ClusterCenter.Z;
+
+		const FQuat4f ClusterFromMember = ClusterLocalToWorld.GetRotation().Inverse() * MemberLocalToWorld.GetRotation();
+		const ETimeThiefSmokeObstaclePrimitiveShape Shape = static_cast<ETimeThiefSmokeObstaclePrimitiveShape>(FMath::RoundToInt(Primitive.ExtentsShape.W));
+		if (Shape == ETimeThiefSmokeObstaclePrimitiveShape::Capsule)
+		{
+			const FVector3f MemberAxis(Primitive.AxisHalfLength.X, Primitive.AxisHalfLength.Y, Primitive.AxisHalfLength.Z);
+			const FVector3f ClusterAxis = ClusterFromMember.RotateVector(MemberAxis).GetSafeNormal(UE_SMALL_NUMBER, FVector3f::UpVector);
+			Result.AxisHalfLength.X = ClusterAxis.X;
+			Result.AxisHalfLength.Y = ClusterAxis.Y;
+			Result.AxisHalfLength.Z = ClusterAxis.Z;
+		}
+		else if (Shape == ETimeThiefSmokeObstaclePrimitiveShape::Box || Shape == ETimeThiefSmokeObstaclePrimitiveShape::Aabb)
+		{
+			const FQuat4f PrimitiveRotation(Primitive.Rotation.X, Primitive.Rotation.Y, Primitive.Rotation.Z, Primitive.Rotation.W);
+			const FQuat4f ClusterRotation = Shape == ETimeThiefSmokeObstaclePrimitiveShape::Aabb
+				? ClusterFromMember.GetNormalized()
+				: (ClusterFromMember * PrimitiveRotation).GetNormalized();
+			Result.Rotation = FVector4f(ClusterRotation.X, ClusterRotation.Y, ClusterRotation.Z, ClusterRotation.W);
+			Result.ExtentsShape.W = static_cast<float>(static_cast<uint8>(ETimeThiefSmokeObstaclePrimitiveShape::Box));
+		}
+
+		return Result;
+	}
+
+	void MergeClusterObstaclePrimitives(
+		const TArray<FPendingRendererSmokeVolume*>& ClusterMembers,
+		FTimeThiefSmokeRendererVolume& ClusterVolume)
+	{
+		struct FMergedObstaclePrimitive
+		{
+			FTimeThiefSmokeObstaclePrimitive Primitive;
+			float Priority = 0.0f;
+		};
+
+		TArray<FMergedObstaclePrimitive> Candidates;
+		uint32 RevisionHash = 0u;
+		int32 MaxResolution = 0;
+		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
+		{
+			if (!Member || !Member->Volume.bHasSolidObstacleField)
+			{
+				continue;
+			}
+
+			const FTimeThiefSmokeRendererVolume& Volume = Member->Volume;
+			MaxResolution = FMath::Max(MaxResolution, Volume.ObstacleFieldResolution);
+			RevisionHash = HashCombineFast(RevisionHash, GetTypeHash(Volume.SmokeId));
+			RevisionHash = HashCombineFast(RevisionHash, Volume.ObstacleFieldRevision);
+			RevisionHash = HashCombineFast(RevisionHash, GetTypeHash(Volume.ObstaclePrimitives.Num()));
+			for (const FTimeThiefSmokeObstaclePrimitive& Primitive : Volume.ObstaclePrimitives)
+			{
+				FMergedObstaclePrimitive& Candidate = Candidates.AddDefaulted_GetRef();
+				Candidate.Primitive = TransformObstaclePrimitiveToClusterLocal(Primitive, Volume.LocalToWorld, ClusterVolume.LocalToWorld);
+				const FVector3f Center(Candidate.Primitive.CenterRadius.X, Candidate.Primitive.CenterRadius.Y, Candidate.Primitive.CenterRadius.Z);
+				const float Radius = GetObstaclePrimitivePriorityRadius(Candidate.Primitive);
+				Candidate.Priority = Center.SizeSquared() / FMath::Max(Radius * Radius, 1.0f);
+			}
+		}
+
+		if (Candidates.IsEmpty())
+		{
+			ClusterVolume.ObstacleFieldResolution = 0;
+			ClusterVolume.ObstacleFieldRevision = 0;
+			ClusterVolume.ObstaclePrimitives.Reset();
+			ClusterVolume.bHasSolidObstacleField = false;
+			return;
+		}
+
+		Candidates.Sort([](const FMergedObstaclePrimitive& Left, const FMergedObstaclePrimitive& Right)
+		{
+			return Left.Priority < Right.Priority;
+		});
+
+		const int32 PrimitiveLimit = TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives;
+		ClusterVolume.ObstaclePrimitives.Reset(FMath::Min(Candidates.Num(), PrimitiveLimit));
+		for (int32 CandidateIndex = 0; CandidateIndex < Candidates.Num() && CandidateIndex < PrimitiveLimit; ++CandidateIndex)
+		{
+			ClusterVolume.ObstaclePrimitives.Add(Candidates[CandidateIndex].Primitive);
+		}
+		ClusterVolume.ObstacleFieldResolution = MaxResolution;
+		ClusterVolume.ObstacleFieldRevision = RevisionHash != 0u ? RevisionHash : 1u;
+		ClusterVolume.bHasSolidObstacleField = !ClusterVolume.ObstaclePrimitives.IsEmpty();
+	}
+
 	bool TryMakeClusterSourceEvent(const FTimeThiefSmokeRendererVolume& Volume, const int32 ClusterSmokeId, FTimeThiefSmokeRendererEvent& OutSourceEvent)
 	{
 		const float NormalizedAge = Volume.Settings.PlumeEmissionDuration > KINDA_SMALL_NUMBER
 			? Volume.AgeSeconds / Volume.Settings.PlumeEmissionDuration
 			: 1.0f;
-		if (NormalizedAge > 1.25f)
+		const float SourceAge = FMath::Max(NormalizedAge, 0.0f) * FMath::Max(Volume.Settings.PlumeEmissionDuration, 0.01f);
+		const float EmissionRamp = FMath::Clamp((SourceAge + KINDA_SMALL_NUMBER) / 0.35f, 0.0f, 1.0f);
+		const float EmissionFade = 1.0f - FMath::SmoothStep(
+			FMath::Max(Volume.Settings.PlumeEmissionDuration, 0.01f),
+			FMath::Max(Volume.Settings.PlumeEmissionDuration, 0.01f) + 0.25f,
+			SourceAge);
+		if (EmissionRamp * EmissionFade <= TimeThiefSmokeParameterDefaults::SimulationEventMinStrength)
 		{
 			return false;
 		}
@@ -370,6 +482,10 @@ namespace TimeThiefSmoke
 		ClusterVolume.RenderBoundsExtent = MakeExtentAroundCenter(RenderBounds, ClusterCenter);
 		ClusterVolume.SimulationBoundsExtent = MakeExtentAroundCenter(SimulationBounds, ClusterCenter);
 		ClusterVolume.BoundsExtent = ClusterVolume.SimulationBoundsExtent;
+		if (ClusterVolume.Settings.bEnableClusterObstacleMerge)
+		{
+			MergeClusterObstaclePrimitives(ClusterMembers, ClusterVolume);
+		}
 
 		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
 		{
