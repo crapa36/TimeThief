@@ -7,6 +7,8 @@ struct FTimeThiefSmokeObstaclePrimitive
 	float4 AxisHalfLength;
 	float4 ExtentsShape;
 	float4 Rotation;
+	float4 Velocity;
+	float4 AngularVelocity;
 };
 
 int3 GridResolution;
@@ -48,15 +50,33 @@ float ObstaclePrimitiveSdf(FTimeThiefSmokeObstaclePrimitive Primitive, float3 Lo
 	return TimeThiefSmokeBoxSdf(Delta, Extents);
 }
 
-float ObstacleFieldSdf(float3 LocalPosition)
+float3 ObstaclePrimitiveVelocity(FTimeThiefSmokeObstaclePrimitive Primitive, float3 LocalPosition)
+{
+	return Primitive.Velocity.xyz + cross(Primitive.AngularVelocity.xyz, LocalPosition - Primitive.CenterRadius.xyz);
+}
+
+float ObstacleFieldSdf(float3 LocalPosition, out float3 OutVelocity)
 {
 	float Phi = max(FarDistanceCm, 1.0);
+	OutVelocity = 0.0;
 	[loop]
 	for (int PrimitiveIndex = 0; PrimitiveIndex < ObstaclePrimitiveCount; ++PrimitiveIndex)
 	{
-		Phi = min(Phi, ObstaclePrimitiveSdf(ObstaclePrimitives[PrimitiveIndex], LocalPosition));
+		const FTimeThiefSmokeObstaclePrimitive Primitive = ObstaclePrimitives[PrimitiveIndex];
+		const float PrimitivePhi = ObstaclePrimitiveSdf(Primitive, LocalPosition);
+		if (PrimitivePhi < Phi)
+		{
+			Phi = PrimitivePhi;
+			OutVelocity = ObstaclePrimitiveVelocity(Primitive, LocalPosition);
+		}
 	}
 	return Phi;
+}
+
+float ObstacleFieldSdf(float3 LocalPosition)
+{
+	float3 UnusedVelocity;
+	return ObstacleFieldSdf(LocalPosition, UnusedVelocity);
 }
 
 float ComputeFaceOpen(float PhiA, float PhiB)
@@ -82,13 +102,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
 	const float3 CellSize = (BoundsExtent * 2.0) / max(float3(GridResolution), 1.0);
-	const float Phi = ObstacleFieldSdf(LocalPosition);
+	float3 ObstacleVelocity = 0.0;
+	const float Phi = ObstacleFieldSdf(LocalPosition, ObstacleVelocity);
 	const float PhiMinusX = DispatchThreadId.x > 0 ? ObstacleFieldSdf(LocalPosition - float3(CellSize.x, 0.0, 0.0)) : -1.0;
 	const float PhiMinusY = DispatchThreadId.y > 0 ? ObstacleFieldSdf(LocalPosition - float3(0.0, CellSize.y, 0.0)) : -1.0;
 	const float PhiMinusZ = DispatchThreadId.z > 0 ? ObstacleFieldSdf(LocalPosition - float3(0.0, 0.0, CellSize.z)) : -1.0;
 
 	OutObstacleSdfTexture[DispatchThreadId] = Phi;
-	OutObstacleVelocityTexture[DispatchThreadId] = float4(0.0, 0.0, 0.0, 0.0);
+	OutObstacleVelocityTexture[DispatchThreadId] = float4(ObstacleVelocity, 0.0);
 	OutObstacleFaceOpenTexture[DispatchThreadId] = float4(
 		ComputeFaceOpen(Phi, PhiMinusX),
 		ComputeFaceOpen(Phi, PhiMinusY),

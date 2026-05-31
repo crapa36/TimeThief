@@ -6,6 +6,7 @@
 #include "TimeThiefSmokeWorldSubsystem.generated.h"
 
 class ATimeThiefSmokeVolume;
+class UPrimitiveComponent;
 
 struct FTimeThiefSmokeSpatialEntry
 {
@@ -42,6 +43,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
 
+	int32 AllocateSmokeId();
 	void RegisterSmokeVolume(ATimeThiefSmokeVolume* SmokeVolume);
 	void UnregisterSmokeVolume(ATimeThiefSmokeVolume* SmokeVolume);
 
@@ -49,12 +51,16 @@ public:
 	void SubmitExplosion(const FVector& Center, float Radius, float Strength, int32 Seed);
 	void AddTimedInteractionEvent(ATimeThiefSmokeVolume* SmokeVolume, const FTimeThiefSmokeInteractionEvent& Event, float Duration);
 	void RecordRendererEvent(const FTimeThiefSmokeInteractionEvent& Event);
+	void NotifySmokeVolumeBoundsChanged(ATimeThiefSmokeVolume* SmokeVolume);
 
 private:
 	void CompactSmokeVolumes();
 	void MarkSmokeSpatialIndexDirty();
+	void ValidateSmokeSpatialIndexBounds();
 	void RebuildSmokeSpatialIndex();
 	void QuerySmokeSpatialIndex(const FBox& QueryBounds, TArray<ATimeThiefSmokeVolume*>& OutSmokeVolumes);
+	void GatherActorPushEvents(float DeltaTime);
+	uint64 GetRendererSceneKey() const;
 	void PublishRendererFrame(float DeltaTime);
 
 	UPROPERTY()
@@ -66,12 +72,17 @@ private:
 	UPROPERTY()
 	TArray<FTimeThiefSmokeInteractionEvent> PendingRendererEvents;
 
-	TSet<uint64> PersistentClusterLinks;
-
 	TMap<ATimeThiefSmokeVolume*, int32> BulletTraceCountsThisTick;
 
 	TArray<FTimeThiefSmokeSpatialEntry> SmokeSpatialEntries;
 	TMap<FIntVector, TArray<int32>> SmokeSpatialCells;
-	uint64 SmokeSpatialIndexFrame = MAX_uint64;
+	TArray<uint32> SmokeSpatialQueryEntryStamps;
+	TArray<int32> SmokeSpatialQueryEntryIndices;
+	TArray<ATimeThiefSmokeVolume*> SmokeSpatialQueryResults;
+	TMap<int32, uint32> LastPublishedObstacleFieldRevisions;
+	uint64 RendererSceneKey = 0;
+	uint64 SmokeSpatialIndexValidationFrame = MAX_uint64;
+	uint32 SmokeSpatialQueryStamp = 0;
+	int32 NextSmokeId = 1;
 	bool bSmokeSpatialIndexDirty = true;
 };

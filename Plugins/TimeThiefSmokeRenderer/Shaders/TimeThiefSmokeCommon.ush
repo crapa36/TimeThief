@@ -285,11 +285,6 @@ float3 TimeThiefSmokeObstacleNormal(Texture3D<float> ObstacleTexture, SamplerSta
 	return normalize(float3(X1 - X0, Y1 - Y0, Z1 - Z0) + float3(0.0, 0.0, 0.0001));
 }
 
-float3 TimeThiefSmokeObstacleFaceOpen(Texture3D<float4> ObstacleFaceOpenTexture, int3 Coord)
-{
-	return ObstacleFaceOpenTexture.Load(int4(Coord, 0)).xyz;
-}
-
 float3 TimeThiefSmokeRotateByQuat(float3 Vector, float4 Quat)
 {
 	return Vector + 2.0 * cross(Quat.xyz, cross(Quat.xyz, Vector) + Quat.w * Vector);
@@ -332,20 +327,19 @@ float TimeThiefSmokeActorInfluenceRadius(FTimeThiefSmokeEventShaderData Event, f
 	return ShapeRadius + CappedTravelDistance + ContactRadius * RadiusScale + 2.0;
 }
 
-float TimeThiefSmokeActorWarpTrailLength(FTimeThiefSmokeEventShaderData Event, float TrailLengthScale)
+float TimeThiefSmokeActorWakeTrailLength(FTimeThiefSmokeEventShaderData Event, float TrailLengthScale)
 {
 	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
 	const float Strength = saturate(Event.ExtentsStrength.w);
-	const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
 	return max(
-		ShapeRadius * TrailLengthScale * lerp(0.42, 1.0, WarpBudget) * lerp(0.75, 1.2, Strength),
+		ShapeRadius * TrailLengthScale * lerp(0.75, 1.2, Strength),
 		ShapeRadius * 2.0);
 }
 
-float TimeThiefSmokeActorWarpInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float TrailLengthScale)
+float TimeThiefSmokeActorWakeInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float TrailLengthScale)
 {
 	const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), 1.0);
-	return TimeThiefSmokeActorWarpTrailLength(Event, TrailLengthScale) + ShapeRadius * 2.6;
+	return TimeThiefSmokeActorWakeTrailLength(Event, TrailLengthScale) + ShapeRadius * 2.6;
 }
 
 float TimeThiefSmokeBulletWakeInfluenceRadius(FTimeThiefSmokeEventShaderData Event, float CutoutFeather)

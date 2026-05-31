@@ -16,7 +16,7 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	void SubmitFrame(const FTimeThiefSmokeRendererFrame& Frame);
+	void SubmitFrame(FTimeThiefSmokeRendererFrame Frame);
 
 private:
 	TSharedPtr<FTimeThiefSmokeViewExtension, ESPMode::ThreadSafe> ViewExtension;

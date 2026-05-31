@@ -25,7 +25,7 @@ float EventInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 	{
 		return max(
 			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
-			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+			TimeThiefSmokeActorWakeInfluenceRadius(Event, ActorWakeTrailLengthScale));
 	}
 	if (EventType == 3u)
 	{

@@ -150,6 +150,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		return;
 	}
 
+	const bool bHasActiveBulletFields = bHasBulletFields != 0u;
 	if (bUseActiveBrickDispatch == 0u && !IsSparseSimulationCellActive(CellCoord))
 	{
 		const float FadeOutAlpha = saturate(max(AgeSeconds - DurationSeconds, 0.0) / max(SmokeFadeOutDuration, 0.001));
@@ -157,15 +158,18 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float DensityDecay = exp2(-max(EffectiveDissipation, 0.0) * DeltaSeconds);
 		const float VelocityDecay = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
 		const int3 Coord = int3(CellCoord);
-		const float Cutout = BulletCutoutTexture.Load(int4(Coord, 0));
-		const float Sink = BulletSinkTexture.Load(int4(Coord, 0));
+		const float Cutout = bHasActiveBulletFields ? BulletCutoutTexture.Load(int4(Coord, 0)) : 0.0;
+		const float Sink = bHasActiveBulletFields ? BulletSinkTexture.Load(int4(Coord, 0)) : 0.0;
 		OutDensity[CellCoord] = max(DensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
 		OutDisplacedDensity[CellCoord] = max(DisplacedDensityIn.Load(int4(Coord, 0)) * DensityDecay, 0.0);
 		OutVelocity[CellCoord] = float4(VelocityIn.Load(int4(Coord, 0)).xyz * VelocityDecay, 0.0);
-		OutCutout[CellCoord] = Cutout > 1.0
-			? max(1.0, Cutout - DeltaSeconds / BulletWakeCutoutLife)
-			: max(0.0, Cutout - DeltaSeconds / BulletWakeReleaseDuration);
-		OutSink[CellCoord] = max(Sink * exp2(-DeltaSeconds / BulletWakeSinkLife), 0.0);
+		if (bHasActiveBulletFields)
+		{
+			OutCutout[CellCoord] = Cutout > 1.0
+				? max(1.0, Cutout - DeltaSeconds / BulletWakeCutoutLife)
+				: max(0.0, Cutout - DeltaSeconds / BulletWakeReleaseDuration);
+			OutSink[CellCoord] = max(Sink * exp2(-DeltaSeconds / BulletWakeSinkLife), 0.0);
+		}
 		return;
 	}
 
@@ -183,12 +187,17 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float3 HalfTexel = 0.5 / max(float3(GridResolution), 1.0);
 	const float3 PreviousSampleUVW = clamp(PreviousUVW, HalfTexel, 1.0 - HalfTexel);
 	const float3 PreviousSampleLocal = (PreviousSampleUVW * 2.0 - 1.0) * BoundsExtent;
-	float BulletCutout = max(BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0);
-	float BulletSink = bPreviousInsideVolume ? max(BulletSinkTexture.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0), 0.0) : 0.0;
-	BulletCutout = BulletCutout > 1.0
-		? max(1.0, BulletCutout - DeltaSeconds / BulletWakeCutoutLife)
-		: max(0.0, BulletCutout - DeltaSeconds / BulletWakeReleaseDuration);
-	BulletSink *= exp2(-DeltaSeconds / BulletWakeSinkLife);
+	float BulletCutout = 0.0;
+	float BulletSink = 0.0;
+	if (bHasActiveBulletFields)
+	{
+		BulletCutout = max(BulletCutoutTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0);
+		BulletSink = bPreviousInsideVolume ? max(BulletSinkTexture.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0), 0.0) : 0.0;
+		BulletCutout = BulletCutout > 1.0
+			? max(1.0, BulletCutout - DeltaSeconds / BulletWakeCutoutLife)
+			: max(0.0, BulletCutout - DeltaSeconds / BulletWakeReleaseDuration);
+		BulletSink *= exp2(-DeltaSeconds / BulletWakeSinkLife);
+	}
 
 	float3 BulletImpulse = float3(0.0, 0.0, 0.0);
 	float EventSourceDensity = 0.0;
@@ -256,7 +265,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 			continue;
 		}
 
-		if (EventType != 0u)
+		if (EventType != 0u || !bHasActiveBulletFields)
 		{
 			continue;
 		}
@@ -301,10 +310,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		BulletSink = max(BulletSink, SinkWeight);
 		BulletImpulse += Direction * SinkWeight * BulletWakeImpulseStrength;
 	}
-	BulletCutout = clamp(BulletCutout, 0.0, 2.0);
-	BulletSink = saturate(BulletSink);
-	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
-	const bool bBulletInfluence = BulletCutout > 0.001 || BulletSink > 0.001 || dot(BulletImpulse, BulletImpulse) > 0.001;
+	FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(0.0, 0.0);
+	bool bBulletInfluence = false;
+	if (bHasActiveBulletFields)
+	{
+		BulletCutout = clamp(BulletCutout, 0.0, 2.0);
+		BulletSink = saturate(BulletSink);
+		BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
+		bBulletInfluence = BulletCutout > 0.001 || BulletSink > 0.001 || dot(BulletImpulse, BulletImpulse) > 0.001;
+	}
 
 	float Density = 0.0;
 	float DisplacedDensity = 0.0;
@@ -320,8 +334,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float CurrentDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	const float CurrentDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
 	const float SourceInfluenceRadius = max(PlumeSourceRadius * max(ObstacleSourceClearRadiusScale, 1.1), 1.0);
-	const bool bDefaultSourceInfluence = bUseClusterSourceEvents == 0u &&
-		AgeSeconds < max(PlumeEmissionDuration + 0.25, 0.01) &&
+	const bool bDefaultSourceInfluence = AgeSeconds < max(PlumeEmissionDuration + 0.25, 0.01) &&
 		dot(WorldPosition - SmokeOrigin, WorldPosition - SmokeOrigin) < SourceInfluenceRadius * SourceInfluenceRadius;
 	const bool bSourceInfluence = bDefaultSourceInfluence || bEventSourceInfluence;
 	const float CurrentTotalDensity = CurrentDensity + CurrentDisplacedDensity;
@@ -379,24 +392,21 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 
 	float SourceDensityInjection = EventSourceDensity;
 	float3 SourceVelocityInjection = EventSourceVelocity;
-	if (bUseClusterSourceEvents == 0u)
-	{
-		const float SafeEmissionDuration = min(max(DurationSeconds, 0.01), max(PlumeEmissionDuration, 0.01));
-		const float EmissionRamp = saturate((AgeSeconds + DeltaSeconds) / 0.35);
-		const float EmissionFade = 1.0 - smoothstep(SafeEmissionDuration, SafeEmissionDuration + 0.25, AgeSeconds);
-		const float Emission = EmissionRamp * EmissionFade;
-		const float SourceDistance = length(WorldPosition - SmokeOrigin);
-		const float SafeSourceRadius = max(PlumeSourceRadius, 1.0);
-		const float DefaultSourceObstacleOpen = Emission > 0.001 ? TimeThiefSmokeSourceObstacleOpen(SourceDistance, SafeSourceRadius) : 0.0;
-		SourceObstacleOpen = max(SourceObstacleOpen, DefaultSourceObstacleOpen);
-		float SourceWeight = 1.0 - smoothstep(SafeSourceRadius * 0.96, SafeSourceRadius * 1.04, SourceDistance);
-		const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021));
-		SourceWeight = saturate(SourceWeight * SourceNoise) * max(OpenMask, DefaultSourceObstacleOpen);
-		const float3 SourceRadial = normalize(WorldPosition - SmokeOrigin + SmokeUp * 18.0);
-		const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity;
-		SourceDensityInjection += SourceWeight * Emission * InitialDensity;
-		SourceVelocityInjection += SourceVelocity * SourceWeight * Emission;
-	}
+	const float SafeEmissionDuration = min(max(DurationSeconds, 0.01), max(PlumeEmissionDuration, 0.01));
+	const float EmissionRamp = saturate((AgeSeconds + DeltaSeconds) / 0.35);
+	const float EmissionFade = 1.0 - smoothstep(SafeEmissionDuration, SafeEmissionDuration + 0.25, AgeSeconds);
+	const float Emission = EmissionRamp * EmissionFade;
+	const float SourceDistance = length(WorldPosition - SmokeOrigin);
+	const float SafeSourceRadius = max(PlumeSourceRadius, 1.0);
+	const float DefaultSourceObstacleOpen = Emission > 0.001 ? TimeThiefSmokeSourceObstacleOpen(SourceDistance, SafeSourceRadius) : 0.0;
+	SourceObstacleOpen = max(SourceObstacleOpen, DefaultSourceObstacleOpen);
+	float SourceWeight = 1.0 - smoothstep(SafeSourceRadius * 0.96, SafeSourceRadius * 1.04, SourceDistance);
+	const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021));
+	SourceWeight = saturate(SourceWeight * SourceNoise) * max(OpenMask, DefaultSourceObstacleOpen);
+	const float3 SourceRadial = normalize(WorldPosition - SmokeOrigin + SmokeUp * 18.0);
+	const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity;
+	SourceDensityInjection += SourceWeight * Emission * InitialDensity;
+	SourceVelocityInjection += SourceVelocity * SourceWeight * Emission;
 
 	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007) - 0.5) * 0.04;
 	const float3 SimulationLocalForBoundary = LocalPosition / max(BoundsExtent, 1.0);
@@ -445,6 +455,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	OutDensity[CellCoord] = clamp(Density * OutputOpenMask, 0.0, 2.8);
 	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OutputOpenMask, 0.0, 2.8);
 	OutVelocity[CellCoord] = float4(AdvectedVelocity * OutputOpenMask, 0.0);
-	OutCutout[CellCoord] = BulletCutout;
-	OutSink[CellCoord] = BulletSink;
+	if (bHasActiveBulletFields)
+	{
+		OutCutout[CellCoord] = BulletCutout;
+		OutSink[CellCoord] = BulletSink;
+	}
 }

@@ -12,24 +12,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(
 
 bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Parameters)
 {
-	const FTimeThiefSmokeRendererSettings Settings;
-
-	TestEqual(TEXT("SmokeGridResolution uses defaults"), Settings.SmokeGridResolution, TimeThiefSmokeParameterDefaults::SmokeGridResolution);
-	TestEqual(TEXT("PressureIterations uses defaults"), Settings.PressureIterations, TimeThiefSmokeParameterDefaults::PressureIterations);
-	TestEqual(TEXT("SmokeBrickSize uses defaults"), Settings.SmokeBrickSize, TimeThiefSmokeParameterDefaults::SmokeBrickSize);
-	TestEqual(TEXT("MaxActiveSmokeBricks uses defaults"), Settings.MaxActiveSmokeBricks, TimeThiefSmokeParameterDefaults::MaxActiveSmokeBricks);
-	TestEqual(TEXT("RenderStepCount uses defaults"), Settings.RenderStepCount, TimeThiefSmokeParameterDefaults::RenderStepCount);
-	TestEqual(TEXT("RenderMaxStepCount uses defaults"), Settings.RenderMaxStepCount, TimeThiefSmokeParameterDefaults::RenderMaxStepCount);
-	TestEqual(TEXT("RenderStepVoxelScale uses defaults"), Settings.RenderStepVoxelScale, TimeThiefSmokeParameterDefaults::RenderStepVoxelScale);
-	TestEqual(TEXT("ActorAirflowMinSpeed uses defaults"), Settings.ActorAirflowMinSpeed, TimeThiefSmokeParameterDefaults::ActorAirflowMinSpeed);
-	TestEqual(TEXT("ActorAirflowFullSpeed uses defaults"), Settings.ActorAirflowFullSpeed, TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeed);
-	TestEqual(TEXT("ActorAirflowRadiusScale uses defaults"), Settings.ActorAirflowRadiusScale, TimeThiefSmokeParameterDefaults::ActorAirflowRadiusScale);
-	TestEqual(TEXT("ActorAirflowVortexStrength uses defaults"), Settings.ActorAirflowVortexStrength, TimeThiefSmokeParameterDefaults::ActorAirflowVortexStrength);
-	TestEqual(TEXT("WarpTrailRadiusScale uses defaults"), Settings.WarpTrailRadiusScale, TimeThiefSmokeParameterDefaults::WarpTrailRadiusScale);
-	TestEqual(TEXT("WarpTrailLengthScale uses defaults"), Settings.WarpTrailLengthScale, TimeThiefSmokeParameterDefaults::WarpTrailLengthScale);
-	TestEqual(TEXT("WarpTrailDecayRate uses defaults"), Settings.WarpTrailDecayRate, TimeThiefSmokeParameterDefaults::WarpTrailDecayRate);
-	TestEqual(TEXT("BulletWakeCutoutFeather uses defaults"), Settings.BulletWakeCutoutFeather, TimeThiefSmokeParameterDefaults::BulletWakeCutoutFeather);
-
 	TestTrue(
 		TEXT("Grid resolution default stays inside allocation limits"),
 		TimeThiefSmokeParameterDefaults::SmokeGridResolution >= TimeThiefSmokeParameterDefaults::SmokeGridMinAxisResolution &&
@@ -62,6 +44,13 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TEXT("Inactive brick self-shadow skip keeps clamp range valid"),
 		TimeThiefSmokeParameterDefaults::SelfShadowInactiveBrickMaxSkipSteps >= 1);
 	TestTrue(
+		TEXT("Sparse composite active ratio remains normalized"),
+		TimeThiefSmokeParameterDefaults::SparseCompositeMaxActiveRatio > 0.0f &&
+		TimeThiefSmokeParameterDefaults::SparseCompositeMaxActiveRatio < 1.0f);
+	TestTrue(
+		TEXT("Dynamic obstacle refresh interval remains positive"),
+		TimeThiefSmokeParameterDefaults::ObstacleDynamicRefreshIntervalSeconds > 0.0f);
+	TestTrue(
 		TEXT("Self-shadow sample threshold skips only tiny contributions"),
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight > 0.0f &&
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight < TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
@@ -70,16 +59,17 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut > 0.0f &&
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut < 1.0f);
 	TestTrue(
+		TEXT("Render boundary noise stays subtle enough to avoid banding"),
+		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseScale >= 0.0f &&
+		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength >= 0.0f &&
+		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.05f);
+	TestTrue(
 		TEXT("Actor airflow full speed leaves shader smoothstep range valid"),
 		TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeed >= TimeThiefSmokeParameterDefaults::ActorAirflowMinSpeed + TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeedMinGap);
 	TestTrue(
 		TEXT("Actor push full response speed leaves smoke interaction range valid"),
 		TimeThiefSmokeParameterDefaults::ActorPushFullResponseSpeed >
 		TimeThiefSmokeParameterDefaults::ActorPushVelocityThreshold * TimeThiefSmokeParameterDefaults::ActorPushResponseStartSpeedScale);
-	TestTrue(
-		TEXT("Actor warp budget threshold stays in normalized range"),
-		TimeThiefSmokeParameterDefaults::ActorWarpBudgetMinMotionStrength > 0.0f &&
-		TimeThiefSmokeParameterDefaults::ActorWarpBudgetMinMotionStrength < 1.0f);
 	TestTrue(
 		TEXT("Active impulse minimum duration remains positive"),
 		TimeThiefSmokeParameterDefaults::ActiveImpulseMinDurationSeconds > 0.0f);
@@ -89,10 +79,6 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Simulation event delta clamp remains positive"),
 		TimeThiefSmokeParameterDefaults::SimulationEventDeltaSecondsMax > 0.0f);
-	TestTrue(
-		TEXT("Idle sparse simulation interval reduces passes without unbounded time steps"),
-		TimeThiefSmokeParameterDefaults::SparseIdleSimulationIntervalScale >= 1.0f &&
-		TimeThiefSmokeParameterDefaults::SparseIdleSimulationIntervalMaxSeconds > 0.0f);
 	TestTrue(
 		TEXT("Smoke density clamp remains above initial density"),
 		TimeThiefSmokeParameterDefaults::SmokeDensityMax >= TimeThiefSmokeParameterDefaults::InitialDensity);
@@ -104,26 +90,8 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::ExplosionDensityClearStrength,
 		0.0f);
 	TestTrue(
-		TEXT("Actor trail length dominates trail radius for strand wake"),
-		TimeThiefSmokeParameterDefaults::WarpTrailLengthScale > TimeThiefSmokeParameterDefaults::WarpTrailRadiusScale);
-	TestTrue(
-		TEXT("Actor warp strand radius grows along the wake"),
-		TimeThiefSmokeParameterDefaults::WarpTrailThreadRadiusEndScale >= TimeThiefSmokeParameterDefaults::WarpTrailThreadRadiusStartScale);
-	TestTrue(
-		TEXT("Actor warp strand minimum radius stays positive"),
-		TimeThiefSmokeParameterDefaults::WarpTrailThreadMinRadius > 0.0f);
-	TestTrue(
-		TEXT("Actor warp axial fade keeps a valid normalized range"),
-		TimeThiefSmokeParameterDefaults::WarpTrailAxialFadeStartScale > 0.0f &&
-		TimeThiefSmokeParameterDefaults::WarpTrailAxialFadeStartScale < 1.0f);
-	TestTrue(
-		TEXT("Actor warp halo radius expands outward"),
-		TimeThiefSmokeParameterDefaults::WarpTrailHaloOuterRadiusScale > TimeThiefSmokeParameterDefaults::WarpTrailHaloInnerRadiusScale);
-	TestTrue(
-		TEXT("Actor warp density gate keeps a visible low-density trail"),
-		TimeThiefSmokeParameterDefaults::WarpTrailDensityFactorMin > 0.0f &&
-		TimeThiefSmokeParameterDefaults::WarpTrailDensityFactorMin < 1.0f &&
-		TimeThiefSmokeParameterDefaults::WarpTrailDensityFactorFullDensity > 0.0f);
+		TEXT("Actor wake trail length remains positive"),
+		TimeThiefSmokeParameterDefaults::ActorWakeTrailLengthScale > 0.0f);
 	TestTrue(
 		TEXT("Actor wake roll force range remains ordered"),
 		TimeThiefSmokeParameterDefaults::ActorWakeTrailMaxRollForce >= TimeThiefSmokeParameterDefaults::ActorWakeTrailMinRollForce);
@@ -147,9 +115,6 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TEXT("Vortex particle mask fits uint4 shader bitmask"),
 		TimeThiefSmokeParameterDefaults::MaxVortexParticleCount <= 128);
 	TestTrue(
-		TEXT("Warp keep-alive denominator remains valid"),
-		TimeThiefSmokeParameterDefaults::WarpTrailDecayRate >= TimeThiefSmokeParameterDefaults::WarpTrailDecayRateMin);
-	TestTrue(
 		TEXT("Bullet wake life defaults stay above shader divisor minimum"),
 		TimeThiefSmokeParameterDefaults::BulletWakeMaxVisibleLife >= TimeThiefSmokeParameterDefaults::BulletWakeMinLifeSeconds &&
 		TimeThiefSmokeParameterDefaults::BulletWakeReleaseDuration >= TimeThiefSmokeParameterDefaults::BulletWakeMinLifeSeconds &&
@@ -164,6 +129,9 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Renderer descriptor stays float4 aligned for HLSL structured buffer"),
 		sizeof(FTimeThiefSmokeCompositeDescriptorShaderData) % sizeof(FVector4f) == 0);
+	TestTrue(
+		TEXT("Obstacle primitive upload stays float4 aligned for HLSL structured buffer"),
+		sizeof(FTimeThiefSmokeObstaclePrimitive) % sizeof(FVector4f) == 0);
 
 	return true;
 }

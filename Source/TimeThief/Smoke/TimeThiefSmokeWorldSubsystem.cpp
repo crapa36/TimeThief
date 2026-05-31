@@ -1,28 +1,22 @@
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 
 #include "Actors/TimeThiefSmokeVolume.h"
+#include "Components/PrimitiveComponent.h"
 #include "Engine/Engine.h"
+#include "Engine/OverlapResult.h"
+#include "Engine/World.h"
 #include "Stats/Stats.h"
 #include "TimeThiefSmokeParameterDefaults.h"
 #include "TimeThiefSmokeRendererSubsystem.h"
-
-#if WITH_DEV_AUTOMATION_TESTS
-#include "Misc/AutomationTest.h"
-#endif
+#include "WorldCollision.h"
 
 namespace TimeThiefSmoke
 {
-	struct FPendingRendererSmokeVolume
+	struct FSmokeActorOverlapGroup
 	{
-		FTimeThiefSmokeRendererVolume Volume;
-		FBox ClusterBounds = FBox(EForceInit::ForceInit);
+		TArray<int32> SmokeIndices;
+		FBox Bounds = FBox(EForceInit::ForceInit);
 	};
-
-	const FTimeThiefSmokeRendererSettings& GetDefaultRendererSettings()
-	{
-		static const FTimeThiefSmokeRendererSettings Settings;
-		return Settings;
-	}
 
 	FBox MakeSmokeWorldBounds(const FTimeThiefSmokeRendererVolume& Volume, const FVector3f& Extent)
 	{
@@ -48,33 +42,6 @@ namespace TimeThiefSmoke
 		return Bounds;
 	}
 
-	FBox MakeSmokeClusterWorldBounds(const FTimeThiefSmokeRendererVolume& Volume)
-	{
-		return MakeSmokeWorldBounds(Volume, Volume.NaturalBoundsExtent);
-	}
-
-	FBox ExpandSmokeClusterBounds(const FBox& Bounds, const float ExpansionRatio, const float MinExpansionCm)
-	{
-		const FVector Extent = Bounds.GetExtent();
-		const FVector Padding(
-			FMath::Max(Extent.X * ExpansionRatio, MinExpansionCm),
-			FMath::Max(Extent.Y * ExpansionRatio, MinExpansionCm),
-			FMath::Max(Extent.Z * ExpansionRatio, MinExpansionCm));
-		return Bounds.ExpandBy(Padding);
-	}
-
-	uint64 MakeSmokePairKey(const int32 SmokeIdA, const int32 SmokeIdB)
-	{
-		const uint32 Low = static_cast<uint32>(FMath::Min(SmokeIdA, SmokeIdB));
-		const uint32 High = static_cast<uint32>(FMath::Max(SmokeIdA, SmokeIdB));
-		return (static_cast<uint64>(Low) << 32) | static_cast<uint64>(High);
-	}
-
-	bool HasSolidObstacleField(const FTimeThiefSmokeRendererVolume& Volume)
-	{
-		return Volume.bHasSolidObstacleField;
-	}
-
 	FIntVector WorldToSmokeSpatialCell(const FVector& Position)
 	{
 		const float SafeCellSize = FMath::Max(TimeThiefSmokeParameterDefaults::SmokeSpatialCellSize, 1.0f);
@@ -92,411 +59,186 @@ namespace TimeThiefSmoke
 		return Bounds.ExpandBy(1.0f);
 	}
 
-	bool AreSmokeVolumesClusterCompatible(const FTimeThiefSmokeRendererVolume& A, const FTimeThiefSmokeRendererVolume& B)
-	{
-		const bool bObstacleCompatible =
-			(A.Settings.bEnableClusterObstacleMerge && B.Settings.bEnableClusterObstacleMerge) ||
-			(!HasSolidObstacleField(A) && !HasSolidObstacleField(B));
-		return A.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
-			B.Settings.SimulationBackend == ETimeThiefSmokeSimulationBackend::SparseMac &&
-			A.Settings.SmokeGridResolution == B.Settings.SmokeGridResolution &&
-			A.Settings.SmokeBrickSize == B.Settings.SmokeBrickSize &&
-			A.Settings.MaxActiveSmokeBricks == B.Settings.MaxActiveSmokeBricks &&
-			bObstacleCompatible;
-	}
-
-	int32 FindClusterRoot(TArray<int32>& Parents, const int32 Index)
-	{
-		if (!Parents.IsValidIndex(Index))
-		{
-			return INDEX_NONE;
-		}
-
-		int32 Root = Index;
-		while (Parents.IsValidIndex(Root) && Parents[Root] != Root)
-		{
-			Root = Parents[Root];
-		}
-
-		int32 Current = Index;
-		while (Parents.IsValidIndex(Current) && Parents[Current] != Root)
-		{
-			const int32 Next = Parents[Current];
-			Parents[Current] = Root;
-			Current = Next;
-		}
-
-		return Root;
-	}
-
-	void UnionSmokeClusters(TArray<int32>& Parents, const int32 A, const int32 B)
-	{
-		const int32 RootA = FindClusterRoot(Parents, A);
-		const int32 RootB = FindClusterRoot(Parents, B);
-		if (RootA != INDEX_NONE && RootB != INDEX_NONE && RootA != RootB)
-		{
-			Parents[RootB] = RootA;
-		}
-	}
-
-	uint64 MakeIndexPairKey(const int32 A, const int32 B)
+	uint64 MakeSmokeActorOverlapPairKey(const int32 A, const int32 B)
 	{
 		const uint32 Low = static_cast<uint32>(FMath::Min(A, B));
 		const uint32 High = static_cast<uint32>(FMath::Max(A, B));
 		return (static_cast<uint64>(Low) << 32) | static_cast<uint64>(High);
 	}
 
-	void AddClusterCandidatePairsForBounds(
-		const int32 Index,
-		const FBox& Bounds,
-		TMap<FIntVector, TArray<int32>>& Cells,
-		TSet<uint64>& PairKeys,
-		TArray<TPair<int32, int32>>& OutPairs)
+	struct FSmokeActorOverlapUnionFind
 	{
-		if (!Bounds.IsValid)
+		TArray<int32> Parents;
+
+		explicit FSmokeActorOverlapUnionFind(const int32 Count)
 		{
-			return;
+			Parents.SetNumUninitialized(Count);
+			for (int32 Index = 0; Index < Count; ++Index)
+			{
+				Parents[Index] = Index;
+			}
 		}
 
-		const FIntVector MinCell = WorldToSmokeSpatialCell(Bounds.Min);
-		const FIntVector MaxCell = WorldToSmokeSpatialCell(Bounds.Max);
-		for (int32 Z = MinCell.Z; Z <= MaxCell.Z; ++Z)
+		int32 Find(const int32 Index)
 		{
-			for (int32 Y = MinCell.Y; Y <= MaxCell.Y; ++Y)
+			if (!Parents.IsValidIndex(Index))
 			{
-				for (int32 X = MinCell.X; X <= MaxCell.X; ++X)
-				{
-					TArray<int32>& CellIndices = Cells.FindOrAdd(FIntVector(X, Y, Z));
-					for (const int32 OtherIndex : CellIndices)
-					{
-						if (OtherIndex == Index)
-						{
-							continue;
-						}
+				return INDEX_NONE;
+			}
 
-						const uint64 PairKey = MakeIndexPairKey(Index, OtherIndex);
-						if (!PairKeys.Contains(PairKey))
-						{
-							PairKeys.Add(PairKey);
-							OutPairs.Add(TPair<int32, int32>(FMath::Min(Index, OtherIndex), FMath::Max(Index, OtherIndex)));
-						}
+			int32 Root = Index;
+			while (Parents.IsValidIndex(Root) && Parents[Root] != Root)
+			{
+				Root = Parents[Root];
+			}
+
+			int32 Current = Index;
+			while (Parents.IsValidIndex(Current) && Parents[Current] != Root)
+			{
+				const int32 Next = Parents[Current];
+				Parents[Current] = Root;
+				Current = Next;
+			}
+
+			return Root;
+		}
+
+		void Union(const int32 A, const int32 B)
+		{
+			const int32 RootA = Find(A);
+			const int32 RootB = Find(B);
+			if (RootA != INDEX_NONE && RootB != INDEX_NONE && RootA != RootB)
+			{
+				Parents[RootB] = RootA;
+			}
+		}
+	};
+
+	void BuildSmokeActorOverlapGroupsDense(const TArray<FBox>& SmokeBounds, TArray<FSmokeActorOverlapGroup>& OutGroups)
+	{
+		OutGroups.Reset();
+		OutGroups.Reserve(SmokeBounds.Num());
+		TArray<bool> bVisited;
+		bVisited.Init(false, SmokeBounds.Num());
+		TArray<int32> Stack;
+		Stack.Reserve(SmokeBounds.Num());
+
+		for (int32 SmokeIndex = 0; SmokeIndex < SmokeBounds.Num(); ++SmokeIndex)
+		{
+			if (bVisited[SmokeIndex] || !SmokeBounds[SmokeIndex].IsValid)
+			{
+				continue;
+			}
+
+			FSmokeActorOverlapGroup& Group = OutGroups.AddDefaulted_GetRef();
+			Stack.Reset();
+			Stack.Add(SmokeIndex);
+			bVisited[SmokeIndex] = true;
+
+			while (!Stack.IsEmpty())
+			{
+				const int32 CurrentIndex = Stack.Pop(EAllowShrinking::No);
+				Group.SmokeIndices.Add(CurrentIndex);
+				Group.Bounds += SmokeBounds[CurrentIndex];
+
+				for (int32 CandidateIndex = 0; CandidateIndex < SmokeBounds.Num(); ++CandidateIndex)
+				{
+					if (bVisited[CandidateIndex] || !SmokeBounds[CandidateIndex].IsValid)
+					{
+						continue;
 					}
-					CellIndices.AddUnique(Index);
+
+					if (SmokeBounds[CurrentIndex].Intersect(SmokeBounds[CandidateIndex]))
+					{
+						bVisited[CandidateIndex] = true;
+						Stack.Add(CandidateIndex);
+					}
 				}
 			}
 		}
 	}
 
-	void BuildSmokeClusterCandidatePairs(
-		const TArray<FBox>& ExpandedClusterBounds,
-		const TArray<FBox>& ReleaseClusterBounds,
-		TArray<TPair<int32, int32>>& OutPairs)
+	void BuildSmokeActorOverlapGroups(const TArray<FBox>& SmokeBounds, TArray<FSmokeActorOverlapGroup>& OutGroups)
 	{
-		OutPairs.Reset();
-		TMap<FIntVector, TArray<int32>> Cells;
-		TSet<uint64> PairKeys;
-		for (int32 Index = 0; Index < ExpandedClusterBounds.Num(); ++Index)
+		if (SmokeBounds.Num() <= 8)
 		{
-			AddClusterCandidatePairsForBounds(Index, ExpandedClusterBounds[Index], Cells, PairKeys, OutPairs);
-			AddClusterCandidatePairsForBounds(Index, ReleaseClusterBounds[Index], Cells, PairKeys, OutPairs);
-		}
-	}
-
-	void AssignSmokeClusters(TArray<FPendingRendererSmokeVolume>& PendingVolumes, TSet<uint64>& PersistentClusterLinks)
-	{
-		TArray<int32> Parents;
-		Parents.SetNumUninitialized(PendingVolumes.Num());
-		for (int32 Index = 0; Index < Parents.Num(); ++Index)
-		{
-			Parents[Index] = Index;
-			PendingVolumes[Index].Volume.ClusterId = PendingVolumes[Index].Volume.SmokeId;
-			PendingVolumes[Index].Volume.ClusterSourceCount = 1;
-		}
-
-		if (PendingVolumes.Num() <= 1)
-		{
-			PersistentClusterLinks.Reset();
+			BuildSmokeActorOverlapGroupsDense(SmokeBounds, OutGroups);
 			return;
 		}
 
-		TArray<FBox> ExpandedClusterBounds;
-		ExpandedClusterBounds.Reserve(PendingVolumes.Num());
-		TArray<FBox> ReleaseClusterBounds;
-		ReleaseClusterBounds.Reserve(PendingVolumes.Num());
-		for (const FPendingRendererSmokeVolume& PendingVolume : PendingVolumes)
-		{
-			ExpandedClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, TimeThiefSmokeParameterDefaults::SmokeClusterBoundsExpansionRatio, TimeThiefSmokeParameterDefaults::SmokeClusterMinExpansionCm));
-			ReleaseClusterBounds.Add(ExpandSmokeClusterBounds(PendingVolume.ClusterBounds, TimeThiefSmokeParameterDefaults::SmokeClusterReleaseBoundsExpansionRatio, TimeThiefSmokeParameterDefaults::SmokeClusterReleaseMinExpansionCm));
-		}
+		OutGroups.Reset();
+		OutGroups.Reserve(SmokeBounds.Num());
 
-		TSet<uint64> NextPersistentClusterLinks;
-		TArray<TPair<int32, int32>> CandidatePairs;
-		BuildSmokeClusterCandidatePairs(ExpandedClusterBounds, ReleaseClusterBounds, CandidatePairs);
-		for (const TPair<int32, int32>& CandidatePair : CandidatePairs)
+		FSmokeActorOverlapUnionFind Groups(SmokeBounds.Num());
+		TMap<FIntVector, TArray<int32>> CellSmokeIndices;
+		TSet<uint64> TestedPairKeys;
+		CellSmokeIndices.Reserve(SmokeBounds.Num() * 4);
+		TestedPairKeys.Reserve(SmokeBounds.Num() * 4);
+
+		for (int32 SmokeIndex = 0; SmokeIndex < SmokeBounds.Num(); ++SmokeIndex)
 		{
-			const int32 A = CandidatePair.Key;
-			const int32 B = CandidatePair.Value;
-			if (!PendingVolumes.IsValidIndex(A) || !PendingVolumes.IsValidIndex(B))
+			if (!SmokeBounds[SmokeIndex].IsValid)
 			{
 				continue;
 			}
 
-			if (!AreSmokeVolumesClusterCompatible(PendingVolumes[A].Volume, PendingVolumes[B].Volume))
+			const FIntVector MinCell = WorldToSmokeSpatialCell(SmokeBounds[SmokeIndex].Min);
+			const FIntVector MaxCell = WorldToSmokeSpatialCell(SmokeBounds[SmokeIndex].Max);
+			for (int32 Z = MinCell.Z; Z <= MaxCell.Z; ++Z)
+			{
+				for (int32 Y = MinCell.Y; Y <= MaxCell.Y; ++Y)
+				{
+					for (int32 X = MinCell.X; X <= MaxCell.X; ++X)
+					{
+						TArray<int32>& CellIndices = CellSmokeIndices.FindOrAdd(FIntVector(X, Y, Z));
+						for (const int32 OtherSmokeIndex : CellIndices)
+						{
+							const uint64 PairKey = MakeSmokeActorOverlapPairKey(SmokeIndex, OtherSmokeIndex);
+							if (TestedPairKeys.Contains(PairKey))
+							{
+								continue;
+							}
+
+							TestedPairKeys.Add(PairKey);
+							if (SmokeBounds[SmokeIndex].Intersect(SmokeBounds[OtherSmokeIndex]))
+							{
+								Groups.Union(SmokeIndex, OtherSmokeIndex);
+							}
+						}
+						CellIndices.Add(SmokeIndex);
+					}
+				}
+			}
+		}
+
+		TMap<int32, int32> GroupIndexByRoot;
+		GroupIndexByRoot.Reserve(SmokeBounds.Num());
+		for (int32 SmokeIndex = 0; SmokeIndex < SmokeBounds.Num(); ++SmokeIndex)
+		{
+			if (!SmokeBounds[SmokeIndex].IsValid)
 			{
 				continue;
 			}
 
-			const uint64 PairKey = MakeSmokePairKey(PendingVolumes[A].Volume.SmokeId, PendingVolumes[B].Volume.SmokeId);
-			const bool bJoinNow = ExpandedClusterBounds[A].Intersect(ExpandedClusterBounds[B]);
-			const bool bKeepExisting = PersistentClusterLinks.Contains(PairKey) &&
-				ReleaseClusterBounds[A].Intersect(ReleaseClusterBounds[B]);
-			if (bJoinNow || bKeepExisting)
-			{
-				UnionSmokeClusters(Parents, A, B);
-				NextPersistentClusterLinks.Add(PairKey);
-			}
-		}
-		PersistentClusterLinks = MoveTemp(NextPersistentClusterLinks);
-
-		TMap<int32, int32> ClusterIdsByRoot;
-		TMap<int32, int32> ClusterCountsByRoot;
-		for (int32 Index = 0; Index < PendingVolumes.Num(); ++Index)
-		{
-			const int32 Root = FindClusterRoot(Parents, Index);
+			const int32 Root = Groups.Find(SmokeIndex);
 			if (Root == INDEX_NONE)
 			{
 				continue;
 			}
 
-			int32& ClusterId = ClusterIdsByRoot.FindOrAdd(Root, PendingVolumes[Index].Volume.SmokeId);
-			ClusterId = FMath::Min(ClusterId, PendingVolumes[Index].Volume.SmokeId);
-			int32& ClusterSourceCount = ClusterCountsByRoot.FindOrAdd(Root);
-			++ClusterSourceCount;
-		}
-
-		for (int32 Index = 0; Index < PendingVolumes.Num(); ++Index)
-		{
-			const int32 Root = FindClusterRoot(Parents, Index);
-			if (const int32* ClusterId = ClusterIdsByRoot.Find(Root))
+			int32* ExistingGroupIndex = GroupIndexByRoot.Find(Root);
+			if (!ExistingGroupIndex)
 			{
-				PendingVolumes[Index].Volume.ClusterId = *ClusterId;
-			}
-			if (const int32* ClusterSourceCount = ClusterCountsByRoot.Find(Root))
-			{
-				PendingVolumes[Index].Volume.ClusterSourceCount = FMath::Max(*ClusterSourceCount, 1);
-			}
-		}
-	}
-
-	FVector3f MakeExtentAroundCenter(const FBox& Bounds, const FVector& Center)
-	{
-		if (!Bounds.IsValid)
-		{
-			return FVector3f::ZeroVector;
-		}
-
-		const FVector MinDelta = (Bounds.Min - Center).GetAbs();
-		const FVector MaxDelta = (Bounds.Max - Center).GetAbs();
-		return FVector3f(
-			static_cast<float>(FMath::Max(MinDelta.X, MaxDelta.X)),
-			static_cast<float>(FMath::Max(MinDelta.Y, MaxDelta.Y)),
-			static_cast<float>(FMath::Max(MinDelta.Z, MaxDelta.Z)));
-	}
-
-	float GetObstaclePrimitivePriorityRadius(const FTimeThiefSmokeObstaclePrimitive& Primitive)
-	{
-		return FMath::Max3(
-			FMath::Max(Primitive.CenterRadius.W, 1.0f),
-			FMath::Max(Primitive.ExtentsShape.X, 1.0f),
-			FMath::Max(Primitive.ExtentsShape.Y, Primitive.ExtentsShape.Z));
-	}
-
-	FTimeThiefSmokeObstaclePrimitive TransformObstaclePrimitiveToClusterLocal(
-		const FTimeThiefSmokeObstaclePrimitive& Primitive,
-		const FTransform3f& MemberLocalToWorld,
-		const FTransform3f& ClusterLocalToWorld)
-	{
-		FTimeThiefSmokeObstaclePrimitive Result = Primitive;
-		const FVector3f MemberCenter(Primitive.CenterRadius.X, Primitive.CenterRadius.Y, Primitive.CenterRadius.Z);
-		const FVector3f WorldCenter = MemberLocalToWorld.TransformPosition(MemberCenter);
-		const FVector3f ClusterCenter = ClusterLocalToWorld.InverseTransformPosition(WorldCenter);
-		Result.CenterRadius.X = ClusterCenter.X;
-		Result.CenterRadius.Y = ClusterCenter.Y;
-		Result.CenterRadius.Z = ClusterCenter.Z;
-
-		const FQuat4f ClusterFromMember = ClusterLocalToWorld.GetRotation().Inverse() * MemberLocalToWorld.GetRotation();
-		const ETimeThiefSmokeObstaclePrimitiveShape Shape = static_cast<ETimeThiefSmokeObstaclePrimitiveShape>(FMath::RoundToInt(Primitive.ExtentsShape.W));
-		if (Shape == ETimeThiefSmokeObstaclePrimitiveShape::Capsule)
-		{
-			const FVector3f MemberAxis(Primitive.AxisHalfLength.X, Primitive.AxisHalfLength.Y, Primitive.AxisHalfLength.Z);
-			const FVector3f ClusterAxis = ClusterFromMember.RotateVector(MemberAxis).GetSafeNormal(UE_SMALL_NUMBER, FVector3f::UpVector);
-			Result.AxisHalfLength.X = ClusterAxis.X;
-			Result.AxisHalfLength.Y = ClusterAxis.Y;
-			Result.AxisHalfLength.Z = ClusterAxis.Z;
-		}
-		else if (Shape == ETimeThiefSmokeObstaclePrimitiveShape::Box || Shape == ETimeThiefSmokeObstaclePrimitiveShape::Aabb)
-		{
-			const FQuat4f PrimitiveRotation(Primitive.Rotation.X, Primitive.Rotation.Y, Primitive.Rotation.Z, Primitive.Rotation.W);
-			const FQuat4f ClusterRotation = Shape == ETimeThiefSmokeObstaclePrimitiveShape::Aabb
-				? ClusterFromMember.GetNormalized()
-				: (ClusterFromMember * PrimitiveRotation).GetNormalized();
-			Result.Rotation = FVector4f(ClusterRotation.X, ClusterRotation.Y, ClusterRotation.Z, ClusterRotation.W);
-			Result.ExtentsShape.W = static_cast<float>(static_cast<uint8>(ETimeThiefSmokeObstaclePrimitiveShape::Box));
-		}
-
-		return Result;
-	}
-
-	void MergeClusterObstaclePrimitives(
-		const TArray<FPendingRendererSmokeVolume*>& ClusterMembers,
-		FTimeThiefSmokeRendererVolume& ClusterVolume)
-	{
-		struct FMergedObstaclePrimitive
-		{
-			FTimeThiefSmokeObstaclePrimitive Primitive;
-			float Priority = 0.0f;
-		};
-
-		TArray<FMergedObstaclePrimitive> Candidates;
-		uint32 RevisionHash = 0u;
-		int32 MaxResolution = 0;
-		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
-		{
-			if (!Member || !Member->Volume.bHasSolidObstacleField)
-			{
-				continue;
+				const int32 NewGroupIndex = OutGroups.Num();
+				OutGroups.AddDefaulted();
+				GroupIndexByRoot.Add(Root, NewGroupIndex);
+				ExistingGroupIndex = GroupIndexByRoot.Find(Root);
 			}
 
-			const FTimeThiefSmokeRendererVolume& Volume = Member->Volume;
-			MaxResolution = FMath::Max(MaxResolution, Volume.ObstacleFieldResolution);
-			RevisionHash = HashCombineFast(RevisionHash, GetTypeHash(Volume.SmokeId));
-			RevisionHash = HashCombineFast(RevisionHash, Volume.ObstacleFieldRevision);
-			RevisionHash = HashCombineFast(RevisionHash, GetTypeHash(Volume.ObstaclePrimitives.Num()));
-			for (const FTimeThiefSmokeObstaclePrimitive& Primitive : Volume.ObstaclePrimitives)
-			{
-				FMergedObstaclePrimitive& Candidate = Candidates.AddDefaulted_GetRef();
-				Candidate.Primitive = TransformObstaclePrimitiveToClusterLocal(Primitive, Volume.LocalToWorld, ClusterVolume.LocalToWorld);
-				const FVector3f Center(Candidate.Primitive.CenterRadius.X, Candidate.Primitive.CenterRadius.Y, Candidate.Primitive.CenterRadius.Z);
-				const float Radius = GetObstaclePrimitivePriorityRadius(Candidate.Primitive);
-				Candidate.Priority = Center.SizeSquared() / FMath::Max(Radius * Radius, 1.0f);
-			}
+			FSmokeActorOverlapGroup& Group = OutGroups[*ExistingGroupIndex];
+			Group.SmokeIndices.Add(SmokeIndex);
+			Group.Bounds += SmokeBounds[SmokeIndex];
 		}
-
-		if (Candidates.IsEmpty())
-		{
-			ClusterVolume.ObstacleFieldResolution = 0;
-			ClusterVolume.ObstacleFieldRevision = 0;
-			ClusterVolume.ObstaclePrimitives.Reset();
-			ClusterVolume.bHasSolidObstacleField = false;
-			return;
-		}
-
-		Candidates.Sort([](const FMergedObstaclePrimitive& Left, const FMergedObstaclePrimitive& Right)
-		{
-			return Left.Priority < Right.Priority;
-		});
-
-		const int32 PrimitiveLimit = TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives;
-		ClusterVolume.ObstaclePrimitives.Reset(FMath::Min(Candidates.Num(), PrimitiveLimit));
-		for (int32 CandidateIndex = 0; CandidateIndex < Candidates.Num() && CandidateIndex < PrimitiveLimit; ++CandidateIndex)
-		{
-			ClusterVolume.ObstaclePrimitives.Add(Candidates[CandidateIndex].Primitive);
-		}
-		ClusterVolume.ObstacleFieldResolution = MaxResolution;
-		ClusterVolume.ObstacleFieldRevision = RevisionHash != 0u ? RevisionHash : 1u;
-		ClusterVolume.bHasSolidObstacleField = !ClusterVolume.ObstaclePrimitives.IsEmpty();
-	}
-
-	bool TryMakeClusterSourceEvent(const FTimeThiefSmokeRendererVolume& Volume, const int32 ClusterSmokeId, FTimeThiefSmokeRendererEvent& OutSourceEvent)
-	{
-		const float NormalizedAge = Volume.Settings.PlumeEmissionDuration > KINDA_SMALL_NUMBER
-			? Volume.AgeSeconds / Volume.Settings.PlumeEmissionDuration
-			: 1.0f;
-		const float SourceAge = FMath::Max(NormalizedAge, 0.0f) * FMath::Max(Volume.Settings.PlumeEmissionDuration, 0.01f);
-		const float EmissionRamp = FMath::Clamp((SourceAge + KINDA_SMALL_NUMBER) / 0.35f, 0.0f, 1.0f);
-		const float EmissionFade = 1.0f - FMath::SmoothStep(
-			FMath::Max(Volume.Settings.PlumeEmissionDuration, 0.01f),
-			FMath::Max(Volume.Settings.PlumeEmissionDuration, 0.01f) + 0.25f,
-			SourceAge);
-		if (EmissionRamp * EmissionFade <= TimeThiefSmokeParameterDefaults::SimulationEventMinStrength)
-		{
-			return false;
-		}
-
-		OutSourceEvent.SmokeId = ClusterSmokeId;
-		OutSourceEvent.Type = ETimeThiefSmokeRendererInteractionType::PlumeSource;
-		OutSourceEvent.Shape = ETimeThiefSmokeRendererInteractionShape::Sphere;
-		OutSourceEvent.Position = Volume.LocalToWorld.GetLocation();
-		OutSourceEvent.PreviousPosition = OutSourceEvent.Position;
-		OutSourceEvent.Direction = Volume.LocalToWorld.TransformVector(FVector3f(0.0f, 0.0f, 1.0f)).GetSafeNormal();
-		OutSourceEvent.Radius = FMath::Max(Volume.Settings.PlumeSourceRadius, 1.0f);
-		OutSourceEvent.Length = OutSourceEvent.Radius * 2.0f;
-		OutSourceEvent.NormalizedAge = NormalizedAge;
-		OutSourceEvent.Strength = 1.0f;
-		OutSourceEvent.Seed = Volume.SmokeId;
-		return true;
-	}
-
-	FTimeThiefSmokeRendererVolume MakeClusterVolume(const TArray<FPendingRendererSmokeVolume*>& ClusterMembers)
-	{
-		check(!ClusterMembers.IsEmpty());
-
-		const FTimeThiefSmokeRendererVolume& FirstVolume = ClusterMembers[0]->Volume;
-		FTimeThiefSmokeRendererVolume ClusterVolume = FirstVolume;
-		ClusterVolume.SmokeId = FirstVolume.ClusterId;
-		ClusterVolume.ClusterId = FirstVolume.ClusterId;
-		ClusterVolume.ClusterSourceCount = ClusterMembers.Num();
-		ClusterVolume.AgeSeconds = FirstVolume.AgeSeconds;
-		ClusterVolume.DurationSeconds = FirstVolume.DurationSeconds;
-		ClusterVolume.ObstacleFieldResolution = 0;
-		ClusterVolume.ObstacleFieldRevision = 0;
-		ClusterVolume.ObstaclePrimitives.Reset();
-		ClusterVolume.bHasSolidObstacleField = false;
-		ClusterVolume.SourceEvents.Reset();
-		ClusterVolume.SourceEvents.Reserve(ClusterMembers.Num());
-
-		FBox NaturalBounds(EForceInit::ForceInit);
-		FBox RenderBounds(EForceInit::ForceInit);
-		FBox SimulationBounds(EForceInit::ForceInit);
-		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
-		{
-			const FTimeThiefSmokeRendererVolume& Volume = Member->Volume;
-			NaturalBounds += MakeSmokeWorldBounds(Volume, Volume.NaturalBoundsExtent);
-			RenderBounds += MakeSmokeWorldBounds(Volume, Volume.RenderBoundsExtent);
-			SimulationBounds += MakeSmokeWorldBounds(Volume, Volume.SimulationBoundsExtent);
-			ClusterVolume.AgeSeconds = FMath::Min(ClusterVolume.AgeSeconds, Volume.AgeSeconds);
-			ClusterVolume.DurationSeconds = FMath::Max(ClusterVolume.DurationSeconds, Volume.DurationSeconds);
-		}
-
-		FBox ClusterBounds(EForceInit::ForceInit);
-		ClusterBounds += NaturalBounds;
-		ClusterBounds += RenderBounds;
-		ClusterBounds += SimulationBounds;
-		const FVector ClusterCenter = ClusterBounds.GetCenter();
-		const FVector3f ClusterCenterFloat(
-			static_cast<float>(ClusterCenter.X),
-			static_cast<float>(ClusterCenter.Y),
-			static_cast<float>(ClusterCenter.Z));
-		ClusterVolume.LocalToWorld = FTransform3f(FQuat4f::Identity, ClusterCenterFloat, FVector3f(1.0f, 1.0f, 1.0f));
-		ClusterVolume.NaturalBoundsExtent = MakeExtentAroundCenter(NaturalBounds, ClusterCenter);
-		ClusterVolume.RenderBoundsExtent = MakeExtentAroundCenter(RenderBounds, ClusterCenter);
-		ClusterVolume.SimulationBoundsExtent = MakeExtentAroundCenter(SimulationBounds, ClusterCenter);
-		ClusterVolume.BoundsExtent = ClusterVolume.SimulationBoundsExtent;
-		if (ClusterVolume.Settings.bEnableClusterObstacleMerge)
-		{
-			MergeClusterObstaclePrimitives(ClusterMembers, ClusterVolume);
-		}
-
-		for (const FPendingRendererSmokeVolume* Member : ClusterMembers)
-		{
-			FTimeThiefSmokeRendererEvent SourceEvent;
-			if (TryMakeClusterSourceEvent(Member->Volume, ClusterVolume.SmokeId, SourceEvent))
-			{
-				ClusterVolume.SourceEvents.Add(SourceEvent);
-			}
-		}
-
-		return ClusterVolume;
 	}
 
 	float ComputeInteractionEventPriority(const FTimeThiefSmokeInteractionEvent& Event, const float Age, const float Duration)
@@ -595,58 +337,11 @@ namespace TimeThiefSmoke
 		RendererEvent.Length = Event.Length;
 		RendererEvent.Strength = Event.Strength;
 		RendererEvent.Speed = Event.Speed;
-		RendererEvent.WarpBudget = Event.WarpBudget;
 		RendererEvent.NormalizedAge = Event.NormalizedAge;
 		RendererEvent.Seed = Event.Seed;
 		return RendererEvent;
 	}
 
-#if WITH_DEV_AUTOMATION_TESTS
-	FBox MakeAutomationClusterBox(const FVector& Center, const FVector& Extent)
-	{
-		return FBox(Center - Extent, Center + Extent);
-	}
-
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(
-		FTimeThiefSmokeClusterBroadphaseAutomationTest,
-		"TimeThief.Smoke.World.ClusterBroadphase",
-		EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
-
-	bool FTimeThiefSmokeClusterBroadphaseAutomationTest::RunTest(const FString& Parameters)
-	{
-		TArray<FBox> FarBounds;
-		TArray<FBox> FarReleaseBounds;
-		const float CellStride = TimeThiefSmokeParameterDefaults::SmokeSpatialCellSize * 3.0f;
-		for (int32 Index = 0; Index < 64; ++Index)
-		{
-			const FVector Center(CellStride * static_cast<float>(Index), 0.0, 0.0);
-			const FBox Bounds = MakeAutomationClusterBox(Center, FVector(80.0, 80.0, 80.0));
-			FarBounds.Add(Bounds);
-			FarReleaseBounds.Add(Bounds);
-		}
-
-		TArray<TPair<int32, int32>> CandidatePairs;
-		BuildSmokeClusterCandidatePairs(FarBounds, FarReleaseBounds, CandidatePairs);
-		TestEqual(TEXT("Separated smoke cluster broadphase emits no candidate pairs"), CandidatePairs.Num(), 0);
-
-		TArray<FBox> TouchingBounds;
-		TArray<FBox> TouchingReleaseBounds;
-		TouchingBounds.Add(MakeAutomationClusterBox(FVector::ZeroVector, FVector(200.0, 200.0, 200.0)));
-		TouchingBounds.Add(MakeAutomationClusterBox(FVector(320.0, 0.0, 0.0), FVector(200.0, 200.0, 200.0)));
-		TouchingReleaseBounds = TouchingBounds;
-
-		CandidatePairs.Reset();
-		BuildSmokeClusterCandidatePairs(TouchingBounds, TouchingReleaseBounds, CandidatePairs);
-		TestEqual(TEXT("Overlapping smoke cluster broadphase emits one candidate pair"), CandidatePairs.Num(), 1);
-		if (CandidatePairs.Num() == 1)
-		{
-			TestEqual(TEXT("Overlapping pair uses first smoke index"), CandidatePairs[0].Key, 0);
-			TestEqual(TEXT("Overlapping pair uses second smoke index"), CandidatePairs[0].Value, 1);
-		}
-
-		return true;
-	}
-#endif
 }
 
 void UTimeThiefSmokeWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -656,14 +351,30 @@ void UTimeThiefSmokeWorldSubsystem::Initialize(FSubsystemCollectionBase& Collect
 
 void UTimeThiefSmokeWorldSubsystem::Deinitialize()
 {
+	if (GEngine)
+	{
+		if (UTimeThiefSmokeRendererSubsystem* RendererSubsystem = GEngine->GetEngineSubsystem<UTimeThiefSmokeRendererSubsystem>())
+		{
+			FTimeThiefSmokeRendererFrame ClearFrame;
+			ClearFrame.SceneKey = GetRendererSceneKey();
+			RendererSubsystem->SubmitFrame(MoveTemp(ClearFrame));
+		}
+	}
+
 	ActiveSmokeVolumes.Reset();
 	ActiveImpulses.Reset();
 	PendingRendererEvents.Reset();
-	PersistentClusterLinks.Reset();
 	SmokeSpatialEntries.Reset();
 	SmokeSpatialCells.Reset();
+	SmokeSpatialQueryEntryStamps.Reset();
+	SmokeSpatialQueryEntryIndices.Reset();
+	SmokeSpatialQueryResults.Reset();
+	LastPublishedObstacleFieldRevisions.Reset();
 	bSmokeSpatialIndexDirty = true;
-	SmokeSpatialIndexFrame = MAX_uint64;
+	SmokeSpatialIndexValidationFrame = MAX_uint64;
+	SmokeSpatialQueryStamp = 0;
+	NextSmokeId = 1;
+	RendererSceneKey = 0;
 	Super::Deinitialize();
 }
 
@@ -698,15 +409,20 @@ void UTimeThiefSmokeWorldSubsystem::Tick(float DeltaTime)
 		SmokeVolume->ApplyInteractionEvent(Event);
 	}
 
+	GatherActorPushEvents(DeltaTime);
 	PublishRendererFrame(DeltaTime);
 
 	BulletTraceCountsThisTick.Reset();
-	bSmokeSpatialIndexDirty = true;
 }
 
 TStatId UTimeThiefSmokeWorldSubsystem::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UTimeThiefSmokeWorldSubsystem, STATGROUP_Tickables);
+}
+
+int32 UTimeThiefSmokeWorldSubsystem::AllocateSmokeId()
+{
+	return NextSmokeId++;
 }
 
 void UTimeThiefSmokeWorldSubsystem::RegisterSmokeVolume(ATimeThiefSmokeVolume* SmokeVolume)
@@ -723,6 +439,10 @@ void UTimeThiefSmokeWorldSubsystem::RegisterSmokeVolume(ATimeThiefSmokeVolume* S
 void UTimeThiefSmokeWorldSubsystem::UnregisterSmokeVolume(ATimeThiefSmokeVolume* SmokeVolume)
 {
 	ActiveSmokeVolumes.Remove(SmokeVolume);
+	if (SmokeVolume)
+	{
+		LastPublishedObstacleFieldRevisions.Remove(SmokeVolume->GetSmokeId());
+	}
 	MarkSmokeSpatialIndexDirty();
 
 	for (int32 Index = ActiveImpulses.Num() - 1; Index >= 0; --Index)
@@ -743,9 +463,8 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 
 	CompactSmokeVolumes();
 
-	TArray<ATimeThiefSmokeVolume*> CandidateSmokeVolumes;
-	QuerySmokeSpatialIndex(TimeThiefSmoke::MakeTraceQueryBounds(TraceStart, TraceEnd), CandidateSmokeVolumes);
-	for (ATimeThiefSmokeVolume* SmokeVolume : CandidateSmokeVolumes)
+	QuerySmokeSpatialIndex(TimeThiefSmoke::MakeTraceQueryBounds(TraceStart, TraceEnd), SmokeSpatialQueryResults);
+	for (ATimeThiefSmokeVolume* SmokeVolume : SmokeSpatialQueryResults)
 	{
 		if (!SmokeVolume)
 		{
@@ -773,9 +492,8 @@ void UTimeThiefSmokeWorldSubsystem::SubmitExplosion(const FVector& Center, float
 	CompactSmokeVolumes();
 
 	const float SafeRadius = FMath::Max(1.0f, Radius);
-	TArray<ATimeThiefSmokeVolume*> CandidateSmokeVolumes;
-	QuerySmokeSpatialIndex(FBox(Center - FVector(SafeRadius), Center + FVector(SafeRadius)), CandidateSmokeVolumes);
-	for (ATimeThiefSmokeVolume* SmokeVolume : CandidateSmokeVolumes)
+	QuerySmokeSpatialIndex(FBox(Center - FVector(SafeRadius), Center + FVector(SafeRadius)), SmokeSpatialQueryResults);
+	for (ATimeThiefSmokeVolume* SmokeVolume : SmokeSpatialQueryResults)
 	{
 		if (!SmokeVolume || !SmokeVolume->IntersectsExplosion(Center, SafeRadius))
 		{
@@ -809,6 +527,14 @@ void UTimeThiefSmokeWorldSubsystem::RecordRendererEvent(const FTimeThiefSmokeInt
 	PendingRendererEvents.Add(Event);
 }
 
+void UTimeThiefSmokeWorldSubsystem::NotifySmokeVolumeBoundsChanged(ATimeThiefSmokeVolume* SmokeVolume)
+{
+	if (SmokeVolume && ActiveSmokeVolumes.Contains(SmokeVolume))
+	{
+		MarkSmokeSpatialIndexDirty();
+	}
+}
+
 void UTimeThiefSmokeWorldSubsystem::CompactSmokeVolumes()
 {
 	bool bRemovedInvalidVolume = false;
@@ -825,6 +551,11 @@ void UTimeThiefSmokeWorldSubsystem::CompactSmokeVolumes()
 	{
 		MarkSmokeSpatialIndexDirty();
 	}
+
+	if (ActiveSmokeVolumes.IsEmpty())
+	{
+		LastPublishedObstacleFieldRevisions.Reset();
+	}
 }
 
 void UTimeThiefSmokeWorldSubsystem::MarkSmokeSpatialIndexDirty()
@@ -832,16 +563,62 @@ void UTimeThiefSmokeWorldSubsystem::MarkSmokeSpatialIndexDirty()
 	bSmokeSpatialIndexDirty = true;
 }
 
+void UTimeThiefSmokeWorldSubsystem::ValidateSmokeSpatialIndexBounds()
+{
+	if (bSmokeSpatialIndexDirty || SmokeSpatialIndexValidationFrame == GFrameCounter)
+	{
+		return;
+	}
+
+	SmokeSpatialIndexValidationFrame = GFrameCounter;
+	int32 CurrentValidSmokeCount = 0;
+	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
+	{
+		const ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
+		if (SmokeVolume && SmokeVolume->GetCurrentSmokeWorldBounds().IsValid)
+		{
+			++CurrentValidSmokeCount;
+		}
+	}
+
+	if (CurrentValidSmokeCount != SmokeSpatialEntries.Num())
+	{
+		MarkSmokeSpatialIndexDirty();
+		return;
+	}
+
+	for (const FTimeThiefSmokeSpatialEntry& Entry : SmokeSpatialEntries)
+	{
+		ATimeThiefSmokeVolume* SmokeVolume = Entry.SmokeVolume.Get();
+		if (!SmokeVolume)
+		{
+			MarkSmokeSpatialIndexDirty();
+			return;
+		}
+
+		const FBox CurrentBounds = SmokeVolume->GetCurrentSmokeWorldBounds();
+		if (!CurrentBounds.IsValid ||
+			!Entry.Bounds.IsValid ||
+			!Entry.Bounds.Min.Equals(CurrentBounds.Min, 0.1) ||
+			!Entry.Bounds.Max.Equals(CurrentBounds.Max, 0.1))
+		{
+			MarkSmokeSpatialIndexDirty();
+			return;
+		}
+	}
+}
+
 void UTimeThiefSmokeWorldSubsystem::RebuildSmokeSpatialIndex()
 {
-	const uint64 CurrentFrame = GFrameCounter;
-	if (!bSmokeSpatialIndexDirty && SmokeSpatialIndexFrame == CurrentFrame)
+	if (!bSmokeSpatialIndexDirty)
 	{
 		return;
 	}
 
 	SmokeSpatialEntries.Reset();
 	SmokeSpatialCells.Reset();
+	SmokeSpatialEntries.Reserve(ActiveSmokeVolumes.Num());
+	SmokeSpatialCells.Reserve(ActiveSmokeVolumes.Num() * 4);
 
 	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
 	{
@@ -872,8 +649,11 @@ void UTimeThiefSmokeWorldSubsystem::RebuildSmokeSpatialIndex()
 		}
 	}
 
-	SmokeSpatialIndexFrame = CurrentFrame;
+	SmokeSpatialQueryEntryStamps.Reset(SmokeSpatialEntries.Num());
+	SmokeSpatialQueryEntryStamps.AddZeroed(SmokeSpatialEntries.Num());
+	SmokeSpatialQueryStamp = 0;
 	bSmokeSpatialIndexDirty = false;
+	SmokeSpatialIndexValidationFrame = GFrameCounter;
 }
 
 void UTimeThiefSmokeWorldSubsystem::QuerySmokeSpatialIndex(const FBox& QueryBounds, TArray<ATimeThiefSmokeVolume*>& OutSmokeVolumes)
@@ -884,9 +664,23 @@ void UTimeThiefSmokeWorldSubsystem::QuerySmokeSpatialIndex(const FBox& QueryBoun
 		return;
 	}
 
+	ValidateSmokeSpatialIndexBounds();
 	RebuildSmokeSpatialIndex();
 
-	TSet<int32> CandidateEntryIndices;
+	if (SmokeSpatialQueryEntryStamps.Num() != SmokeSpatialEntries.Num())
+	{
+		SmokeSpatialQueryEntryStamps.Reset(SmokeSpatialEntries.Num());
+		SmokeSpatialQueryEntryStamps.AddZeroed(SmokeSpatialEntries.Num());
+		SmokeSpatialQueryStamp = 0;
+	}
+	++SmokeSpatialQueryStamp;
+	if (SmokeSpatialQueryStamp == 0)
+	{
+		SmokeSpatialQueryEntryStamps.Reset(SmokeSpatialEntries.Num());
+		SmokeSpatialQueryEntryStamps.AddZeroed(SmokeSpatialEntries.Num());
+		SmokeSpatialQueryStamp = 1;
+	}
+	SmokeSpatialQueryEntryIndices.Reset(SmokeSpatialEntries.Num());
 	const FIntVector MinCell = TimeThiefSmoke::WorldToSmokeSpatialCell(QueryBounds.Min);
 	const FIntVector MaxCell = TimeThiefSmoke::WorldToSmokeSpatialCell(QueryBounds.Max);
 	for (int32 Z = MinCell.Z; Z <= MaxCell.Z; ++Z)
@@ -899,16 +693,22 @@ void UTimeThiefSmokeWorldSubsystem::QuerySmokeSpatialIndex(const FBox& QueryBoun
 				{
 					for (const int32 EntryIndex : *EntryIndices)
 					{
-						CandidateEntryIndices.Add(EntryIndex);
+						if (!SmokeSpatialEntries.IsValidIndex(EntryIndex) || SmokeSpatialQueryEntryStamps[EntryIndex] == SmokeSpatialQueryStamp)
+						{
+							continue;
+						}
+
+						SmokeSpatialQueryEntryStamps[EntryIndex] = SmokeSpatialQueryStamp;
+						SmokeSpatialQueryEntryIndices.Add(EntryIndex);
 					}
 				}
 			}
 		}
 	}
 
-	TArray<int32> SortedCandidateEntryIndices = CandidateEntryIndices.Array();
-	SortedCandidateEntryIndices.Sort();
-	for (const int32 EntryIndex : SortedCandidateEntryIndices)
+	SmokeSpatialQueryEntryIndices.Sort();
+	OutSmokeVolumes.Reserve(SmokeSpatialQueryEntryIndices.Num());
+	for (const int32 EntryIndex : SmokeSpatialQueryEntryIndices)
 	{
 		if (!SmokeSpatialEntries.IsValidIndex(EntryIndex) || !SmokeSpatialEntries[EntryIndex].Bounds.Intersect(QueryBounds))
 		{
@@ -920,6 +720,116 @@ void UTimeThiefSmokeWorldSubsystem::QuerySmokeSpatialIndex(const FBox& QueryBoun
 			OutSmokeVolumes.Add(SmokeVolume);
 		}
 	}
+}
+
+void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
+{
+	UWorld* World = GetWorld();
+	if (!World || DeltaTime <= 0.0f)
+	{
+		return;
+	}
+
+	CompactSmokeVolumes();
+	TArray<ATimeThiefSmokeVolume*> ValidSmokeVolumes;
+	TArray<FBox> ValidSmokeBounds;
+	ValidSmokeVolumes.Reserve(ActiveSmokeVolumes.Num());
+	ValidSmokeBounds.Reserve(ActiveSmokeVolumes.Num());
+	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
+	{
+		ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
+		if (!SmokeVolume)
+		{
+			continue;
+		}
+
+		const FBox SmokeBounds = SmokeVolume->GetCurrentSmokeWorldBounds();
+		if (!SmokeBounds.IsValid)
+		{
+			continue;
+		}
+
+		ValidSmokeVolumes.Add(SmokeVolume);
+		ValidSmokeBounds.Add(SmokeBounds);
+	}
+
+	if (ValidSmokeVolumes.IsEmpty())
+	{
+		return;
+	}
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_PhysicsBody);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeActorOverlap), false);
+	TArray<TArray<UPrimitiveComponent*>> ComponentsBySmoke;
+	TArray<TSet<UPrimitiveComponent*>> AddedComponentsBySmoke;
+	ComponentsBySmoke.SetNum(ValidSmokeVolumes.Num());
+	AddedComponentsBySmoke.SetNum(ValidSmokeVolumes.Num());
+
+	TArray<TimeThiefSmoke::FSmokeActorOverlapGroup> OverlapGroups;
+	TimeThiefSmoke::BuildSmokeActorOverlapGroups(ValidSmokeBounds, OverlapGroups);
+
+	for (const TimeThiefSmoke::FSmokeActorOverlapGroup& OverlapGroup : OverlapGroups)
+	{
+		if (!OverlapGroup.Bounds.IsValid)
+		{
+			continue;
+		}
+
+		TArray<FOverlapResult> Overlaps;
+		World->OverlapMultiByObjectType(
+			Overlaps,
+			OverlapGroup.Bounds.GetCenter(),
+			FQuat::Identity,
+			ObjectQueryParams,
+			FCollisionShape::MakeBox(OverlapGroup.Bounds.GetExtent()),
+			QueryParams);
+
+		for (const FOverlapResult& Overlap : Overlaps)
+		{
+			UPrimitiveComponent* PrimitiveComponent = Overlap.GetComponent();
+			if (!PrimitiveComponent)
+			{
+				continue;
+			}
+
+			const FBox ComponentBounds = PrimitiveComponent->Bounds.GetBox();
+			for (const int32 SmokeIndex : OverlapGroup.SmokeIndices)
+			{
+				if (!ValidSmokeVolumes.IsValidIndex(SmokeIndex) ||
+					!ComponentBounds.Intersect(ValidSmokeBounds[SmokeIndex]) ||
+					AddedComponentsBySmoke[SmokeIndex].Contains(PrimitiveComponent))
+				{
+					continue;
+				}
+
+				AddedComponentsBySmoke[SmokeIndex].Add(PrimitiveComponent);
+				ComponentsBySmoke[SmokeIndex].Add(PrimitiveComponent);
+			}
+		}
+	}
+
+	for (int32 SmokeIndex = 0; SmokeIndex < ValidSmokeVolumes.Num(); ++SmokeIndex)
+	{
+		if (ValidSmokeVolumes[SmokeIndex])
+		{
+			ValidSmokeVolumes[SmokeIndex]->GatherActorPushEventsFromComponents(ComponentsBySmoke[SmokeIndex], DeltaTime);
+		}
+	}
+}
+
+uint64 UTimeThiefSmokeWorldSubsystem::GetRendererSceneKey() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0;
+	}
+
+	return World->Scene ? reinterpret_cast<uint64>(World->Scene) : RendererSceneKey;
 }
 
 void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
@@ -938,12 +848,17 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 	}
 
 	FTimeThiefSmokeRendererFrame Frame;
+	const uint64 CurrentSceneKey = GetRendererSceneKey();
+	if (RendererSceneKey != CurrentSceneKey)
+	{
+		LastPublishedObstacleFieldRevisions.Reset();
+	}
+	Frame.SceneKey = CurrentSceneKey;
+	RendererSceneKey = Frame.SceneKey;
 	Frame.DeltaSeconds = DeltaTime;
 	Frame.Volumes.Reserve(ActiveSmokeVolumes.Num());
 	Frame.Events.Reserve(PendingRendererEvents.Num());
 
-	TArray<TimeThiefSmoke::FPendingRendererSmokeVolume> PendingVolumes;
-	PendingVolumes.Reserve(ActiveSmokeVolumes.Num());
 	for (const TWeakObjectPtr<ATimeThiefSmokeVolume>& SmokeVolumePtr : ActiveSmokeVolumes)
 	{
 		ATimeThiefSmokeVolume* SmokeVolume = SmokeVolumePtr.Get();
@@ -951,7 +866,7 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		{
 			continue;
 		}
-		SmokeVolume->FlushPendingObstacleFieldRebuild();
+		SmokeVolume->FlushPendingObstacleFieldRebuild(DeltaTime);
 
 		FTimeThiefSmokeRendererVolume RendererVolume;
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
@@ -967,51 +882,27 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 		RendererVolume.DurationSeconds = TimeThiefSmokeParameterDefaults::SmokeDuration;
 		RendererVolume.ObstacleFieldResolution = SmokeVolume->GetObstacleFieldResolution();
 		RendererVolume.ObstacleFieldRevision = SmokeVolume->GetObstacleFieldRevision();
-		RendererVolume.ObstaclePrimitives = SmokeVolume->GetObstaclePrimitives();
 		RendererVolume.bHasSolidObstacleField = SmokeVolume->HasSolidObstacleField();
-		RendererVolume.Settings = TimeThiefSmoke::GetDefaultRendererSettings();
-
-		TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume = PendingVolumes.AddDefaulted_GetRef();
-		PendingVolume.Volume = MoveTemp(RendererVolume);
-		PendingVolume.ClusterBounds = TimeThiefSmoke::MakeSmokeClusterWorldBounds(PendingVolume.Volume);
-	}
-
-	TimeThiefSmoke::AssignSmokeClusters(PendingVolumes, PersistentClusterLinks);
-	TMap<int32, TArray<TimeThiefSmoke::FPendingRendererSmokeVolume*>> ClusterMembersById;
-	TMap<int32, int32> SmokeIdToPublishedSmokeId;
-	for (TimeThiefSmoke::FPendingRendererSmokeVolume& PendingVolume : PendingVolumes)
-	{
-		ClusterMembersById.FindOrAdd(PendingVolume.Volume.ClusterId).Add(&PendingVolume);
-		SmokeIdToPublishedSmokeId.Add(PendingVolume.Volume.SmokeId, PendingVolume.Volume.ClusterId);
-	}
-
-	for (TPair<int32, TArray<TimeThiefSmoke::FPendingRendererSmokeVolume*>>& ClusterPair : ClusterMembersById)
-	{
-		TArray<TimeThiefSmoke::FPendingRendererSmokeVolume*>& ClusterMembers = ClusterPair.Value;
-		if (ClusterMembers.Num() <= 1)
+		const uint32* LastPublishedObstacleFieldRevision = CurrentSceneKey != 0
+			? LastPublishedObstacleFieldRevisions.Find(RendererVolume.SmokeId)
+			: nullptr;
+		if (!LastPublishedObstacleFieldRevision || *LastPublishedObstacleFieldRevision != RendererVolume.ObstacleFieldRevision)
 		{
-			TimeThiefSmoke::FPendingRendererSmokeVolume* Member = ClusterMembers.IsEmpty() ? nullptr : ClusterMembers[0];
-			if (Member)
+			RendererVolume.ObstaclePrimitives = SmokeVolume->GetObstaclePrimitives();
+			if (CurrentSceneKey != 0)
 			{
-				Member->Volume.SourceEvents.Reset();
-				Frame.Volumes.Add(MoveTemp(Member->Volume));
+				LastPublishedObstacleFieldRevisions.Add(RendererVolume.SmokeId, RendererVolume.ObstacleFieldRevision);
 			}
-			continue;
 		}
 
-		Frame.Volumes.Add(TimeThiefSmoke::MakeClusterVolume(ClusterMembers));
+		Frame.Volumes.Add(MoveTemp(RendererVolume));
 	}
 
 	for (const FTimeThiefSmokeInteractionEvent& Event : PendingRendererEvents)
 	{
-		FTimeThiefSmokeRendererEvent RendererEvent = TimeThiefSmoke::ToRendererEvent(Event);
-		if (const int32* PublishedSmokeId = SmokeIdToPublishedSmokeId.Find(RendererEvent.SmokeId))
-		{
-			RendererEvent.SmokeId = *PublishedSmokeId;
-		}
-		Frame.Events.Add(RendererEvent);
+		Frame.Events.Add(TimeThiefSmoke::ToRendererEvent(Event));
 	}
 
-	RendererSubsystem->SubmitFrame(Frame);
+	RendererSubsystem->SubmitFrame(MoveTemp(Frame));
 	PendingRendererEvents.Reset();
 }

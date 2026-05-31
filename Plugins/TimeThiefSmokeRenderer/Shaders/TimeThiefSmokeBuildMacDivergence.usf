@@ -70,12 +70,14 @@ float LoadOpen(int3 Coord)
 
 float3 LoadFaceOpen(int3 Coord)
 {
-	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return ObstacleFaceOpenTexture.SampleLevel(VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), 0.0).xyz;
 }
 
 float3 LoadSolidVelocity(int3 Coord)
 {
-	return ObstacleVelocityTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+	const int3 SafeCoord = ClampSmokeCoord(Coord);
+	return ObstacleVelocityTexture.SampleLevel(VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), 0.0).xyz;
 }
 
 float ComputeUFace(int3 Coord)

@@ -131,10 +131,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float Strength = saturate(Event.ExtentsStrength.w);
 		const float ShapeRadius = max(TimeThiefSmokeEventShapeRadius(Event), Radius);
 		const float3 ToCell = WorldPosition - Event.PositionRadius.xyz;
-		const float TrailLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+		const float TrailLength = TimeThiefSmokeActorWakeTrailLength(Event, ActorWakeTrailLengthScale);
 		const float InfluenceRadius = max(
 			TimeThiefSmokeActorInfluenceRadius(Event, ActorAirflowRadiusScale),
-			TimeThiefSmokeActorWarpInfluenceRadius(Event, WarpTrailLengthScale));
+			TimeThiefSmokeActorWakeInfluenceRadius(Event, ActorWakeTrailLengthScale));
 		if (dot(ToCell, ToCell) > InfluenceRadius * InfluenceRadius)
 		{
 			continue;

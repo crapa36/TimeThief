@@ -64,9 +64,6 @@ struct FTimeThiefSmokeInteractionEvent
 	float Speed = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
-	float WarpBudget = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
 	float NormalizedAge = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")

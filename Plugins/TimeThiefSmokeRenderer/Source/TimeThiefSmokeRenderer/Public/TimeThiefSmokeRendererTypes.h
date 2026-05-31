@@ -39,91 +39,8 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeObstaclePrimitive
 	FVector4f AxisHalfLength = FVector4f::Zero();
 	FVector4f ExtentsShape = FVector4f::Zero();
 	FVector4f Rotation = FVector4f::Zero();
-};
-
-struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererSettings
-{
-	FTimeThiefSmokeRendererSettings();
-
-	ETimeThiefSmokeSimulationBackend SimulationBackend;
-	int32 SmokeGridResolution;
-	int32 PressureIterations;
-	int32 RenderStepCount;
-	int32 SmokeBrickSize;
-	int32 MaxActiveSmokeBricks;
-	int32 RenderMaxStepCount;
-	float RenderStepVoxelScale;
-	int32 MaxGPUEventsPerSmokePerFrame;
-	float InitialDensity;
-	float SmokeFadeOutDuration;
-	float PlumeEmissionDuration;
-	float PlumeSourceRadius;
-	float ObstacleSourceClearRadiusScale;
-	float PlumeExpansionVelocity;
-	float PlumeRiseVelocity;
-	float Extinction;
-	float ScatteringAlbedo;
-	float ScatteringAnisotropy;
-	FVector3f SelfShadowLightDirection;
-	float SelfShadowStrength;
-	float SelfShadowExtinction;
-	int32 SelfShadowStepCount;
-	float SelfShadowStepLength;
-	float DensityDissipation;
-	float VelocityDamping;
-	float VorticityStrength;
-	float VorticityConfinementStrength;
-	float TurbulenceStrength;
-	float AirInteractionStrength;
-	float SelfWobbleTimeScale;
-	float SelfWobbleVelocityScale;
-	float SelfWobbleForceScale;
-	float SelfWobbleParticleScale;
-	float EventVortexStrength;
-	int32 VortexParticleCount;
-	float VortexParticleLifeSeconds;
-	float VortexParticleStrength;
-	float VortexParticleSplatRadius;
-	float VortexParticleCoreRadius;
-	float VortexDensityGradientScale;
-	float WarpTrailIntensity;
-	float WarpTrailDecayRate;
-	float WarpTrailRadiusScale;
-	float WarpTrailLengthScale;
-	float ActorWarpDensityAccumulationScale;
-	float ActorWarpAccumulationDecaySeconds;
-	float ActorWarpEmissionRemainder;
-	float ActorAirflowStrength;
-	float ActorAirflowMinSpeed;
-	float ActorAirflowFullSpeed;
-	float ActorAirflowRadiusScale;
-	float ActorAirflowFrontStrength;
-	float ActorAirflowSideStrength;
-	float ActorAirflowWakeStrength;
-	float ActorAirflowVortexStrength;
-	float SparseVelocityActiveThreshold;
-	float BulletWakeMaxVisibleLife;
-	float BulletWakeReleaseDuration;
-	float BulletWakeSinkLife;
-	float BulletWakeSinkStrength;
-	float BulletWakeImpulseStrength;
-	float BulletWakeCutoutFeather;
-	bool bUseMacCormackAdvection;
-	bool bUseAdaptiveMacCormack;
-	bool bUseVortexBrickBins;
-	float RenderNoiseScale;
-	float RenderNoiseStrength;
-	float RenderNoiseTimeScale;
-	float RenderFilamentScale;
-	float RenderFilamentStrength;
-	float RenderFilamentContrast;
-	float RenderFilamentWarpStrength;
-	bool bEnableMultiSmokeQualityReduction;
-	float MultiSmokeSelfShadowStepScale;
-	float MultiSmokeRenderStepScale;
-	float MultiSmokeInactiveBrickRaymarchSkipScale;
-	bool bForceFastFilamentForMultiSmoke;
-	bool bEnableClusterObstacleMerge;
+	FVector4f Velocity = FVector4f::Zero();
+	FVector4f AngularVelocity = FVector4f::Zero();
 };
 
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererEvent
@@ -140,7 +57,6 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererEvent
 	float Length = 0.0f;
 	float Strength = 1.0f;
 	float Speed = 0.0f;
-	float WarpBudget = 0.0f;
 	float NormalizedAge = 0.0f;
 	int32 Seed = 0;
 };
@@ -155,20 +71,17 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererVolume
 	FVector3f SimulationBoundsExtent;
 	FVector3f NaturalBoundsExtent;
 	FVector3f RenderBoundsExtent;
-	int32 ClusterId = INDEX_NONE;
-	int32 ClusterSourceCount = 1;
 	float AgeSeconds = 0.0f;
 	float DurationSeconds;
 	int32 ObstacleFieldResolution = 0;
 	uint32 ObstacleFieldRevision = 0;
 	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
 	bool bHasSolidObstacleField = false;
-	TArray<FTimeThiefSmokeRendererEvent> SourceEvents;
-	FTimeThiefSmokeRendererSettings Settings;
 };
 
 struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeRendererFrame
 {
+	uint64 SceneKey = 0;
 	float DeltaSeconds = 0.0f;
 	TArray<FTimeThiefSmokeRendererVolume> Volumes;
 	TArray<FTimeThiefSmokeRendererEvent> Events;

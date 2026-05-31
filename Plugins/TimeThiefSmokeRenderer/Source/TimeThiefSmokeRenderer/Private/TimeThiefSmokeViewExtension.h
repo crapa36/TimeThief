@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RHIGPUReadback.h"
 #include "SceneViewExtension.h"
 #include "TimeThiefSmokeRendererTypes.h"
 
@@ -23,6 +24,22 @@ public:
 	FScreenPassTexture CompositeSmoke_RenderThread(FRDGBuilder& GraphBuilder, const FSceneView& View, const FPostProcessMaterialInputs& Inputs);
 
 private:
+	struct FRenderSmokeStateKey
+	{
+		uint64 SceneKey = 0;
+		int32 SmokeId = INDEX_NONE;
+
+		friend bool operator==(const FRenderSmokeStateKey& Left, const FRenderSmokeStateKey& Right)
+		{
+			return Left.SceneKey == Right.SceneKey && Left.SmokeId == Right.SmokeId;
+		}
+
+		friend uint32 GetTypeHash(const FRenderSmokeStateKey& Key)
+		{
+			return HashCombineFast(::GetTypeHash(Key.SceneKey), ::GetTypeHash(Key.SmokeId));
+		}
+	};
+
 	struct FRenderSmokeState
 	{
 		FTimeThiefSmokeRendererVolume Volume;
@@ -30,25 +47,17 @@ private:
 		TRefCountPtr<IPooledRenderTarget> DensityTextures[2];
 		TRefCountPtr<IPooledRenderTarget> DisplacedDensityTextures[2];
 		TRefCountPtr<IPooledRenderTarget> VelocityTextures[2];
-		TRefCountPtr<IPooledRenderTarget> MacVelocityUTextures[2];
-		TRefCountPtr<IPooledRenderTarget> MacVelocityVTextures[2];
-		TRefCountPtr<IPooledRenderTarget> MacVelocityWTextures[2];
-		TRefCountPtr<IPooledRenderTarget> PressureTextures[2];
-		TRefCountPtr<IPooledRenderTarget> DivergenceTexture;
 		TRefCountPtr<IPooledRenderTarget> BulletCutoutTextures[2];
 		TRefCountPtr<IPooledRenderTarget> BulletSinkTextures[2];
-		TRefCountPtr<IPooledRenderTarget> WarpTextures[2];
 		TRefCountPtr<IPooledRenderTarget> ObstacleSdfTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleVelocityTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleFaceOpenTexture;
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
 		TRefCountPtr<IPooledRenderTarget> SparseFieldAtlasTexture;
-		TRefCountPtr<IPooledRenderTarget> CurlTexture;
 		TRefCountPtr<FRDGPooledBuffer> VortexParticleBuffers[2];
 		int32 CurrentDensityIndex = 0;
 		int32 CurrentVelocityIndex = 0;
 		int32 CurrentBulletFieldIndex = 0;
-		int32 CurrentWarpIndex = 0;
 		int32 CurrentVortexParticleIndex = 0;
 		FIntVector AllocatedGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedBrickGridSize = FIntVector::ZeroValue;
@@ -56,21 +65,20 @@ private:
 		FIntVector AllocatedSparseAtlasGridSize = FIntVector::ZeroValue;
 		FIntVector AllocatedObstacleGridSize = FIntVector::ZeroValue;
 		int32 AllocatedSparseAtlasBrickCapacity = 0;
-		uint32 LastActiveBrickCount = 0;
-		uint32 LastSparseSourceEventSpatialHash = 0;
+		TUniquePtr<FRHIGPUBufferReadback> SparseActiveBrickCountReadback;
+		uint32 SparseActiveBrickCount = 0;
 		uint32 UploadedObstacleFieldRevision = MAX_uint32;
 		uint32 LastSimulatedFrame = MAX_uint32;
 		int32 AllocatedVortexParticleCount = 0;
 		float AccumulatedSimulationDeltaSeconds = 0.0f;
 		float AccumulatedVortexDeltaSeconds = 0.0f;
-		float WarpDecayBudgetSeconds = 0.0f;
 		float BulletFieldDecayBudgetSeconds = 0.0f;
 		bool bNeedsInit = true;
 		bool bVortexParticlesNeedUpload = true;
 		bool bSparseAtlasVisibleThisFrame = true;
 		bool bSparseAtlasScatterPending = false;
 		bool bSparseOccupancyRefreshPending = false;
-		bool bWarpClearPending = false;
+		bool bSparseActiveBrickCountReadbackPending = false;
 		bool bUseSparseSimulationMaskThisFrame = false;
 	};
 
@@ -94,22 +102,24 @@ private:
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void EnsureObstacleFieldTextures(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void EnsureVortexParticleBuffers(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
+	void ConsumeSparseActiveBrickCountReadback(FRenderSmokeState& State);
+	void QueueSparseActiveBrickCountReadback(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef ActiveBrickCountBuffer);
+	bool HasRenderableSceneState_RenderThread(uint64 SceneKey, const FSceneViewFamily* ViewFamily = nullptr) const;
 	void UploadDeadVortexParticles(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexBuffer);
 	void AddVortexParticleUpdatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexIn, FRDGBufferRef VortexOut, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
 	FRDGBufferRef AddBuildVortexBrickMasksPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexBuffer);
 	void AddVortexParticleSplatPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexBuffer, FRDGBufferRef VortexBrickMasksBuffer, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGTextureRef VelocityOut);
 	void AddBuildEventBrickMasksPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef AdvectionEventBuffer, int32 AdvectionEventCount, FRDGBufferRef ExplosionEventBuffer, int32 ExplosionEventCount, FRDGBufferRef ActorEventBuffer, int32 ActorEventCount, FRDGBufferRef VortexEventBuffer, int32 VortexEventCount, FRDGBufferRef& EmptyEventBuffer, FRDGBufferRef& EmptyEventBrickMasksBuffer, FRDGBufferRef& OutAdvectionEventBrickMasksBuffer, FRDGBufferRef& OutExplosionEventBrickMasksBuffer, FRDGBufferRef& OutActorEventBrickMasksBuffer, FRDGBufferRef& OutVortexEventBrickMasksBuffer);
-	void AddBuildBrickOccupancyPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef VelocityTexture, FRDGTextureRef WarpTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, int32 EventCount, FRDGTextureRef BrickActivityTexture, bool bCheckWarpChannel, bool bCheckBulletChannels);
+	void AddBuildBrickOccupancyPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef VelocityTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, int32 EventCount, FRDGTextureRef BrickActivityTexture, bool bCheckBulletChannels);
 	FActiveBrickDispatchResources AddExpandBrickOccupancyPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef BrickActivityTexture, FRDGTextureRef BrickOccupancyTexture, uint32 MaxActiveListBricks, uint32 MaxDispatchBrickCount);
 	FActiveBrickDispatchResources AddBuildActiveBrickListPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef BrickOccupancyTexture);
 	FRDGBufferRef AddBuildSparseBrickDispatchArgsPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, const FActiveBrickDispatchResources& ActiveBrickResources, uint32 GroupsPerBrick, uint32 MaxDispatchBrickCount);
-	void AddScatterSparseAtlasPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef WarpTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, const FActiveBrickDispatchResources& ActiveBrickResources, bool bScatterWarpChannel, bool bScatterBulletChannels);
+	void AddScatterSparseAtlasPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, const FActiveBrickDispatchResources& ActiveBrickResources, bool bScatterBulletChannels);
 	void SimulateSmoke(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, float DeltaSeconds);
 	void AddInitPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef VelocityTexture);
 	void AddApplyEventsPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef DensityOut, FRDGTextureRef DisplacedDensityOut, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, float DeltaSeconds, const FActiveBrickDispatchResources* ActiveBrickResources);
 	void AddDynamicObstaclePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef DensityOut, FRDGTextureRef DisplacedDensityOut, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, float DeltaSeconds, const FActiveBrickDispatchResources* ActiveBrickResources);
 	void AddSimulatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, FRDGTextureRef DensityOut, FRDGTextureRef DisplacedDensityOut, FRDGTextureRef VelocityOut, FRDGTextureRef BulletCutoutOut, FRDGTextureRef BulletSinkOut, float DeltaSeconds, const FActiveBrickDispatchResources* ActiveBrickResources);
-	void AddWarpPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef WarpIn, FRDGTextureRef WarpOut, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, float DeltaSeconds);
 	void AddBuildCurlPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef CurlOut);
 	void AddVorticityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef CurlTexture, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, float DeltaSeconds);
 	void AddDivergencePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef DivergenceOut, FRDGTextureRef PressureOut);
@@ -118,6 +128,6 @@ private:
 	void AddProjectVelocityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef PressureIn, FRDGTextureRef VelocityOut);
 	void AddProjectMacToCollocatedVelocityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef FaceVelocityUIn, FRDGTextureRef FaceVelocityVIn, FRDGTextureRef FaceVelocityWIn, FRDGTextureRef PressureIn, FRDGTextureRef VelocityOut, const FActiveBrickDispatchResources* ActiveBrickResources);
 
-	TMap<int32, FRenderSmokeState> SmokeStates;
-	float LastFrameDeltaSeconds = 0.0f;
+	TMap<FRenderSmokeStateKey, FRenderSmokeState> SmokeStates;
+	TMap<uint64, float> LastFrameDeltaSecondsByScene;
 };

@@ -25,7 +25,7 @@ void UTimeThiefSmokeRendererSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UTimeThiefSmokeRendererSubsystem::SubmitFrame(const FTimeThiefSmokeRendererFrame& Frame)
+void UTimeThiefSmokeRendererSubsystem::SubmitFrame(FTimeThiefSmokeRendererFrame Frame)
 {
 	TSharedPtr<FTimeThiefSmokeViewExtension, ESPMode::ThreadSafe> Extension = ViewExtension;
 	if (!Extension.IsValid())
@@ -33,9 +33,8 @@ void UTimeThiefSmokeRendererSubsystem::SubmitFrame(const FTimeThiefSmokeRenderer
 		return;
 	}
 
-	FTimeThiefSmokeRendererFrame RenderFrame = Frame;
 	ENQUEUE_RENDER_COMMAND(TimeThiefSmokeSubmitFrame)(
-		[Extension, RenderFrame = MoveTemp(RenderFrame)](FRHICommandListImmediate& RHICmdList) mutable
+		[Extension, RenderFrame = MoveTemp(Frame)](FRHICommandListImmediate& RHICmdList) mutable
 		{
 			Extension->SubmitFrame_RenderThread(MoveTemp(RenderFrame));
 		});

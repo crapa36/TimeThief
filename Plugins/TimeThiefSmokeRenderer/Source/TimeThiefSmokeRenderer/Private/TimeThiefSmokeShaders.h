@@ -41,6 +41,7 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f RenderSteps_Quality = FVector4f::Zero();
 	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
 	FVector4f RaymarchControls = FVector4f::Zero();
+	FVector4f BoundaryNoiseControls = FVector4f::Zero();
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData
@@ -254,17 +255,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeWarpCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeWarpCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeWarpCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_WARP_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokePressureJacobiCS : public FGlobalShader
 {
 public:
@@ -331,13 +321,6 @@ public:
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture4)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture5)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, WarpTexture6)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture0)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture1)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture2)

@@ -178,7 +178,6 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			const float ShapeSdf = TimeThiefSmokeEventSweptSdf(Event, WorldPosition);
 			const float3 SurfaceNormal = TimeThiefSmokeEventSweptNormal(Event, WorldPosition);
 			const float ActorSpeed = max(Event.PreviousPositionSpeed.w, 0.0);
-			const float WarpBudget = saturate(Event.TypeShapeAgeSeed.z);
 			const float MotionMask = saturate(ActorSpeed / ActorAirflowFullSpeed);
 			const float TravelDistance = length(Event.PositionRadius.xyz - Event.PreviousPositionSpeed.xyz);
 			const float ActorTemporalScale = clamp((TravelDistance / max(ActorSpeed, 1.0)) * 30.0, 1.0, 3.6);
@@ -191,7 +190,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			const float3 RollAxis = SafeNormalize(cross(SurfaceNormal, SurfaceTangent) + CurlNoise * 0.42);
 			const float3 RollForce = SafeNormalize(cross(RollAxis, SurfaceNormal));
 			const float Along = dot(ToCell, Direction);
-			const float TrailLength = TimeThiefSmokeActorWarpTrailLength(Event, WarpTrailLengthScale);
+			const float TrailLength = TimeThiefSmokeActorWakeTrailLength(Event, ActorWakeTrailLengthScale);
 			const float BackAlong = clamp(-Along, 0.0, TrailLength);
 			const float3 TrailClosest = EventPosition - Direction * BackAlong;
 			const float3 TrailRadial = WorldPosition - TrailClosest;
@@ -224,7 +223,7 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 			Force += (RollForce * SideAir * SpinBreakup * Strength * ActorSpeed * max(ActorAirflowVortexStrength, 0.0)) * ActorTemporalScale;
 			Force += (SurfaceTangent * SurfaceBand * ActorSpeed * ActorWakeSurfaceTangentSpeedScale) * ActorTemporalScale;
 			Force += (CurlNoise * SurfaceBand * ShearMask * ActorWakeSurfaceNoiseForce) * ActorTemporalScale;
-			Force += (RollForce * Trail * SpinBreakup * Strength * MotionMask * lerp(ActorWakeTrailMinRollForce, ActorWakeTrailMaxRollForce, WarpBudget)) * ActorTemporalScale;
+			Force += (RollForce * Trail * SpinBreakup * Strength * MotionMask * lerp(ActorWakeTrailMinRollForce, ActorWakeTrailMaxRollForce, saturate(Strength * MotionMask))) * ActorTemporalScale;
 			Force += (WakeStreetDirection * WakeStreet * SpinBreakup * Strength * MotionMask * ActorSpeed * max(ActorAirflowVortexStrength, 0.0) * ActorWakeStreetForceScale) * ActorTemporalScale;
 			Force += (Direction * Front * Strength * ActorSpeed * ActorWakeFrontPushScale) * ActorTemporalScale;
 		}
