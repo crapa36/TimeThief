@@ -119,6 +119,9 @@ public:
 	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
 	void ExportStoreAndChestSpawnLocations();
 
+	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
+	void ExportMonsterSpawnLocations();
+
 public:
 	// =============================
 	// Utility

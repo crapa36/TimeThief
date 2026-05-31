@@ -182,6 +182,20 @@ void AServerMapExportTestActor::ExportStoreAndChestSpawnLocations()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
+void AServerMapExportTestActor::ExportMonsterSpawnLocations()
+{
+	UWorld* World = GetWorld();
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMonsterSpawnLocations.json");
+	const bool bResult = ServerMapExporter::ExportMonsterSpawnLocationsToJsonFile(
+		World,
+		OutputPath,
+		bDisableSpawnMarkerActorsAfterExport);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportMonsterSpawnLocations result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
 void AServerMapExportTestActor::ReplaceSelectedActorWithStaticMeshActors()
 {
 #if WITH_EDITOR

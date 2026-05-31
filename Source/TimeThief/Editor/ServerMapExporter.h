@@ -22,6 +22,7 @@ class ServerMapExporter
 public:
 	static bool ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath);
 	static bool ExportSpawnLocationsToJsonFile(UWorld* World, const FName& StoreTag, const FName& ChestTag, const FString& OutputPath, bool bDisableExportedActors);
+	static bool ExportMonsterSpawnLocationsToJsonFile(UWorld* World, const FString& OutputPath, bool bDisableExportedActors);
 	static bool ExportPresetToFile(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset, const FString& OutputPath);
 	static bool ExportSelectedActorResolvedToFile(const FString& OutputPath);
 

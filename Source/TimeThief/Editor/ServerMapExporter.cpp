@@ -18,6 +18,7 @@
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Math/Quat.h"
 #include "ServerCollisionPresetDataAsset.h"
+#include "ServerMonsterTags.h"
 #include "UObject/Package.h"
 #include "Misc/MessageDialog.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -279,6 +280,93 @@ bool ServerMapExporter::ExportSpawnLocationsToJsonFile(UWorld* World, const FNam
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Spawn locations. Store=%d Chest=%d DisabledActors=%d"),
 		StoreCount,
 		ChestCount,
+		DisabledCount);
+	return true;
+}
+
+bool ServerMapExporter::ExportMonsterSpawnLocationsToJsonFile(UWorld* World, const FString& OutputPath,
+	const bool bDisableExportedActors)
+{
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] World is null"));
+		return false;
+	}
+
+	if (OutputPath.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] OutputPath is empty"));
+		return false;
+	}
+
+	const TArray<FName>& MonsterTags = ServerMonsterTags::GetAll();
+	if (MonsterTags.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Monster tag list is empty"));
+		return false;
+	}
+
+	TArray<TSharedPtr<FJsonValue>> MonsterSpawnGroups;
+	TArray<AActor*> ExportedActors;
+	int32 TotalTransformCount = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("========== Server Monster Spawn Export =========="));
+	for (const FName& MonsterTag : MonsterTags)
+	{
+		TArray<TSharedPtr<FJsonValue>> TransformArray;
+		TArray<AActor*> TypeActors;
+		const int32 TransformCount = CollectSpawnLocationsWithTag(World, MonsterTag, TransformArray, TypeActors);
+		TotalTransformCount += TransformCount;
+
+		for (AActor* Actor : TypeActors)
+		{
+			ExportedActors.AddUnique(Actor);
+		}
+
+		const FString TypeName = ServerMonsterTags::GetTypeName(MonsterTag);
+		TSharedPtr<FJsonObject> SpawnGroupObject = MakeShared<FJsonObject>();
+		SpawnGroupObject->SetStringField(TEXT("type"), TypeName);
+		SpawnGroupObject->SetNumberField(TEXT("spawn_num"), 0);
+		SpawnGroupObject->SetArrayField(TEXT("transform"), TransformArray);
+		MonsterSpawnGroups.Add(MakeShared<FJsonValueObject>(SpawnGroupObject));
+
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] \"%s\": %d export"),
+			*TypeName,
+			TransformCount);
+	}
+
+	TSharedPtr<FJsonObject> RootObject = MakeShared<FJsonObject>();
+	RootObject->SetArrayField(TEXT("monster_spawn_groups"), MonsterSpawnGroups);
+
+	FString JsonString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (!FJsonSerializer::Serialize(RootObject.ToSharedRef(), Writer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to serialize monster spawn json"));
+		return false;
+	}
+
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(OutputPath), true);
+	if (!FFileHelper::SaveStringToFile(JsonString, *OutputPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to save monster spawn json: %s"), *OutputPath);
+		return false;
+	}
+
+	int32 DisabledCount = 0;
+	if (bDisableExportedActors)
+	{
+		for (AActor* Actor : ExportedActors)
+		{
+			DisableSpawnMarkerActor(Actor);
+			++DisabledCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Monster spawn json saved: %s"), *OutputPath);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Monster spawn total. Types=%d Transforms=%d DisabledActors=%d"),
+		MonsterTags.Num(),
+		TotalTransformCount,
 		DisabledCount);
 	return true;
 }
