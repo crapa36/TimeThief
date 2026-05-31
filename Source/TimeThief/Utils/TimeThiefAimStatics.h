@@ -9,13 +9,9 @@ class UWorld;
 
 struct TIMETHIEF_API FTimeThiefAimHelperState
 {
-	FVector SmoothedTargetLocation = FVector::ZeroVector;
-	FVector RawTargetLocation = FVector::ZeroVector;
-	FVector BlendStartLocation = FVector::ZeroVector;
-	float BlendElapsedTime = 0.0f;
+	FVector TargetLocation = FVector::ZeroVector;
 	bool bHasTargetLocation = false;
 	bool bWasUsingCloseHitSkip = false;
-	bool bIsSmoothing = false;
 };
 
 UCLASS()
@@ -26,9 +22,6 @@ class TIMETHIEF_API UTimeThiefAimStatics : public UBlueprintFunctionLibrary
 public:
 	static constexpr float AimHelperCloseHitSkipDistance = 250.0f;
 	static constexpr float AimHelperCloseHitSkipHysteresis = 25.0f;
-	static constexpr float AimHelperJumpAngleDegrees = 4.0f;
-	static constexpr float AimHelperSettleTime = 0.5f;
-	static constexpr float AimHelperSnapDistance = 1.0f;
 	static constexpr int32 AimHelperMaxCloseHitSkipCount = 4;
 
 	static FVector NormalizeAimDirection(
@@ -100,8 +93,6 @@ public:
 		float Range,
 		const TArray<AActor*>& ActorsToIgnore,
 		const FVector& DistanceOrigin,
-		const FVector& AimOrigin,
-		float DeltaTime,
 		ECollisionChannel TraceChannel = ECC_Visibility,
 		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);

@@ -47,6 +47,7 @@ protected:
 	void PlayDetonationEffects(const FVector& ExplosionLocation);
 	void SpawnSmokeVolume(const FVector& SmokeLocation);
 	void ApplyProjectileSettings();
+	void StartGrenadeTrail();
 	void PlayCollisionSound(const FHitResult& ImpactResult, const FVector& ImpactVelocity);
 
 	UFUNCTION()

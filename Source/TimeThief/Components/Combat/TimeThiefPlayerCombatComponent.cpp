@@ -247,7 +247,7 @@ void UTimeThiefPlayerCombatComponent::TickComponent(float DeltaTime, ELevelTick 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	UpdateLocalWorldAimLocation(DeltaTime);
+	UpdateLocalWorldAimLocation();
 	SyncAimToServer();
 	ApplyAimYawOverflowRotation(DeltaTime);
 	UpdateAimFOV(DeltaTime);
@@ -314,7 +314,7 @@ FVector UTimeThiefPlayerCombatComponent::GetAimDirection() const
 		GetOwner()->GetActorForwardVector());
 }
 
-void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation(float DeltaTime)
+void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation()
 {
 	APawn* OwningPawn = GetPawn<APawn>();
 	if (!OwningPawn || !OwningPawn->IsLocallyControlled())
@@ -349,9 +349,7 @@ void UTimeThiefPlayerCombatComponent::UpdateLocalWorldAimLocation(float DeltaTim
 		ViewDirection,
 		AimTraceRange,
 		ActorsToIgnore,
-		OwningPawn->GetActorLocation(),
-		GetEffectiveShotOrigin(),
-		DeltaTime);
+		OwningPawn->GetActorLocation());
 }
 
 void UTimeThiefPlayerCombatComponent::ApplyAimYawOverflowRotation(float DeltaTime)

@@ -107,8 +107,7 @@ void ATimeThiefThrowableProjectile::LaunchThrowable(const FVector& InitialVeloci
 		ProjectileMovementComponent->Activate(true);
 	}
 
-	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
-	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Grenade, *CollisionComponent);
+	StartGrenadeTrail();
 
 	if (UWorld* World = GetWorld())
 	{
@@ -164,6 +163,8 @@ void ATimeThiefThrowableProjectile::InitializeNetworkSyncAsRemoteProxy(uint32 Ob
 	{
 		ThrowableNetworkSyncComponent->InitializeAsRemoteProxy(ObjectId);
 	}
+
+	StartGrenadeTrail();
 }
 
 void ATimeThiefThrowableProjectile::PushRemoteMoveSnapshot(const FThrowableMoveSnapshot& Snapshot)
@@ -431,4 +432,15 @@ void ATimeThiefThrowableProjectile::ApplyProjectileSettings()
 		ProjectileMovementComponent->Bounciness = ActiveSettings.Bounciness;
 		ProjectileMovementComponent->Friction = ActiveSettings.Friction;
 	}
+}
+
+void ATimeThiefThrowableProjectile::StartGrenadeTrail()
+{
+	if (!WeaponTrail || !CollisionComponent)
+	{
+		return;
+	}
+
+	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
+	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Grenade, *CollisionComponent);
 }
