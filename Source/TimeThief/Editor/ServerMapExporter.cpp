@@ -230,7 +230,6 @@ bool ServerMapExporter::ExportSpawnLocationsToJsonFile(UWorld* World, const FNam
 		return false;
 	}
 
-	TArray<TSharedPtr<FJsonValue>> MonsterSpawnLocations;
 	TArray<TSharedPtr<FJsonValue>> StoreSpawnLocations;
 	TArray<TSharedPtr<FJsonValue>> ChestSpawnLocations;
 	TArray<AActor*> ExportedActors;
@@ -248,7 +247,6 @@ bool ServerMapExporter::ExportSpawnLocationsToJsonFile(UWorld* World, const FNam
 	}
 
 	TSharedPtr<FJsonObject> RootObject = MakeShared<FJsonObject>();
-	RootObject->SetArrayField(TEXT("monster_spawn_locations"), MonsterSpawnLocations);
 	RootObject->SetArrayField(TEXT("store_spawn_locations"), StoreSpawnLocations);
 	RootObject->SetArrayField(TEXT("chest_spawn_locations"), ChestSpawnLocations);
 
