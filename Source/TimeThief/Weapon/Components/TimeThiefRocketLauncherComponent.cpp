@@ -147,6 +147,7 @@ bool UTimeThiefRocketLauncherComponent::SpawnRocketProjectile()
 #endif
 
 		// Ensure ownership/ignore setup is valid before collision and movement start.
+		Projectile->InitializeProjectileSettings(ProjectileSpeed, ExplosionRadius);
 		Projectile->InitializeProjectile(ShooterActor, ShooterPawn);
 		Projectile->ActivateProjectile(SpawnTransform);
 		return true;

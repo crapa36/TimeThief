@@ -6,7 +6,6 @@
 
 class UAnimSequenceBase;
 class UNiagaraSystem;
-class UParticleSystem;
 class USoundBase;
 class UStaticMesh;
 
@@ -73,16 +72,13 @@ struct FTimeThiefThrowableProjectileSettings
 	float MinDamage = 30.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Damage")
-	float DamageInnerRadius = 180.0f;
+	float DamageInnerRadius = 240.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Damage")
-	float DamageOuterRadius = 450.0f;
+	float DamageOuterRadius = 480.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Effects")
 	TObjectPtr<UNiagaraSystem> DetonationNiagaraEffect;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Effects")
-	TObjectPtr<UParticleSystem> DetonationParticleEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Sound")
 	TObjectPtr<USoundBase> ExplosionSound;

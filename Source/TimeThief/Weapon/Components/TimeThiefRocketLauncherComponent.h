@@ -45,5 +45,5 @@ public:
 	float ProjectileSpeed = 3000.0f;
 	
 	UPROPERTY()
-	float ExplosionRadius = 300.0f;
+	float ExplosionRadius = 480.0f;
 };

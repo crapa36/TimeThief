@@ -7,10 +7,9 @@
 class UProjectileMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
-class UTimeThiefWeaponTrail;
 class UNiagaraComponent;
+class UNiagaraSystem;
 class UAudioComponent;
-class UParticleSystem;
 class USoundBase;
 class APawn;
 
@@ -46,6 +45,9 @@ protected:
 	void ExplodeOnce(const FHitResult& Hit);
 	void ApplyExplosionDamage(const FVector& ExplosionLocation);
 	void PlayExplosionEffects(const FVector& ExplosionLocation, const FVector& ExplosionNormal);
+	void ActivateProjectileNiagara();
+	void StopProjectileNiagara();
+	void DeactivateLegacyTrailComponents();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
 	TObjectPtr<USphereComponent> CollisionComponent;
@@ -56,11 +58,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
 	TObjectPtr<UStaticMeshComponent> ProjectileMeshComponent;
 
-	UPROPERTY(Transient)
-	TObjectPtr<UTimeThiefWeaponTrail> WeaponTrail;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> ActiveTrailComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
+	TObjectPtr<UNiagaraComponent> ProjectileNiagaraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket")
 	TObjectPtr<UAudioComponent> FlightLoopAudioComponent;
@@ -84,10 +83,10 @@ protected:
 	float MinDamage = 30.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Damage")
-	float DamageInnerRadius = 100.0f;
+	float DamageInnerRadius = 240.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Damage")
-	float ExplosionRadius = 300.0f;
+	float ExplosionRadius = 480.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Damage")
 	float SelfDamageScale = 1.0f;
@@ -99,7 +98,10 @@ protected:
 	float MaxLifeTime = 4.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Effects")
-	TObjectPtr<UParticleSystem> ExplosionEffect;
+	TObjectPtr<UNiagaraSystem> ProjectileNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Effects")
+	TObjectPtr<UNiagaraSystem> ExplosionNiagaraEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Effects")
 	TObjectPtr<USoundBase> ExplosionSound;

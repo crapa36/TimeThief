@@ -5,13 +5,17 @@
 #include "Engine/World.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "DrawDebugHelpers.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/State/NetworkEntityState.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
-#include "Weapon/TimeThiefWeaponTrail.h"
+#include "UObject/ConstructorHelpers.h"
 
 ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 {
@@ -45,7 +49,25 @@ ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 	FlightLoopAudioComponent->SetupAttachment(CollisionComponent);
 	FlightLoopAudioComponent->bAutoActivate = false;
 
-	WeaponTrail = CreateDefaultSubobject<UTimeThiefWeaponTrail>(TEXT("WeaponTrail"));
+	ProjectileNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ProjectileNiagaraComponent"));
+	ProjectileNiagaraComponent->SetupAttachment(CollisionComponent);
+	ProjectileNiagaraComponent->SetAutoActivate(false);
+	ProjectileNiagaraComponent->SetHiddenInGame(true);
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultProjectileNiagaraEffect(
+		TEXT("/Game/Assets/GrenadeEMP_vfx/Niagara/EMP_Basic/NS_Projectile_EMP.NS_Projectile_EMP"));
+	if (DefaultProjectileNiagaraEffect.Succeeded())
+	{
+		ProjectileNiagaraEffect = DefaultProjectileNiagaraEffect.Object;
+		ProjectileNiagaraComponent->SetAsset(ProjectileNiagaraEffect);
+	}
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DefaultExplosionNiagaraEffect(
+		TEXT("/Game/Assets/GrenadeEMP_vfx/Niagara/EMP_BigSize/NS_EMP_Big.NS_EMP_Big"));
+	if (DefaultExplosionNiagaraEffect.Succeeded())
+	{
+		ExplosionNiagaraEffect = DefaultExplosionNiagaraEffect.Object;
+	}
 }
 
 void ATimeThiefRocketProjectile::InitializeProjectileSettings(float InInitSpeed, float InExplosionRadius)
@@ -95,8 +117,7 @@ void ATimeThiefRocketProjectile::ActivateProjectile(const FTransform& SpawnTrans
 	ProjectileMovementComponent->Velocity = SpawnTransform.GetRotation().GetForwardVector() * InitialSpeed;
 	ProjectileMovementComponent->Activate();
 
-	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
-	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Rocket, *CollisionComponent);
+	ActivateProjectileNiagara();
 
 	if (FlightLoopAudioComponent && FlightLoopSound)
 	{
@@ -116,8 +137,8 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 {
 	bIsActivated = false;
 	bExploded = true;
-	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
-	ActiveTrailComponent = nullptr;
+	StopProjectileNiagara();
+	DeactivateLegacyTrailComponents();
 	SetActorHiddenInGame(true);
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ProjectileMovementComponent->StopMovementImmediately();
@@ -158,6 +179,7 @@ void ATimeThiefRocketProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	SetActorHiddenInGame(true);
+	DeactivateLegacyTrailComponents();
 
 	if (CollisionComponent)
 	{
@@ -182,8 +204,8 @@ void ATimeThiefRocketProjectile::BeginPlay()
 
 void ATimeThiefRocketProjectile::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
-	ActiveTrailComponent = nullptr;
+	StopProjectileNiagara();
+	DeactivateLegacyTrailComponents();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -344,14 +366,75 @@ void ATimeThiefRocketProjectile::PlayExplosionEffects(const FVector& ExplosionLo
 {
 	const FRotator ExplosionRotation = FRotationMatrix::MakeFromZ(ExplosionNormal.GetSafeNormal()).Rotator();
 
-	if (ExplosionEffect)
+	if (ExplosionNiagaraEffect)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, ExplosionEffect, ExplosionLocation, ExplosionRotation);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ExplosionNiagaraEffect, ExplosionLocation, ExplosionRotation);
 	}
 
 	if (ExplosionSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, ExplosionLocation);
+	}
+}
+
+void ATimeThiefRocketProjectile::ActivateProjectileNiagara()
+{
+	DeactivateLegacyTrailComponents();
+
+	if (!ProjectileNiagaraComponent)
+	{
+		return;
+	}
+
+	if (ProjectileNiagaraEffect)
+	{
+		ProjectileNiagaraComponent->SetAsset(ProjectileNiagaraEffect);
+		ProjectileNiagaraComponent->SetHiddenInGame(false);
+		ProjectileNiagaraComponent->Activate(true);
+
+		if (ProjectileMeshComponent)
+		{
+			ProjectileMeshComponent->SetHiddenInGame(true);
+			ProjectileMeshComponent->SetVisibility(false, true);
+		}
+	}
+	else if (ProjectileMeshComponent)
+	{
+		ProjectileMeshComponent->SetHiddenInGame(false);
+		ProjectileMeshComponent->SetVisibility(true, true);
+	}
+}
+
+void ATimeThiefRocketProjectile::StopProjectileNiagara()
+{
+	if (ProjectileNiagaraComponent)
+	{
+		ProjectileNiagaraComponent->Deactivate();
+		ProjectileNiagaraComponent->SetHiddenInGame(true);
+	}
+}
+
+void ATimeThiefRocketProjectile::DeactivateLegacyTrailComponents()
+{
+	static const FName LegacyTrailComponentName(TEXT("TrailEffectComponent"));
+
+	TArray<UParticleSystemComponent*> ParticleComponents;
+	GetComponents(ParticleComponents);
+
+	for (UParticleSystemComponent* ParticleComponent : ParticleComponents)
+	{
+		if (!ParticleComponent)
+		{
+			continue;
+		}
+
+		if (ParticleComponent->GetFName() == LegacyTrailComponentName)
+		{
+			ParticleComponent->SetAutoActivate(false);
+			ParticleComponent->DeactivateSystem();
+			ParticleComponent->SetHiddenInGame(true);
+			ParticleComponent->SetVisibility(false, true);
+		}
 	}
 }
 
@@ -390,8 +473,7 @@ void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& Sp
 		ProjectileMovementComponent->Activate(true);
 	}
 
-	WeaponTrail->StopProjectileTrail(ActiveTrailComponent);
-	ActiveTrailComponent = WeaponTrail->StartProjectileTrail(ETimeThiefWeaponTrailType::Rocket, *CollisionComponent);
+	ActivateProjectileNiagara();
 	
 	if (FlightLoopAudioComponent && FlightLoopSound)
 	{

@@ -9,7 +9,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Particles/ParticleSystem.h"
+#include "NiagaraSystem.h"
 #include "Sound/SoundBase.h"
 #include "TimeThiefSmokeParameterDefaults.h"
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
@@ -348,14 +348,10 @@ void ATimeThiefThrowableProjectile::ApplyRadialThrowableDamage(const FVector& Ex
 
 void ATimeThiefThrowableProjectile::PlayDetonationEffects(const FVector& ExplosionLocation)
 {
-	if (ActiveSettings.DetonationNiagaraEffect)
+	UNiagaraSystem* DetonationEffect = ActiveSettings.DetonationNiagaraEffect.Get();
+	if (DetonationEffect)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ActiveSettings.DetonationNiagaraEffect, ExplosionLocation);
-	}
-
-	if (ActiveSettings.DetonationParticleEffect)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, ActiveSettings.DetonationParticleEffect, ExplosionLocation);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DetonationEffect, ExplosionLocation);
 	}
 
 	if (ActiveSettings.ExplosionSound)
