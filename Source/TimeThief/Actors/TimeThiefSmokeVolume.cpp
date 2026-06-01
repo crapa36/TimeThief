@@ -872,8 +872,11 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(AActor* InOwnerActor, APawn* I
 		}
 	}
 	SmokeAgeSeconds = 0.0f;
-	PreviousComponentLocations.Reset();
 	PreviousObstacleComponentTransforms.Reset();
+	ObstaclePrimitives.Reset();
+	ObstacleFieldSignature = 0;
+	ObstacleFieldResolution = 0;
+	ObstacleFieldRevision = 0;
 	ObstacleDynamicRefreshAccumulator = 0.0f;
 	bHasBuiltObstacleField = false;
 	LastSmokeSpatialBounds = FBox(EForceInit::ForceInit);
@@ -1131,39 +1134,24 @@ void ATimeThiefSmokeVolume::Tick(float DeltaTime)
 	NotifySpatialBoundsIfChanged();
 }
 
-void ATimeThiefSmokeVolume::GatherActorPushEventsFromComponents(const TArray<UPrimitiveComponent*>& CandidateComponents, float DeltaTime)
+void ATimeThiefSmokeVolume::GatherActorPushEventsFromSamples(const TArray<FTimeThiefSmokeActorPushSample>& CandidateSamples)
 {
-	if (!SmokeBoundsComponent || DeltaTime <= 0.0f)
+	if (!SmokeBoundsComponent || CandidateSamples.IsEmpty())
 	{
 		return;
 	}
 
-	ActorInteractionAccumulator += DeltaTime;
-	if (ActorInteractionAccumulator < (1.0f / TimeThiefSmokeParameterDefaults::ActorInteractionHz))
-	{
-		return;
-	}
-
-	const float SampleDeltaTime = ActorInteractionAccumulator;
-	ActorInteractionAccumulator = 0.0f;
-
-	if (CandidateComponents.IsEmpty())
-	{
-		PreviousComponentLocations.Reset();
-		return;
-	}
-
-	TSet<TWeakObjectPtr<UPrimitiveComponent>> CurrentDynamicComponents;
 	TArray<FTimeThiefSmokeInteractionEvent> ActorEvents;
 	const int32 MaxEvents = TimeThiefSmokeParameterDefaults::MaxActorInteractionEventsPerTick;
-	CurrentDynamicComponents.Reserve(CandidateComponents.Num());
 	if (MaxEvents > 0)
 	{
-		ActorEvents.Reserve(FMath::Min(CandidateComponents.Num(), MaxEvents));
+		ActorEvents.Reserve(FMath::Min(CandidateSamples.Num(), MaxEvents));
 	}
+
 	const FBox SmokeWorldBounds = GetCurrentSmokeWorldBounds();
-	for (UPrimitiveComponent* PrimitiveComponent : CandidateComponents)
+	for (const FTimeThiefSmokeActorPushSample& Sample : CandidateSamples)
 	{
+		UPrimitiveComponent* PrimitiveComponent = Sample.PrimitiveComponent.Get();
 		AActor* OverlapOwner = PrimitiveComponent ? PrimitiveComponent->GetOwner() : nullptr;
 		if (!PrimitiveComponent ||
 			PrimitiveComponent == SmokeBoundsComponent ||
@@ -1174,19 +1162,26 @@ void ATimeThiefSmokeVolume::GatherActorPushEventsFromComponents(const TArray<UPr
 		{
 			continue;
 		}
-		if (!PrimitiveComponent->Bounds.GetBox().Intersect(SmokeWorldBounds))
+		if (!Sample.ComponentBounds.Intersect(SmokeWorldBounds) || Sample.Strength <= KINDA_SMALL_NUMBER)
 		{
 			continue;
 		}
-
-		CurrentDynamicComponents.Add(PrimitiveComponent);
 
 		FTimeThiefSmokeInteractionEvent Event;
-		MakeActorPushEvent(PrimitiveComponent, SampleDeltaTime, Event);
-		if (Event.Strength <= KINDA_SMALL_NUMBER)
-		{
-			continue;
-		}
+		Event.SmokeId = SmokeId;
+		Event.Type = ESmokeInteractionType::ActorPush;
+		Event.Shape = Sample.Shape;
+		Event.Position = Sample.Position;
+		Event.PreviousPosition = Sample.PreviousPosition;
+		Event.Direction = Sample.Direction;
+		Event.Rotation = Sample.Rotation;
+		Event.Extents = Sample.Extents;
+		Event.Radius = Sample.Radius;
+		Event.Length = Sample.Length;
+		Event.Strength = Sample.Strength;
+		Event.Speed = Sample.Speed;
+		Event.NormalizedAge = 0.0f;
+		Event.Seed = Sample.Seed;
 
 		if (MaxEvents <= 0)
 		{
@@ -1216,15 +1211,6 @@ void ATimeThiefSmokeVolume::GatherActorPushEventsFromComponents(const TArray<UPr
 		}
 	}
 
-	for (auto It = PreviousComponentLocations.CreateIterator(); It; ++It)
-	{
-		const TWeakObjectPtr<UPrimitiveComponent> Component = It.Key();
-		if (!Component.IsValid() || !CurrentDynamicComponents.Contains(Component))
-		{
-			It.RemoveCurrent();
-		}
-	}
-
 	ActorEvents.Sort([](const FTimeThiefSmokeInteractionEvent& A, const FTimeThiefSmokeInteractionEvent& B)
 	{
 		return A.Strength > B.Strength;
@@ -1235,104 +1221,6 @@ void ATimeThiefSmokeVolume::GatherActorPushEventsFromComponents(const TArray<UPr
 		const FTimeThiefSmokeInteractionEvent& Event = ActorEvents[EventIndex];
 		ApplyInteractionEvent(Event);
 	}
-}
-
-void ATimeThiefSmokeVolume::MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent)
-{
-	OutEvent = FTimeThiefSmokeInteractionEvent();
-	OutEvent.Strength = 0.0f;
-
-	if (!PrimitiveComponent)
-	{
-		return;
-	}
-
-	FVector PreviousComponentLocation = PrimitiveComponent->GetComponentLocation();
-	const FVector Velocity = ResolveComponentVelocity(PrimitiveComponent, DeltaTime, PreviousComponentLocation);
-	const float Speed = Velocity.Size();
-
-	OutEvent.SmokeId = SmokeId;
-	OutEvent.Type = ESmokeInteractionType::ActorPush;
-	const FVector CurrentBoundsOrigin = PrimitiveComponent->Bounds.Origin;
-	const FVector CurrentComponentLocation = PrimitiveComponent->GetComponentLocation();
-	const FVector PreviousBoundsOrigin = PreviousComponentLocation + (CurrentBoundsOrigin - CurrentComponentLocation);
-	OutEvent.Position = CurrentBoundsOrigin;
-	OutEvent.PreviousPosition = PreviousBoundsOrigin;
-	OutEvent.Direction = Velocity.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
-	OutEvent.Rotation = PrimitiveComponent->GetComponentQuat();
-	OutEvent.Speed = Speed;
-	OutEvent.NormalizedAge = 0.0f;
-	OutEvent.Seed = GetTypeHash(PrimitiveComponent);
-	OutEvent.Shape = ResolvePrimitiveShape(PrimitiveComponent, OutEvent);
-
-	const float ResponseStartSpeed = TimeThiefSmokeParameterDefaults::ActorPushVelocityThreshold * TimeThiefSmokeParameterDefaults::ActorPushResponseStartSpeedScale;
-	const float FullResponseSpeed = TimeThiefSmokeParameterDefaults::ActorPushFullResponseSpeed;
-	const float ResponseAlpha = TimeThiefSmokeVolume::SmoothStep01((Speed - ResponseStartSpeed) / (FullResponseSpeed - ResponseStartSpeed));
-	const float SpeedStrength = FMath::Clamp(Speed / TimeThiefSmokeParameterDefaults::ActorPushFullResponseSpeed, 0.0f, 1.0f);
-	const float MotionStrength = FMath::Clamp(ResponseAlpha * SpeedStrength, 0.0f, 1.0f);
-	OutEvent.Strength = MotionStrength;
-	if (OutEvent.Strength <= KINDA_SMALL_NUMBER)
-	{
-		return;
-	}
-}
-
-FVector ATimeThiefSmokeVolume::ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FVector& OutPreviousLocation)
-{
-	if (!PrimitiveComponent)
-	{
-		OutPreviousLocation = FVector::ZeroVector;
-		return FVector::ZeroVector;
-	}
-
-	const FVector CurrentLocation = PrimitiveComponent->GetComponentLocation();
-	OutPreviousLocation = CurrentLocation;
-
-	if (const FVector* PreviousLocation = PreviousComponentLocations.Find(PrimitiveComponent))
-	{
-		OutPreviousLocation = *PreviousLocation;
-		if (DeltaTime > KINDA_SMALL_NUMBER)
-		{
-			const FVector Velocity = (CurrentLocation - *PreviousLocation) / DeltaTime;
-			PreviousComponentLocations.FindOrAdd(PrimitiveComponent) = CurrentLocation;
-			return Velocity;
-		}
-	}
-
-	PreviousComponentLocations.FindOrAdd(PrimitiveComponent) = CurrentLocation;
-	return PrimitiveComponent->GetComponentVelocity();
-}
-
-ESmokeInteractionShape ATimeThiefSmokeVolume::ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const
-{
-	if (const USphereComponent* SphereComponent = Cast<USphereComponent>(PrimitiveComponent))
-	{
-		OutEvent.Radius = SphereComponent->GetScaledSphereRadius();
-		OutEvent.Length = 0.0f;
-		OutEvent.Extents = FVector(OutEvent.Radius);
-		return ESmokeInteractionShape::Sphere;
-	}
-
-	if (const UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(PrimitiveComponent))
-	{
-		OutEvent.Radius = CapsuleComponent->GetScaledCapsuleRadius();
-		OutEvent.Length = CapsuleComponent->GetScaledCapsuleHalfHeight() * 2.0f;
-		OutEvent.Extents = FVector(OutEvent.Radius, OutEvent.Radius, OutEvent.Length * 0.5f);
-		return ESmokeInteractionShape::Capsule;
-	}
-
-	if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(PrimitiveComponent))
-	{
-		OutEvent.Extents = BoxComponent->GetScaledBoxExtent();
-		OutEvent.Radius = OutEvent.Extents.GetMax() * TimeThiefSmokeParameterDefaults::ActorPrimitiveRadiusScale;
-		OutEvent.Length = OutEvent.Extents.GetMax();
-		return ESmokeInteractionShape::Box;
-	}
-
-	OutEvent.Extents = PrimitiveComponent->Bounds.BoxExtent;
-	OutEvent.Radius = OutEvent.Extents.GetMax() * TimeThiefSmokeParameterDefaults::ActorPrimitiveRadiusScale;
-	OutEvent.Length = OutEvent.Extents.GetMax();
-	return ESmokeInteractionShape::Box;
 }
 
 void ATimeThiefSmokeVolume::MarkObstacleFieldDirty()

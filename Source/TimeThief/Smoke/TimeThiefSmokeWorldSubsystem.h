@@ -73,6 +73,7 @@ private:
 	TArray<FTimeThiefSmokeInteractionEvent> PendingRendererEvents;
 
 	TMap<ATimeThiefSmokeVolume*, int32> BulletTraceCountsThisTick;
+	TMap<TWeakObjectPtr<UPrimitiveComponent>, FVector> PreviousActorPushComponentLocations;
 
 	TArray<FTimeThiefSmokeSpatialEntry> SmokeSpatialEntries;
 	TMap<FIntVector, TArray<int32>> SmokeSpatialCells;
@@ -84,5 +85,6 @@ private:
 	uint64 SmokeSpatialIndexValidationFrame = MAX_uint64;
 	uint32 SmokeSpatialQueryStamp = 0;
 	int32 NextSmokeId = 1;
+	float ActorInteractionAccumulator = 0.0f;
 	bool bSmokeSpatialIndexDirty = true;
 };

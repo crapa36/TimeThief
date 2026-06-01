@@ -4,6 +4,7 @@
 #include "TimeThiefSmokeTypes.generated.h"
 
 class ATimeThiefSmokeVolume;
+class UPrimitiveComponent;
 
 UENUM(BlueprintType)
 enum class ESmokeInteractionType : uint8
@@ -67,5 +68,22 @@ struct FTimeThiefSmokeInteractionEvent
 	float NormalizedAge = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Smoke")
+	int32 Seed = 0;
+};
+
+struct FTimeThiefSmokeActorPushSample
+{
+	TWeakObjectPtr<UPrimitiveComponent> PrimitiveComponent;
+	FBox ComponentBounds = FBox(EForceInit::ForceInit);
+	ESmokeInteractionShape Shape = ESmokeInteractionShape::Sphere;
+	FVector Position = FVector::ZeroVector;
+	FVector PreviousPosition = FVector::ZeroVector;
+	FVector Direction = FVector::ForwardVector;
+	FQuat Rotation = FQuat::Identity;
+	FVector Extents = FVector::ZeroVector;
+	float Radius = 0.0f;
+	float Length = 0.0f;
+	float Strength = 0.0f;
+	float Speed = 0.0f;
 	int32 Seed = 0;
 };

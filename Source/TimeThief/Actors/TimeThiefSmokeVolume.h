@@ -29,7 +29,7 @@ public:
 	const TArray<FTimeThiefSmokeObstaclePrimitive>& GetObstaclePrimitives() const { return ObstaclePrimitives; }
 	bool HasSolidObstacleField() const { return bHasSolidObstacleField; }
 	void FlushPendingObstacleFieldRebuild(float DeltaTime);
-	void GatherActorPushEventsFromComponents(const TArray<UPrimitiveComponent*>& CandidateComponents, float DeltaTime);
+	void GatherActorPushEventsFromSamples(const TArray<FTimeThiefSmokeActorPushSample>& CandidateSamples);
 
 	bool IntersectTraceSegment(const FVector& SegmentStart, const FVector& SegmentEnd, FVector& OutEntryPoint, FVector& OutExitPoint) const;
 	bool IntersectsExplosion(const FVector& Center, float Radius) const;
@@ -47,9 +47,6 @@ protected:
 	TObjectPtr<UBoxComponent> SmokeBoundsComponent;
 
 private:
-	void MakeActorPushEvent(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FTimeThiefSmokeInteractionEvent& OutEvent);
-	FVector ResolveComponentVelocity(UPrimitiveComponent* PrimitiveComponent, float DeltaTime, FVector& OutPreviousLocation);
-	ESmokeInteractionShape ResolvePrimitiveShape(UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeInteractionEvent& OutEvent) const;
 	void MarkObstacleFieldDirty();
 	bool HasTrackedDynamicObstacleChanged() const;
 	void RebuildStaticObstacleField(float DeltaTime = 0.0f);
@@ -59,9 +56,7 @@ private:
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Smoke|Runtime")
 	int32 SmokeId = INDEX_NONE;
 
-	TMap<TWeakObjectPtr<UPrimitiveComponent>, FVector> PreviousComponentLocations;
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FTransform> PreviousObstacleComponentTransforms;
-	float ActorInteractionAccumulator = 0.0f;
 	float SmokeAgeSeconds = 0.0f;
 	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
 	uint64 ObstacleFieldSignature = 0;

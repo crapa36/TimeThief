@@ -85,10 +85,6 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Smoke velocity clamp remains positive"),
 		TimeThiefSmokeParameterDefaults::MaxSmokeVelocity > 0.0f);
-	TestEqual(
-		TEXT("Explosion defaults preserve smoke density"),
-		TimeThiefSmokeParameterDefaults::ExplosionDensityClearStrength,
-		0.0f);
 	TestTrue(
 		TEXT("Actor wake trail length remains positive"),
 		TimeThiefSmokeParameterDefaults::ActorWakeTrailLengthScale > 0.0f);

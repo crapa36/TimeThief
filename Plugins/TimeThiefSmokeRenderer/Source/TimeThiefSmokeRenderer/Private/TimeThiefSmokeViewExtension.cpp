@@ -415,10 +415,10 @@ namespace
 
 		switch (Event.Type)
 		{
-		case ETimeThiefSmokeRendererInteractionType::BulletWake:
 		case ETimeThiefSmokeRendererInteractionType::ExplosionShock:
 		case ETimeThiefSmokeRendererInteractionType::ActorPush:
 			return true;
+		case ETimeThiefSmokeRendererInteractionType::BulletWake:
 		case ETimeThiefSmokeRendererInteractionType::PlumeSource:
 		default:
 			return false;
@@ -484,15 +484,13 @@ namespace
 	}
 
 	bool ShouldRunVortexPasses(
-		const bool bNeedsInit,
-		const bool bVortexUploadPending,
 		const int32 VortexEventCount,
+		const float VortexActivityBudgetSeconds,
 		const float AccumulatedVortexDeltaSeconds)
 	{
-		return bNeedsInit ||
-			bVortexUploadPending ||
-			VortexEventCount > 0 ||
-			AccumulatedVortexDeltaSeconds >= TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds;
+		return VortexEventCount > 0 ||
+			(VortexActivityBudgetSeconds > UE_SMALL_NUMBER &&
+				AccumulatedVortexDeltaSeconds >= TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds);
 	}
 
 	float ComputeSmokeEventPriority(const FTimeThiefSmokeRendererEvent& Event)
@@ -846,7 +844,7 @@ namespace
 			ShouldRefreshSparseSimulationMask(
 				true,
 				false,
-				8u,
+				1u,
 				false,
 				false));
 		TestTrue(
@@ -854,7 +852,7 @@ namespace
 			ShouldRefreshSparseSimulationMask(
 				true,
 				true,
-				8u,
+				1u,
 				false,
 				false));
 		TestTrue(
@@ -870,7 +868,7 @@ namespace
 			ShouldRefreshSparseSimulationMask(
 				true,
 				false,
-				8u,
+				1u,
 				false,
 				true));
 		FTimeThiefSmokeRendererEvent UrgentExplosionEvent;
@@ -880,6 +878,10 @@ namespace
 		DynamicEvents.Add(UrgentExplosionEvent);
 		TestTrue(TEXT("Explosion event forces urgent simulation scheduling"), HasActiveDynamicSimulationEvent(DynamicEvents));
 		TestTrue(TEXT("Explosion event routes to vortex event buffer"), IsVortexPipelineEvent(UrgentExplosionEvent));
+		FTimeThiefSmokeRendererEvent BulletVortexRouteEvent;
+		BulletVortexRouteEvent.Type = ETimeThiefSmokeRendererInteractionType::BulletWake;
+		BulletVortexRouteEvent.Strength = 1.0f;
+		TestFalse(TEXT("Bullet wake stays out of the vortex event buffer"), IsVortexPipelineEvent(BulletVortexRouteEvent));
 		TestEqual(
 			TEXT("Sparse atlas scatter maps one 4x4x4 compute group per minimum brick"),
 			ComputeSparseScatterGroupsPerBrick(TimeThiefSmokeParameterDefaults::SmokeBrickMinSize),
@@ -903,23 +905,26 @@ namespace
 		TestFalse(
 			TEXT("Source-only simulation does not force vortex before the substep interval"),
 			ShouldRunVortexPasses(
-				false,
-				false,
 				0,
+				0.0f,
 				TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds * 0.5f));
 		TestTrue(
 			TEXT("Vortex events run vortex immediately"),
 			ShouldRunVortexPasses(
-				false,
-				false,
 				1,
+				0.0f,
 				0.0f));
-		TestTrue(
-			TEXT("Idle vortex runs on its substep interval"),
+		TestFalse(
+			TEXT("Inactive idle vortex skips even after the substep interval"),
 			ShouldRunVortexPasses(
-				false,
-				false,
 				0,
+				0.0f,
+				TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds));
+		TestTrue(
+			TEXT("Active idle vortex runs on its substep interval"),
+			ShouldRunVortexPasses(
+				0,
+				TimeThiefSmokeParameterDefaults::VortexParticleLifeSeconds,
 				TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds));
 		TestFalse(
 			TEXT("Empty idle sparse smoke is removed from render candidates"),
@@ -933,15 +938,15 @@ namespace
 			ShouldIncludeSmokeRenderCandidate(
 				ETimeThiefSmokeSimulationBackend::SparseMac,
 				false,
-				8u,
+				1u,
 				false));
 		TestTrue(
-			TEXT("Sparse smoke with pending active count readback stays renderable"),
+			TEXT("Sparse smoke pending initialization stays renderable"),
 			ShouldIncludeSmokeRenderCandidate(
 				ETimeThiefSmokeSimulationBackend::SparseMac,
-				false,
+				true,
 				0u,
-				true));
+				false));
 		TestTrue(
 			TEXT("Dense smoke is always renderable through the legacy path"),
 			ShouldIncludeSmokeRenderCandidate(
@@ -1031,6 +1036,30 @@ void FTimeThiefSmokeViewExtension::ConsumeSparseActiveBrickCountReadback(FRender
 	State.bSparseActiveBrickCountReadbackPending = false;
 }
 
+void FTimeThiefSmokeViewExtension::RetireSparseActiveBrickCountReadback(FRenderSmokeState& State)
+{
+	State.bSparseActiveBrickCountReadbackPending = false;
+	if (State.SparseActiveBrickCountReadback.IsValid())
+	{
+		FRetiredSparseActiveBrickCountReadback& RetiredReadback = RetiredSparseActiveBrickCountReadbacks.AddDefaulted_GetRef();
+		RetiredReadback.Readback = MoveTemp(State.SparseActiveBrickCountReadback);
+		RetiredReadback.RetiredFrameNumber = GFrameNumberRenderThread;
+	}
+}
+
+void FTimeThiefSmokeViewExtension::ReleaseReadyRetiredSparseActiveBrickCountReadbacks()
+{
+	for (int32 Index = RetiredSparseActiveBrickCountReadbacks.Num() - 1; Index >= 0; --Index)
+	{
+		const FRetiredSparseActiveBrickCountReadback& RetiredReadback = RetiredSparseActiveBrickCountReadbacks[Index];
+		if (!RetiredReadback.Readback.IsValid() ||
+			(RetiredReadback.RetiredFrameNumber != GFrameNumberRenderThread && RetiredReadback.Readback->IsReady()))
+		{
+			RetiredSparseActiveBrickCountReadbacks.RemoveAtSwap(Index);
+		}
+	}
+}
+
 void FTimeThiefSmokeViewExtension::QueueSparseActiveBrickCountReadback(
 	FRDGBuilder& GraphBuilder,
 	FRenderSmokeState& State,
@@ -1061,6 +1090,12 @@ bool FTimeThiefSmokeViewExtension::HasRenderableSceneState_RenderThread(uint64 S
 			continue;
 		}
 
+		if (GetDefaultSimulationBackend() == ETimeThiefSmokeSimulationBackend::SparseMac &&
+			IsPastSparseRenderableLifetime(State.Volume))
+		{
+			continue;
+		}
+
 		if (ShouldIncludeSmokeRenderCandidate(
 			GetDefaultSimulationBackend(),
 			State.bNeedsInit,
@@ -1077,6 +1112,8 @@ bool FTimeThiefSmokeViewExtension::HasRenderableSceneState_RenderThread(uint64 S
 void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRendererFrame&& Frame)
 {
 	check(IsInRenderingThread());
+
+	ReleaseReadyRetiredSparseActiveBrickCountReadbacks();
 
 	if (Frame.SceneKey == 0)
 	{
@@ -1103,8 +1140,7 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.bSparseAtlasScatterPending = false;
 			State.bSparseOccupancyRefreshPending = false;
 			State.SparseActiveBrickCount = 0u;
-			State.bSparseActiveBrickCountReadbackPending = false;
-			State.SparseActiveBrickCountReadback.Reset();
+			RetireSparseActiveBrickCountReadback(State);
 		}
 		const FIntVector RequiredGridSize = MakeStableGridSize(Volume);
 		if (!GridContains(State.AllocatedGridSize, RequiredGridSize))
@@ -1139,11 +1175,11 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.UploadedObstacleFieldRevision = MAX_uint32;
 			State.LastSimulatedFrame = MAX_uint32;
 			State.SparseActiveBrickCount = 0u;
-			State.bSparseActiveBrickCountReadbackPending = false;
-			State.SparseActiveBrickCountReadback.Reset();
+			RetireSparseActiveBrickCountReadback(State);
 			State.AllocatedVortexParticleCount = 0;
 			State.AccumulatedSimulationDeltaSeconds = 0.0f;
 			State.AccumulatedVortexDeltaSeconds = 0.0f;
+			State.VortexActivityBudgetSeconds = 0.0f;
 			State.BulletFieldDecayBudgetSeconds = 0.0f;
 			State.bVortexParticlesNeedUpload = true;
 			State.bSparseAtlasScatterPending = false;
@@ -1162,8 +1198,10 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 		if (bSparseBackend && IsPastSparseRenderableLifetime(State.Volume))
 		{
 			State.SparseActiveBrickCount = 0u;
-			State.bSparseActiveBrickCountReadbackPending = false;
-			State.SparseActiveBrickCountReadback.Reset();
+			State.PendingEvents.Reset();
+			RetireSparseActiveBrickCountReadback(State);
+			State.VortexActivityBudgetSeconds = 0.0f;
+			State.AccumulatedVortexDeltaSeconds = 0.0f;
 			State.bSparseAtlasScatterPending = false;
 			State.bSparseOccupancyRefreshPending = false;
 		}
@@ -1173,14 +1211,21 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 	{
 		if (It.Key().SceneKey == Frame.SceneKey && !ActiveSmokeKeys.Contains(It.Key()))
 		{
+			RetireSparseActiveBrickCountReadback(It.Value());
 			It.RemoveCurrent();
 		}
 	}
 
+	const bool bSparseBackend = GetDefaultSimulationBackend() == ETimeThiefSmokeSimulationBackend::SparseMac;
 	for (const FTimeThiefSmokeRendererEvent& Event : Frame.Events)
 	{
 		if (FRenderSmokeState* State = SmokeStates.Find(FRenderSmokeStateKey{ Frame.SceneKey, Event.SmokeId }))
 		{
+			if (bSparseBackend && IsPastSparseRenderableLifetime(State->Volume))
+			{
+				continue;
+			}
+
 			const int32 MaxEvents = FMath::Clamp(TimeThiefSmokeParameterDefaults::MaxGPUEventsPerSmokePerFrame, 0, TimeThiefSmokeParameterDefaults::MaxShaderEventCount);
 			AddPrioritizedSmokeEvent(State->PendingEvents, Event, MaxEvents);
 		}
@@ -1197,12 +1242,15 @@ void FTimeThiefSmokeViewExtension::Clear_RenderThread()
 	check(IsInRenderingThread());
 	SmokeStates.Reset();
 	LastFrameDeltaSecondsByScene.Reset();
+	RetiredSparseActiveBrickCountReadbacks.Reset();
 }
 
 void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 	FRDGBuilder& GraphBuilder,
 	FSceneViewFamily& ViewFamily)
 {
+	ReleaseReadyRetiredSparseActiveBrickCountReadbacks();
+
 	const uint64 SceneKey = GetSceneKey(ViewFamily);
 	const float FrameDeltaSeconds = FMath::Clamp(LastFrameDeltaSecondsByScene.FindRef(SceneKey), 0.0f, 0.1f);
 	for (TPair<FRenderSmokeStateKey, FRenderSmokeState>& SmokePair : SmokeStates)
@@ -1227,13 +1275,13 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 		const bool bPastSparseRenderableLifetime = bSparseBackend && IsPastSparseRenderableLifetime(State.Volume);
 		const bool bForceSparseAtlasRefresh = bSparseBackend && State.bSparseAtlasVisibleThisFrame && State.bSparseAtlasScatterPending;
 		const bool bHasActiveEvents = bHasActiveDynamicEvents || bForceSparseAtlasRefresh;
-		if (bPastSparseRenderableLifetime &&
-			!bHasActiveDynamicEvents &&
-			State.BulletFieldDecayBudgetSeconds <= UE_SMALL_NUMBER)
+		if (bPastSparseRenderableLifetime)
 		{
+			State.PendingEvents.Reset();
 			State.SparseActiveBrickCount = 0u;
-			State.bSparseActiveBrickCountReadbackPending = false;
-			State.SparseActiveBrickCountReadback.Reset();
+			RetireSparseActiveBrickCountReadback(State);
+			State.VortexActivityBudgetSeconds = 0.0f;
+			State.AccumulatedVortexDeltaSeconds = 0.0f;
 			State.bSparseAtlasScatterPending = false;
 			State.bSparseOccupancyRefreshPending = false;
 			State.LastSimulatedFrame = GFrameNumberRenderThread;
@@ -1574,6 +1622,12 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		}
 
 		FRenderSmokeState& State = SmokePair.Value;
+		if (GetDefaultSimulationBackend() == ETimeThiefSmokeSimulationBackend::SparseMac &&
+			IsPastSparseRenderableLifetime(State.Volume))
+		{
+			continue;
+		}
+
 		if (!ShouldIncludeSmokeRenderCandidate(
 			GetDefaultSimulationBackend(),
 			State.bNeedsInit,
@@ -1585,6 +1639,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 
 		if (State.DensityTextures[State.CurrentDensityIndex].IsValid() &&
 			State.DisplacedDensityTextures[State.CurrentDensityIndex].IsValid() &&
+			State.ObstacleSdfTexture.IsValid() &&
 			State.BrickOccupancyTexture.IsValid() &&
 			State.SparseFieldAtlasTexture.IsValid())
 		{
@@ -2260,7 +2315,6 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	};
 	FRDGTextureRef CurlTexture = GraphBuilder.CreateTexture(ScratchVectorDesc, TEXT("TimeThiefSmoke.Curl"));
 	FRDGTextureRef DivergenceTexture = GraphBuilder.CreateTexture(ScratchScalarDesc, TEXT("TimeThiefSmoke.Divergence"));
-	FRDGTextureRef ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);
 	FRDGBufferRef VortexParticleBuffers[2] =
 	{
 		GraphBuilder.RegisterExternalBuffer(State.VortexParticleBuffers[0], TEXT("TimeThiefSmoke.VortexParticles0")),
@@ -2423,13 +2477,13 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		AddBuildEventBrickMasksPass(
 			GraphBuilder,
 			State,
-			GetAdvectionEventBuffer(),
+			AdvectionEventCount > 0 ? GetAdvectionEventBuffer() : nullptr,
 			AdvectionEventCount,
-			GetExplosionEventBuffer(),
+			ExplosionEventCount > 0 ? GetExplosionEventBuffer() : nullptr,
 			ExplosionEventCount,
-			GetActorEventBuffer(),
+			ActorEventCount > 0 ? GetActorEventBuffer() : nullptr,
 			ActorEventCount,
-			GetVortexEventBuffer(),
+			VortexEventCount > 0 ? GetVortexEventBuffer() : nullptr,
 			VortexEventCount,
 			EmptyEventBuffer,
 			EmptyEventBrickMasksBuffer,
@@ -2458,6 +2512,22 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	{
 		BuildEventBrickMasks();
 		return VortexEventBrickMasksBuffer;
+	};
+	auto GetAdvectionEventBufferForPass = [&]() -> FRDGBufferRef
+	{
+		return AdvectionEventCount > 0 ? GetAdvectionEventBuffer() : GetEmptySmokeEventBuffer(GraphBuilder, EmptyEventBuffer);
+	};
+	auto GetAdvectionEventBrickMasksBufferForPass = [&]() -> FRDGBufferRef
+	{
+		return AdvectionEventCount > 0 ? GetAdvectionEventBrickMasksBuffer() : GetEmptyBrickMaskBuffer(GraphBuilder, EmptyEventBrickMasksBuffer);
+	};
+	auto GetVortexEventBufferForPass = [&]() -> FRDGBufferRef
+	{
+		return VortexEventCount > 0 ? GetVortexEventBuffer() : GetEmptySmokeEventBuffer(GraphBuilder, EmptyEventBuffer);
+	};
+	auto GetVortexEventBrickMasksBufferForPass = [&]() -> FRDGBufferRef
+	{
+		return VortexEventCount > 0 ? GetVortexEventBrickMasksBuffer() : GetEmptyBrickMaskBuffer(GraphBuilder, EmptyEventBrickMasksBuffer);
 	};
 	const int32 SparseMaskEventCount = AdvectionEventCount;
 	const bool bNeedsInitThisFrame = State.bNeedsInit;
@@ -2494,7 +2564,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			VelocityTextures[State.CurrentVelocityIndex],
 			BulletCutoutTextures[State.CurrentBulletFieldIndex],
 			BulletSinkTextures[State.CurrentBulletFieldIndex],
-			GetAdvectionEventBuffer(),
+			GetAdvectionEventBufferForPass(),
 			SparseMaskEventCount,
 			BrickActivityTexture,
 			bHasBulletStateForOccupancy);
@@ -2556,12 +2626,26 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			FMath::Max(TimeThiefSmokeParameterDefaults::BulletWakeMinLifeSeconds, TimeThiefSmokeParameterDefaults::BulletWakeSinkLife));
 		State.BulletFieldDecayBudgetSeconds = FMath::Max(State.BulletFieldDecayBudgetSeconds, BulletKeepAliveSeconds);
 	}
-	const bool bVortexUploadPending = State.bVortexParticlesNeedUpload;
-	State.AccumulatedVortexDeltaSeconds = FMath::Min(State.AccumulatedVortexDeltaSeconds + DeltaSeconds, TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds * 2.0f);
+	if (VortexEventCount > 0)
+	{
+		const float VortexKeepAliveSeconds = FMath::Max(
+			TimeThiefSmokeParameterDefaults::VortexParticleMinLifeSeconds,
+			TimeThiefSmokeParameterDefaults::VortexParticleLifeSeconds);
+		State.VortexActivityBudgetSeconds = FMath::Max(State.VortexActivityBudgetSeconds, VortexKeepAliveSeconds);
+	}
+	if (State.VortexActivityBudgetSeconds > UE_SMALL_NUMBER)
+	{
+		State.AccumulatedVortexDeltaSeconds = FMath::Min(
+			State.AccumulatedVortexDeltaSeconds + DeltaSeconds,
+			TimeThiefSmokeParameterDefaults::VortexSubstepIntervalSeconds * 2.0f);
+	}
+	else
+	{
+		State.AccumulatedVortexDeltaSeconds = 0.0f;
+	}
 	const bool bRunVortexPasses = ShouldRunVortexPasses(
-		bNeedsInitThisFrame,
-		bVortexUploadPending,
 		VortexEventCount,
+		State.VortexActivityBudgetSeconds,
 		State.AccumulatedVortexDeltaSeconds);
 
 	if (State.bVortexParticlesNeedUpload)
@@ -2654,8 +2738,8 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		VelocityTextures[ReadVelocityIndex],
 		BulletCutoutReadTexture,
 		BulletSinkReadTexture,
-		GetAdvectionEventBuffer(),
-		GetAdvectionEventBrickMasksBuffer(),
+		GetAdvectionEventBufferForPass(),
+		GetAdvectionEventBrickMasksBufferForPass(),
 		AdvectionEventCount,
 		DensityTextures[WriteDensityIndex],
 		DisplacedDensityTextures[WriteDensityIndex],
@@ -2692,14 +2776,14 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			VelocityTextures[State.CurrentVelocityIndex],
 			BulletCutoutTextures[State.CurrentBulletFieldIndex],
 			BulletSinkTextures[State.CurrentBulletFieldIndex],
-			GetVortexEventBuffer(),
+			GetVortexEventBufferForPass(),
 			VortexEventCount,
 			VortexDeltaSeconds);
 		State.CurrentVortexParticleIndex = VortexParticleWriteIndex;
 
 		const int32 VorticityWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
 		AddBuildCurlPass(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex], CurlTexture);
-		AddVorticityPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], DisplacedDensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex], CurlTexture, VelocityTextures[VorticityWriteVelocityIndex], GetVortexEventBuffer(), GetVortexEventBrickMasksBuffer(), VortexEventCount, VortexDeltaSeconds);
+		AddVorticityPass(GraphBuilder, State, DensityTextures[State.CurrentDensityIndex], DisplacedDensityTextures[State.CurrentDensityIndex], VelocityTextures[State.CurrentVelocityIndex], CurlTexture, VelocityTextures[VorticityWriteVelocityIndex], GetVortexEventBufferForPass(), GetVortexEventBrickMasksBufferForPass(), VortexEventCount, VortexDeltaSeconds);
 		State.CurrentVelocityIndex = VorticityWriteVelocityIndex;
 
 		const int32 VortexSplatWriteVelocityIndex = 1 - State.CurrentVelocityIndex;
@@ -2729,6 +2813,14 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		State.CurrentVelocityIndex = VortexSplatWriteVelocityIndex;
 		State.AccumulatedVortexDeltaSeconds = 0.0f;
 	}
+	if (State.VortexActivityBudgetSeconds > UE_SMALL_NUMBER)
+	{
+		State.VortexActivityBudgetSeconds = FMath::Max(0.0f, State.VortexActivityBudgetSeconds - DeltaSeconds);
+		if (State.VortexActivityBudgetSeconds <= UE_SMALL_NUMBER)
+		{
+			State.AccumulatedVortexDeltaSeconds = 0.0f;
+		}
+	}
 	State.PendingEvents.Reset();
 
 	if (bUseMacProjection)
@@ -2756,7 +2848,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	for (int32 Iteration = 0; Iteration < PressureIterations; ++Iteration)
 	{
 		const int32 NextPressureIndex = 1 - CurrentPressureIndex;
-		AddPressureJacobiPass(GraphBuilder, State, State.AllocatedGridSize, CellSize, PressureTextures[CurrentPressureIndex], DivergenceTexture, ObstacleTexture, PressureTextures[NextPressureIndex], GetActiveBrickResourcesForPass());
+		AddPressureJacobiPass(GraphBuilder, State, State.AllocatedGridSize, CellSize, PressureTextures[CurrentPressureIndex], DivergenceTexture, PressureTextures[NextPressureIndex], GetActiveBrickResourcesForPass());
 		CurrentPressureIndex = NextPressureIndex;
 	}
 	PressureForProjection = PressureTextures[CurrentPressureIndex];
@@ -2785,8 +2877,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		if (IsPastSparseRenderableLifetime(State.Volume))
 		{
 			State.SparseActiveBrickCount = 0u;
-			State.bSparseActiveBrickCountReadbackPending = false;
-			State.SparseActiveBrickCountReadback.Reset();
+			RetireSparseActiveBrickCountReadback(State);
 			State.bSparseAtlasScatterPending = false;
 			State.bSparseOccupancyRefreshPending = false;
 			return;
@@ -2814,7 +2905,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 					VelocityTextures[State.CurrentVelocityIndex],
 					BulletCutoutTextures[State.CurrentBulletFieldIndex],
 					BulletSinkTextures[State.CurrentBulletFieldIndex],
-					GetAdvectionEventBuffer(),
+					GetAdvectionEventBufferForPass(),
 					SparseMaskEventCount,
 					BrickActivityTexture,
 					bScatterBulletChannels);
@@ -3673,7 +3764,6 @@ void FTimeThiefSmokeViewExtension::AddPressureJacobiPass(
 	const FVector3f& CellSize,
 	FRDGTextureRef PressureIn,
 	FRDGTextureRef DivergenceIn,
-	FRDGTextureRef ObstacleTexture,
 	FRDGTextureRef PressureOut,
 	const FActiveBrickDispatchResources* ActiveBrickResources)
 {
@@ -3703,7 +3793,7 @@ void FTimeThiefSmokeViewExtension::AddPressureJacobiPass(
 	PassParameters->ActiveBricks = GraphBuilder.CreateSRV(ActiveBricksBuffer);
 	PassParameters->bUseSparseSimulationMask = State.bUseSparseSimulationMaskThisFrame && GridSize == State.AllocatedGridSize ? 1u : 0u;
 	PassParameters->bUseActiveBrickDispatch = bUseActiveBrickDispatch ? 1u : 0u;
-	TIME_THIEF_SMOKE_SET_OBSTACLE_FIELD_PARAMETERS(PassParameters, ObstacleTexture, GraphBuilder, State);
+	TIME_THIEF_SMOKE_SET_OBSTACLE_FIELD_PARAMETERS(PassParameters, GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture), GraphBuilder, State);
 	PassParameters->OutPressure = GraphBuilder.CreateUAV(PressureOut);
 
 	if (bUseActiveBrickDispatch)

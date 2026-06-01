@@ -1,7 +1,10 @@
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 
 #include "Actors/TimeThiefSmokeVolume.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/SphereComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
@@ -17,6 +20,53 @@ namespace TimeThiefSmoke
 		TArray<int32> SmokeIndices;
 		FBox Bounds = FBox(EForceInit::ForceInit);
 	};
+
+	float SmoothStep01(float Alpha)
+	{
+		const float T = FMath::Clamp(Alpha, 0.0f, 1.0f);
+		return T * T * (3.0f - 2.0f * T);
+	}
+
+	bool IsActorPushSampleComponent(const UPrimitiveComponent* PrimitiveComponent)
+	{
+		const AActor* Owner = PrimitiveComponent ? PrimitiveComponent->GetOwner() : nullptr;
+		return PrimitiveComponent &&
+			Owner &&
+			!Owner->IsA<ATimeThiefSmokeVolume>() &&
+			PrimitiveComponent->Mobility != EComponentMobility::Static;
+	}
+
+	ESmokeInteractionShape ResolveActorPushSampleShape(const UPrimitiveComponent* PrimitiveComponent, FTimeThiefSmokeActorPushSample& OutSample)
+	{
+		if (const USphereComponent* SphereComponent = Cast<USphereComponent>(PrimitiveComponent))
+		{
+			OutSample.Radius = SphereComponent->GetScaledSphereRadius();
+			OutSample.Length = 0.0f;
+			OutSample.Extents = FVector(OutSample.Radius);
+			return ESmokeInteractionShape::Sphere;
+		}
+
+		if (const UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(PrimitiveComponent))
+		{
+			OutSample.Radius = CapsuleComponent->GetScaledCapsuleRadius();
+			OutSample.Length = CapsuleComponent->GetScaledCapsuleHalfHeight() * 2.0f;
+			OutSample.Extents = FVector(OutSample.Radius, OutSample.Radius, OutSample.Length * 0.5f);
+			return ESmokeInteractionShape::Capsule;
+		}
+
+		if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(PrimitiveComponent))
+		{
+			OutSample.Extents = BoxComponent->GetScaledBoxExtent();
+			OutSample.Radius = OutSample.Extents.GetMax() * TimeThiefSmokeParameterDefaults::ActorPrimitiveRadiusScale;
+			OutSample.Length = OutSample.Extents.GetMax();
+			return ESmokeInteractionShape::Box;
+		}
+
+		OutSample.Extents = PrimitiveComponent ? PrimitiveComponent->Bounds.BoxExtent : FVector::ZeroVector;
+		OutSample.Radius = OutSample.Extents.GetMax() * TimeThiefSmokeParameterDefaults::ActorPrimitiveRadiusScale;
+		OutSample.Length = OutSample.Extents.GetMax();
+		return ESmokeInteractionShape::Box;
+	}
 
 	FBox MakeSmokeWorldBounds(const FTimeThiefSmokeRendererVolume& Volume, const FVector3f& Extent)
 	{
@@ -758,19 +808,82 @@ void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
 		return;
 	}
 
+	ActorInteractionAccumulator += FMath::Max(0.0f, DeltaTime);
+	const float ActorInteractionHz = FMath::Max(TimeThiefSmokeParameterDefaults::ActorInteractionHz, UE_SMALL_NUMBER);
+	if (ActorInteractionAccumulator < (1.0f / ActorInteractionHz))
+	{
+		return;
+	}
+
+	const float SampleDeltaTime = ActorInteractionAccumulator;
+	ActorInteractionAccumulator = 0.0f;
+
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_PhysicsBody);
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeActorOverlap), false);
-	TArray<TArray<UPrimitiveComponent*>> ComponentsBySmoke;
+	TArray<TArray<FTimeThiefSmokeActorPushSample>> SamplesBySmoke;
 	TArray<TSet<UPrimitiveComponent*>> AddedComponentsBySmoke;
-	ComponentsBySmoke.SetNum(ValidSmokeVolumes.Num());
+	SamplesBySmoke.SetNum(ValidSmokeVolumes.Num());
 	AddedComponentsBySmoke.SetNum(ValidSmokeVolumes.Num());
 
 	TArray<TimeThiefSmoke::FSmokeActorOverlapGroup> OverlapGroups;
 	TimeThiefSmoke::BuildSmokeActorOverlapGroups(ValidSmokeBounds, OverlapGroups);
+	TMap<TWeakObjectPtr<UPrimitiveComponent>, int32> ActorSampleIndexByComponent;
+	TArray<FTimeThiefSmokeActorPushSample> ActorSamples;
+	TSet<TWeakObjectPtr<UPrimitiveComponent>> CurrentActorPushComponents;
+	auto FindOrAddActorSample = [this, SampleDeltaTime, &ActorSampleIndexByComponent, &ActorSamples, &CurrentActorPushComponents](UPrimitiveComponent* PrimitiveComponent) -> int32
+	{
+		if (!TimeThiefSmoke::IsActorPushSampleComponent(PrimitiveComponent))
+		{
+			return INDEX_NONE;
+		}
+
+		const TWeakObjectPtr<UPrimitiveComponent> ComponentKey(PrimitiveComponent);
+		CurrentActorPushComponents.Add(ComponentKey);
+		if (const int32* ExistingSampleIndex = ActorSampleIndexByComponent.Find(ComponentKey))
+		{
+			return *ExistingSampleIndex;
+		}
+
+		FTimeThiefSmokeActorPushSample Sample;
+		Sample.PrimitiveComponent = PrimitiveComponent;
+		Sample.ComponentBounds = PrimitiveComponent->Bounds.GetBox();
+
+		const FVector CurrentLocation = PrimitiveComponent->GetComponentLocation();
+		FVector PreviousLocation = CurrentLocation;
+		FVector Velocity = PrimitiveComponent->GetComponentVelocity();
+		if (const FVector* StoredPreviousLocation = PreviousActorPushComponentLocations.Find(ComponentKey))
+		{
+			PreviousLocation = *StoredPreviousLocation;
+			if (SampleDeltaTime > KINDA_SMALL_NUMBER)
+			{
+				Velocity = (CurrentLocation - *StoredPreviousLocation) / SampleDeltaTime;
+			}
+		}
+		PreviousActorPushComponentLocations.FindOrAdd(ComponentKey) = CurrentLocation;
+
+		const FVector CurrentBoundsOrigin = PrimitiveComponent->Bounds.Origin;
+		Sample.Position = CurrentBoundsOrigin;
+		Sample.PreviousPosition = PreviousLocation + (CurrentBoundsOrigin - CurrentLocation);
+		Sample.Direction = Velocity.GetSafeNormal(UE_SMALL_NUMBER, FVector::ForwardVector);
+		Sample.Rotation = PrimitiveComponent->GetComponentQuat();
+		Sample.Speed = Velocity.Size();
+		Sample.Seed = GetTypeHash(PrimitiveComponent);
+		Sample.Shape = TimeThiefSmoke::ResolveActorPushSampleShape(PrimitiveComponent, Sample);
+
+		const float ResponseStartSpeed = TimeThiefSmokeParameterDefaults::ActorPushVelocityThreshold * TimeThiefSmokeParameterDefaults::ActorPushResponseStartSpeedScale;
+		const float FullResponseSpeed = TimeThiefSmokeParameterDefaults::ActorPushFullResponseSpeed;
+		const float ResponseAlpha = TimeThiefSmoke::SmoothStep01((Sample.Speed - ResponseStartSpeed) / (FullResponseSpeed - ResponseStartSpeed));
+		const float SpeedStrength = FMath::Clamp(Sample.Speed / TimeThiefSmokeParameterDefaults::ActorPushFullResponseSpeed, 0.0f, 1.0f);
+		Sample.Strength = FMath::Clamp(ResponseAlpha * SpeedStrength, 0.0f, 1.0f);
+
+		const int32 SampleIndex = ActorSamples.Add(Sample);
+		ActorSampleIndexByComponent.Add(ComponentKey, SampleIndex);
+		return SampleIndex;
+	};
 
 	for (const TimeThiefSmoke::FSmokeActorOverlapGroup& OverlapGroup : OverlapGroups)
 	{
@@ -791,24 +904,34 @@ void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
 		for (const FOverlapResult& Overlap : Overlaps)
 		{
 			UPrimitiveComponent* PrimitiveComponent = Overlap.GetComponent();
-			if (!PrimitiveComponent)
+			const int32 ActorSampleIndex = FindOrAddActorSample(PrimitiveComponent);
+			if (ActorSampleIndex == INDEX_NONE || !ActorSamples.IsValidIndex(ActorSampleIndex))
 			{
 				continue;
 			}
 
-			const FBox ComponentBounds = PrimitiveComponent->Bounds.GetBox();
+			const FTimeThiefSmokeActorPushSample& ActorSample = ActorSamples[ActorSampleIndex];
 			for (const int32 SmokeIndex : OverlapGroup.SmokeIndices)
 			{
 				if (!ValidSmokeVolumes.IsValidIndex(SmokeIndex) ||
-					!ComponentBounds.Intersect(ValidSmokeBounds[SmokeIndex]) ||
+					!ActorSample.ComponentBounds.Intersect(ValidSmokeBounds[SmokeIndex]) ||
 					AddedComponentsBySmoke[SmokeIndex].Contains(PrimitiveComponent))
 				{
 					continue;
 				}
 
 				AddedComponentsBySmoke[SmokeIndex].Add(PrimitiveComponent);
-				ComponentsBySmoke[SmokeIndex].Add(PrimitiveComponent);
+				SamplesBySmoke[SmokeIndex].Add(ActorSample);
 			}
+		}
+	}
+
+	for (auto It = PreviousActorPushComponentLocations.CreateIterator(); It; ++It)
+	{
+		const TWeakObjectPtr<UPrimitiveComponent> Component = It.Key();
+		if (!Component.IsValid() || !CurrentActorPushComponents.Contains(Component))
+		{
+			It.RemoveCurrent();
 		}
 	}
 
@@ -816,7 +939,7 @@ void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
 	{
 		if (ValidSmokeVolumes[SmokeIndex])
 		{
-			ValidSmokeVolumes[SmokeIndex]->GatherActorPushEventsFromComponents(ComponentsBySmoke[SmokeIndex], DeltaTime);
+			ValidSmokeVolumes[SmokeIndex]->GatherActorPushEventsFromSamples(SamplesBySmoke[SmokeIndex]);
 		}
 	}
 }
