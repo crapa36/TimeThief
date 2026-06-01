@@ -21,6 +21,8 @@ class ServerMapExporter
 {
 public:
 	static bool ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath);
+	static bool ExportSpawnLocationsToJsonFile(UWorld* World, const FName& StoreTag, const FName& ChestTag, const FString& OutputPath, bool bDisableExportedActors);
+	static bool ExportMonsterSpawnLocationsToJsonFile(UWorld* World, const FString& OutputPath, bool bDisableExportedActors);
 	static bool ExportPresetToFile(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset, const FString& OutputPath);
 	static bool ExportSelectedActorResolvedToFile(const FString& OutputPath);
 
@@ -46,6 +48,7 @@ public:
 	static int32 SpawnPresetShapesForActorsWithTag(UWorld* World, const FName& RequiredTag, bool bClearExistingPresetShapes);
 	
 	static void AddCollisionTagToActors();
+	static int32 DisableActorsWithTag(UWorld* World, const FName& RequiredTag);
 	
 // 맵 데이터 정리용
 	

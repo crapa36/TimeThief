@@ -134,6 +134,68 @@ void AServerMapExportTestActor::ExportTaggedActorsResolved()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
+void AServerMapExportTestActor::ExportStoreSpawnLocations()
+{
+	UWorld* World = GetWorld();
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestStoreSpawnLocations.json");
+	const bool bResult = ServerMapExporter::ExportSpawnLocationsToJsonFile(
+		World,
+		StoreActorTag,
+		NAME_None,
+		OutputPath,
+		bDisableSpawnMarkerActorsAfterExport);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportStoreSpawnLocations result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
+void AServerMapExportTestActor::ExportChestSpawnLocations()
+{
+	UWorld* World = GetWorld();
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestChestSpawnLocations.json");
+	const bool bResult = ServerMapExporter::ExportSpawnLocationsToJsonFile(
+		World,
+		NAME_None,
+		ChestActorTag,
+		OutputPath,
+		bDisableSpawnMarkerActorsAfterExport);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportChestSpawnLocations result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
+void AServerMapExportTestActor::ExportStoreAndChestSpawnLocations()
+{
+	UWorld* World = GetWorld();
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestSpawnLocations.json");
+	const bool bResult = ServerMapExporter::ExportSpawnLocationsToJsonFile(
+		World,
+		StoreActorTag,
+		ChestActorTag,
+		OutputPath,
+		bDisableSpawnMarkerActorsAfterExport);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportStoreAndChestSpawnLocations result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
+void AServerMapExportTestActor::ExportMonsterSpawnLocations()
+{
+	UWorld* World = GetWorld();
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestMonsterSpawnLocations.json");
+	const bool bResult = ServerMapExporter::ExportMonsterSpawnLocationsToJsonFile(
+		World,
+		OutputPath,
+		bDisableSpawnMarkerActorsAfterExport);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportMonsterSpawnLocations result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
 void AServerMapExportTestActor::ReplaceSelectedActorWithStaticMeshActors()
 {
 #if WITH_EDITOR

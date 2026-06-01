@@ -3,6 +3,7 @@
 #include "EngineUtils.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/Selection.h"
 #include "Misc/FileHelper.h"
@@ -17,6 +18,7 @@
 #include "PhysicsEngine/AggregateGeom.h"
 #include "Math/Quat.h"
 #include "ServerCollisionPresetDataAsset.h"
+#include "ServerMonsterTags.h"
 #include "UObject/Package.h"
 #include "Misc/MessageDialog.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -52,6 +54,101 @@ namespace
 		}
 
 		ShapeComponent->ComponentTags.AddUnique(SourceTag);
+	}
+
+	static TSharedPtr<FJsonObject> MakeVectorJsonObject(const FVector& Vector)
+	{
+		TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+		JsonObject->SetNumberField(TEXT("x"), Vector.X);
+		JsonObject->SetNumberField(TEXT("y"), Vector.Y);
+		JsonObject->SetNumberField(TEXT("z"), Vector.Z);
+		return JsonObject;
+	}
+
+	static TSharedPtr<FJsonObject> MakeSpawnLocationJsonObject(const AActor* Actor)
+	{
+		TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
+		if (Actor == nullptr)
+		{
+			return JsonObject;
+		}
+
+		JsonObject->SetObjectField(TEXT("position"), MakeVectorJsonObject(Actor->GetActorLocation()));
+		JsonObject->SetNumberField(TEXT("yaw"), Actor->GetActorRotation().Yaw);
+		return JsonObject;
+	}
+
+	static int32 CollectSpawnLocationsWithTag(UWorld* World, const FName& RequiredTag,
+		TArray<TSharedPtr<FJsonValue>>& OutLocations, TArray<AActor*>& OutActors)
+	{
+		if (World == nullptr || RequiredTag.IsNone())
+		{
+			return 0;
+		}
+
+		TArray<AActor*> TaggedActors;
+		for (TActorIterator<AActor> It(World); It; ++It)
+		{
+			AActor* Actor = *It;
+			if (Actor && Actor->ActorHasTag(RequiredTag))
+			{
+				TaggedActors.Add(Actor);
+			}
+		}
+
+		TaggedActors.Sort([](const AActor& Left, const AActor& Right)
+		{
+			return Left.GetName() < Right.GetName();
+		});
+
+		for (AActor* Actor : TaggedActors)
+		{
+			OutLocations.Add(MakeShared<FJsonValueObject>(MakeSpawnLocationJsonObject(Actor)));
+			OutActors.Add(Actor);
+		}
+
+		return TaggedActors.Num();
+	}
+
+	static void DisableSpawnMarkerActor(AActor* Actor)
+	{
+		if (Actor == nullptr)
+		{
+			return;
+		}
+
+#if WITH_EDITOR
+		Actor->Modify();
+#endif
+
+		Actor->SetActorHiddenInGame(true);
+		Actor->SetActorEnableCollision(false);
+		Actor->SetActorTickEnabled(false);
+
+		TArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+		for (UActorComponent* Component : Components)
+		{
+			if (Component == nullptr)
+			{
+				continue;
+			}
+
+#if WITH_EDITOR
+			Component->Modify();
+#endif
+
+			Component->SetComponentTickEnabled(false);
+
+			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component))
+			{
+				PrimitiveComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+		}
+
+#if WITH_EDITOR
+		Actor->MarkPackageDirty();
+#endif
 	}
 }
 
@@ -116,6 +213,161 @@ bool ServerMapExporter::ExportActorsWithTagToFile(UWorld* World, const FName& Re
 	WriteDebugJsonFile(DebugJsonPath, DebugRecords);
 
 	LogExportSummary(RequiredTag, OutputPath, Summary);
+	return true;
+}
+
+bool ServerMapExporter::ExportSpawnLocationsToJsonFile(UWorld* World, const FName& StoreTag, const FName& ChestTag,
+	const FString& OutputPath, const bool bDisableExportedActors)
+{
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] World is null"));
+		return false;
+	}
+
+	if (OutputPath.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] OutputPath is empty"));
+		return false;
+	}
+
+	TArray<TSharedPtr<FJsonValue>> StoreSpawnLocations;
+	TArray<TSharedPtr<FJsonValue>> ChestSpawnLocations;
+	TArray<AActor*> ExportedActors;
+
+	const int32 StoreCount = CollectSpawnLocationsWithTag(World, StoreTag, StoreSpawnLocations, ExportedActors);
+	const int32 ChestCount = CollectSpawnLocationsWithTag(World, ChestTag, ChestSpawnLocations, ExportedActors);
+	const int32 TotalCount = StoreCount + ChestCount;
+
+	if (TotalCount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No spawn marker actors found. StoreTag=%s ChestTag=%s"),
+			*StoreTag.ToString(),
+			*ChestTag.ToString());
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> RootObject = MakeShared<FJsonObject>();
+	RootObject->SetArrayField(TEXT("store_spawn_locations"), StoreSpawnLocations);
+	RootObject->SetArrayField(TEXT("chest_spawn_locations"), ChestSpawnLocations);
+
+	FString JsonString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (!FJsonSerializer::Serialize(RootObject.ToSharedRef(), Writer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to serialize spawn location json"));
+		return false;
+	}
+
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(OutputPath), true);
+	if (!FFileHelper::SaveStringToFile(JsonString, *OutputPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to save spawn location json: %s"), *OutputPath);
+		return false;
+	}
+
+	int32 DisabledCount = 0;
+	if (bDisableExportedActors)
+	{
+		for (AActor* Actor : ExportedActors)
+		{
+			DisableSpawnMarkerActor(Actor);
+			++DisabledCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Spawn location json saved: %s"), *OutputPath);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Spawn locations. Store=%d Chest=%d DisabledActors=%d"),
+		StoreCount,
+		ChestCount,
+		DisabledCount);
+	return true;
+}
+
+bool ServerMapExporter::ExportMonsterSpawnLocationsToJsonFile(UWorld* World, const FString& OutputPath,
+	const bool bDisableExportedActors)
+{
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] World is null"));
+		return false;
+	}
+
+	if (OutputPath.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] OutputPath is empty"));
+		return false;
+	}
+
+	const TArray<FName>& MonsterTags = ServerMonsterTags::GetAll();
+	if (MonsterTags.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Monster tag list is empty"));
+		return false;
+	}
+
+	TArray<TSharedPtr<FJsonValue>> MonsterSpawnGroups;
+	TArray<AActor*> ExportedActors;
+	int32 TotalTransformCount = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("========== Server Monster Spawn Export =========="));
+	for (const FName& MonsterTag : MonsterTags)
+	{
+		TArray<TSharedPtr<FJsonValue>> TransformArray;
+		TArray<AActor*> TypeActors;
+		const int32 TransformCount = CollectSpawnLocationsWithTag(World, MonsterTag, TransformArray, TypeActors);
+		TotalTransformCount += TransformCount;
+
+		for (AActor* Actor : TypeActors)
+		{
+			ExportedActors.AddUnique(Actor);
+		}
+
+		const FString TypeName = ServerMonsterTags::GetTypeName(MonsterTag);
+		TSharedPtr<FJsonObject> SpawnGroupObject = MakeShared<FJsonObject>();
+		SpawnGroupObject->SetStringField(TEXT("type"), TypeName);
+		SpawnGroupObject->SetNumberField(TEXT("spawn_num"), 0);
+		SpawnGroupObject->SetArrayField(TEXT("transform"), TransformArray);
+		MonsterSpawnGroups.Add(MakeShared<FJsonValueObject>(SpawnGroupObject));
+
+		UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] \"%s\": %d export"),
+			*TypeName,
+			TransformCount);
+	}
+
+	TSharedPtr<FJsonObject> RootObject = MakeShared<FJsonObject>();
+	RootObject->SetArrayField(TEXT("monster_spawn_groups"), MonsterSpawnGroups);
+
+	FString JsonString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (!FJsonSerializer::Serialize(RootObject.ToSharedRef(), Writer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to serialize monster spawn json"));
+		return false;
+	}
+
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(OutputPath), true);
+	if (!FFileHelper::SaveStringToFile(JsonString, *OutputPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to save monster spawn json: %s"), *OutputPath);
+		return false;
+	}
+
+	int32 DisabledCount = 0;
+	if (bDisableExportedActors)
+	{
+		for (AActor* Actor : ExportedActors)
+		{
+			DisableSpawnMarkerActor(Actor);
+			++DisabledCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Monster spawn json saved: %s"), *OutputPath);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Monster spawn total. Types=%d Transforms=%d DisabledActors=%d"),
+		MonsterTags.Num(),
+		TotalTransformCount,
+		DisabledCount);
 	return true;
 }
 
@@ -861,6 +1113,28 @@ void ServerMapExporter::AddCollisionTagToActors()
 		}
 	}
 #endif
+}
+
+int32 ServerMapExporter::DisableActorsWithTag(UWorld* World, const FName& RequiredTag)
+{
+	if (World == nullptr || RequiredTag.IsNone())
+	{
+		return 0;
+	}
+
+	TArray<AActor*> TaggedActors;
+	CollectActorsWithTag(World, RequiredTag, TaggedActors);
+
+	for (AActor* Actor : TaggedActors)
+	{
+		DisableSpawnMarkerActor(Actor);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] DisableActorsWithTag finished. Tag=%s DisabledActorCount=%d"),
+		*RequiredTag.ToString(),
+		TaggedActors.Num());
+
+	return TaggedActors.Num();
 }
 
 void ServerMapExporter::CheckSelectedActorsStaticMeshActor()

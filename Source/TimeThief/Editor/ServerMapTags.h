@@ -5,6 +5,8 @@
 namespace ServerTags
 {
 	inline const FName Collision(TEXT("ServerCollision"));
+	inline const FName Store(TEXT("ServerStore"));
+	inline const FName Chest(TEXT("ServerChest"));
 	
 	inline const FName Generated(TEXT("Generated"));
 	inline const FName Ignore(TEXT("Ignore"));

@@ -94,6 +94,36 @@ public:
 	
 public:
 	// =============================
+	// Spawn Location Export Settings
+	// =============================
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Spawn Export", meta = (ToolTip = "Actor tag used to collect store spawn marker actors in the current level."))
+	FName StoreActorTag = ServerTags::Store;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Spawn Export", meta = (ToolTip = "Actor tag used to collect chest spawn marker actors in the current level."))
+	FName ChestActorTag = ServerTags::Chest;
+
+	UPROPERTY(EditAnywhere, Category = "ServerMap|Spawn Export", meta = (ToolTip = "If true, exported marker actors are hidden, collision-disabled, and tick-disabled after export."))
+	bool bDisableSpawnMarkerActorsAfterExport = true;
+
+	// =============================
+	// Spawn Location Export Workflow
+	// =============================
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
+	void ExportStoreSpawnLocations();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
+	void ExportChestSpawnLocations();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
+	void ExportStoreAndChestSpawnLocations();
+
+	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
+	void ExportMonsterSpawnLocations();
+
+public:
+	// =============================
 	// Utility
 	// =============================
 	
