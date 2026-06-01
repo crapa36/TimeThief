@@ -10,6 +10,8 @@
 
 class UCharacterMovementComponent;
 class ACharacter;
+class AController;
+class APawn;
 class UAnimInstance;
 class UAnimMontage;
 class UTimeThiefWirePhysics;
@@ -17,6 +19,7 @@ class UTimeThiefWireTargeting;
 class UCableComponent;
 class UStaticMeshComponent;
 class UStaticMesh;
+class UWidgetComponent;
 class UMaterialInterface;
 class APlayerCameraManager;
 class UCameraShakeBase;
@@ -118,6 +121,9 @@ private:
 	UFUNCTION()
 	void AnimNotify_WireFire();
 
+	UFUNCTION()
+	void OnPawnControllerChanged(APawn* Pawn, AController* OldController, AController* NewController);
+
 	void UpdateFiringAnchor(float DeltaTime);
 	void UpdateAttachedWire(float DeltaTime);
 	void OnAnchorAttached();
@@ -133,6 +139,8 @@ private:
 	void ApplyWireCableStaticSettings(bool bRecreateSimulation);
 	void UpdateWireVisuals();
 	void UpdateTargetIndicator(float DeltaTime);
+	void SetTargetIndicatorVisible(bool bVisible);
+	void RefreshLocalControllerState();
 
 	void UpdateSpeedEffects(float DeltaTime);
 	void ResetSpeedEffects(float DeltaTime);
@@ -318,6 +326,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UStaticMeshComponent> AnchorMeshComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidgetComponent> TargetIndicatorComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<APlayerCameraManager> CachedCameraManager;

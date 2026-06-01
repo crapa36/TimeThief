@@ -11,14 +11,111 @@
 #include "Camera/PlayerCameraManager.h"
 #include "CableComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Sound/SoundBase.h"
 #include "Particles/ParticleSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utils/TimeThiefAimStatics.h"
-#include "DrawDebugHelpers.h"
+#include "Rendering/DrawElementTypes.h"
+#include "Widgets/SLeafWidget.h"
 
 DEFINE_LOG_CATEGORY(LogWire);
+
+namespace
+{
+	class SWireAnchorTargetIndicator : public SLeafWidget
+	{
+	public:
+		SLATE_BEGIN_ARGS(SWireAnchorTargetIndicator) {}
+		SLATE_END_ARGS()
+
+		void Construct(const FArguments& InArgs)
+		{
+		}
+
+		virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect,
+			FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override
+		{
+			const FVector2D LocalSize = AllottedGeometry.GetLocalSize();
+			const float Width = static_cast<float>(LocalSize.X);
+			const float Height = static_cast<float>(LocalSize.Y);
+			const float Padding = 4.0f;
+			const float AvailableWidth = FMath::Max(Width - Padding * 2.0f, 0.0f);
+			const float AvailableHeight = FMath::Max(Height - Padding * 2.0f, 0.0f);
+			const float HalfBase = FMath::Min(AvailableWidth * 0.5f, AvailableHeight / UE_SQRT_3);
+			if (HalfBase <= 0.0f)
+			{
+				return LayerId;
+			}
+
+			const float TriangleHeight = HalfBase * UE_SQRT_3;
+			const float CenterX = Width * 0.5f;
+			const float TopY = (Height - TriangleHeight) * 0.5f;
+			const FVector2f TopLeft(CenterX - HalfBase, TopY);
+			const FVector2f TopRight(CenterX + HalfBase, TopY);
+			const FVector2f Bottom(CenterX, TopY + TriangleHeight);
+			const float CornerRadius = HalfBase * 0.32f;
+			const float LegLength = HalfBase * 0.35f;
+			const FLinearColor IndicatorColor(1.0f, 0.02f, 0.04f, 0.95f);
+
+			auto Normalize = [](const FVector2f& Vector) -> FVector2f
+			{
+				const float Length = FMath::Sqrt(Vector.X * Vector.X + Vector.Y * Vector.Y);
+				return Length > KINDA_SMALL_NUMBER ? Vector / Length : FVector2f::ZeroVector;
+			};
+
+			auto MakeBezierPoint = [](const FVector2f& Start, const FVector2f& Control, const FVector2f& End, float Alpha) -> FVector2f
+			{
+				const float InverseAlpha = 1.0f - Alpha;
+				return Start * InverseAlpha * InverseAlpha + Control * 2.0f * InverseAlpha * Alpha + End * Alpha * Alpha;
+			};
+
+			auto DrawCorner = [&](const FVector2f& Previous, const FVector2f& Corner, const FVector2f& Next)
+			{
+				const FVector2f ToPrevious = Normalize(Previous - Corner);
+				const FVector2f ToNext = Normalize(Next - Corner);
+				const FVector2f ArcStart = Corner + ToPrevious * CornerRadius;
+				const FVector2f ArcEnd = Corner + ToNext * CornerRadius;
+
+				TArray<FVector2f> Points;
+				Points.Reserve(12);
+				Points.Add(Corner + ToPrevious * (CornerRadius + LegLength));
+				Points.Add(ArcStart);
+
+				for (int32 Index = 1; Index < 8; ++Index)
+				{
+					const float Alpha = static_cast<float>(Index) / 8.0f;
+					Points.Add(MakeBezierPoint(ArcStart, Corner, ArcEnd, Alpha));
+				}
+
+				Points.Add(ArcEnd);
+				Points.Add(Corner + ToNext * (CornerRadius + LegLength));
+
+				FSlateDrawElement::MakeLines(
+					OutDrawElements,
+					LayerId,
+					AllottedGeometry.ToPaintGeometry(),
+					MoveTemp(Points),
+					ESlateDrawEffect::None,
+					IndicatorColor,
+					true,
+					3.0f);
+			};
+
+			DrawCorner(Bottom, TopLeft, TopRight);
+			DrawCorner(TopLeft, TopRight, Bottom);
+			DrawCorner(TopRight, Bottom, TopLeft);
+
+			return LayerId;
+		}
+
+		virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override
+		{
+			return FVector2D(48.0f, 48.0f);
+		}
+	};
+}
 
 UTimeThiefWireComponent::UTimeThiefWireComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -49,6 +146,16 @@ UTimeThiefWireComponent::UTimeThiefWireComponent(const FObjectInitializer& Objec
 	AnchorMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	AnchorMeshComponent->SetCastShadow(false);
 	AnchorMeshComponent->SetVisibility(false);
+
+	TargetIndicatorComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("TargetIndicatorComponent"));
+	TargetIndicatorComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TargetIndicatorComponent->SetGenerateOverlapEvents(false);
+	TargetIndicatorComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	TargetIndicatorComponent->SetDrawSize(FVector2D(48.0f, 48.0f));
+	TargetIndicatorComponent->SetPivot(FVector2D(0.5f, 0.5f));
+	TargetIndicatorComponent->SetDrawAtDesiredSize(false);
+	TargetIndicatorComponent->SetVisibility(false);
+	TargetIndicatorComponent->SetHiddenInGame(true);
 }
 
 void UTimeThiefWireComponent::BeginPlay()
@@ -68,6 +175,7 @@ void UTimeThiefWireComponent::BeginPlay()
 		{
 			WireTargeting->Initialize(CachedCharacter);
 		}
+		CachedCharacter->ReceiveControllerChangedDelegate.AddUniqueDynamic(this, &UTimeThiefWireComponent::OnPawnControllerChanged);
 
 		USkeletalMeshComponent* SkeletalMesh = CachedCharacter->GetMesh();
 		if (SkeletalMesh && SkeletalMesh->DoesSocketExist(WireStartSocketName))
@@ -88,10 +196,13 @@ void UTimeThiefWireComponent::BeginPlay()
 		if (USceneComponent* RootComponent = CachedCharacter->GetRootComponent())
 		{
 			AnchorMeshComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+			TargetIndicatorComponent->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
 		}
 		WireCable->SetAttachEndToComponent(AnchorMeshComponent);
 		WireCable->EndLocation = FVector::ZeroVector;
 		AnchorMeshComponent->SetAbsolute(true, true, true);
+		TargetIndicatorComponent->SetAbsolute(true, true, true);
+		TargetIndicatorComponent->SetSlateWidget(SNew(SWireAnchorTargetIndicator));
 		ApplyWireCableStaticSettings(true);
 
 		if (AnchorMeshTemplate)
@@ -100,19 +211,17 @@ void UTimeThiefWireComponent::BeginPlay()
 		}
 		AnchorMeshComponent->SetWorldScale3D(AnchorMeshScale);
 
-		if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
-		{
-			CachedCameraManager = PC->PlayerCameraManager;
-			if (CachedCameraManager)
-			{
-				DefaultFOV = CachedCameraManager->DefaultFOV;
-			}
-		}
+		RefreshLocalControllerState();
 	}
 }
 
 void UTimeThiefWireComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (IsValid(CachedCharacter))
+	{
+		CachedCharacter->ReceiveControllerChangedDelegate.RemoveDynamic(this, &UTimeThiefWireComponent::OnPawnControllerChanged);
+	}
+
 	if (IsValid(CachedCameraManager) && CurrentFOVOffset > 0.0f)
 	{
 		CachedCameraManager->UnlockFOV();
@@ -275,6 +384,7 @@ void UTimeThiefWireComponent::FireWire()
 	if (CooldownRemaining > 0.0f || bPendingWireFire) return;
 
 	bPendingWireFire = true;
+	SetTargetIndicatorVisible(false);
 
 	bool bHasFireNotify = false;
 	if (!PlayWireFireMontage(bHasFireNotify))
@@ -308,6 +418,8 @@ void UTimeThiefWireComponent::CancelWireFire()
 void UTimeThiefWireComponent::LaunchWire()
 {
 	if (CurrentState != EWireState::Idle) return;
+
+	SetTargetIndicatorVisible(false);
 
 	const FVector WireStartLocation = GetWireStartLocation();
 
@@ -533,6 +645,16 @@ void UTimeThiefWireComponent::OnWireFireMontageNotify(FName NotifyName, const FB
 void UTimeThiefWireComponent::AnimNotify_WireFire()
 {
 	ConfirmWireFire();
+}
+
+void UTimeThiefWireComponent::OnPawnControllerChanged(APawn* Pawn, AController* OldController, AController* NewController)
+{
+	if (Pawn != CachedCharacter)
+	{
+		return;
+	}
+
+	RefreshLocalControllerState();
 }
 
 void UTimeThiefWireComponent::ReleaseWire()
@@ -978,6 +1100,7 @@ void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 	{
 		TargetIndicatorRefreshTimer = 0.0f;
 		bHasCachedTargetIndicator = false;
+		SetTargetIndicatorVisible(false);
 		return;
 	}
 
@@ -1011,8 +1134,52 @@ void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 
 	if (bHasCachedTargetIndicator)
 	{
-		DrawDebugPoint(GetWorld(), CachedTargetIndicatorLocation, 20.0f, FColor::Red, false, -1.0f, 0);
+		if (TargetIndicatorComponent)
+		{
+			TargetIndicatorComponent->SetWorldLocation(CachedTargetIndicatorLocation);
+		}
+		SetTargetIndicatorVisible(true);
 	}
+	else
+	{
+		SetTargetIndicatorVisible(false);
+	}
+}
+
+void UTimeThiefWireComponent::SetTargetIndicatorVisible(bool bVisible)
+{
+	if (!TargetIndicatorComponent)
+	{
+		return;
+	}
+
+	TargetIndicatorComponent->SetVisibility(bVisible);
+	TargetIndicatorComponent->SetHiddenInGame(!bVisible);
+}
+
+void UTimeThiefWireComponent::RefreshLocalControllerState()
+{
+	if (!IsValid(CachedCharacter) || !CachedCharacter->IsLocallyControlled())
+	{
+		SetTargetIndicatorVisible(false);
+		return;
+	}
+
+	if (APlayerController* PC = Cast<APlayerController>(CachedCharacter->GetController()))
+	{
+		CachedCameraManager = PC->PlayerCameraManager;
+		if (TargetIndicatorComponent)
+		{
+			TargetIndicatorComponent->SetOwnerPlayer(PC->GetLocalPlayer());
+		}
+		if (CachedCameraManager)
+		{
+			DefaultFOV = CachedCameraManager->DefaultFOV;
+		}
+	}
+
+	TargetIndicatorRefreshTimer = 0.0f;
+	SetComponentTickEnabled(true);
 }
 
 float UTimeThiefWireComponent::GetSpeedEffectAlpha() const
