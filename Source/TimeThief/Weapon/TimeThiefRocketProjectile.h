@@ -110,11 +110,12 @@ protected:
 	TObjectPtr<USoundBase> FlightLoopSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Debug", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float ExplosionDebugDuration = 1.5f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Debug", meta = (ClampMin = "4", UIMin = "4"))
-	int32 ExplosionDebugSegments = 24;
+	//float ExplosionDebugDuration = 1.5f;
+	float ExplosionDebugDuration = 0.0f;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Rocket|Debug", meta = (ClampMin = "4", UIMin = "4"))
+	//int32 ExplosionDebugSegments = 24;
+	int32 ExplosionDebugSegments = 0;
 // Network 관련 API
 public:
 	void ActivateProjectileFromNetwork(const FVector& SpawnLocation, const FVector& InitialVelocity);

@@ -1,6 +1,7 @@
 #include "TimeThiefSmokeViewExtension.h"
 
 #include "PixelShaderUtils.h"
+#include "FXRenderingUtils.h"
 #include "HAL/IConsoleManager.h"
 #include "PostProcess/PostProcessMaterialInputs.h"
 #include "RenderGraphBuilder.h"
@@ -1502,7 +1503,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	TShaderMapRef<FTimeThiefSmokeCompositeMultiPS> PixelShader(GetGlobalShaderMap(View.FeatureLevel));
 	FTimeThiefSmokeCompositeMultiPS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeCompositeMultiPS::FParameters>();
 	PassParameters->SceneColorTexture = CurrentSceneColor.Texture;
-	PassParameters->SceneDepthTexture = Inputs.SceneTextures.SceneTextures->GetParameters()->SceneDepthTexture;
+	FRDGTextureRef SceneDepthTexture = Inputs.SceneTextures.SceneTextures->GetParameters()->SceneDepthTexture;
+	PassParameters->SceneDepthTexture = SceneDepthTexture;
 	PassParameters->SceneColorSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 	PassParameters->CompositeSmokeDescriptors = GraphBuilder.CreateSRV(DescriptorBuffer);
@@ -1521,6 +1523,26 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		(InputRectMin.X - OutputRectMin.X * InputToOutputScale.X) / SceneColorTextureExtent.X,
 		(InputRectMin.Y - OutputRectMin.Y * InputToOutputScale.Y) / SceneColorTextureExtent.Y);
 	PassParameters->ViewRect = Output.ViewRect;
+	const FIntPoint SceneDepthTextureExtent = SceneDepthTexture ? SceneDepthTexture->Desc.Extent : FIntPoint(1, 1);
+	FIntRect SceneDepthViewRect = UE::FXRenderingUtils::GetRawViewRectUnsafe(View);
+	SceneDepthViewRect.Min.X = FMath::Clamp(SceneDepthViewRect.Min.X, 0, SceneDepthTextureExtent.X);
+	SceneDepthViewRect.Min.Y = FMath::Clamp(SceneDepthViewRect.Min.Y, 0, SceneDepthTextureExtent.Y);
+	SceneDepthViewRect.Max.X = FMath::Clamp(SceneDepthViewRect.Max.X, SceneDepthViewRect.Min.X, SceneDepthTextureExtent.X);
+	SceneDepthViewRect.Max.Y = FMath::Clamp(SceneDepthViewRect.Max.Y, SceneDepthViewRect.Min.Y, SceneDepthTextureExtent.Y);
+	if (SceneDepthViewRect.Width() <= 0 || SceneDepthViewRect.Height() <= 0)
+	{
+		SceneDepthViewRect = FIntRect(0, 0, FMath::Max(1, SceneDepthTextureExtent.X), FMath::Max(1, SceneDepthTextureExtent.Y));
+	}
+	const FVector2f SceneDepthRectMin(static_cast<float>(SceneDepthViewRect.Min.X), static_cast<float>(SceneDepthViewRect.Min.Y));
+	const FVector2f OutputToDepthScale(
+		static_cast<float>(SceneDepthViewRect.Width()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Width())),
+		static_cast<float>(SceneDepthViewRect.Height()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Height())));
+	PassParameters->SceneDepthPixelScaleBias = FVector4f(
+		OutputToDepthScale.X,
+		OutputToDepthScale.Y,
+		SceneDepthRectMin.X - OutputRectMin.X * OutputToDepthScale.X,
+		SceneDepthRectMin.Y - OutputRectMin.Y * OutputToDepthScale.Y);
+	PassParameters->SceneDepthViewRect = SceneDepthViewRect;
 	PassParameters->TileRectMin = DrawRect.Min;
 	PassParameters->TileGridSize = TileGridSize;
 	PassParameters->CompositeTileSize = TimeThiefSmokeParameterDefaults::CompositeTileSize;

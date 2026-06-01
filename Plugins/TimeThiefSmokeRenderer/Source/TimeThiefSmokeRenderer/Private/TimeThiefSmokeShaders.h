@@ -296,7 +296,9 @@ public:
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER(FVector4f, SceneColorUVScaleBias)
+		SHADER_PARAMETER(FVector4f, SceneDepthPixelScaleBias)
 		SHADER_PARAMETER(FIntRect, ViewRect)
+		SHADER_PARAMETER(FIntRect, SceneDepthViewRect)
 		SHADER_PARAMETER(FIntPoint, TileRectMin)
 		SHADER_PARAMETER(FIntPoint, TileGridSize)
 		SHADER_PARAMETER(int32, CompositeTileSize)

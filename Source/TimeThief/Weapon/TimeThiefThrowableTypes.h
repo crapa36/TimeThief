@@ -93,7 +93,7 @@ struct FTimeThiefThrowableProjectileSettings
 	float CollisionSoundCooldown = 0.1f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Debug")
-	bool bDrawDamageDebug = true;
+	bool bDrawDamageDebug = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Throwable|Debug", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float DamageDebugDuration = 1.5f;

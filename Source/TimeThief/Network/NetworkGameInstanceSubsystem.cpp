@@ -1922,6 +1922,37 @@ void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& P
 
 void UNetworkGameInstanceSubsystem::HandleItemSnapshot(const se::game::N_ItemSnapshot& Pkt)
 {
+	check(IsInGameThread());
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get local player pawn"));
+		return;
+	}
+	auto* Player = Cast<ATimeThiefPlayerCharacter>(LocalPlayer);
+	if (Player == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get player pawn"));
+		return;
+	}
+	
+	UInventorySystemComponent* InventoryComp = Player->GetInventoryComponent();
+	if (InventoryComp == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get inventory component"));
+		return;
+	}
+	
+	InventoryComp->ClearInventory();
+	
+	for (const auto& Item : Pkt.items())
+	{
+		 uint32 ItemId = Item.item_id();
+		 uint32 Quantity = Item.amount();
+		 
+		 InventoryComp->AddItem(static_cast<EItemID>(ItemId), Quantity);
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleEquipItem(const se::game::N_EquipItem& Pkt)

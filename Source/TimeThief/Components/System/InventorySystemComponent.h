@@ -49,6 +49,9 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
+	
+	void ClearInventory();
+	
 	void AddItem(EItemID ItemID, int Amount = 1);
 	bool RemoveItem(EItemID ItemID, int Amount = 1);
 	
@@ -68,7 +71,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Inventory")
 	EItemID GetConsumableEquipment() const { return ConsumableEquipment; }
-	
+
+
 private:
 	void SetConsumableEquipment(EItemID ItemID);
 	void SetThrowableEquipment(EItemID ItemID);

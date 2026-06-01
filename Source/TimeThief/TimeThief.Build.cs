@@ -45,7 +45,8 @@ public class TimeThief : ModuleRules
 			"MorphingMesh",
 		});
 
-		if (IsPluginAvailable("DLSS") && IsPluginAvailable("StreamlineDLSSG"))
+		bool bHasNvidiaDLSSModules = IsPluginAvailable("DLSS") && IsPluginAvailable("StreamlineDLSSG");
+		if (bHasNvidiaDLSSModules)
 		{
 			PrivateDependencyModuleNames.AddRange(new string[]
 			{
@@ -54,13 +55,11 @@ public class TimeThief : ModuleRules
 				"StreamlineDLSSGBlueprint",
 				"StreamlineReflexBlueprint",
 			});
+		}
 
-			PublicDefinitions.Add("TIMETHIEF_WITH_NVIDIA_DLSS=1");
-		}
-		else
-		{
-			PublicDefinitions.Add("TIMETHIEF_WITH_NVIDIA_DLSS=0");
-		}
+		PublicDefinitions.Add((bHasNvidiaDLSSModules || HasNvidiaDLSSRuntimeDlls())
+			? "TIMETHIEF_WITH_NVIDIA_DLSS=1"
+			: "TIMETHIEF_WITH_NVIDIA_DLSS=0");
 
 		PublicIncludePaths.AddRange(new string[] {
 			"TimeThief"
@@ -84,6 +83,19 @@ public class TimeThief : ModuleRules
 
 		return ContainsPlugin(Path.Combine(ProjectRoot, "Plugins"), PluginFileName)
 			|| ContainsPlugin(Path.Combine(EngineDirectory, "Plugins"), PluginFileName);
+	}
+
+	private bool HasNvidiaDLSSRuntimeDlls()
+	{
+		string ProjectRoot = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
+		string NvidiaRoot = Path.Combine(ProjectRoot, "Plugins", "NVIDIA");
+
+		return File.Exists(Path.Combine(NvidiaRoot, "DLSS", "Binaries", "ThirdParty", "Win64", "nvngx_dlss.dll"))
+			&& File.Exists(Path.Combine(NvidiaRoot, "StreamlineCore", "Binaries", "ThirdParty", "Win64", "nvngx_dlssg.dll"))
+			&& File.Exists(Path.Combine(NvidiaRoot, "StreamlineCore", "Binaries", "ThirdParty", "Win64", "sl.common.dll"))
+			&& File.Exists(Path.Combine(NvidiaRoot, "StreamlineCore", "Binaries", "ThirdParty", "Win64", "sl.dlss_g.dll"))
+			&& File.Exists(Path.Combine(NvidiaRoot, "StreamlineCore", "Binaries", "ThirdParty", "Win64", "sl.interposer.dll"))
+			&& File.Exists(Path.Combine(NvidiaRoot, "StreamlineCore", "Binaries", "ThirdParty", "Win64", "sl.reflex.dll"));
 	}
 
 	private bool ContainsPlugin(string PluginRoot, string PluginFileName)

@@ -87,7 +87,9 @@ StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData> CompositeSmokeDes
 StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData> TileSmokeRanges;
 StructuredBuffer<uint> TileSmokeIndices;
 float4 SceneColorUVScaleBias;
+float4 SceneDepthPixelScaleBias;
 int4 ViewRect;
+int4 SceneDepthViewRect;
 int2 TileRectMin;
 int2 TileGridSize;
 int CompositeTileSize;
@@ -107,6 +109,15 @@ float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
 float InterleavedGradientNoise(float2 PixelPosition)
 {
 	return frac(52.9829189 * frac(dot(PixelPosition, float2(0.06711056, 0.00583715))));
+}
+
+float LoadSceneDeviceZ(float2 PixelPosition)
+{
+	const float2 DepthPixelPosition = PixelPosition * SceneDepthPixelScaleBias.xy + SceneDepthPixelScaleBias.zw;
+	const int2 DepthMin = SceneDepthViewRect.xy;
+	const int2 DepthMax = max(SceneDepthViewRect.xy, SceneDepthViewRect.zw - 1);
+	const int2 DepthPixel = clamp((int2)floor(DepthPixelPosition), DepthMin, DepthMax);
+	return SceneDepthTexture.Load(int3(DepthPixel, 0)).r;
 }
 
 bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float TMax)
@@ -796,7 +807,7 @@ void MainPS(
 		return;
 	}
 
-	const float SceneDeviceZ = SceneDepthTexture.Load(int3(uint2(SvPosition.xy), 0)).r;
+	const float SceneDeviceZ = LoadSceneDeviceZ(SvPosition.xy);
 	const float3 NearWorld = ReconstructWorldPosition(SvPosition.xy, 1.0);
 	const float3 FarWorld = ReconstructWorldPosition(SvPosition.xy, 0.0);
 	const bool bHasOpaqueSceneDepth = SceneDeviceZ > 0.000001;
