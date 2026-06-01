@@ -723,6 +723,7 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 	
 	LocalPlayerEntityId = Pkt.my_entity_id().value();
 	RoomState.RoomId = Snapshot.room_id();
+	bRoomStateCleared = false;
 	
 	for (const auto& PlayerInfo : Snapshot.players())
 	{
@@ -761,6 +762,12 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		return;
 	}
 	
+	if (IsRoomStateCleared())
+	{
+		SetPlayState(ENetworkPlayState::InLobby);
+		UE_LOG(LogTemp, Log, TEXT("[Network] Room leave success ignored: room state already cleared"));
+		return;
+	}
 
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
@@ -834,10 +841,17 @@ void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClose
 {
 	check(IsInGameThread());
 	
+	if (IsRoomStateCleared())
+	{
+		SetPlayState(ENetworkPlayState::InLobby);
+		UE_LOG(LogTemp, Log, TEXT("[Network] Room close ignored: room state already cleared. RoomId=%u"), Pkt.room_id());
+		return;
+	}
+	
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
 	
-	UE_LOG(LogTemp, Log, TEXT("[Network] Room close"));
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room close. RoomId=%u"), Pkt.room_id());
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
@@ -2724,8 +2738,15 @@ void UNetworkGameInstanceSubsystem::RequestRoomLeave()
 		return;
 	}
 
+	if (PlayState == ENetworkPlayState::LeavingRoom)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] Ignore room leave request: leave already pending"));
+		return;
+	}
+
 	if (PlayState != ENetworkPlayState::InRoom)
 	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] Ignore room leave request: invalid state %d"), static_cast<int32>(PlayState));
 		return;
 	}
 
@@ -2733,6 +2754,7 @@ void UNetworkGameInstanceSubsystem::RequestRoomLeave()
 	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(SendBuffer);
 	SetPlayState(ENetworkPlayState::LeavingRoom);
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomLeaveReq to server"));
 }
 
 void UNetworkGameInstanceSubsystem::RequestSpawnMonster(FVector Pos, uint32 MonsterType)
@@ -3003,18 +3025,43 @@ void UNetworkGameInstanceSubsystem::StopPingTimer()
 
 void UNetworkGameInstanceSubsystem::ClearRoomState()
 {
-	for (auto& Pair : EntityEntries)
+	if (IsRoomStateCleared())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] ClearRoomState skipped: already cleared"));
+		return;
+	}
+
+	TArray<TWeakObjectPtr<AActor>> ActorsToDestroy;
+	ActorsToDestroy.Reserve(EntityEntries.Num());
+
+	for (const auto& Pair : EntityEntries)
 	{
 		if (Pair.Value.Actor.IsValid())
 		{
-			Pair.Value.Actor->Destroy();
-			Pair.Value.Actor.Reset();
+			ActorsToDestroy.Add(Pair.Value.Actor);
 		}
 	}
 
 	EntityEntries.Empty();
 	LocalPlayerEntityId = 0;
 	RoomState = FRoomState();
+	ResetLoadingGate();
+	bRoomStateCleared = true;
+
+	for (const TWeakObjectPtr<AActor>& ActorPtr : ActorsToDestroy)
+	{
+		if (ActorPtr.IsValid())
+		{
+			ActorPtr->Destroy();
+		}
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room state cleared. DestroyedActors=%d"), ActorsToDestroy.Num());
+}
+
+bool UNetworkGameInstanceSubsystem::IsRoomStateCleared() const
+{
+	return bRoomStateCleared && EntityEntries.Num() == 0 && LocalPlayerEntityId == 0 && RoomState.RoomId == 0;
 }
 
 void UNetworkGameInstanceSubsystem::NetworkEntryAdd(uint32 EntityId, const FEntityRuntimeEntry& Entry)

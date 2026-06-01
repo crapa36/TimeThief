@@ -257,6 +257,7 @@ private:
 	
 private:
 	void ClearRoomState();
+	bool IsRoomStateCleared() const;
 	
 public:
 	void NetworkEntryAdd(uint32 EntityId, const FEntityRuntimeEntry& Entry);
@@ -306,5 +307,6 @@ private:
 	bool bReceivedEntitiesSpawn = false;
 	bool bReceivedPlayerInitSetup = false;
 	bool bSentLoadingComplete = false;
+	bool bRoomStateCleared = true;
 	
 };
