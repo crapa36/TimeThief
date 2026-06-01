@@ -11,7 +11,7 @@
  * 
  */
 UCLASS(BlueprintType)
-class TIMETHIEF_API USpawnClassData : public UDataAsset
+class TIMETHIEF_API USpawnClassData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 	

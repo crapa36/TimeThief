@@ -40,12 +40,12 @@ struct FItemData
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> ItemClass = AItemBase::StaticClass();
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, meta=(AssetBundles="Client"))
 	TSoftObjectPtr<UStaticMesh> ItemMesh = nullptr;
 };
 
 UCLASS()
-class TIMETHIEF_API UGameItemData : public UDataAsset
+class TIMETHIEF_API UGameItemData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 	

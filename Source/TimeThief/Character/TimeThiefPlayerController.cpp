@@ -21,101 +21,59 @@
 #define TIMETHIEF_WITH_NVIDIA_DLSS 0
 #endif
 
-#if TIMETHIEF_WITH_NVIDIA_DLSS
-#include "DLSSLibrary.h"
-#include "StreamlineLibraryDLSSG.h"
-#include "StreamlineLibraryReflex.h"
-#endif
-
 namespace
 {
-void SetIntCVarByCode(const TCHAR* Name, int32 Value)
-{
-	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Name))
-	{
-		CVar->Set(Value, ECVF_SetByCode);
-	}
-}
-
-void SetFloatCVarByCode(const TCHAR* Name, float Value)
-{
-	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Name))
-	{
-		CVar->Set(Value, ECVF_SetByCode);
-	}
-}
-
 #if TIMETHIEF_WITH_NVIDIA_DLSS
-int32 GetDLSSGEnableCVarValue(EStreamlineDLSSGMode Mode)
+bool SetIntCVarByCode(const TCHAR* Name, int32 Value)
 {
-	switch (Mode)
+	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Name))
 	{
-	case EStreamlineDLSSGMode::Off:
-		return 0;
-	case EStreamlineDLSSGMode::Auto:
-		return 2;
-	case EStreamlineDLSSGMode::OnDynamic:
-		return 3;
-	default:
-		return 1;
+		CVar->Set(Value, ECVF_SetByCode);
+		return true;
 	}
+
+	return false;
 }
 
-int32 GetDLSSGFramesToGenerateCVarValue(EStreamlineDLSSGMode Mode)
+bool SetFloatCVarByCode(const TCHAR* Name, float Value)
 {
-	switch (Mode)
+	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(Name))
 	{
-	case EStreamlineDLSSGMode::On3X:
-		return 2;
-	case EStreamlineDLSSGMode::On4X:
-		return 3;
-	case EStreamlineDLSSGMode::On5X:
-		return 4;
-	case EStreamlineDLSSGMode::On6X:
-		return 5;
-	default:
-		return 1;
+		CVar->Set(Value, ECVF_SetByCode);
+		return true;
 	}
+
+	return false;
 }
 
-void SetDLSSGModeByCode(EStreamlineDLSSGMode Mode)
+bool SetDLSSGEnabledByCode(bool bEnabled)
 {
-	SetIntCVarByCode(TEXT("r.Streamline.DLSSG.Enable"), GetDLSSGEnableCVarValue(Mode));
-	SetIntCVarByCode(TEXT("r.Streamline.DLSSG.FramesToGenerate"), GetDLSSGFramesToGenerateCVarValue(Mode));
+	bool bApplied = SetIntCVarByCode(TEXT("r.Streamline.DLSSG.Enable"), bEnabled ? 1 : 0);
+	bApplied |= SetIntCVarByCode(TEXT("r.Streamline.DLSSG.FramesToGenerate"), 1);
+	return bApplied;
 }
 
-void SetDLSSSuperResolutionByCode(bool bEnabled, float ScreenPercentage)
+bool SetNVIDIAReflexByCode(bool bEnabled)
 {
-	SetIntCVarByCode(TEXT("r.NGX.DLSS.DenoiserMode"), 0);
-	SetIntCVarByCode(TEXT("r.NGX.DLSS.Enable"), bEnabled ? 1 : 0);
+	bool bApplied = SetIntCVarByCode(TEXT("r.Streamline.Reflex.Enable"), bEnabled ? 1 : 0);
+	bApplied |= SetIntCVarByCode(TEXT("r.Streamline.Reflex.Mode"), bEnabled ? 1 : 0);
+	return bApplied;
+}
+
+bool SetDLSSSuperResolutionByCode(bool bEnabled, float ScreenPercentage)
+{
+	bool bApplied = SetIntCVarByCode(TEXT("r.NGX.Enable"), bEnabled ? 1 : 0);
+	bApplied |= SetIntCVarByCode(TEXT("r.NGX.DLSS.DenoiserMode"), 0);
+	bApplied |= SetIntCVarByCode(TEXT("r.NGX.DLSS.Enable"), bEnabled ? 1 : 0);
 
 	if (bEnabled)
 	{
-		SetIntCVarByCode(TEXT("r.TemporalAA.Upscaler"), 1);
-		SetIntCVarByCode(TEXT("r.TemporalAA.Upsampling"), 1);
-		SetFloatCVarByCode(TEXT("r.ScreenPercentage"), ScreenPercentage);
-	}
-}
-
-UDLSSMode GetPreferredDLSSSuperResolutionMode()
-{
-	const UDLSSMode PreferredModes[] =
-	{
-		UDLSSMode::Quality,
-		UDLSSMode::Balanced,
-		UDLSSMode::Performance,
-		UDLSSMode::UltraPerformance
-	};
-
-	for (const UDLSSMode Mode : PreferredModes)
-	{
-		if (UDLSSLibrary::IsDLSSModeSupported(Mode))
-		{
-			return Mode;
-		}
+		bApplied |= SetIntCVarByCode(TEXT("r.TemporalAA.Upscaler"), 1);
+		bApplied |= SetIntCVarByCode(TEXT("r.TemporalAA.Upsampling"), 1);
+		bApplied |= SetFloatCVarByCode(TEXT("r.ScreenPercentage"), ScreenPercentage);
 	}
 
-	return UDLSSMode::Off;
+	return bApplied;
 }
 #endif
 }
@@ -157,43 +115,14 @@ void ATimeThiefPlayerController::ApplyDLSSSuperResolutionSetting()
 		return;
 	}
 
-	if (!UDLSSLibrary::IsDLSSSupported())
+	constexpr float DLSSQualityScreenPercentage = 77.0f;
+	if (!SetDLSSSuperResolutionByCode(true, DLSSQualityScreenPercentage))
 	{
-		UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution is not supported on this runtime."));
+		UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution CVars are not registered; NVIDIA DLSS plugin may not be loaded."));
 		return;
 	}
 
-	const UDLSSMode DLSSMode = GetPreferredDLSSSuperResolutionMode();
-	if (DLSSMode == UDLSSMode::Off)
-	{
-		UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution is supported, but no quality mode is available."));
-		return;
-	}
-
-	bool bIsSupported = false;
-	bool bIsFixedScreenPercentage = false;
-	float OptimalScreenPercentage = 100.0f;
-	float MinScreenPercentage = 100.0f;
-	float MaxScreenPercentage = 100.0f;
-	float OptimalSharpness = 0.0f;
-	UDLSSLibrary::GetDLSSModeInformation(
-		DLSSMode,
-		FVector2D::ZeroVector,
-		bIsSupported,
-		OptimalScreenPercentage,
-		bIsFixedScreenPercentage,
-		MinScreenPercentage,
-		MaxScreenPercentage,
-		OptimalSharpness);
-
-	if (!bIsSupported)
-	{
-		UE_LOG(LogTimeThief, Log, TEXT("Selected DLSS Super Resolution mode is not supported."));
-		return;
-	}
-
-	SetDLSSSuperResolutionByCode(true, OptimalScreenPercentage);
-	UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution enabled."));
+	UE_LOG(LogTimeThief, Log, TEXT("DLSS Super Resolution requested."));
 #else
 	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA DLSS modules are not available; skipping DLSS Super Resolution."));
 #endif
@@ -204,25 +133,17 @@ void ATimeThiefPlayerController::ApplyNVIDIAReflexSetting()
 #if TIMETHIEF_WITH_NVIDIA_DLSS
 	if (!bEnableNVIDIAReflex)
 	{
-		UStreamlineLibraryReflex::SetReflexMode(EStreamlineReflexMode::Off);
+		SetNVIDIAReflexByCode(false);
 		return;
 	}
 
-	if (!UStreamlineLibraryReflex::IsReflexSupported())
+	if (!SetNVIDIAReflexByCode(true))
 	{
-		UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex is not supported on this runtime."));
+		UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex CVars are not registered; NVIDIA Streamline plugin may not be loaded."));
 		return;
 	}
 
-	const EStreamlineReflexMode ReflexMode = UStreamlineLibraryReflex::GetDefaultReflexMode();
-	if (ReflexMode == EStreamlineReflexMode::Off)
-	{
-		UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex is supported, but no default mode is available."));
-		return;
-	}
-
-	UStreamlineLibraryReflex::SetReflexMode(ReflexMode);
-	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex enabled."));
+	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA Reflex requested."));
 #else
 	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA DLSS modules are not available; skipping NVIDIA Reflex."));
 #endif
@@ -233,26 +154,18 @@ void ATimeThiefPlayerController::ApplyDLSSFrameGenerationSetting()
 #if TIMETHIEF_WITH_NVIDIA_DLSS
 	if (!bEnableDLSSFrameGeneration)
 	{
-		SetDLSSGModeByCode(EStreamlineDLSSGMode::Off);
-		return;
-	}
-
-	if (!UStreamlineLibraryDLSSG::IsDLSSGSupported())
-	{
-		UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation is not supported on this runtime."));
-		return;
-	}
-
-	const EStreamlineDLSSGMode DefaultMode = UStreamlineLibraryDLSSG::GetDefaultDLSSGMode();
-	if (DefaultMode == EStreamlineDLSSGMode::Off)
-	{
-		UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation is supported, but no default mode is available."));
+		SetDLSSGEnabledByCode(false);
 		return;
 	}
 
 	SetIntCVarByCode(TEXT("r.VSync"), 0);
-	SetDLSSGModeByCode(DefaultMode);
-	UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation enabled."));
+	if (!SetDLSSGEnabledByCode(true))
+	{
+		UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation CVars are not registered; NVIDIA Streamline plugin may not be loaded."));
+		return;
+	}
+
+	UE_LOG(LogTimeThief, Log, TEXT("DLSS Frame Generation requested."));
 #else
 	UE_LOG(LogTimeThief, Log, TEXT("NVIDIA DLSS modules are not available; skipping DLSS Frame Generation."));
 #endif

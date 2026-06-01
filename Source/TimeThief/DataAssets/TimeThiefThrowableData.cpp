@@ -8,7 +8,7 @@ FTimeThiefThrowableDefinition UTimeThiefThrowableData::MakeDefaultDefinition(EIt
 	{
 	case EItemID::Grenade:
 		Definition.ProjectileSettings.bApplyRadialDamage = true;
-		Definition.ProjectileSettings.bDrawDamageDebug = true;
+		Definition.ProjectileSettings.bDrawDamageDebug = false;
 		break;
 	case EItemID::SmokeGrenade:
 		Definition.ProjectileSettings.bApplyRadialDamage = false;
