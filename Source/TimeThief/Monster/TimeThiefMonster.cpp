@@ -14,8 +14,7 @@
 // Sets default values
 ATimeThiefMonster::ATimeThiefMonster()
 {
-	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	
 	SceneRootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRootComponent"));
 	SetRootComponent(SceneRootComponent);
