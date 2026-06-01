@@ -214,10 +214,7 @@ void ATimeThiefThrowableProjectile::RemoteExplosionEffect(const FVector& Explosi
 	// FX / Sound만 재생
 	PlayDetonationEffects(ExplosionLocation);
 
-	if (ThrowableItemID == EItemID::SmokeGrenade)
-	{
-		SpawnSmokeVolume(ExplosionLocation);
-	}
+	ApplySmokeInteractionForExplosion(ExplosionLocation);
 
 	Destroy();
 }
@@ -296,21 +293,7 @@ void ATimeThiefThrowableProjectile::ExplodeOnce()
 		}
 	}
 
-	if (ThrowableItemID == EItemID::SmokeGrenade)
-	{
-		SpawnSmokeVolume(EffectLocation);
-	}
-	else if (ThrowableItemID == EItemID::Grenade)
-	{
-		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
-		{
-			SmokeSubsystem->SubmitExplosion(
-				EffectLocation,
-				FMath::Max(TimeThiefSmokeParameterDefaults::ExplosionShockRadius, ActiveSettings.DamageOuterRadius),
-				1.0f,
-				FMath::Rand());
-		}
-	}
+	ApplySmokeInteractionForExplosion(EffectLocation);
 
 	Destroy();
 }
@@ -357,6 +340,25 @@ void ATimeThiefThrowableProjectile::PlayDetonationEffects(const FVector& Explosi
 	if (ActiveSettings.ExplosionSound)
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, ActiveSettings.ExplosionSound, ExplosionLocation);
+	}
+}
+
+void ATimeThiefThrowableProjectile::ApplySmokeInteractionForExplosion(const FVector& ExplosionLocation)
+{
+	if (ThrowableItemID == EItemID::SmokeGrenade)
+	{
+		SpawnSmokeVolume(ExplosionLocation);
+	}
+	else if (ThrowableItemID == EItemID::Grenade)
+	{
+		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+		{
+			SmokeSubsystem->SubmitExplosion(
+				ExplosionLocation,
+				FMath::Max(TimeThiefSmokeParameterDefaults::ExplosionShockRadius, ActiveSettings.DamageOuterRadius),
+				1.0f,
+				FMath::Rand());
+		}
 	}
 }
 

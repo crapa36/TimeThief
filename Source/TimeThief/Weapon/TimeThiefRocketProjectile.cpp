@@ -165,6 +165,11 @@ void ATimeThiefRocketProjectile::ExplodeSyncNetwork(const FVector& ExplosionLoca
 	// TODO: 재현을 위해 정교한 Normal 값이 필요하다면 패킷에 포함 시키는 것도 고려해야 한다
 	PlayExplosionEffects(ExplosionLocation, FVector::UpVector);
 
+	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+	{
+		SmokeSubsystem->SubmitExplosion(ExplosionLocation, ExplosionRadius, 1.0f, FMath::Rand());
+	}
+
 	if (UWorld* World = GetWorld())
 	{
 		const int32 Segments = FMath::Max(4, ExplosionDebugSegments);

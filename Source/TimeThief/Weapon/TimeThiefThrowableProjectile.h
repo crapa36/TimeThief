@@ -45,6 +45,7 @@ protected:
 	void ExplodeOnce();
 	void ApplyRadialThrowableDamage(const FVector& ExplosionLocation);
 	void PlayDetonationEffects(const FVector& ExplosionLocation);
+	void ApplySmokeInteractionForExplosion(const FVector& ExplosionLocation);
 	void SpawnSmokeVolume(const FVector& SmokeLocation);
 	void ApplyProjectileSettings();
 	void StartGrenadeTrail();
