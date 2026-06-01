@@ -23,7 +23,7 @@ struct FStoreItemList
 };
 
 UCLASS()
-class TIMETHIEF_API UStoreCategoryData : public UDataAsset
+class TIMETHIEF_API UStoreCategoryData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 	

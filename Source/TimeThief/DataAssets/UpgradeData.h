@@ -24,7 +24,7 @@ struct FUpgradeIntLevels
 };
 
 UCLASS()
-class TIMETHIEF_API UUpgradeData : public UDataAsset
+class TIMETHIEF_API UUpgradeData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
