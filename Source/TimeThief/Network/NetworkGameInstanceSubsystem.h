@@ -220,6 +220,9 @@ private:
 public:
 	void ResetLoadingGate();
 	void SetLocalPlayerInputEnabled(bool bCond);
+
+private:
+	void ResetTimeStormState();
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "Network|Lobby")

@@ -681,6 +681,7 @@ void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFou
 	TryRoomId = RoomId;
 	
 	ResetLoadingGate();
+	ResetTimeStormState();
 	
 	SetLocalPlayerInputEnabled(false);
 	
@@ -2768,6 +2769,30 @@ void UNetworkGameInstanceSubsystem::SetLocalPlayerInputEnabled(bool bEnabled)
 	}
 }
 
+void UNetworkGameInstanceSubsystem::ResetTimeStormState()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	AGameStateBase* GameState = World->GetGameState();
+	if (GameState == nullptr)
+	{
+		return;
+	}
+
+	UTimeStormComponent* TimeStormComp = GameState->FindComponentByClass<UTimeStormComponent>();
+	if (TimeStormComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] GameState has no UTimeStormComponent"));
+		return;
+	}
+
+	TimeStormComp->ReStart();
+}
+
 void UNetworkGameInstanceSubsystem::TrySendLoadingComplete()
 {
 	if (bSentLoadingComplete)
@@ -3170,6 +3195,8 @@ void UNetworkGameInstanceSubsystem::StopPingTimer()
 
 void UNetworkGameInstanceSubsystem::ClearRoomState()
 {
+	ResetTimeStormState();
+
 	if (IsRoomStateCleared())
 	{
 		UE_LOG(LogTemp, Log, TEXT("[Network] ClearRoomState skipped: already cleared"));
