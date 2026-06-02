@@ -6,6 +6,7 @@
 #include "ItemCommons.h"
 #include "Actors/Item/ItemBase.h"
 #include "Engine/DataAsset.h"
+#include "Engine/StaticMesh.h"
 #include "GameItemData.generated.h"
 
 /**
@@ -40,8 +41,8 @@ struct FItemData
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> ItemClass = AItemBase::StaticClass();
 	
-	UPROPERTY(EditAnywhere, meta=(AssetBundles="Client"))
-	TSoftObjectPtr<UStaticMesh> ItemMesh = nullptr;
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UStaticMesh> ItemMesh = nullptr;
 };
 
 UCLASS()
@@ -57,22 +58,21 @@ public:
 	
 	TSoftObjectPtr<UStaticMesh> GetItemMeshSoft(EItemID ItemID) const
 	{
-		if (const TSoftObjectPtr<UStaticMesh> MeshPtr = Items.Find(ItemID)->ItemMesh)
+		if (const FItemData* ItemData = Items.Find(ItemID))
 		{
-			return MeshPtr;
+			return ItemData->ItemMesh;
 		}
 		return nullptr;
 	}
 	
 	UStaticMesh* GetItemMesh(EItemID ItemID) const
 	{
-		auto MeshPtr = GetItemMeshSoft(ItemID);
-		if (MeshPtr.IsNull())
+		if (const FItemData* ItemData = Items.Find(ItemID))
 		{
-			return nullptr;
+			return ItemData->ItemMesh;
 		}
-		
-		return MeshPtr.LoadSynchronous();
+
+		return nullptr;
 	}
 	
 	TSubclassOf<AActor> GetItemClass(EItemID ItemID) const
