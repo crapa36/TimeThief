@@ -179,6 +179,7 @@ void ATimeThiefPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReaso
 		NGIS->OnPlayerGameResult.RemoveDynamic(this, &ATimeThiefPlayerController::HandlePlayerGameResult);
 	}
 
+	Super::EndPlay(EndPlayReason);
 }
 
 void ATimeThiefPlayerController::ShowMainMenu()

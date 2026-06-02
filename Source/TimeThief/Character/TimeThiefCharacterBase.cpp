@@ -199,7 +199,7 @@ void ATimeThiefCharacterBase::BeginPlay()
 
 	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
 	{
-		Health->OnDeath.AddDynamic(this, &ThisClass::OnDeath);
+		Health->OnDeath.AddUniqueDynamic(this, &ThisClass::OnDeath);
 	}
 
 	DeadFX->SetVariableFloat(FName("User.Loop"), InterpTime);
