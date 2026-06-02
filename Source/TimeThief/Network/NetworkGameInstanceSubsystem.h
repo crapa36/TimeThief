@@ -178,6 +178,12 @@ public:
 	
 private:
 	uint32 HandleSpawnInfo(const se::room::SpawnInfo& Info);
+	void StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt);
+	void ProcessPendingEntitySpawn();
+	void FinishPendingEntitySpawn();
+	void CancelPendingEntitySpawn();
+	bool ApplyPlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt);
+	void TryApplyPendingPlayerInitSetup();
 	
 private:
 	void RemoveEntity(uint32 EntityId);
@@ -281,6 +287,8 @@ private:
 	TSharedPtr<PacketSession> GameSession;
 	
 	FTimerHandle QueueProcessingTimer;
+	FTimerHandle EntitySpawnProcessingTimer;
+	FTimerHandle PlayerInitSetupRetryTimer;
 	FTimerHandle PingTimer;
 	
 	FClientConfig ClientConfig;
@@ -301,6 +309,9 @@ private:
 	FRoomState RoomState;
 	
 	TMap<uint32, FEntityRuntimeEntry> EntityEntries;
+	TArray<se::room::SpawnInfo> PendingEntitySpawnInfos;
+	int32 PendingEntitySpawnIndex = 0;
+	se::game::N_PlayerInitSetup PendingPlayerInitSetup;
 	
 private:
 	bool bReceivedRoomEnterRes = false;
@@ -308,5 +319,6 @@ private:
 	bool bReceivedPlayerInitSetup = false;
 	bool bSentLoadingComplete = false;
 	bool bRoomStateCleared = true;
+	bool bHasPendingPlayerInitSetup = false;
 	
 };

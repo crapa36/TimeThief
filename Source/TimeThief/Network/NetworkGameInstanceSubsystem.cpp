@@ -52,6 +52,9 @@ namespace
 	{
 		return State == ENetworkPlayState::InRoom;
 	}
+
+	static constexpr int32 EntitySpawnBatchSize = 10;
+	static constexpr float EntitySpawnBatchIntervalSeconds = 0.01f;
 }
 
 /*---------------------------------
@@ -401,6 +404,8 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(QueueProcessingTimer);
+		World->GetTimerManager().ClearTimer(EntitySpawnProcessingTimer);
+		World->GetTimerManager().ClearTimer(PlayerInitSetupRetryTimer);
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
@@ -824,17 +829,95 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 	if (Pkt.infos_size() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Network] No room infos in room objects"));
+		bReceivedEntitiesSpawn = true;
+		TryApplyPendingPlayerInitSetup();
+		TrySendLoadingComplete();
 		return;
 	}
 	
+	StartPendingEntitySpawn(Pkt);
+}
+
+void UNetworkGameInstanceSubsystem::StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt)
+{
+	CancelPendingEntitySpawn();
+
+	PendingEntitySpawnInfos.Reserve(Pkt.infos_size());
 	for (const auto& Info : Pkt.infos())
 	{
-		uint32 EntityId = HandleSpawnInfo(Info);
-		UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawned (batch): EntityId=%u"), EntityId);
+		PendingEntitySpawnInfos.Add(Info);
 	}
-	
+
+	bReceivedEntitiesSpawn = false;
+	PendingEntitySpawnIndex = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity batch spawn queued. Count=%d"), PendingEntitySpawnInfos.Num());
+
+	ProcessPendingEntitySpawn();
+
+	if (PendingEntitySpawnInfos.Num() > 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				EntitySpawnProcessingTimer,
+				this,
+				&UNetworkGameInstanceSubsystem::ProcessPendingEntitySpawn,
+				EntitySpawnBatchIntervalSeconds,
+				true);
+		}
+	}
+}
+
+void UNetworkGameInstanceSubsystem::ProcessPendingEntitySpawn()
+{
+	check(IsInGameThread());
+
+	if (PendingEntitySpawnIndex >= PendingEntitySpawnInfos.Num())
+	{
+		FinishPendingEntitySpawn();
+		return;
+	}
+
+	const int32 EndIndex = FMath::Min(PendingEntitySpawnIndex + EntitySpawnBatchSize, PendingEntitySpawnInfos.Num());
+	for (; PendingEntitySpawnIndex < EndIndex; ++PendingEntitySpawnIndex)
+	{
+		HandleSpawnInfo(PendingEntitySpawnInfos[PendingEntitySpawnIndex]);
+	}
+
+	if (PendingEntitySpawnIndex >= PendingEntitySpawnInfos.Num())
+	{
+		FinishPendingEntitySpawn();
+	}
+}
+
+void UNetworkGameInstanceSubsystem::FinishPendingEntitySpawn()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EntitySpawnProcessingTimer);
+	}
+
+	const int32 SpawnCount = PendingEntitySpawnInfos.Num();
+	PendingEntitySpawnInfos.Empty();
+	PendingEntitySpawnIndex = 0;
+
 	bReceivedEntitiesSpawn = true;
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity batch spawn complete. Count=%d"), SpawnCount);
+
+	TryApplyPendingPlayerInitSetup();
 	TrySendLoadingComplete();
+}
+
+void UNetworkGameInstanceSubsystem::CancelPendingEntitySpawn()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EntitySpawnProcessingTimer);
+	}
+
+	PendingEntitySpawnInfos.Empty();
+	PendingEntitySpawnIndex = 0;
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
@@ -873,7 +956,22 @@ void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt
 void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
 {
 	check(IsInGameThread());
+
+	if (!ApplyPlayerInitSetup(Pkt))
+	{
+		PendingPlayerInitSetup = Pkt;
+		bHasPendingPlayerInitSetup = true;
+		UE_LOG(LogTemp, Log, TEXT("[Network] Player init setup deferred until local player pawn is ready"));
+		return;
+	}
 	
+	bReceivedPlayerInitSetup = true;
+	bHasPendingPlayerInitSetup = false;
+	TrySendLoadingComplete();
+}
+
+bool UNetworkGameInstanceSubsystem::ApplyPlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
+{
 	const int MaxHealth = Pkt.max_health();
 	const int CurrentHealth = Pkt.current_health();
 	const int TimePoints = Pkt.time_points();
@@ -882,7 +980,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
 	if (LocalPlayer == nullptr)
 	{
-		return;
+		return false;
 	}
 	
 	if (auto* HealthComp = LocalPlayer->FindComponentByClass<UTimeThiefHealthComponent>())
@@ -902,6 +1000,11 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	}
 	
 	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
+	if (WeaponActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] ApplyPlayerInitSetup: Missing weapon actor"));
+		return false;
+	}
 	
 	for (const auto& WeaponInfo : Pkt.weapon_slots())
 	{
@@ -934,7 +1037,41 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		WeaponComp->SetWeaponStatForNetwork(StatData);
 	}
 	
+	return true;
+}
+
+void UNetworkGameInstanceSubsystem::TryApplyPendingPlayerInitSetup()
+{
+	if (!bHasPendingPlayerInitSetup || bReceivedPlayerInitSetup)
+	{
+		return;
+	}
+
+	if (!ApplyPlayerInitSetup(PendingPlayerInitSetup))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (!World->GetTimerManager().IsTimerActive(PlayerInitSetupRetryTimer))
+			{
+				World->GetTimerManager().SetTimer(
+					PlayerInitSetupRetryTimer,
+					this,
+					&UNetworkGameInstanceSubsystem::TryApplyPendingPlayerInitSetup,
+					EntitySpawnBatchIntervalSeconds,
+					true);
+			}
+		}
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PlayerInitSetupRetryTimer);
+	}
+
 	bReceivedPlayerInitSetup = true;
+	bHasPendingPlayerInitSetup = false;
+	PendingPlayerInitSetup.Clear();
 	TrySendLoadingComplete();
 }
 
@@ -2586,6 +2723,14 @@ ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
 
 void UNetworkGameInstanceSubsystem::ResetLoadingGate()
 {
+	CancelPendingEntitySpawn();
+	PendingPlayerInitSetup.Clear();
+	bHasPendingPlayerInitSetup = false;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PlayerInitSetupRetryTimer);
+	}
+
 	bReceivedRoomEnterRes = false;
 	bReceivedEntitiesSpawn = false;
 	bReceivedPlayerInitSetup = false;
