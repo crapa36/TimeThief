@@ -4,14 +4,16 @@
 #include "TimePointItemActor.h"
 
 #include "Character/TimeThiefPlayerCharacter.h"
+#include "Components/ItemMovementComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 
 
 // Sets default values
 ATimePointItemActor::ATimePointItemActor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+
+	ItemMovementComponent = CreateDefaultSubobject<UItemMovementComponent>("ItemMovementComponent");
 }
 
 // Called when the game starts or when spawned
@@ -24,8 +26,6 @@ void ATimePointItemActor::BeginPlay()
 void ATimePointItemActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	MeshComponent->AddLocalRotation(FRotator{0, DeltaTime * FMath::DegreesToRadians(3600), 0});
 }
 
 void ATimePointItemActor::Interact(const ATimeThiefPlayerCharacter* Player)
