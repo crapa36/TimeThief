@@ -21,7 +21,7 @@ ATimeThiefRocketProjectile::ATimeThiefRocketProjectile()
 {
 	// PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bCanEverTick = true;	// Network 보간을 위해서 필요하다고 판단
-	PrimaryActorTick.bStartWithTickEnabled = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 	bExploded = true;
 	bIsActivated = false;
 
@@ -116,6 +116,8 @@ void ATimeThiefRocketProjectile::ActivateProjectile(const FTransform& SpawnTrans
 	ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
 	ProjectileMovementComponent->Velocity = SpawnTransform.GetRotation().GetForwardVector() * InitialSpeed;
 	ProjectileMovementComponent->Activate();
+	bHasNetworkTargetLocation = false;
+	SetActorTickEnabled(false);
 
 	ActivateProjectileNiagara();
 
@@ -160,7 +162,9 @@ void ATimeThiefRocketProjectile::DeactivateProjectile()
 
 void ATimeThiefRocketProjectile::ExplodeSyncNetwork(const FVector& ExplosionLocation)
 {
+#if !UE_BUILD_SHIPPING
 	UE_LOG(LogTemp, Warning, TEXT("[Rocket] Explode"));
+#endif
 	
 	// TODO: 재현을 위해 정교한 Normal 값이 필요하다면 패킷에 포함 시키는 것도 고려해야 한다
 	PlayExplosionEffects(ExplosionLocation, FVector::UpVector);
@@ -170,11 +174,10 @@ void ATimeThiefRocketProjectile::ExplodeSyncNetwork(const FVector& ExplosionLoca
 		SmokeSubsystem->SubmitExplosion(ExplosionLocation, ExplosionRadius, 1.0f, FMath::Rand());
 	}
 
-	if (UWorld* World = GetWorld())
+	if (UWorld* World = GetWorld(); ExplosionDebugDuration > 0.0f && ExplosionDebugSegments >= 4)
 	{
-		const int32 Segments = FMath::Max(4, ExplosionDebugSegments);
-		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, Segments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
-		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, Segments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
+		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, ExplosionDebugSegments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
+		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, ExplosionDebugSegments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
 	}
 
 	DeactivateProjectile();
@@ -219,6 +222,12 @@ void ATimeThiefRocketProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	if (!bHasNetworkTargetLocation)
+	{
+		SetActorTickEnabled(false);
+		return;
+	}
+
 	if (bHasNetworkTargetLocation)
 	{
 		const FVector CurrentLocation = GetActorLocation();
@@ -234,6 +243,7 @@ void ATimeThiefRocketProjectile::Tick(float DeltaTime)
 		if (FVector::DistSquared(NewLocation, NetworkTargetLocation) < FMath::Square(5.0f))
 		{
 			bHasNetworkTargetLocation = false;
+			SetActorTickEnabled(false);
 		}
 	}
 }
@@ -297,11 +307,10 @@ void ATimeThiefRocketProjectile::ExplodeOnce(const FHitResult& Hit)
 		SmokeSubsystem->SubmitExplosion(ExplosionLocation, ExplosionRadius, 1.0f, FMath::Rand());
 	}
 
-	if (UWorld* World = GetWorld())
+	if (UWorld* World = GetWorld(); ExplosionDebugDuration > 0.0f && ExplosionDebugSegments >= 4)
 	{
-		const int32 Segments = FMath::Max(4, ExplosionDebugSegments);
-		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, Segments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
-		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, Segments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
+		DrawDebugSphere(World, ExplosionLocation, ExplosionRadius, ExplosionDebugSegments, FColor::Red, false, ExplosionDebugDuration, 0, 1.5f);
+		DrawDebugSphere(World, ExplosionLocation, DamageInnerRadius, ExplosionDebugSegments, FColor::Yellow, false, ExplosionDebugDuration, 0, 1.0f);
 	}
 
 	DeactivateProjectile();
@@ -446,9 +455,9 @@ void ATimeThiefRocketProjectile::DeactivateLegacyTrailComponents()
 void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& SpawnLocation,
 	const FVector& InitialVelocity)
 {
+#if !UE_BUILD_SHIPPING
 	UE_LOG(LogTemp, Warning, TEXT("[Rocket] Active"));
-	
-	SetActorTickEnabled(true);
+#endif
 	
 	SetActorLocation(SpawnLocation, false, nullptr, ETeleportType::ResetPhysics);
 	
@@ -462,6 +471,7 @@ void ATimeThiefRocketProjectile::ActivateProjectileFromNetwork(const FVector& Sp
 	bIsActivated = true;
 	bExploded = false;
 	bHasNetworkTargetLocation = false;
+	SetActorTickEnabled(false);
 
 	SetActorHiddenInGame(false);
 	
@@ -513,11 +523,19 @@ void ATimeThiefRocketProjectile::ApplyNetworkMovementState(const FNetworkEntityS
 		// 서버와의 위치 오차가 너무 크면 텔레포트로 보정
 	{
 		SetActorLocation(ServerLocation, false, nullptr, ETeleportType::ResetPhysics);
+		bHasNetworkTargetLocation = false;
+		SetActorTickEnabled(false);
 	}
 	else if (ErrorDistance >= SmoothThreshold)
 		// 서버와의 위치 오차가 어느 정도 있지만 텔레포트할 정도는 아니면 부드럽게 보정
 	{
 		NetworkTargetLocation = ServerLocation;
 		bHasNetworkTargetLocation = true;
+		SetActorTickEnabled(true);
+	}
+	else
+	{
+		bHasNetworkTargetLocation = false;
+		SetActorTickEnabled(false);
 	}
 }

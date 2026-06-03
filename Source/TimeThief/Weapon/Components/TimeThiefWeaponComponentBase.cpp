@@ -17,8 +17,8 @@
 
 UTimeThiefWeaponComponentBase::UTimeThiefWeaponComponentBase()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = true;
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void UTimeThiefWeaponComponentBase::BeginPlay()
@@ -89,14 +89,6 @@ void UTimeThiefWeaponComponentBase::PlayFireEffects()
 	}
 }
 
-void UTimeThiefWeaponComponentBase::TickComponent(float DeltaTime, ELevelTick TickType,
-                                                  FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	RemainingTime -= DeltaTime;
-}
-
 UStaticMeshComponent* UTimeThiefWeaponComponentBase::GetWeaponMeshComponent() const
 {
 	if (ATimeThiefMasterWeapon* Master = Cast<ATimeThiefMasterWeapon>(GetOwner()))
@@ -165,8 +157,6 @@ void UTimeThiefWeaponComponentBase::StartFire()
 			return;
 		}
 	}
-
-	RemainingTime = AlertTime;
 
 	bIsFiring = true;
 	HandleAutoFireShot();

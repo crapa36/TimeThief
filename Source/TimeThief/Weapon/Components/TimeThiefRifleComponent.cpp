@@ -11,6 +11,8 @@
 
 UTimeThiefRifleComponent::UTimeThiefRifleComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	RoundsPerSecond = 10.0f;
 }
 
@@ -18,9 +20,23 @@ void UTimeThiefRifleComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!IsFiring() && CurrentSpread > BaseSpread)
+	if (IsFiring())
+	{
+		return;
+	}
+
+	if (CurrentSpread > BaseSpread)
 	{
 		CurrentSpread = FMath::FInterpConstantTo(CurrentSpread, BaseSpread, DeltaTime, SpreadDecreasePerSecond);
+		if (CurrentSpread <= BaseSpread + KINDA_SMALL_NUMBER)
+		{
+			CurrentSpread = BaseSpread;
+			SetComponentTickEnabled(false);
+		}
+	}
+	else
+	{
+		SetComponentTickEnabled(false);
 	}
 }
 
@@ -192,6 +208,10 @@ void UTimeThiefRifleComponent::ApplyRecoilAndSpread()
 		{
 			AnimInst->SetRecoilRecoverySpeed(RecoilRecoverySpeed, SpreadDecreasePerSecond);
 			CurrentSpread = FMath::Clamp(CurrentSpread + SpreadIncreasePerShot, BaseSpread, MaxSpread);
+			if (CurrentSpread > BaseSpread + KINDA_SMALL_NUMBER)
+			{
+				SetComponentTickEnabled(true);
+			}
 			const float AppliedRecoilReduction = GetRecoilReduction();
 			const float FinalVerticalRecoil = FMath::Max(0.0f, MaxVerticalRecoil - AppliedRecoilReduction);
 			const float FinalHorizontalRecoil = FMath::Max(0.0f, MaxHorizontalRecoil - AppliedRecoilReduction);

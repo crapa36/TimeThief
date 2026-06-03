@@ -6,6 +6,7 @@
 
 class APawn;
 class UWorld;
+struct FCollisionQueryParams;
 
 struct TIMETHIEF_API FTimeThiefAimHelperState
 {
@@ -80,6 +81,16 @@ public:
 		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
 
+	static bool TraceFromViewWithParams(
+		UWorld* World,
+		const FVector& ViewLocation,
+		const FVector& ViewDirection,
+		float Range,
+		const FCollisionQueryParams& QueryParams,
+		FHitResult& OutHitResult,
+		FVector& OutTraceEnd,
+		ECollisionChannel TraceChannel = ECC_Visibility);
+
 	static void ResetAimHelperState(
 		FTimeThiefAimHelperState& InOutAimHelperState,
 		const FVector& TargetLocation,
@@ -106,4 +117,12 @@ public:
 		ECollisionChannel TraceChannel = ECC_Visibility,
 		bool bTraceComplex = false,
 		bool bReturnPhysicalMaterial = false);
+
+	static bool TraceLineWithParams(
+		UWorld* World,
+		const FVector& TraceStart,
+		const FVector& TraceEnd,
+		const FCollisionQueryParams& QueryParams,
+		FHitResult& OutHitResult,
+		ECollisionChannel TraceChannel = ECC_Visibility);
 };

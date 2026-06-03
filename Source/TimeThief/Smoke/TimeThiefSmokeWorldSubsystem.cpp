@@ -465,6 +465,11 @@ void UTimeThiefSmokeWorldSubsystem::Tick(float DeltaTime)
 	BulletTraceCountsThisTick.Reset();
 }
 
+bool UTimeThiefSmokeWorldSubsystem::IsTickable() const
+{
+	return !ActiveSmokeVolumes.IsEmpty() || !ActiveImpulses.IsEmpty() || !PendingRendererEvents.IsEmpty();
+}
+
 TStatId UTimeThiefSmokeWorldSubsystem::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UTimeThiefSmokeWorldSubsystem, STATGROUP_Tickables);

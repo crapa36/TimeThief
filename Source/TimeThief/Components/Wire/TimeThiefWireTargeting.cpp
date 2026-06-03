@@ -18,6 +18,12 @@ namespace
 		bool bIsCenter = false;
 	};
 
+	struct FWireScreenProbePoint
+	{
+		FVector2D ScreenPosition = FVector2D::ZeroVector;
+		float ScreenDistanceSq = FLT_MAX;
+	};
+
 	bool IsUsableAnchorHit(const FHitResult& Hit)
 	{
 		UPrimitiveComponent* HitComponent = Hit.GetComponent();
@@ -133,59 +139,74 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 		const FVector Extent = HitComponent->Bounds.BoxExtent;
 		const float ThicknessAlongNormal = (Extent.X * AbsHorizontalNormal.X) + (Extent.Y * AbsHorizontalNormal.Y);
 		const float ProbeDistance = FMath::Clamp(ThicknessAlongNormal * ProbeDistanceScale, ProbeDistanceMin, ProbeDistanceMax);
-		const FVector LedgeCheckStart = ImpactPoint + (HorizontalNormal * -ProbeDistance) + FVector(0.0f, 0.0f, LedgeCheckHeight * 0.5f);
-		const FVector LedgeCheckEnd = LedgeCheckStart - FVector(0.0f, 0.0f, LedgeCheckHeight);
-
-		FHitResult LedgeHit;
-		const bool bIsLedge = TraceFirstUsableHitByObjectType(LedgeCheckStart, LedgeCheckEnd, LedgeHit)
-			&& LedgeHit.ImpactNormal.Z >= LedgeMinNormalZ
-			&& (LedgeHit.ImpactPoint.Z > ImpactPoint.Z + LedgeMinHeightDelta);
-
-		const FVector TargetLocation = bIsLedge ? FVector(LedgeHit.ImpactPoint.X, LedgeHit.ImpactPoint.Y, LedgeHit.ImpactPoint.Z + 5.0f) : ImpactPoint;
-		UPrimitiveComponent* TargetComponent = bIsLedge ? LedgeHit.GetComponent() : HitComponent;
-		if (!IsValid(TargetComponent))
+		auto AddCandidate = [&](const FVector& TargetLocation, UPrimitiveComponent* TargetComponent, AActor* TargetActor, bool bIsLedge) -> bool
 		{
-			return false;
+			if (!IsValid(TargetComponent))
+			{
+				return false;
+			}
+
+			const float DistanceToStartSq = FVector::DistSquared(StartLocation, TargetLocation);
+			if (DistanceToStartSq < MinDistanceSq || DistanceToStartSq > MaxDistanceSq)
+			{
+				return false;
+			}
+
+			FVector2D CandidateScreenPosition;
+			if (!PlayerController->ProjectWorldLocationToScreen(TargetLocation, CandidateScreenPosition))
+			{
+				return false;
+			}
+
+			const float ScreenDistanceSq = FVector2D::DistSquared(CandidateScreenPosition, ScreenCenter);
+			if (ScreenDistanceSq > MaxScreenDistanceSq)
+			{
+				return false;
+			}
+
+			const float DistanceToAimLine = FMath::PointDistToLine(TargetLocation, SafeAimDirection, StartLocation);
+
+			FWireScreenCandidate Candidate;
+			Candidate.TargetLocation = TargetLocation;
+			Candidate.Component = TargetComponent;
+			Candidate.Actor = TargetActor;
+			Candidate.DistanceToAimSq = FMath::Square(DistanceToAimLine);
+			Candidate.ScreenDistanceSq = ScreenDistanceSq;
+			Candidate.bIsCenter = ScreenDistanceSq <= 1.0f;
+
+			if (bIsLedge)
+			{
+				LedgeCandidates.Add(Candidate);
+			}
+			else
+			{
+				SurfaceCandidates.Add(Candidate);
+			}
+
+			return true;
+		};
+
+		bool bAddedLedgeCandidate = false;
+		if (!HorizontalNormal.IsNearlyZero())
+		{
+			const FVector LedgeProbeBase = ImpactPoint + (HorizontalNormal * -ProbeDistance);
+			const FVector LedgeCheckStart = LedgeProbeBase + FVector(0.0f, 0.0f, LedgeCheckHeight);
+			const FVector LedgeCheckEnd = LedgeProbeBase - FVector(0.0f, 0.0f, LedgeCheckHeight * 0.25f);
+
+			FHitResult LedgeHit;
+			const bool bIsLedge = TraceFirstUsableHitByObjectType(LedgeCheckStart, LedgeCheckEnd, LedgeHit)
+				&& LedgeHit.ImpactNormal.Z >= LedgeMinNormalZ
+				&& (LedgeHit.ImpactPoint.Z > ImpactPoint.Z + LedgeMinHeightDelta);
+
+			if (bIsLedge)
+			{
+				const FVector LedgeTargetLocation(LedgeHit.ImpactPoint.X, LedgeHit.ImpactPoint.Y, LedgeHit.ImpactPoint.Z + 5.0f);
+				bAddedLedgeCandidate = AddCandidate(LedgeTargetLocation, LedgeHit.GetComponent(), LedgeHit.GetActor(), true);
+			}
 		}
 
-		const float DistanceToStartSq = FVector::DistSquared(StartLocation, TargetLocation);
-		if (DistanceToStartSq < MinDistanceSq || DistanceToStartSq > MaxDistanceSq)
-		{
-			return false;
-		}
-
-		FVector2D CandidateScreenPosition;
-		if (!PlayerController->ProjectWorldLocationToScreen(TargetLocation, CandidateScreenPosition))
-		{
-			return false;
-		}
-
-		const float ScreenDistanceSq = FVector2D::DistSquared(CandidateScreenPosition, ScreenCenter);
-		if (ScreenDistanceSq > MaxScreenDistanceSq)
-		{
-			return false;
-		}
-
-		const float DistanceToAimLine = FMath::PointDistToLine(TargetLocation, SafeAimDirection, StartLocation);
-
-		FWireScreenCandidate Candidate;
-		Candidate.TargetLocation = TargetLocation;
-		Candidate.Component = TargetComponent;
-		Candidate.Actor = bIsLedge ? LedgeHit.GetActor() : Hit.GetActor();
-		Candidate.DistanceToAimSq = FMath::Square(DistanceToAimLine);
-		Candidate.ScreenDistanceSq = ScreenDistanceSq;
-		Candidate.bIsCenter = ScreenDistanceSq <= 1.0f;
-
-		if (bIsLedge)
-		{
-			LedgeCandidates.Add(Candidate);
-		}
-		else
-		{
-			SurfaceCandidates.Add(Candidate);
-		}
-
-		return true;
+		const bool bAddedSurfaceCandidate = AddCandidate(ImpactPoint, HitComponent, Hit.GetActor(), false);
+		return bAddedLedgeCandidate || bAddedSurfaceCandidate;
 	};
 
 	auto TraceScreenSample = [&](const FVector2D& ScreenPosition, UPrimitiveComponent* ExpectedComponent, TArray<FWireScreenCandidate>& LedgeCandidates, TArray<FWireScreenCandidate>& SurfaceCandidates) -> bool
@@ -224,40 +245,21 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 
 	auto TryResolveBestCandidate = [&](const TArray<FWireScreenCandidate>& Candidates) -> bool
 	{
-		TArray<bool> RejectedCandidates;
-		RejectedCandidates.Init(false, Candidates.Num());
-
-		for (int32 AttemptIndex = 0; AttemptIndex < Candidates.Num(); ++AttemptIndex)
+		TArray<FWireScreenCandidate> SortedCandidates = Candidates;
+		SortedCandidates.Sort([](const FWireScreenCandidate& A, const FWireScreenCandidate& B)
 		{
-			int32 BestCandidateIndex = INDEX_NONE;
-			for (int32 CandidateIndex = 0; CandidateIndex < Candidates.Num(); ++CandidateIndex)
-			{
-				if (RejectedCandidates[CandidateIndex])
-				{
-					continue;
-				}
+			return IsBetterScreenCandidate(A, B);
+		});
 
-				if (BestCandidateIndex == INDEX_NONE || IsBetterScreenCandidate(Candidates[CandidateIndex], Candidates[BestCandidateIndex]))
-				{
-					BestCandidateIndex = CandidateIndex;
-				}
-			}
-
-			if (BestCandidateIndex == INDEX_NONE)
-			{
-				return false;
-			}
-
-			const FWireScreenCandidate& BestCandidate = Candidates[BestCandidateIndex];
+		for (const FWireScreenCandidate& Candidate : SortedCandidates)
+		{
 			FHitResult ScreenValidatedHit;
-			if (TraceFirstUsableHitByObjectType(StartLocation, BestCandidate.TargetLocation, ScreenValidatedHit)
-				&& ScreenValidatedHit.GetComponent() == BestCandidate.Component.Get())
+			if (TraceFirstUsableHitByObjectType(StartLocation, Candidate.TargetLocation, ScreenValidatedHit)
+				&& ScreenValidatedHit.GetComponent() == Candidate.Component.Get())
 			{
-				OutTargetLocation = BestCandidate.TargetLocation;
+				OutTargetLocation = Candidate.TargetLocation;
 				return true;
 			}
-
-			RejectedCandidates[BestCandidateIndex] = true;
 		}
 
 		return false;
@@ -265,15 +267,17 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 
 	auto TryResolveCandidateSet = [&](const TArray<FWireScreenCandidate>& LedgeCandidates, const TArray<FWireScreenCandidate>& SurfaceCandidates) -> bool
 	{
-		return !LedgeCandidates.IsEmpty() ? TryResolveBestCandidate(LedgeCandidates) : TryResolveBestCandidate(SurfaceCandidates);
-	};
-
-	auto TryRefineAroundScreenPoint = [&](const FVector2D& BaseScreenPosition, UPrimitiveComponent* ExpectedComponent, TArray<FWireScreenCandidate>& LedgeCandidates, TArray<FWireScreenCandidate>& SurfaceCandidates) -> bool
-	{
-		if (TraceScreenSample(BaseScreenPosition, ExpectedComponent, LedgeCandidates, SurfaceCandidates))
+		if (!LedgeCandidates.IsEmpty() && TryResolveBestCandidate(LedgeCandidates))
 		{
 			return true;
 		}
+
+		return TryResolveBestCandidate(SurfaceCandidates);
+	};
+
+	auto CollectRefinedScreenCandidates = [&](const FVector2D& BaseScreenPosition, UPrimitiveComponent* ExpectedComponent, TArray<FWireScreenCandidate>& LedgeCandidates, TArray<FWireScreenCandidate>& SurfaceCandidates)
+	{
+		TraceScreenSample(BaseScreenPosition, ExpectedComponent, LedgeCandidates, SurfaceCandidates);
 
 		const float RefinePixelStep = FMath::Max(1.0f, ThinTargetRefinePixelStep);
 		const float RefineRadius = FMath::Max(0.0f, ThinTargetRefineRadiusPx);
@@ -303,15 +307,10 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 						continue;
 					}
 
-					if (TraceScreenSample(SampleScreenPosition, ExpectedComponent, LedgeCandidates, SurfaceCandidates))
-					{
-						return true;
-					}
+					TraceScreenSample(SampleScreenPosition, ExpectedComponent, LedgeCandidates, SurfaceCandidates);
 				}
 			}
 		}
-
-		return false;
 	};
 
 	auto CollectObjectGuidedCandidates = [&](TArray<FWireScreenCandidate>& LedgeCandidates, TArray<FWireScreenCandidate>& SurfaceCandidates)
@@ -369,9 +368,7 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 				}
 			}
 
-			bool bHasScreenPoint = false;
-			FVector2D BestScreenPosition = FVector2D::ZeroVector;
-			float BestScreenDistanceSq = FLT_MAX;
+			TArray<FWireScreenProbePoint, TInlineAllocator<9>> ScreenProbePoints;
 			for (const FVector& ProbePoint : ProbePoints)
 			{
 				FVector2D ProbeScreenPosition;
@@ -381,21 +378,31 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 				}
 
 				const float ProbeScreenDistanceSq = FVector2D::DistSquared(ProbeScreenPosition, ScreenCenter);
-				if (ProbeScreenDistanceSq < BestScreenDistanceSq)
+				if (ProbeScreenDistanceSq <= MaxScreenDistanceSq)
 				{
-					BestScreenDistanceSq = ProbeScreenDistanceSq;
-					BestScreenPosition = ProbeScreenPosition;
-					bHasScreenPoint = true;
+					FWireScreenProbePoint ScreenProbePoint;
+					ScreenProbePoint.ScreenPosition = ProbeScreenPosition;
+					ScreenProbePoint.ScreenDistanceSq = ProbeScreenDistanceSq;
+					ScreenProbePoints.Add(ScreenProbePoint);
 				}
 			}
 
-			if (!bHasScreenPoint || BestScreenDistanceSq > MaxScreenDistanceSq)
+			if (ScreenProbePoints.IsEmpty())
 			{
 				continue;
 			}
 
+			ScreenProbePoints.Sort([](const FWireScreenProbePoint& A, const FWireScreenProbePoint& B)
+			{
+				return A.ScreenDistanceSq < B.ScreenDistanceSq;
+			});
+
 			ProcessedComponents.Add(HitComponent);
-			TryRefineAroundScreenPoint(BestScreenPosition, HitComponent, LedgeCandidates, SurfaceCandidates);
+			const int32 NumProbePoints = FMath::Min(ScreenProbePoints.Num(), 3);
+			for (int32 ProbePointIndex = 0; ProbePointIndex < NumProbePoints; ++ProbePointIndex)
+			{
+				CollectRefinedScreenCandidates(ScreenProbePoints[ProbePointIndex].ScreenPosition, HitComponent, LedgeCandidates, SurfaceCandidates);
+			}
 		}
 	};
 
@@ -422,22 +429,14 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 		}
 	};
 
-	TArray<FWireScreenCandidate> ThinLedgeCandidates;
-	TArray<FWireScreenCandidate> ThinSurfaceCandidates;
-	ThinLedgeCandidates.Reserve(8);
-	ThinSurfaceCandidates.Reserve(16);
-	CollectObjectGuidedCandidates(ThinLedgeCandidates, ThinSurfaceCandidates);
-	if (TryResolveCandidateSet(ThinLedgeCandidates, ThinSurfaceCandidates))
-	{
-		return true;
-	}
+	TArray<FWireScreenCandidate> LedgeCandidates;
+	TArray<FWireScreenCandidate> SurfaceCandidates;
+	LedgeCandidates.Reserve(64);
+	SurfaceCandidates.Reserve(128);
 
-	TArray<FWireScreenCandidate> ScreenLedgeCandidates;
-	TArray<FWireScreenCandidate> ScreenSurfaceCandidates;
-	ScreenLedgeCandidates.Reserve(32);
-	ScreenSurfaceCandidates.Reserve(64);
-	CollectScreenGridCandidates(ScreenLedgeCandidates, ScreenSurfaceCandidates);
-	return TryResolveCandidateSet(ScreenLedgeCandidates, ScreenSurfaceCandidates);
+	CollectObjectGuidedCandidates(LedgeCandidates, SurfaceCandidates);
+	CollectScreenGridCandidates(LedgeCandidates, SurfaceCandidates);
+	return TryResolveCandidateSet(LedgeCandidates, SurfaceCandidates);
 }
 
 

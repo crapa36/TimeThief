@@ -21,19 +21,6 @@ ATimeThiefNetworkCharacterBase::~ATimeThiefNetworkCharacterBase()
 {
 }
 
-// Called when the game starts or when spawned
-void ATimeThiefNetworkCharacterBase::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void ATimeThiefNetworkCharacterBase::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
 FRotator ATimeThiefNetworkCharacterBase::GetBaseAimRotation() const
 {
 	if (IsLocallyControlled())

@@ -3,6 +3,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
@@ -190,7 +191,7 @@ USkeletalMeshComponent* ATimeThiefCharacterBase::GetThirdPersonMesh() const
 
 ATimeThiefMasterWeapon* ATimeThiefCharacterBase::GetWeaponActor() const
 {
-	return Cast<ATimeThiefMasterWeapon>(WeaponActorComponent->GetChildActor());
+	return WeaponActorComponent ? Cast<ATimeThiefMasterWeapon>(WeaponActorComponent->GetChildActor()) : nullptr;
 }
 
 void ATimeThiefCharacterBase::BeginPlay()
@@ -395,23 +396,51 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 
 void ATimeThiefCharacterBase::UpdateMask()
 {
-	for (int i = 0; i < GetMesh()->GetNumMaterials(); ++i)
+	static const FName MaskParameterName(TEXT("Mask"));
+	static const FName UserMaskParameterName(TEXT("User.Mask"));
+
+	USkeletalMeshComponent* CharacterMesh = GetMesh();
+	ATimeThiefMasterWeapon* WeaponActor = GetWeaponActor();
+	UStaticMeshComponent* WeaponMesh = WeaponActor ? WeaponActor->GetWeaponMesh() : nullptr;
+	UStaticMesh* WeaponStaticMesh = WeaponMesh ? WeaponMesh->GetStaticMesh() : nullptr;
+
+	if (FMath::IsNearlyEqual(LastAppliedMask, Mask, KINDA_SMALL_NUMBER)
+		&& LastMaskWeaponMesh.Get() == WeaponMesh
+		&& LastMaskWeaponStaticMesh.Get() == WeaponStaticMesh)
 	{
-		if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(GetMesh(), i))
+		return;
+	}
+
+	if (CharacterMesh)
+	{
+		for (int i = 0; i < CharacterMesh->GetNumMaterials(); ++i)
 		{
-			MID->SetScalarParameterValue(FName("Mask"), Mask);
+			if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(CharacterMesh, i))
+			{
+				MID->SetScalarParameterValue(MaskParameterName, Mask);
+			}
 		}
 	}
 
-	for (int i = 0; i < GetWeaponActor()->GetWeaponMesh()->GetNumMaterials(); ++i)
+	if (WeaponMesh)
 	{
-		if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(GetWeaponActor()->GetWeaponMesh(), i))
+		for (int i = 0; i < WeaponMesh->GetNumMaterials(); ++i)
 		{
-			MID->SetScalarParameterValue(FName("Mask"), Mask);
+			if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(WeaponMesh, i))
+			{
+				MID->SetScalarParameterValue(MaskParameterName, Mask);
+			}
 		}
 	}
 
-	DisappearFX->SetVariableFloat(FName("User.Mask"), Mask);
+	if (DisappearFX)
+	{
+		DisappearFX->SetVariableFloat(UserMaskParameterName, Mask);
+	}
+
+	LastAppliedMask = Mask;
+	LastMaskWeaponMesh = WeaponMesh;
+	LastMaskWeaponStaticMesh = WeaponStaticMesh;
 }
 
 void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate)

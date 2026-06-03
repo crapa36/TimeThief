@@ -128,7 +128,7 @@ bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
 	const UUpgradeData* UpgradeBalanceData = nullptr;
 	if (const UItemSettings* ItemSettings = GetDefault<UItemSettings>())
 	{
-		UpgradeBalanceData = ItemSettings->UpgradeData.LoadSynchronous();
+		UpgradeBalanceData = ItemSettings->GetUpgradeData();
 	}
 
 	TMap<FGameplayTag, FUpgradeFloatLevels> DamageTable = UpgradeBalanceData
@@ -400,25 +400,6 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 	{
 		WireComponent->OnWireStateChanged.AddDynamic(this, &ATimeThiefPlayerCharacter::OnWireStateChanged);
 	}
-
-	GetWorldTimerManager().SetTimer(
-		InteractCheckTimerHandle,
-		this,
-		&ATimeThiefPlayerCharacter::CheckInteractableObject,
-		0.1f,
-		true
-	);
-
-	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
-	{
-		MovementComp->MaxWalkSpeed = BaseMoveSpeed;
-		MovementComp->JumpZVelocity = BaseJumpVelocity;
-	}
-}
-
-void ATimeThiefPlayerCharacter::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
 }
 
 void ATimeThiefPlayerCharacter::OnJumped_Implementation()
