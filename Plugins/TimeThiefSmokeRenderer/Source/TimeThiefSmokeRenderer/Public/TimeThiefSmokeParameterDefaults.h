@@ -61,11 +61,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
 	constexpr bool bUseSparseMacSimulationByDefault = true;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 128;
+	constexpr int32 SmokeGridResolution = 96;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
-	constexpr int32 SmokeGridMaxAxisResolution = 256;
+	constexpr int32 SmokeGridMaxAxisResolution = 96;
 	// 컴퓨트 셰이더 스레드 그룹 한 변 크기. 셰이더 numthreads와 맞아야 함.
 	constexpr int32 SmokeThreadGroupSize = 4;
 	// 격자 재할당 축 정렬 단위. 높을수록 재할당 감소, 메모리 여유 증가.
@@ -83,7 +83,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// sparse brick 최대 크기(voxel). 높을수록 비용 감소, culling 정밀도 감소.
 	constexpr int32 SmokeBrickMaxSize = 32;
 	// 희소 아틀라스 활성 브릭 최대 개수. 높을수록 넓은 연막 지원과 VRAM 비용 증가.
-	constexpr int32 MaxActiveSmokeBricks = 256;
+	constexpr int32 MaxActiveSmokeBricks = 144;
 	// sparse composite를 유지할 최대 활성 브릭 비율. 높을수록 sparse 경로 유지, 과밀 때 비용 증가.
 	constexpr float SparseCompositeMaxActiveRatio = 0.35f;
 	// 희소 브릭 활성화 최소 속도(cm/s). 높을수록 비용 감소, 약한 움직임 손실 증가.
@@ -98,7 +98,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
 	constexpr int32 RenderStepCountMax = 256;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCount = 128;
+	constexpr int32 RenderMaxStepCount = 96;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 RenderMaxStepCountMin = 16;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
@@ -143,7 +143,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 자체 그림자를 계산할 최소 샘플 기여도. 높을수록 그림자 비용 감소.
 	constexpr float SelfShadowMinSampleWeight = 0.001f;
 	// 빈 raymarch 구간 최대 건너뛰기 배율. 높을수록 비용 감소, 빈 공간 culling이 거칠어짐.
-	constexpr float InactiveBrickRaymarchMaxSkipScale = 16.0f;
+	constexpr float InactiveBrickRaymarchMaxSkipScale = 12.0f;
 	// raymarch 투과율 종료 기준. 높을수록 비용 감소, 진한 연막 누적 손실 증가.
 	constexpr float RenderTransmittanceEarlyOut = 0.02f;
 	// 장애물 마스크 CPU 캐시 최대 개수. 높을수록 반복 생성 비용 감소, 메모리 증가.
@@ -202,7 +202,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 이벤트가 만드는 국소 와류 강도. 높을수록 총알/폭발/액터 반응 증가.
 	constexpr float EventVortexStrength = 0.72f;
 	// 와류 입자 수. 높을수록 디테일과 비용 증가.
-	constexpr int32 VortexParticleCount = 40;
+	constexpr int32 VortexParticleCount = 32;
 	// 와류 입자 최대 수. 높을수록 설정 허용 범위와 버퍼 비용 증가.
 	constexpr int32 MaxVortexParticleCount = 128;
 	// 와류 입자 수명(초). 높을수록 와류 디테일 지속 시간 증가.

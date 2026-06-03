@@ -35,17 +35,17 @@ namespace
 
 	bool IsBetterScreenCandidate(const FWireScreenCandidate& Candidate, const FWireScreenCandidate& BestCandidate)
 	{
-		if (Candidate.DistanceToAimSq < BestCandidate.DistanceToAimSq)
+		if (Candidate.ScreenDistanceSq < BestCandidate.ScreenDistanceSq)
 		{
 			return true;
 		}
-		if (FMath::IsNearlyEqual(Candidate.DistanceToAimSq, BestCandidate.DistanceToAimSq)
-			&& Candidate.ScreenDistanceSq < BestCandidate.ScreenDistanceSq)
+		if (FMath::IsNearlyEqual(Candidate.ScreenDistanceSq, BestCandidate.ScreenDistanceSq)
+			&& Candidate.DistanceToAimSq < BestCandidate.DistanceToAimSq)
 		{
 			return true;
 		}
-		return FMath::IsNearlyEqual(Candidate.DistanceToAimSq, BestCandidate.DistanceToAimSq)
-			&& FMath::IsNearlyEqual(Candidate.ScreenDistanceSq, BestCandidate.ScreenDistanceSq)
+		return FMath::IsNearlyEqual(Candidate.ScreenDistanceSq, BestCandidate.ScreenDistanceSq)
+			&& FMath::IsNearlyEqual(Candidate.DistanceToAimSq, BestCandidate.DistanceToAimSq)
 			&& Candidate.bIsCenter && !BestCandidate.bIsCenter;
 	}
 }
