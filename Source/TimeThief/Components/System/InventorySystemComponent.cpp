@@ -89,6 +89,12 @@ void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	// ...
 }
 
+void UInventorySystemComponent::ClearInventory()
+{
+	ItemQuantities.Reset();
+	OnInventoryUpdatedEvent.Broadcast();
+}
+
 void UInventorySystemComponent::AddItem(EItemID ItemID, int Amount)
 {
 	if (Amount <= 0)

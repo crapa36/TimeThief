@@ -16,6 +16,7 @@
 #include "NetworkMoveComponent.h"
 #include "TimeThiefGameplayTags.h"
 #include "TimeThiefNetworkSettings.h"
+#include "Actors/ChestActor.h"
 #include "Actors/Item/ItemBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
@@ -52,6 +53,9 @@ namespace
 	{
 		return State == ENetworkPlayState::InRoom;
 	}
+
+	static constexpr int32 EntitySpawnBatchSize = 10;
+	static constexpr float EntitySpawnBatchIntervalSeconds = 0.01f;
 }
 
 /*---------------------------------
@@ -401,6 +405,8 @@ void UNetworkGameInstanceSubsystem::DisconnectFromServer()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(QueueProcessingTimer);
+		World->GetTimerManager().ClearTimer(EntitySpawnProcessingTimer);
+		World->GetTimerManager().ClearTimer(PlayerInitSetupRetryTimer);
 	}
 	
 	UE_LOG(LogTemp, Log, TEXT("Disconnecting from server..."));
@@ -676,6 +682,7 @@ void UNetworkGameInstanceSubsystem::HandleMatchFound(const se::lobby::N_MatchFou
 	TryRoomId = RoomId;
 	
 	ResetLoadingGate();
+	ResetTimeStormState();
 	
 	SetLocalPlayerInputEnabled(false);
 	
@@ -723,6 +730,7 @@ void UNetworkGameInstanceSubsystem::HandleRoomEnterRes(const se::room::S_RoomEnt
 	
 	LocalPlayerEntityId = Pkt.my_entity_id().value();
 	RoomState.RoomId = Snapshot.room_id();
+	bRoomStateCleared = false;
 	
 	for (const auto& PlayerInfo : Snapshot.players())
 	{
@@ -761,6 +769,12 @@ void UNetworkGameInstanceSubsystem::HandleRoomLeaveRes(const se::room::S_RoomLea
 		return;
 	}
 	
+	if (IsRoomStateCleared())
+	{
+		SetPlayState(ENetworkPlayState::InLobby);
+		UE_LOG(LogTemp, Log, TEXT("[Network] Room leave success ignored: room state already cleared"));
+		return;
+	}
 
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
@@ -817,27 +831,112 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 	if (Pkt.infos_size() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Network] No room infos in room objects"));
+		bReceivedEntitiesSpawn = true;
+		TryApplyPendingPlayerInitSetup();
+		TrySendLoadingComplete();
 		return;
 	}
 	
+	StartPendingEntitySpawn(Pkt);
+}
+
+void UNetworkGameInstanceSubsystem::StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt)
+{
+	CancelPendingEntitySpawn();
+
+	PendingEntitySpawnInfos.Reserve(Pkt.infos_size());
 	for (const auto& Info : Pkt.infos())
 	{
-		uint32 EntityId = HandleSpawnInfo(Info);
-		UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawned (batch): EntityId=%u"), EntityId);
+		PendingEntitySpawnInfos.Add(Info);
 	}
-	
+
+	bReceivedEntitiesSpawn = false;
+	PendingEntitySpawnIndex = 0;
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity batch spawn queued. Count=%d"), PendingEntitySpawnInfos.Num());
+
+	ProcessPendingEntitySpawn();
+
+	if (PendingEntitySpawnInfos.Num() > 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				EntitySpawnProcessingTimer,
+				this,
+				&UNetworkGameInstanceSubsystem::ProcessPendingEntitySpawn,
+				EntitySpawnBatchIntervalSeconds,
+				true);
+		}
+	}
+}
+
+void UNetworkGameInstanceSubsystem::ProcessPendingEntitySpawn()
+{
+	check(IsInGameThread());
+
+	if (PendingEntitySpawnIndex >= PendingEntitySpawnInfos.Num())
+	{
+		FinishPendingEntitySpawn();
+		return;
+	}
+
+	const int32 EndIndex = FMath::Min(PendingEntitySpawnIndex + EntitySpawnBatchSize, PendingEntitySpawnInfos.Num());
+	for (; PendingEntitySpawnIndex < EndIndex; ++PendingEntitySpawnIndex)
+	{
+		HandleSpawnInfo(PendingEntitySpawnInfos[PendingEntitySpawnIndex]);
+	}
+
+	if (PendingEntitySpawnIndex >= PendingEntitySpawnInfos.Num())
+	{
+		FinishPendingEntitySpawn();
+	}
+}
+
+void UNetworkGameInstanceSubsystem::FinishPendingEntitySpawn()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EntitySpawnProcessingTimer);
+	}
+
+	const int32 SpawnCount = PendingEntitySpawnInfos.Num();
+	PendingEntitySpawnInfos.Empty();
+	PendingEntitySpawnIndex = 0;
+
 	bReceivedEntitiesSpawn = true;
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity batch spawn complete. Count=%d"), SpawnCount);
+
+	TryApplyPendingPlayerInitSetup();
 	TrySendLoadingComplete();
+}
+
+void UNetworkGameInstanceSubsystem::CancelPendingEntitySpawn()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(EntitySpawnProcessingTimer);
+	}
+
+	PendingEntitySpawnInfos.Empty();
+	PendingEntitySpawnIndex = 0;
 }
 
 void UNetworkGameInstanceSubsystem::HandleRoomClosed(const se::room::N_RoomClosed& Pkt)
 {
 	check(IsInGameThread());
 	
+	if (IsRoomStateCleared())
+	{
+		SetPlayState(ENetworkPlayState::InLobby);
+		UE_LOG(LogTemp, Log, TEXT("[Network] Room close ignored: room state already cleared. RoomId=%u"), Pkt.room_id());
+		return;
+	}
+	
 	ClearRoomState();
 	SetPlayState(ENetworkPlayState::InLobby);
 	
-	UE_LOG(LogTemp, Log, TEXT("[Network] Room close"));
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room close. RoomId=%u"), Pkt.room_id());
 }
 
 void UNetworkGameInstanceSubsystem::HandleGameStart(const se::game::N_GameStart& Pkt)
@@ -859,7 +958,22 @@ void UNetworkGameInstanceSubsystem::HandleGameEnd(const se::game::N_GameEnd& Pkt
 void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
 {
 	check(IsInGameThread());
+
+	if (!ApplyPlayerInitSetup(Pkt))
+	{
+		PendingPlayerInitSetup = Pkt;
+		bHasPendingPlayerInitSetup = true;
+		UE_LOG(LogTemp, Log, TEXT("[Network] Player init setup deferred until local player pawn is ready"));
+		return;
+	}
 	
+	bReceivedPlayerInitSetup = true;
+	bHasPendingPlayerInitSetup = false;
+	TrySendLoadingComplete();
+}
+
+bool UNetworkGameInstanceSubsystem::ApplyPlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt)
+{
 	const int MaxHealth = Pkt.max_health();
 	const int CurrentHealth = Pkt.current_health();
 	const int TimePoints = Pkt.time_points();
@@ -868,7 +982,7 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
 	if (LocalPlayer == nullptr)
 	{
-		return;
+		return false;
 	}
 	
 	if (auto* HealthComp = LocalPlayer->FindComponentByClass<UTimeThiefHealthComponent>())
@@ -888,6 +1002,11 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 	}
 	
 	ATimeThiefMasterWeapon* WeaponActor = LocalPlayer->GetWeaponActor();
+	if (WeaponActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] ApplyPlayerInitSetup: Missing weapon actor"));
+		return false;
+	}
 	
 	for (const auto& WeaponInfo : Pkt.weapon_slots())
 	{
@@ -920,7 +1039,41 @@ void UNetworkGameInstanceSubsystem::HandlePlayerInitSetup(const se::game::N_Play
 		WeaponComp->SetWeaponStatForNetwork(StatData);
 	}
 	
+	return true;
+}
+
+void UNetworkGameInstanceSubsystem::TryApplyPendingPlayerInitSetup()
+{
+	if (!bHasPendingPlayerInitSetup || bReceivedPlayerInitSetup)
+	{
+		return;
+	}
+
+	if (!ApplyPlayerInitSetup(PendingPlayerInitSetup))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			if (!World->GetTimerManager().IsTimerActive(PlayerInitSetupRetryTimer))
+			{
+				World->GetTimerManager().SetTimer(
+					PlayerInitSetupRetryTimer,
+					this,
+					&UNetworkGameInstanceSubsystem::TryApplyPendingPlayerInitSetup,
+					EntitySpawnBatchIntervalSeconds,
+					true);
+			}
+		}
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PlayerInitSetupRetryTimer);
+	}
+
 	bReceivedPlayerInitSetup = true;
+	bHasPendingPlayerInitSetup = false;
+	PendingPlayerInitSetup.Clear();
 	TrySendLoadingComplete();
 }
 
@@ -1875,17 +2028,26 @@ void UNetworkGameInstanceSubsystem::HandleChestInteracted(const se::game::N_Ches
 {
 	check(IsInGameThread());
 	
-	const uint32 EntityId = Pkt.entity_id().value();
-	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	const uint32 ChestEntityId = Pkt.chest_entity_id().value();
+	FEntityRuntimeEntry* ChestEntry = EntityEntries.Find(ChestEntityId);
 	
-	if (EntityEntry == nullptr)
+	if (ChestEntry == nullptr)
 	{
-		UE_LOG(LogTemp, Error, TEXT("EntityEntry not found"));
+		UE_LOG(LogTemp, Error, TEXT("[Chest] Chest entity entry not found. ChestEntityId=%u"), ChestEntityId);
 		return;
 	}
 
+	AChestActor* ChestActor = Cast<AChestActor>(ChestEntry->Actor.Get());
+	if (ChestActor == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Chest] Chest actor not found or invalid type. ChestEntityId=%u"), ChestEntityId);
+		return;
+	}
+
+	ChestActor->OpenChest();
+
 	// TODO: 해당 Player가 Chest에 Interaction 하는 모션 1회 Play
-	// EntityEntry->Actor->PlayChestInteract()
+	// const uint32 PlayerEntityId = Pkt.entity_id().value();
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& Pkt)
@@ -1922,6 +2084,37 @@ void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& P
 
 void UNetworkGameInstanceSubsystem::HandleItemSnapshot(const se::game::N_ItemSnapshot& Pkt)
 {
+	check(IsInGameThread());
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	if (LocalPlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get local player pawn"));
+		return;
+	}
+	auto* Player = Cast<ATimeThiefPlayerCharacter>(LocalPlayer);
+	if (Player == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get player pawn"));
+		return;
+	}
+	
+	UInventorySystemComponent* InventoryComp = Player->GetInventoryComponent();
+	if (InventoryComp == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to get inventory component"));
+		return;
+	}
+	
+	InventoryComp->ClearInventory();
+	
+	for (const auto& Item : Pkt.items())
+	{
+		 uint32 ItemId = Item.item_id();
+		 uint32 Quantity = Item.amount();
+		 
+		 InventoryComp->AddItem(static_cast<EItemID>(ItemId), Quantity);
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleEquipItem(const se::game::N_EquipItem& Pkt)
@@ -2541,6 +2734,14 @@ ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
 
 void UNetworkGameInstanceSubsystem::ResetLoadingGate()
 {
+	CancelPendingEntitySpawn();
+	PendingPlayerInitSetup.Clear();
+	bHasPendingPlayerInitSetup = false;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PlayerInitSetupRetryTimer);
+	}
+
 	bReceivedRoomEnterRes = false;
 	bReceivedEntitiesSpawn = false;
 	bReceivedPlayerInitSetup = false;
@@ -2576,6 +2777,30 @@ void UNetworkGameInstanceSubsystem::SetLocalPlayerInputEnabled(bool bEnabled)
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = true;
 	}
+}
+
+void UNetworkGameInstanceSubsystem::ResetTimeStormState()
+{
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	AGameStateBase* GameState = World->GetGameState();
+	if (GameState == nullptr)
+	{
+		return;
+	}
+
+	UTimeStormComponent* TimeStormComp = GameState->FindComponentByClass<UTimeStormComponent>();
+	if (TimeStormComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] GameState has no UTimeStormComponent"));
+		return;
+	}
+
+	TimeStormComp->ReStart();
 }
 
 void UNetworkGameInstanceSubsystem::TrySendLoadingComplete()
@@ -2693,8 +2918,15 @@ void UNetworkGameInstanceSubsystem::RequestRoomLeave()
 		return;
 	}
 
+	if (PlayState == ENetworkPlayState::LeavingRoom)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] Ignore room leave request: leave already pending"));
+		return;
+	}
+
 	if (PlayState != ENetworkPlayState::InRoom)
 	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] Ignore room leave request: invalid state %d"), static_cast<int32>(PlayState));
 		return;
 	}
 
@@ -2702,6 +2934,7 @@ void UNetworkGameInstanceSubsystem::RequestRoomLeave()
 	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(SendBuffer);
 	SetPlayState(ENetworkPlayState::LeavingRoom);
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_RoomLeaveReq to server"));
 }
 
 void UNetworkGameInstanceSubsystem::RequestSpawnMonster(FVector Pos, uint32 MonsterType)
@@ -2972,18 +3205,45 @@ void UNetworkGameInstanceSubsystem::StopPingTimer()
 
 void UNetworkGameInstanceSubsystem::ClearRoomState()
 {
-	for (auto& Pair : EntityEntries)
+	ResetTimeStormState();
+
+	if (IsRoomStateCleared())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Network] ClearRoomState skipped: already cleared"));
+		return;
+	}
+
+	TArray<TWeakObjectPtr<AActor>> ActorsToDestroy;
+	ActorsToDestroy.Reserve(EntityEntries.Num());
+
+	for (const auto& Pair : EntityEntries)
 	{
 		if (Pair.Value.Actor.IsValid())
 		{
-			Pair.Value.Actor->Destroy();
-			Pair.Value.Actor.Reset();
+			ActorsToDestroy.Add(Pair.Value.Actor);
 		}
 	}
 
 	EntityEntries.Empty();
 	LocalPlayerEntityId = 0;
 	RoomState = FRoomState();
+	ResetLoadingGate();
+	bRoomStateCleared = true;
+
+	for (const TWeakObjectPtr<AActor>& ActorPtr : ActorsToDestroy)
+	{
+		if (ActorPtr.IsValid())
+		{
+			ActorPtr->Destroy();
+		}
+	}
+	
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room state cleared. DestroyedActors=%d"), ActorsToDestroy.Num());
+}
+
+bool UNetworkGameInstanceSubsystem::IsRoomStateCleared() const
+{
+	return bRoomStateCleared && EntityEntries.Num() == 0 && LocalPlayerEntityId == 0 && RoomState.RoomId == 0;
 }
 
 void UNetworkGameInstanceSubsystem::NetworkEntryAdd(uint32 EntityId, const FEntityRuntimeEntry& Entry)

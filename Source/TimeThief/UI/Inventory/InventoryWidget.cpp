@@ -45,7 +45,7 @@ void UInventoryWidget::OnInventoryItemUpdated()
 		}
 	}
 
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Inventory Updated: %d"), InventoryItems.Num()));
+	// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Inventory Updated: %d"), InventoryItems.Num()));
 
 	Inventory_ListView->SetListItems(InventoryItems);
 }

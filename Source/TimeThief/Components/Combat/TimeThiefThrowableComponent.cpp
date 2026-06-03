@@ -329,11 +329,18 @@ bool UTimeThiefThrowableComponent::CanThrowItem(EItemID ItemID) const
 		return false;
 	}
 
-	// Temporarily disabled for local throw testing without inventory counts.
-	// if (InventoryComponent->GetItemQuantity(ItemID) <= 0)
-	// {
-	// 	return false;
-	// }
+	const UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(const_cast<UTimeThiefThrowableComponent*>(this));
+	const bool bRequiresInventoryQuantity = NGIS && NGIS->IsConnected();
+	const int32 ItemQuantity = InventoryComponent->GetItemQuantity(ItemID);
+	if (bRequiresInventoryQuantity && ItemQuantity <= 0)
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] CanThrow false: no equipped throwable in inventory. ItemID=%d Quantity=%d"),
+			static_cast<int32>(ItemID),
+			ItemQuantity);
+#endif
+		return false;
+	}
 
 	const UWorld* World = GetWorld();
 	const bool bCooldownReady = !World || World->GetTimeSeconds() + KINDA_SMALL_NUMBER >= NextAllowedThrowTime;

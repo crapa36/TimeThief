@@ -22,7 +22,7 @@ void UStoreWidget::SetVisibility(ESlateVisibility InVisibility)
 	{
 		if (APlayerController* PC = GetOwningPlayer())
 		{
-			UKismetSystemLibrary::PrintString(this, TEXT("Store Opened"));
+			// UKismetSystemLibrary::PrintString(this, TEXT("Store Opened"));
 			
 			PC->SetIgnoreLookInput(true);
 

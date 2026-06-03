@@ -72,7 +72,7 @@ AActor* UItemPoolWorldSubsystem::Get(TSubclassOf<AActor> ObjectClass)
 						if (!PoolObject->bIsEnabled)
 						{
 							PoolObject->Enable();
-							UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Get Object from Pool %s"), *ObjectClass->GetName()));
+							// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Get Object from Pool %s"), *ObjectClass->GetName()));
 							return Object;
 						}
 					}

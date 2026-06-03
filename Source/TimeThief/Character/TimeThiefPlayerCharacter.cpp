@@ -382,11 +382,6 @@ void ATimeThiefPlayerCharacter::BeginPlay()
 		SetPawnData(DefaultPawnData);
 	}
 
-	if (UTimeThiefHealthComponent* Health = GetHealthComponent())
-	{
-		Health->OnDeath.AddDynamic(this, &ATimeThiefPlayerCharacter::OnDeath);
-	}
-
 	if (UCharacterMovementComponent* MovementComp = GetCharacterMovement())
 	{
 		MovementComp->MaxWalkSpeed = BaseMoveSpeed;

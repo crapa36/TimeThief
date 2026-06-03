@@ -116,7 +116,7 @@ void USavePointSkillComponent::ActivateSkill()
 
 void USavePointSkillComponent::OnFinished(UNiagaraComponent* FinishedComponent)
 {
-	UKismetSystemLibrary::PrintString(this, TEXT("Save Skill Finished"));
+	// UKismetSystemLibrary::PrintString(this, TEXT("Save Skill Finished"));
 	if (OwnerCharacter)
 	{
 		if (auto PC = Cast<APlayerController>(OwnerCharacter->GetController()))

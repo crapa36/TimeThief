@@ -149,6 +149,7 @@ void UTimeStormComponent::ReStart()
 	PrevRadius = DestRadius;
 
 	bIsShrinking = false;
+	bIsFlowing = true;
 	
 	// 기존 코드 (Restart가 없어야 하지 않나 싶지만 일단 남겨둠)
 	// ElapsedTime = 0.0f;
