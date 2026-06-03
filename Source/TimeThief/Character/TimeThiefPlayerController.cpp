@@ -2,6 +2,7 @@
 #include "TimeThief.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
+#include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
@@ -173,6 +174,12 @@ void ATimeThiefPlayerController::ApplyDLSSFrameGenerationSetting()
 
 void ATimeThiefPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (ControlGuideWidget)
+	{
+		ControlGuideWidget->RemoveFromParent();
+		ControlGuideWidget = nullptr;
+	}
+
 	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
 		NGIS->OnPlayStateChanged.RemoveDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
@@ -400,6 +407,8 @@ void ATimeThiefPlayerController::SetupInputComponent()
 
 	if (IsLocalPlayerController())
 	{
+		InputComponent->BindKey(EKeys::Slash, IE_Pressed, this, &ThisClass::ToggleControlGuideWidget);
+
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
@@ -409,6 +418,59 @@ void ATimeThiefPlayerController::SetupInputComponent()
 		}
 		InitializeUI();
 	}
+}
+
+void ATimeThiefPlayerController::EnsureControlGuideWidget()
+{
+	if (ControlGuideWidget || !IsLocalPlayerController())
+	{
+		return;
+	}
+
+	TSubclassOf<UUserWidget> WidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/Game/UI/WBP_ControlGuide.WBP_ControlGuide_C"));
+	if (!WidgetClass)
+	{
+		UE_LOG(LogTimeThief, Warning, TEXT("Control guide widget class was not found."));
+		return;
+	}
+
+	ControlGuideWidget = CreateWidget<UUserWidget>(this, WidgetClass);
+	if (!ControlGuideWidget)
+	{
+		return;
+	}
+
+	int32 ViewportSizeX = 0;
+	int32 ViewportSizeY = 0;
+	GetViewportSize(ViewportSizeX, ViewportSizeY);
+
+	constexpr float GuideAspectRatio = 16.0f / 9.0f;
+	const float MaxGuideWidth = static_cast<float>(ViewportSizeX) * 0.9f;
+	const float MaxGuideHeight = static_cast<float>(ViewportSizeY) * 0.9f;
+	FVector2D GuideSize(MaxGuideWidth, MaxGuideWidth / GuideAspectRatio);
+	if (GuideSize.Y > MaxGuideHeight)
+	{
+		GuideSize.Y = MaxGuideHeight;
+		GuideSize.X = MaxGuideHeight * GuideAspectRatio;
+	}
+
+	ControlGuideWidget->AddToViewport(100);
+	ControlGuideWidget->SetAnchorsInViewport(FAnchors(0.5f, 0.5f));
+	ControlGuideWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
+	ControlGuideWidget->SetPositionInViewport(FVector2D::ZeroVector, false);
+	ControlGuideWidget->SetDesiredSizeInViewport(GuideSize);
+	ControlGuideWidget->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void ATimeThiefPlayerController::ToggleControlGuideWidget()
+{
+	EnsureControlGuideWidget();
+	if (!ControlGuideWidget)
+	{
+		return;
+	}
+
+	ControlGuideWidget->SetVisibility(ControlGuideWidget->IsVisible() ? ESlateVisibility::Hidden : ESlateVisibility::HitTestInvisible);
 }
 
 void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
