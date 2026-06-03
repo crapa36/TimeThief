@@ -130,6 +130,7 @@ public:
 	void PlayRewardBurstFX();
 	void FinishRespawn();
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void FreezeDeathPoseAndStartDisappearEffect();
 	
 	void DisableCombatCollision();
 	void EnableCombatCollision();
@@ -179,6 +180,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	TObjectPtr<UAnimMontage> RespawnMontage = nullptr;
 	// 부활 몽타주
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	float DeathPoseFreezeLeadTime = 0.25f;
+	// 사망 몽타주 종료 직전에 포즈를 고정하기 위한 여유 시간
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
 	TObjectPtr<UNiagaraSystem> FireCastFX = nullptr;

@@ -252,17 +252,28 @@ void ATimeThiefMonster::OnDeathNetwork()
 	
 	if (MeshComponent)
 	{
+		MeshComponent->bPauseAnims = false;
+
 		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
 		{
+			if (CurrentAttackMontage)
+			{
+				AnimInst->Montage_Stop(0.0f, CurrentAttackMontage);
+				CurrentAttackMontage = nullptr;
+			}
+
 			if (DeathMontage)
 			{
 				AnimInst->Montage_Play(DeathMontage);
+
+				const float FreezeLeadTime = FMath::Max(DeathPoseFreezeLeadTime, 0.25f);
+				const float FreezeDelay = FMath::Max(DeathMontage->GetPlayLength() - FreezeLeadTime, 0.0f);
 				
 				GetWorldTimerManager().SetTimer(
 					DeathHideTimerHandle,
 					this,
-					&ATimeThiefMonster::StartDeathDisappearEffect,
-					DeathMontage->GetPlayLength(),
+					&ATimeThiefMonster::FreezeDeathPoseAndStartDisappearEffect,
+					FreezeDelay,
 					false
 				);
 				
@@ -283,6 +294,8 @@ void ATimeThiefMonster::OnRespawnNetwork(const FVector& SpawnLocation, const FRo
 	
 	if (MeshComponent)
 	{
+		MeshComponent->bPauseAnims = false;
+
 		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
 		{
 			if (DeathMontage)
@@ -311,6 +324,7 @@ void ATimeThiefMonster::OnRespawnNetwork(const FVector& SpawnLocation, const FRo
 
 	if (MeshComponent)
 	{
+		MeshComponent->bPauseAnims = false;
 		MeshComponent->SetVisibility(true, true);
 		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
@@ -590,6 +604,29 @@ void ATimeThiefMonster::OnDeathMontageFinishedFallback()
 	StartDeathDisappearEffect();
 }
 
+void ATimeThiefMonster::FreezeDeathPoseAndStartDisappearEffect()
+{
+	if (!bIsDead)
+	{
+		return;
+	}
+
+	if (MeshComponent)
+	{
+		if (UAnimInstance* AnimInst = MeshComponent->GetAnimInstance())
+		{
+			if (DeathMontage && AnimInst->Montage_IsPlaying(DeathMontage))
+			{
+				AnimInst->Montage_Pause(DeathMontage);
+			}
+		}
+
+		MeshComponent->bPauseAnims = true;
+	}
+
+	StartDeathDisappearEffect();
+}
+
 void ATimeThiefMonster::FinishRespawn()
 {
 	VisualState = EMonsterVisualState::Alive;
@@ -601,6 +638,7 @@ void ATimeThiefMonster::FinishRespawn()
 
 	if (MeshComponent)
 	{
+		MeshComponent->bPauseAnims = false;
 		MeshComponent->SetVisibility(true, true);
 		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
