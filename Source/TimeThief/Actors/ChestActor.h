@@ -20,6 +20,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 public:
 	// Called every frame
@@ -31,9 +32,14 @@ public:
 	void OpenChest();
 	
 protected:
+	bool IsSkeletalChestMode() const;
+	void ConfigureVisualMode();
 	void ResetToClosedPose();
 	void UpdateInteractionWidgetLocation();
 	void PlayRewardBurstFX();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
+	bool bUseSkeletalChest = true;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
