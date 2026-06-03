@@ -378,13 +378,22 @@ bool UTimeThiefWireComponent::CanFireWire() const
 	return CurrentState == EWireState::Idle && CooldownRemaining <= 0.0f && !bPendingWireFire;
 }
 
+float UTimeThiefWireComponent::GetCooldownPercent() const
+{
+	if (WireCooldown <= 0.0f)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Clamp(CooldownRemaining / WireCooldown, 0.0f, 1.0f);
+}
+
 void UTimeThiefWireComponent::FireWire()
 {
 	if (CurrentState != EWireState::Idle) return;
 	if (CooldownRemaining > 0.0f || bPendingWireFire) return;
 
 	bPendingWireFire = true;
-	SetTargetIndicatorVisible(false);
 
 	bool bHasFireNotify = false;
 	if (!PlayWireFireMontage(bHasFireNotify))
@@ -419,8 +428,6 @@ void UTimeThiefWireComponent::LaunchWire()
 {
 	if (CurrentState != EWireState::Idle) return;
 
-	SetTargetIndicatorVisible(false);
-
 	const FVector WireStartLocation = GetWireStartLocation();
 
 	FVector CamLoc = WireStartLocation;
@@ -440,7 +447,7 @@ void UTimeThiefWireComponent::LaunchWire()
 
 	FVector TargetLocation;
 	
-	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
+	if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, WireStartLocation, AimDirection, MaxWireLength))
 	{
 		FireDirection = UTimeThiefAimStatics::ResolveAimDirectionToTarget(
 			WireStartLocation,
@@ -663,6 +670,10 @@ void UTimeThiefWireComponent::ReleaseWire()
 
 	if (CurrentState == EWireState::Idle) return;
 
+	TargetIndicatorRefreshTimer = 0.0f;
+	bHasCachedTargetIndicator = false;
+	SetTargetIndicatorVisible(false);
+
 	if (CurrentState == EWireState::Attached)
 	{
 		if (IsValid(CachedMovementComponent))
@@ -745,6 +756,10 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 
 void UTimeThiefWireComponent::OnAnchorAttached()
 {
+	TargetIndicatorRefreshTimer = 0.0f;
+	bHasCachedTargetIndicator = false;
+	SetTargetIndicatorVisible(false);
+
 	if (!IsValid(CachedMovementComponent)) return;
 
 	PlayAttachedWireMontage();
@@ -1096,7 +1111,7 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 
 void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 {
-	if (!CanFireWire())
+	if (CurrentState != EWireState::Idle || CooldownRemaining > 0.0f)
 	{
 		TargetIndicatorRefreshTimer = 0.0f;
 		bHasCachedTargetIndicator = false;
@@ -1107,7 +1122,8 @@ void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 	TargetIndicatorRefreshTimer -= DeltaTime;
 	if (TargetIndicatorRefreshTimer <= 0.0f)
 	{
-		FVector CamLoc = GetWireStartLocation();
+		const FVector WireStartLocation = GetWireStartLocation();
+		FVector CamLoc = WireStartLocation;
 		FVector AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(
 			GetOwner() ? GetOwner()->GetActorForwardVector() : FVector::ForwardVector);
 
@@ -1123,7 +1139,7 @@ void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 		AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
 
 		FVector TargetLocation = FVector::ZeroVector;
-		bHasCachedTargetIndicator = WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength);
+		bHasCachedTargetIndicator = WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, WireStartLocation, AimDirection, MaxWireLength);
 		if (bHasCachedTargetIndicator)
 		{
 			CachedTargetIndicatorLocation = TargetLocation;

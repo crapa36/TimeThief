@@ -13,6 +13,7 @@ class ATimeThiefPlayerCharacter;
 class UTimeThiefHealthComponent;
 class UTimeThiefPlayerCombatComponent;
 class UTimeThiefWeaponComponentBase;
+class UTimeThiefWireComponent;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
@@ -21,6 +22,9 @@ class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UProgressBar> Health_ProgressBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> WireCooldown_ProgressBar;
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> CurrentHealth_Text;
@@ -61,6 +65,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
 	TWeakObjectPtr<UTimeThiefPlayerCombatComponent> CachedCombatComponent;
 
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
+	TWeakObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
+
 	UPROPERTY()
 	TWeakObjectPtr<UTimePointSystemComponent> CachedTimePointSystemComponent;
 	
@@ -76,6 +83,7 @@ protected:
 	
 private:
 	void UpdateCrosshairDisplay();
+	void UpdateWireCooldownDisplay();
 	
 	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
 };

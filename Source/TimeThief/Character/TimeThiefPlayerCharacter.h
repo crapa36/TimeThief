@@ -145,10 +145,10 @@ protected:
 	float LookingDistance = 50.f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Camera")
-	float DefaultCameraLagSpeed = 10.0f;
+	float DefaultCameraLagSpeed = 20.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Camera")
-	float WireCameraLagSpeed = 8.0f;
+	float WireCameraLagSpeed = 10.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Movement")
 	float BaseMoveSpeed = 600.0f;

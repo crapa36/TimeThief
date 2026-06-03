@@ -71,8 +71,6 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 	if (!World) return false;
 	APlayerController* PlayerController = Cast<APlayerController>(CachedCharacter->GetController());
 	if (!PlayerController) return false;
-	const FVector CharacterLocation = CachedCharacter->GetActorLocation();
-
 	int32 ViewportX = 0;
 	int32 ViewportY = 0;
 	PlayerController->GetViewportSize(ViewportX, ViewportY);
@@ -150,8 +148,8 @@ bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, c
 			return false;
 		}
 
-		const float DistanceToPlayerSq = FVector::DistSquared(CharacterLocation, TargetLocation);
-		if (DistanceToPlayerSq < MinDistanceSq || DistanceToPlayerSq > MaxDistanceSq)
+		const float DistanceToStartSq = FVector::DistSquared(StartLocation, TargetLocation);
+		if (DistanceToStartSq < MinDistanceSq || DistanceToStartSq > MaxDistanceSq)
 		{
 			return false;
 		}

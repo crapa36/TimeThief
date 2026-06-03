@@ -29,16 +29,16 @@ void UTimeThiefFirstPersonAnimInstance::NativeInitializeAnimation()
 
 void UTimeThiefFirstPersonAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	Super::NativeUpdateAnimation(DeltaSeconds);
+	// Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (!PlayerCharacter)
-	{
-		return;
-	}
+	// if (!PlayerCharacter)
+	// {
+	// 	return;
+	// }
 
-	UpdateWeaponData();
-	UpdateSway(DeltaSeconds);
-	UpdateProceduralData(DeltaSeconds);
+	// UpdateWeaponData();
+	// UpdateSway(DeltaSeconds);
+	// UpdateProceduralData(DeltaSeconds);
 }
 
 void UTimeThiefFirstPersonAnimInstance::UpdateWeaponData()

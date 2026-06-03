@@ -7,6 +7,7 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 void UTimeThiefHUDWidget::NativeConstruct()
@@ -16,6 +17,12 @@ void UTimeThiefHUDWidget::NativeConstruct()
 	if (Crosshair_Image)
 	{
 		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	if (WireCooldown_ProgressBar)
+	{
+		WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
+		WireCooldown_ProgressBar->SetPercent(0.0f);
 	}
 
 	if (ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
@@ -48,6 +55,7 @@ void UTimeThiefHUDWidget::NativeDestruct()
 	}
 
 	CachedWeapon.Reset();
+	CachedWireComponent.Reset();
 	Super::NativeDestruct();
 }
 
@@ -58,6 +66,7 @@ void UTimeThiefHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 	if (CachedCharacter.IsValid())
 	{
 		UpdateCrosshairDisplay();
+		UpdateWireCooldownDisplay();
 	}
 }
 
@@ -94,6 +103,7 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	CachedCharacter = InCharacter;
 	CachedHealthComponent = InCharacter->GetComponentByClass<UTimeThiefHealthComponent>();
 	CachedCombatComponent = InCharacter->GetPlayerCombatComponent();
+	CachedWireComponent = InCharacter->GetWireComponent();
 	CachedTimePointSystemComponent = InCharacter->GetComponentByClass<UTimePointSystemComponent>();
 	
 	if (CachedHealthComponent.IsValid())
@@ -206,4 +216,22 @@ void UTimeThiefHUDWidget::UpdateCrosshairDisplay()
 
 		Crosshair_Image->SetRenderScale(FVector2D(SpreadMultiplier, SpreadMultiplier));
 	}
+}
+
+void UTimeThiefHUDWidget::UpdateWireCooldownDisplay()
+{
+	if (!WireCooldown_ProgressBar)
+	{
+		return;
+	}
+
+	if (!CachedWireComponent.IsValid() || CachedWireComponent->GetCooldownRemaining() <= 0.0f)
+	{
+		WireCooldown_ProgressBar->SetPercent(0.0f);
+		WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	WireCooldown_ProgressBar->SetPercent(CachedWireComponent->GetCooldownPercent());
+	WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::HitTestInvisible);
 }

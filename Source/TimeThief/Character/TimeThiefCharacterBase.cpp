@@ -249,12 +249,12 @@ void ATimeThiefCharacterBase::OnConstruction(const FTransform& Transform)
 
 void ATimeThiefCharacterBase::TogglePerspective()
 {
-	bIsFirstPerson = !bIsFirstPerson;
+	// bIsFirstPerson = !bIsFirstPerson;
 
-	if (IsLocallyControlled())
-	{
-		ApplyPerspective();
-	}
+	// if (IsLocallyControlled())
+	// {
+	// 	ApplyPerspective();
+	// }
 }
 
 void ATimeThiefCharacterBase::ApplyPerspective()

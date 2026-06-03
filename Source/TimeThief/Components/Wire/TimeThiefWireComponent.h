@@ -89,6 +89,12 @@ public:
 	float GetCooldownRemaining() const { return CooldownRemaining; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
+	float GetWireCooldown() const { return WireCooldown; }
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
+	float GetCooldownPercent() const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
 	FVector GetWireStartLocation() const;
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Wire")
@@ -168,7 +174,7 @@ protected:
 	TObjectPtr<UTimeThiefWireTargeting> WireTargeting;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
-	float MaxWireLength = 2000.0f;
+	float MaxWireLength = 2500.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Settings")
 	float WireFireSpeed = 4000.0f;
