@@ -128,7 +128,7 @@ bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
 	const UUpgradeData* UpgradeBalanceData = nullptr;
 	if (const UItemSettings* ItemSettings = GetDefault<UItemSettings>())
 	{
-		UpgradeBalanceData = ItemSettings->GetUpgradeData();
+		UpgradeBalanceData = ItemSettings->UpgradeData.LoadSynchronous();
 	}
 
 	TMap<FGameplayTag, FUpgradeFloatLevels> DamageTable = UpgradeBalanceData

@@ -15,7 +15,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더링 박스에 더하는 여유 반경(cm). 높을수록 가장자리 잘림 감소, raymarch 범위 증가.
 	inline FVector GetRenderBoundsPadding()
 	{
-		return FVector(400.0, 400.0, 400.0);
+		return FVector(200.0, 200.0, 200.0);
 	}
 
 	// 연막 지속 시간(초).
@@ -23,7 +23,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 연막 페이드아웃 시간(초).
 	constexpr float SmokeFadeOutDuration = 5.0f;
 	// 초기 연막 밀도.
-	constexpr float InitialDensity = 1.0f;
+	constexpr float InitialDensity = 2.0f;
 
 	// 생성 플룸
 
@@ -32,7 +32,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 생성 소스 반경(cm). 높을수록 초기 연막 덩어리가 커짐.
 	constexpr float PlumeSourceRadius = 100.0f;
 	// 초기 연막 수평 확산 속도(cm/s).
-	constexpr float PlumeExpansionVelocity = 300.0f;
+	constexpr float PlumeExpansionVelocity = 500.0f;
 	// 초기 연막 상승 속도(cm/s).
 	constexpr float PlumeRiseVelocity = 50.0f;
 
@@ -41,7 +41,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 정적 월드 장애물 마스크 사용 여부. 끄면 비용 감소, 벽 차단 품질 감소.
 	constexpr bool bUseStaticObstacleMask = true;
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
-	constexpr int32 ObstacleMaskResolution = 48;
+	constexpr int32 ObstacleMaskResolution = 32;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
 	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
@@ -61,11 +61,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
 	constexpr bool bUseSparseMacSimulationByDefault = true;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 96;
+	constexpr int32 SmokeGridResolution = 64;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
-	constexpr int32 SmokeGridMaxAxisResolution = 96;
+	constexpr int32 SmokeGridMaxAxisResolution = 64;
 	// 컴퓨트 셰이더 스레드 그룹 한 변 크기. 셰이더 numthreads와 맞아야 함.
 	constexpr int32 SmokeThreadGroupSize = 4;
 	// 격자 재할당 축 정렬 단위. 높을수록 재할당 감소, 메모리 여유 증가.
@@ -83,11 +83,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// sparse brick 최대 크기(voxel). 높을수록 비용 감소, culling 정밀도 감소.
 	constexpr int32 SmokeBrickMaxSize = 32;
 	// 희소 아틀라스 활성 브릭 최대 개수. 높을수록 넓은 연막 지원과 VRAM 비용 증가.
-	constexpr int32 MaxActiveSmokeBricks = 144;
+	constexpr int32 MaxActiveSmokeBricks = 48;
 	// sparse composite를 유지할 최대 활성 브릭 비율. 높을수록 sparse 경로 유지, 과밀 때 비용 증가.
 	constexpr float SparseCompositeMaxActiveRatio = 0.35f;
 	// 희소 브릭 활성화 최소 속도(cm/s). 높을수록 비용 감소, 약한 움직임 손실 증가.
-	constexpr float SparseVelocityActiveThreshold = 150.0f;
+	constexpr float SparseVelocityActiveThreshold = 125.0f;
 
 	// 렌더링 raymarch
 
@@ -98,13 +98,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
 	constexpr int32 RenderStepCountMax = 256;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCount = 96;
+	constexpr int32 RenderMaxStepCount = 32;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
-	constexpr int32 RenderMaxStepCountMin = 16;
+	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCountMax = 512;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
-	constexpr float RenderStepVoxelScale = 1.35f;
+	constexpr float RenderStepVoxelScale = 1.0f;
 	// raymarch 스텝 voxel 배율 최소값. 낮을수록 디테일과 비용 증가.
 	constexpr float RenderStepVoxelScaleMin = 0.1f;
 	// raymarch 스텝 voxel 배율 최대값. 높을수록 비용 감소, 디테일 감소.
@@ -143,7 +143,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 자체 그림자를 계산할 최소 샘플 기여도. 높을수록 그림자 비용 감소.
 	constexpr float SelfShadowMinSampleWeight = 0.001f;
 	// 빈 raymarch 구간 최대 건너뛰기 배율. 높을수록 비용 감소, 빈 공간 culling이 거칠어짐.
-	constexpr float InactiveBrickRaymarchMaxSkipScale = 12.0f;
+	constexpr float InactiveBrickRaymarchMaxSkipScale = 8.0f;
 	// raymarch 투과율 종료 기준. 높을수록 비용 감소, 진한 연막 누적 손실 증가.
 	constexpr float RenderTransmittanceEarlyOut = 0.02f;
 	// 장애물 마스크 CPU 캐시 최대 개수. 높을수록 반복 생성 비용 감소, 메모리 증가.
@@ -158,17 +158,17 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더 노이즈 시간 스케일. 높을수록 노이즈 움직임 증가.
 	constexpr float RenderNoiseTimeScale = 0.05f;
 	// 렌더 경계 노이즈 공간 스케일(1/cm). 높을수록 경계 무늬가 촘촘해짐.
-	constexpr float RenderBoundaryNoiseScale = 0.0035f;
+	constexpr float RenderBoundaryNoiseScale = 0.005f;
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
-	constexpr float RenderBoundaryNoiseStrength = 0.02f;
+	constexpr float RenderBoundaryNoiseStrength = 0.035f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
 	constexpr float RenderFilamentScale = 1.0f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 2.0f;
+	constexpr float RenderFilamentStrength = 2.5f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
-	constexpr float RenderFilamentContrast = 5.5f;
+	constexpr float RenderFilamentContrast = 6.4f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
-	constexpr float RenderFilamentWarpStrength = 4.5f;
+	constexpr float RenderFilamentWarpStrength = 5.6f;
 
 	// 이류와 감쇠
 
