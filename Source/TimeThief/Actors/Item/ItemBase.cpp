@@ -11,6 +11,7 @@
 #include "Game/ItemSettings.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "NiagaraComponent.h"
 #include "UI/PromptWidget.h"
 
 
@@ -22,6 +23,10 @@ AItemBase::AItemBase()
 	LookingSphere = CreateDefaultSubobject<USphereComponent>("LookingSphere");
 	LookingSphere->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
 	LookingSphere->SetupAttachment(RootComponent);
+
+	IdleFXComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("IdleFXComponent"));
+	IdleFXComponent->SetupAttachment(RootComponent);
+	IdleFXComponent->SetAutoActivate(false);
 }
 
 // Called when the game starts or when spawned
@@ -82,6 +87,7 @@ void AItemBase::Disable()
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetVisibility(false);
+	DeactivateIdleFX();
 	bIsEnabled = false;
 }
 
@@ -100,6 +106,26 @@ void AItemBase::TryRequestServer()
 	}
 }
 
+void AItemBase::ActivateIdleFX()
+{
+	if (!IdleFXComponent || !IdleFXSystem)
+	{
+		return;
+	}
+
+	IdleFXComponent->SetAsset(IdleFXSystem);
+	IdleFXComponent->SetRelativeLocation(IdleFXOffset);
+	IdleFXComponent->Activate(true);
+}
+
+void AItemBase::DeactivateIdleFX()
+{
+	if (IdleFXComponent)
+	{
+		IdleFXComponent->Deactivate();
+	}
+}
+
 void AItemBase::SetItemStack(EItemID NewItemID, int NewQuantity)
 {
 	ItemID = NewItemID;
@@ -111,6 +137,7 @@ void AItemBase::SetItemStack(EItemID NewItemID, int NewQuantity)
 	MeshComponent->SetVisibility(true);
 	MeshComponent->EmptyOverrideMaterials();
 	MeshComponent->SetStaticMesh(GetDefault<UItemSettings>()->GetItemMesh(ItemID));
+	ActivateIdleFX();
 	
 	InteractionWidgetComponent->SetRelativeLocation(FVector{0, 0, MeshComponent->Bounds.BoxExtent.Z + 20});
 	
