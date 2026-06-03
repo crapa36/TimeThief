@@ -20,9 +20,15 @@ AChestActor::AChestActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	if (MeshComponent)
+	{
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		MeshComponent->SetHiddenInGame(true);
+	}
+
 	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent"));
 	SkeletalMeshComponent->SetupAttachment(RootComponent);
-	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
 	SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 }
@@ -32,16 +38,7 @@ void AChestActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ConfigureVisualMode();
 	ResetToClosedPose();
-	UpdateInteractionWidgetLocation();
-}
-
-void AChestActor::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
-
-	ConfigureVisualMode();
 	UpdateInteractionWidgetLocation();
 }
 
@@ -81,67 +78,26 @@ void AChestActor::OpenChest()
 		InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	if (MeshComponent)
+	if (!SkeletalMeshComponent || !OpenAnimation)
 	{
-		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		MeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Ignore);
-	}
-
-	if (SkeletalMeshComponent)
-	{
-		SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Ignore);
-	}
-
-	if (!IsSkeletalChestMode())
-	{
-		return;
-	}
-
-	if (!OpenAnimation)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[Chest] OpenChest skipped animation. Actor=%s, HasAnimation=false"),
-			*GetNameSafe(this));
+		UE_LOG(LogTemp, Warning, TEXT("[Chest] OpenChest skipped animation. Actor=%s, HasMesh=%s, HasAnimation=%s"),
+			*GetNameSafe(this),
+			SkeletalMeshComponent ? TEXT("true") : TEXT("false"),
+			OpenAnimation ? TEXT("true") : TEXT("false"));
 		return;
 	}
 
 	SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Ignore);
+	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SkeletalMeshComponent->bPauseAnims = false;
 	SkeletalMeshComponent->bNoSkeletonUpdate = false;
 	SkeletalMeshComponent->PlayAnimation(OpenAnimation, false);
 }
 
-bool AChestActor::IsSkeletalChestMode() const
-{
-	return bUseSkeletalChest && SkeletalMeshComponent && SkeletalMeshComponent->GetSkeletalMeshAsset() != nullptr;
-}
-
-void AChestActor::ConfigureVisualMode()
-{
-	const bool bUseSkeletalMode = IsSkeletalChestMode();
-
-	if (MeshComponent)
-	{
-		MeshComponent->SetVisibility(!bUseSkeletalMode, false);
-		MeshComponent->SetHiddenInGame(bUseSkeletalMode, false);
-		MeshComponent->SetCollisionEnabled(bUseSkeletalMode ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryOnly);
-		MeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, bUseSkeletalMode ? ECR_Ignore : ECR_Block);
-	}
-
-	if (SkeletalMeshComponent)
-	{
-		SkeletalMeshComponent->SetVisibility(bUseSkeletalMode, true);
-		SkeletalMeshComponent->SetHiddenInGame(!bUseSkeletalMode);
-		SkeletalMeshComponent->SetCollisionEnabled(bUseSkeletalMode ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
-		SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, bUseSkeletalMode ? ECR_Block : ECR_Ignore);
-	}
-
-	SetVisibilityInteractionUI(false);
-}
-
 void AChestActor::ResetToClosedPose()
 {
-	if (!IsSkeletalChestMode() || !OpenAnimation)
+	if (!SkeletalMeshComponent || !OpenAnimation)
 	{
 		return;
 	}
@@ -157,15 +113,12 @@ void AChestActor::ResetToClosedPose()
 
 void AChestActor::UpdateInteractionWidgetLocation()
 {
-	if (!InteractionWidgetComponent)
+	if (!InteractionWidgetComponent || !SkeletalMeshComponent)
 	{
 		return;
 	}
 
-	const float MeshHalfHeight = IsSkeletalChestMode() && SkeletalMeshComponent
-		? SkeletalMeshComponent->Bounds.BoxExtent.Z
-		: MeshComponent ? MeshComponent->Bounds.BoxExtent.Z : 0.0f;
-	const float WidgetHeight = MeshHalfHeight + InteractionWidgetHeightOffset;
+	const float WidgetHeight = SkeletalMeshComponent->Bounds.BoxExtent.Z + InteractionWidgetHeightOffset;
 	InteractionWidgetComponent->SetRelativeLocation(FVector{0.0f, 0.0f, WidgetHeight});
 }
 
