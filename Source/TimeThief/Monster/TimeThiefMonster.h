@@ -127,6 +127,7 @@ public:
 	void StartDeathDisappearEffect();
 	void FinishDeathHide();
 	void PlayRespawnEffect();
+	void PlayRewardBurstFX();
 	void FinishRespawn();
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
@@ -186,6 +187,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
 	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
 	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Reward|VFX")
+	TObjectPtr<UNiagaraSystem> RewardBurstFX = nullptr;
+	// 보상 획득이 발생하는 사망 순간에 한 번 재생되는 이펙트
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Reward|VFX")
+	FVector RewardBurstFXOffset = FVector::ZeroVector;
+	// Actor 기준 RewardBurstFX 위치 보정
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Reward|VFX")
+	FVector RewardBurstFXScale = FVector{2.0f, 2.0f, 2.0f};
+	// Actor별 RewardBurstFX 크기 보정
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Sound")
 	TObjectPtr<USoundBase> FireSound = nullptr;
@@ -205,6 +218,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsDead = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Reward|VFX")
+	bool bRewardBurstFXPlayed = false;
 	
 	UPROPERTY(BlueprintReadOnly)
 	EMonsterVisualState VisualState = EMonsterVisualState::Alive;

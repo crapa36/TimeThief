@@ -9,6 +9,9 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 
 
@@ -68,6 +71,7 @@ void AChestActor::OpenChest()
 
 	bIsOpened = true;
 	SetVisibilityInteractionUI(false);
+	PlayRewardBurstFX();
 
 	if (InteractionSphere)
 	{
@@ -116,5 +120,28 @@ void AChestActor::UpdateInteractionWidgetLocation()
 
 	const float WidgetHeight = SkeletalMeshComponent->Bounds.BoxExtent.Z + InteractionWidgetHeightOffset;
 	InteractionWidgetComponent->SetRelativeLocation(FVector{0.0f, 0.0f, WidgetHeight});
+}
+
+void AChestActor::PlayRewardBurstFX()
+{
+	if (bRewardBurstFXPlayed || !RewardBurstFX)
+	{
+		return;
+	}
+
+	bRewardBurstFXPlayed = true;
+
+	const FVector SpawnLocation = GetActorLocation() + GetActorTransform().TransformVectorNoScale(RewardBurstFXOffset);
+	UNiagaraComponent* SpawnedFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		RewardBurstFX,
+		SpawnLocation,
+		GetActorRotation()
+	);
+
+	if (SpawnedFX)
+	{
+		SpawnedFX->SetWorldScale3D(RewardBurstFXScale);
+	}
 }
 

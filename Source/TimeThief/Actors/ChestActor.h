@@ -5,6 +5,7 @@
 #include "ChestActor.generated.h"
 
 class UAnimSequenceBase;
+class UNiagaraSystem;
 class USkeletalMeshComponent;
 
 UCLASS()
@@ -32,6 +33,7 @@ public:
 protected:
 	void ResetToClosedPose();
 	void UpdateInteractionWidgetLocation();
+	void PlayRewardBurstFX();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
@@ -42,7 +44,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
 	float InteractionWidgetHeightOffset = 20.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest|VFX", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> RewardBurstFX = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest|VFX", meta = (AllowPrivateAccess = "true"))
+	FVector RewardBurstFXOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest|VFX", meta = (AllowPrivateAccess = "true"))
+	FVector RewardBurstFXScale = FVector{2.0f, 2.0f, 2.0f};
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
 	bool bIsOpened = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Chest|VFX", meta = (AllowPrivateAccess = "true"))
+	bool bRewardBurstFXPlayed = false;
 	
 };

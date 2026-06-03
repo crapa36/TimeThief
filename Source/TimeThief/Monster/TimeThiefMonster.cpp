@@ -246,6 +246,7 @@ void ATimeThiefMonster::OnDeathNetwork()
 	VisualState = EMonsterVisualState::Dying;
 	
 	SetActorHiddenInGame(false);
+	PlayRewardBurstFX();
 	DisableCombatCollision();
 	StopMovementVisual();
 	
@@ -301,6 +302,7 @@ void ATimeThiefMonster::OnRespawnNetwork(const FVector& SpawnLocation, const FRo
 	}
 
 	bIsDead = false;
+	bRewardBurstFXPlayed = false;
 	VisualState = EMonsterVisualState::Respawning;
 
 	SetActorHiddenInGame(false);
@@ -514,6 +516,29 @@ void ATimeThiefMonster::PlayRespawnEffect()
 	if (DissolveFXComponent)
 	{
 		DissolveFXComponent->PlayAppear();
+	}
+}
+
+void ATimeThiefMonster::PlayRewardBurstFX()
+{
+	if (bRewardBurstFXPlayed || !RewardBurstFX)
+	{
+		return;
+	}
+
+	bRewardBurstFXPlayed = true;
+
+	const FVector SpawnLocation = GetActorLocation() + GetActorTransform().TransformVectorNoScale(RewardBurstFXOffset);
+	UNiagaraComponent* SpawnedFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		RewardBurstFX,
+		SpawnLocation,
+		GetActorRotation()
+	);
+
+	if (SpawnedFX)
+	{
+		SpawnedFX->SetWorldScale3D(RewardBurstFXScale);
 	}
 }
 
