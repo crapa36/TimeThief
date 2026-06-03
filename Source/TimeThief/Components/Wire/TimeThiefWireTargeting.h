@@ -54,7 +54,7 @@ public:
 
 	// 화면 중심 기준 샘플 픽셀 간격
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
-	float ScreenSamplePixelStep = 12.0f;
+	float ScreenSamplePixelStep = 6.0f;
 	
 	// 필터링에 사용하는 기본 픽셀 반경
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
@@ -70,7 +70,7 @@ public:
 
 	// 얇은 타겟 후보 주변 정밀 샘플 픽셀 간격
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
-	float ThinTargetRefinePixelStep = 4.0f;
+	float ThinTargetRefinePixelStep = 2.0f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
 	TArray<TEnumAsByte<EObjectTypeQuery>> CollisionObjectTypes;

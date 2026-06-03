@@ -209,6 +209,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float TargetIndicatorUpdateInterval = 0.1f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float TargetIndicatorRetargetAngleDegrees = 1.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Audio")
 	TObjectPtr<USoundBase> FireSound;
 
@@ -355,6 +358,12 @@ private:
 	FVector FireDirection = FVector::ZeroVector;
 
 	UPROPERTY()
+	FVector FireStartLocation = FVector::ZeroVector;
+
+	UPROPERTY()
+	FVector FireTargetLocation = FVector::ZeroVector;
+
+	UPROPERTY()
 	FRotator AttachedAnchorRotation = FRotator::ZeroRotator;
 
 	FVector2D MoveInput = FVector2D::ZeroVector;
@@ -371,9 +380,11 @@ private:
 	float DefaultFOV = 90.0f;
 	float CurrentFOVOffset = 0.0f;
 	FVector CachedTargetIndicatorLocation = FVector::ZeroVector;
+	FVector CachedTargetAimDirection = FVector::ForwardVector;
 	FName PendingWireFireNotifyName = NAME_None;
 	FName PendingWireFireNotifyEventName = NAME_None;
 	bool bPendingWireFire = false;
 	bool bFireOnMontageEnded = false;
 	bool bHasCachedTargetIndicator = false;
+	bool bHasCachedTargetAimDirection = false;
 };
