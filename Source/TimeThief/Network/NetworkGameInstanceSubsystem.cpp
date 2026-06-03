@@ -16,6 +16,7 @@
 #include "NetworkMoveComponent.h"
 #include "TimeThiefGameplayTags.h"
 #include "TimeThiefNetworkSettings.h"
+#include "Actors/ChestActor.h"
 #include "Actors/Item/ItemBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
@@ -2027,17 +2028,26 @@ void UNetworkGameInstanceSubsystem::HandleChestInteracted(const se::game::N_Ches
 {
 	check(IsInGameThread());
 	
-	const uint32 EntityId = Pkt.entity_id().value();
-	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	const uint32 ChestEntityId = Pkt.chest_entity_id().value();
+	FEntityRuntimeEntry* ChestEntry = EntityEntries.Find(ChestEntityId);
 	
-	if (EntityEntry == nullptr)
+	if (ChestEntry == nullptr)
 	{
-		UE_LOG(LogTemp, Error, TEXT("EntityEntry not found"));
+		UE_LOG(LogTemp, Error, TEXT("[Chest] Chest entity entry not found. ChestEntityId=%u"), ChestEntityId);
 		return;
 	}
 
+	AChestActor* ChestActor = Cast<AChestActor>(ChestEntry->Actor.Get());
+	if (ChestActor == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Chest] Chest actor not found or invalid type. ChestEntityId=%u"), ChestEntityId);
+		return;
+	}
+
+	ChestActor->OpenChest();
+
 	// TODO: 해당 Player가 Chest에 Interaction 하는 모션 1회 Play
-	// EntityEntry->Actor->PlayChestInteract()
+	// const uint32 PlayerEntityId = Pkt.entity_id().value();
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemLost(const se::game::N_ItemLost& Pkt)
