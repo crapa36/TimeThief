@@ -2680,6 +2680,12 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 				return SpawnData->CatMonster;
 			}
 			
+		case 3:
+			if (SpawnData->MinionMonster)
+			{
+				return SpawnData->MinionMonster;
+			}
+			
 		default:
 			if (SpawnData->TestMonster)
 			{
