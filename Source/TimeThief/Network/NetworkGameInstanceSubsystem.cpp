@@ -1527,6 +1527,26 @@ void UNetworkGameInstanceSubsystem::HandleMonsterFire(const se::game::N_MonsterF
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
+void UNetworkGameInstanceSubsystem::HandleMonsterImpact(const se::game::N_MonsterImpact& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Impact;
+	Notify.AttackId = Pkt.attack_type();
+	const auto& Position = Pkt.position();
+	Notify.Origin = FVector(Position.x(), Position.y(), Position.z());
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
+}
+
 void UNetworkGameInstanceSubsystem::HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt)
 {
 	check(IsInGameThread());
