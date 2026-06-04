@@ -8,7 +8,19 @@
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "UI/TimeThiefControlGuideWidget.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+
+UTimeThiefHUDWidget::UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	static ConstructorHelpers::FClassFinder<UTimeThiefControlGuideWidget> ControlGuideWidgetFinder(TEXT("/Game/Game/UI/WBP_ControlGuide"));
+	if (ControlGuideWidgetFinder.Succeeded())
+	{
+		ControlGuideWidgetClass = ControlGuideWidgetFinder.Class;
+	}
+}
 
 void UTimeThiefHUDWidget::NativeConstruct()
 {
@@ -26,6 +38,8 @@ void UTimeThiefHUDWidget::NativeConstruct()
 		WireCooldown_ProgressBar->SetPercent(0.0f);
 	}
 	LastWireCooldownPercent = -1.0f;
+
+	EnsureControlGuideWidget();
 
 	if (ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 	{
@@ -58,6 +72,13 @@ void UTimeThiefHUDWidget::NativeDestruct()
 
 	CachedWeapon.Reset();
 	CachedWireComponent.Reset();
+
+	if (ControlGuideWidget)
+	{
+		ControlGuideWidget->RemoveFromParent();
+		ControlGuideWidget = nullptr;
+	}
+
 	Super::NativeDestruct();
 }
 
@@ -210,6 +231,44 @@ void UTimeThiefHUDWidget::OnWeaponUnequipped()
 void UTimeThiefHUDWidget::OnTimePointUpdated(int DisplayTimePoints)
 {
 	TimePoint_Text->SetText(FText::AsNumber(DisplayTimePoints));
+}
+
+void UTimeThiefHUDWidget::ToggleControlGuideWidget()
+{
+	EnsureControlGuideWidget();
+	if (!ControlGuideWidget)
+	{
+		return;
+	}
+
+	if (ControlGuideWidget->IsVisible())
+	{
+		ControlGuideWidget->SetVisibility(ESlateVisibility::Hidden);
+		return;
+	}
+
+	ControlGuideWidget->RefreshControlGuide();
+	ControlGuideWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UTimeThiefHUDWidget::EnsureControlGuideWidget()
+{
+	if (ControlGuideWidget || !ControlGuideWidgetClass)
+	{
+		return;
+	}
+
+	ControlGuideWidget = CreateWidget<UTimeThiefControlGuideWidget>(GetOwningPlayer(), ControlGuideWidgetClass);
+	if (!ControlGuideWidget)
+	{
+		return;
+	}
+
+	ControlGuideWidget->AddToViewport(100);
+	ControlGuideWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.0f));
+	ControlGuideWidget->SetPositionInViewport(FVector2D(0.0f, 56.0f), false);
+	ControlGuideWidget->SetVisibility(ESlateVisibility::Hidden);
+	ControlGuideWidget->RefreshControlGuide();
 }
 
 void UTimeThiefHUDWidget::UpdateCrosshairDisplay()

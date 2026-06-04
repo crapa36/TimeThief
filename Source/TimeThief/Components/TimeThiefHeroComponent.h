@@ -38,6 +38,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	const UTimeThiefInputConfig* GetInputConfig() const;
 
+	void GetInputMappingContexts(TArray<const UInputMappingContext*>& OutMappingContexts) const;
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	bool IsReadyToBindInputs() const { return bReadyToBindInputs; }
 

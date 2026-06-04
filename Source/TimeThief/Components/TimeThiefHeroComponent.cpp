@@ -83,6 +83,24 @@ const UTimeThiefInputConfig* UTimeThiefHeroComponent::GetInputConfig() const
 	return PawnData ? PawnData->InputConfig : nullptr;
 }
 
+void UTimeThiefHeroComponent::GetInputMappingContexts(TArray<const UInputMappingContext*>& OutMappingContexts) const
+{
+	OutMappingContexts.Reset();
+
+	if (!PawnData)
+	{
+		return;
+	}
+
+	for (const UInputMappingContext* MappingContext : PawnData->InputMappingContexts)
+	{
+		if (MappingContext)
+		{
+			OutMappingContexts.Add(MappingContext);
+		}
+	}
+}
+
 void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputComponent)
 {
 	check(PlayerInputComponent);

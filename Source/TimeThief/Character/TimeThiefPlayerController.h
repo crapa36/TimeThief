@@ -106,12 +106,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UGameResultWidget> GameResultWidget;
 
-	UPROPERTY()
-	TObjectPtr<UUserWidget> ControlGuideWidget;
-
 	bool bUIInitialized = false;
 	
 	uint32 LastInteractedStoreId = 0;   // 마지막으로 상호작용한 상점의 EntityId (상점 UI에서 사용)
-private:
-	void EnsureControlGuideWidget();
 };
