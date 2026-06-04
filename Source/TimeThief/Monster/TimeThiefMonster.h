@@ -16,7 +16,34 @@
 
 #include "TimeThiefMonster.generated.h"
 
+class UAnimMontage;
 class UNetworkMoveComponent;
+class USoundAttenuation;
+class USoundBase;
+
+USTRUCT(BlueprintType)
+struct FMonsterAttackVisualData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
+	TObjectPtr<UAnimMontage> Montage = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	TObjectPtr<UNiagaraSystem> CastFX = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	TObjectPtr<UNiagaraSystem> ImpactFX = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	FVector ImpactOffset = FVector::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
+	FVector ImpactScale = FVector::OneVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Sound")
+	TObjectPtr<USoundBase> ImpactSound = nullptr;
+};
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefMonster : public APawn
@@ -117,12 +144,16 @@ public:
 	void RemoteCombat(const FRemoteAttackNotify& AttackNotify);
 	
 	void RemoteFire(const FRemoteAttackNotify& AttackNotify);
+	void RemoteImpact(const FRemoteAttackNotify& AttackNotify);
 	void RemoteAttack(const FRemoteAttackNotify& AttackNotify);
 	
 	void RemoteHit(const FRemoteAttackNotify& AttackNotify);
 	void RemoteCancelAttack(const FRemoteAttackNotify& AttackNotify);
 	
+	const FMonsterAttackVisualData* GetAttackVisualData(int32 AttackType) const;
 	UAnimMontage* GetAttackMontage(int32 AttackType) const;
+	void PlayCastFX(UNiagaraSystem* CastFX, const FVector& Origin, const FVector& Direction, float Range) const;
+	void PlayImpactFX(const FMonsterAttackVisualData* VisualData, const FVector& Location, const FVector& Direction) const;
 
 	void StartDeathDisappearEffect();
 	void FinishDeathHide();
@@ -165,9 +196,13 @@ protected:
 	
 // BP에서 설정 필수 항목 
 // -----------------------------------------------------------------------------------	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat")
+	TMap<int32, FMonsterAttackVisualData> AttackVisualMap;
+	// AttackType(=AttackId)에 따른 몽타주, VFX, Sound 통합 매핑
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	TMap<int32, TObjectPtr<UAnimMontage>> AttackMontageMap;
-	// AttackType(=AttackId)에 따른 몽타주 매핑
+	// Legacy fallback: AttackVisualMap으로 이관 예정
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	TObjectPtr<UAnimMontage> HitReactMontage = nullptr;
@@ -184,14 +219,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Animation")
 	float DeathPoseFreezeLeadTime = 0.25f;
 	// 사망 몽타주 종료 직전에 포즈를 고정하기 위한 여유 시간
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
-	TObjectPtr<UNiagaraSystem> FireCastFX = nullptr;
-	// 사격 시전 이펙트 (총알 궤적 이펙트)
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|VFX")
-	TObjectPtr<UNiagaraSystem> FireImpactFX = nullptr;
-	// 사격 폭발 이펙트 (총구의 폭발 이펙트)
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Reward|VFX")
 	TObjectPtr<UNiagaraSystem> RewardBurstFX = nullptr;
@@ -204,10 +231,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Reward|VFX")
 	FVector RewardBurstFXScale = FVector{2.0f, 2.0f, 2.0f};
 	// Actor별 RewardBurstFX 크기 보정
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Sound")
-	TObjectPtr<USoundBase> FireSound = nullptr;
-	// 사격 사운드
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Combat|Sound")
 	TObjectPtr<USoundAttenuation> MonsterSoundAttenuation = nullptr;

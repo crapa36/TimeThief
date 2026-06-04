@@ -10,6 +10,7 @@ enum class ECombatNotifyType : uint8
 	Attack			UMETA(DisplayName = "Attack"),				// 일반 공격을 나타냅니다. (Monster)
 	Cancel			UMETA(DisplayName = "Cancel"),				// 공격 취소를 나타냅니다. (Monster)
 	Fire			UMETA(DisplayName = "Fire"),				// 총격을 나타냅니다. (Player/Monster)
+	Impact			UMETA(DisplayName = "Impact"),				// 서버 판정이 확정된 공격 충격 순간을 나타냅니다. (Monster)
 	Throw			UMETA(DisplayName = "Throw"),				// 수류탄 투척을 나타냅니다. (Player)
 	WeaponChange	UMETA(DisplayName = "Weapon Change"),		// 무기 변경을 나타냅니다. (Player)
 	Aiming			UMETA(DisplayName = "Aiming"),				// 조준을 나타냅니다. (Player)

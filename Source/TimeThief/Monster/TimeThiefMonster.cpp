@@ -352,6 +352,9 @@ void ATimeThiefMonster::RemoteCombat(const FRemoteAttackNotify& AttackNotify)
 		case ECombatNotifyType::Fire:
 			RemoteFire(AttackNotify);
 			break;
+		case ECombatNotifyType::Impact:
+			RemoteImpact(AttackNotify);
+			break;
 		case ECombatNotifyType::Attack:
 			RemoteAttack(AttackNotify);
 			break;
@@ -373,31 +376,84 @@ void ATimeThiefMonster::RemoteFire(const FRemoteAttackNotify& AttackNotify)
 {
 	const FVector MuzzleLocation = AttackNotify.Origin;
 	const FVector FireDirection = AttackNotify.Direction;
-	const float FireRange = AttackNotify.Range;
-	
-	const FVector EndLocation = MuzzleLocation + FireDirection * FireRange;
+	const FMonsterAttackVisualData* VisualData = GetAttackVisualData(AttackNotify.AttackId);
 	
 	// Ray / Beam FX
-	if (FireCastFX)
+	UNiagaraSystem* CastFX = VisualData ? VisualData->CastFX.Get() : nullptr;
+	PlayCastFX(CastFX, MuzzleLocation, FireDirection, AttackNotify.Range);
+
+	const FVector CastDirection = FireDirection.IsNearlyZero() ? GetActorForwardVector() : FireDirection.GetSafeNormal();
+	const FVector ImpactLocation = AttackNotify.Range > 0.0f ? MuzzleLocation + CastDirection * AttackNotify.Range : MuzzleLocation;
+	PlayImpactFX(VisualData, ImpactLocation, CastDirection);
+}
+
+void ATimeThiefMonster::RemoteImpact(const FRemoteAttackNotify& AttackNotify)
+{
+	const FMonsterAttackVisualData* VisualData = GetAttackVisualData(AttackNotify.AttackId);
+	const FVector ImpactDirection = AttackNotify.Direction.IsNearlyZero() ? GetActorForwardVector() : AttackNotify.Direction;
+	PlayImpactFX(VisualData, AttackNotify.Origin, ImpactDirection);
+}
+
+void ATimeThiefMonster::PlayCastFX(UNiagaraSystem* CastFX, const FVector& Origin, const FVector& Direction, float Range) const
+{
+	if (!CastFX)
+	{
+		return;
+	}
+
+	const FVector CastDirection = Direction.IsNearlyZero() ? GetActorForwardVector() : Direction.GetSafeNormal();
+	const FVector CastEndLocation = Range > 0.0f ? Origin + CastDirection * Range : Origin;
+	UNiagaraComponent* CastComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		CastFX,
+		Origin,
+		CastDirection.Rotation()
+	);
+
+	if (CastComponent)
+	{
+		CastComponent->SetVariablePosition(FName(TEXT("User.TrailStart")), Origin);
+		CastComponent->SetVariablePosition(FName(TEXT("User.TrailEnd")), CastEndLocation);
+		CastComponent->SetVariablePosition(FName(TEXT("User.Start")), Origin);
+		CastComponent->SetVariablePosition(FName(TEXT("User.End")), CastEndLocation);
+	}
+}
+
+void ATimeThiefMonster::PlayImpactFX(const FMonsterAttackVisualData* VisualData, const FVector& Location, const FVector& Direction) const
+{
+	UNiagaraSystem* ImpactFX = VisualData ? VisualData->ImpactFX.Get() : nullptr;
+	USoundBase* ImpactSound = VisualData ? VisualData->ImpactSound.Get() : nullptr;
+	if (!ImpactFX && !ImpactSound)
+	{
+		return;
+	}
+
+	const FVector ImpactDirection = Direction.IsNearlyZero() ? GetActorForwardVector() : Direction.GetSafeNormal();
+	const FRotator ImpactRotation = ImpactDirection.Rotation();
+	const FVector ImpactOffset = VisualData ? VisualData->ImpactOffset : FVector::ZeroVector;
+	const FVector ImpactScale = VisualData ? VisualData->ImpactScale : FVector::OneVector;
+	const FVector ImpactLocation = Location + GetActorTransform().TransformVectorNoScale(ImpactOffset);
+
+	if (ImpactFX)
 	{
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			GetWorld(),
-			FireCastFX,
-			MuzzleLocation,
-			FireDirection.Rotation()
+			ImpactFX,
+			ImpactLocation,
+			ImpactRotation,
+			ImpactScale
 		);
 	}
-	
-	// 사운드 재생
-	if (FireSound)
+
+	if (ImpactSound)
 	{
 		if (MonsterSoundAttenuation)
 		{
 			UGameplayStatics::SpawnSoundAtLocation(
 				this,
-				FireSound,
-				GetActorLocation(),
-				GetActorRotation(),
+				ImpactSound,
+				ImpactLocation,
+				ImpactRotation,
 				1.0f,
 				1.0f,
 				0.0f,
@@ -407,24 +463,13 @@ void ATimeThiefMonster::RemoteFire(const FRemoteAttackNotify& AttackNotify)
 		{
 			UGameplayStatics::SpawnSoundAtLocation(
 				this,
-				FireSound,
-				GetActorLocation(),
-				GetActorRotation(),
+				ImpactSound,
+				ImpactLocation,
+				ImpactRotation,
 				1.0f,
 				1.0f,
 				0.0f);
 		}
-	}
-
-	// Impact FX
-	if (FireImpactFX)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			GetWorld(),
-			FireImpactFX,
-			MuzzleLocation,
-			FireDirection.Rotation()
-		);
 	}
 }
 
@@ -477,8 +522,21 @@ void ATimeThiefMonster::RemoteCancelAttack(const FRemoteAttackNotify& AttackNoti
 	}
 }
 
+const FMonsterAttackVisualData* ATimeThiefMonster::GetAttackVisualData(int32 AttackType) const
+{
+	return AttackVisualMap.Find(AttackType);
+}
+
 UAnimMontage* ATimeThiefMonster::GetAttackMontage(int32 AttackType) const
 {
+	if (const FMonsterAttackVisualData* VisualData = GetAttackVisualData(AttackType))
+	{
+		if (VisualData->Montage)
+		{
+			return VisualData->Montage;
+		}
+	}
+
 	if (const TObjectPtr<UAnimMontage>* Found = AttackMontageMap.Find(AttackType))
 	{
 		return Found->Get();
