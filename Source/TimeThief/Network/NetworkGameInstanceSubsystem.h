@@ -174,6 +174,7 @@ public:
 
 // Test
 public:
+	void HandleDebugDraw(const se::game::N_DebugDraw& Pkt);
 	void HandleZoneStop(const se::test::N_ZoneStop& Pkt);
 	void HandleZoneStart(const se::test::N_ZoneStart& Pkt);
 	

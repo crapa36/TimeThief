@@ -27,6 +27,7 @@
 #include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameStateBase.h"
+#include "DrawDebugHelpers.h"
 #include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
@@ -54,8 +55,43 @@ namespace
 		return State == ENetworkPlayState::InRoom;
 	}
 
+	static FVector ToVector(const se::common::Vector3& Vector)
+	{
+		return FVector(Vector.x(), Vector.y(), Vector.z());
+	}
+
+	static FRotator ToRotator(const se::common::Rotator& Rotator)
+	{
+		return FRotator(Rotator.pitch(), Rotator.yaw(), Rotator.roll());
+	}
+
+	static FColor ToDebugDrawColor(uint32 ColorRgba)
+	{
+		if (ColorRgba == 0)
+		{
+			return FColor::Green;
+		}
+
+		return FColor(
+			static_cast<uint8>((ColorRgba >> 24) & 0xFF),
+			static_cast<uint8>((ColorRgba >> 16) & 0xFF),
+			static_cast<uint8>((ColorRgba >> 8) & 0xFF),
+			static_cast<uint8>(ColorRgba & 0xFF));
+	}
+
+	static float ToDebugDrawDuration(float Duration)
+	{
+		return Duration > 0.0f ? Duration : 1.0f;
+	}
+
+	static float ToDebugDrawThickness(float Thickness)
+	{
+		return Thickness > 0.0f ? Thickness : 1.0f;
+	}
+
 	static constexpr int32 EntitySpawnBatchSize = 10;
 	static constexpr float EntitySpawnBatchIntervalSeconds = 0.01f;
+	static constexpr int32 DebugDrawSphereSegments = 24;
 }
 
 /*---------------------------------
@@ -2438,6 +2474,58 @@ void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_Time
 	const float DestRadius = Pkt.radius();
 	
 	TimeStormComp->SetStormPhase(DestCenter, DestRadius, Pkt.waiting_time(), Pkt.shrinking_time());
+}
+
+void UNetworkGameInstanceSubsystem::HandleDebugDraw(const se::game::N_DebugDraw& Pkt)
+{
+	check(IsInGameThread());
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	const FColor Color = ToDebugDrawColor(Pkt.color_rgba());
+	const float Duration = ToDebugDrawDuration(Pkt.duration());
+	const float Thickness = ToDebugDrawThickness(Pkt.thickness());
+	
+	switch (Pkt.shape_case())
+	{
+	case se::game::N_DebugDraw::kSphere:
+	{
+		const auto& Sphere = Pkt.sphere();
+		DrawDebugSphere(
+			World,
+			ToVector(Sphere.position()),
+			Sphere.radius(),
+			DebugDrawSphereSegments,
+			Color,
+			false,
+			Duration,
+			0,
+			Thickness);
+		break;
+	}
+	case se::game::N_DebugDraw::kObb:
+	{
+		const auto& Obb = Pkt.obb();
+		DrawDebugBox(
+			World,
+			ToVector(Obb.center()),
+			ToVector(Obb.half_extents()),
+			ToRotator(Obb.rotation()).Quaternion(),
+			Color,
+			false,
+			Duration,
+			0,
+			Thickness);
+		break;
+	}
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("HandleDebugDraw: shape is not set"));
+		break;
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleZoneStop(const se::test::N_ZoneStop& Pkt)

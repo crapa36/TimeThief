@@ -1113,9 +1113,55 @@ struct N_TimeStormChangeDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_TimeStormChangeDefaultTypeInternal _N_TimeStormChange_default_instance_;
+PROTOBUF_CONSTEXPR DebugDrawSphere::DebugDrawSphere(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_.radius_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct DebugDrawSphereDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DebugDrawSphereDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DebugDrawSphereDefaultTypeInternal() {}
+  union {
+    DebugDrawSphere _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DebugDrawSphereDefaultTypeInternal _DebugDrawSphere_default_instance_;
+PROTOBUF_CONSTEXPR DebugDrawOBB::DebugDrawOBB(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.center_)*/nullptr
+  , /*decltype(_impl_.half_extents_)*/nullptr
+  , /*decltype(_impl_.rotation_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct DebugDrawOBBDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DebugDrawOBBDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DebugDrawOBBDefaultTypeInternal() {}
+  union {
+    DebugDrawOBB _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DebugDrawOBBDefaultTypeInternal _DebugDrawOBB_default_instance_;
+PROTOBUF_CONSTEXPR N_DebugDraw::N_DebugDraw(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.color_rgba_)*/0u
+  , /*decltype(_impl_.duration_)*/0
+  , /*decltype(_impl_.thickness_)*/0
+  , /*decltype(_impl_.shape_)*/{}
+  , /*decltype(_impl_._cached_size_)*/{}
+  , /*decltype(_impl_._oneof_case_)*/{}} {}
+struct N_DebugDrawDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_DebugDrawDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_DebugDrawDefaultTypeInternal() {}
+  union {
+    N_DebugDraw _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_DebugDrawDefaultTypeInternal _N_DebugDraw_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[78];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[81];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 
@@ -1751,6 +1797,35 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   PROTOBUF_FIELD_OFFSET(::se::game::N_TimeStormChange, _impl_.radius_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_TimeStormChange, _impl_.waiting_time_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_TimeStormChange, _impl_.shrinking_time_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawSphere, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawSphere, _impl_.position_),
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawSphere, _impl_.radius_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawOBB, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawOBB, _impl_.center_),
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawOBB, _impl_.half_extents_),
+  PROTOBUF_FIELD_OFFSET(::se::game::DebugDrawOBB, _impl_.rotation_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_DebugDraw, _internal_metadata_),
+  ~0u,  // no _extensions_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_DebugDraw, _impl_._oneof_case_[0]),
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  ::_pbi::kInvalidFieldOffsetTag,
+  ::_pbi::kInvalidFieldOffsetTag,
+  PROTOBUF_FIELD_OFFSET(::se::game::N_DebugDraw, _impl_.color_rgba_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_DebugDraw, _impl_.duration_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_DebugDraw, _impl_.thickness_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_DebugDraw, _impl_.shape_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::se::game::C_LoadingCompleteReq)},
@@ -1831,6 +1906,9 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 606, -1, -1, sizeof(::se::game::N_EntityRespawned)},
   { 614, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
   { 621, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 631, -1, -1, sizeof(::se::game::DebugDrawSphere)},
+  { 639, -1, -1, sizeof(::se::game::DebugDrawOBB)},
+  { 648, -1, -1, sizeof(::se::game::N_DebugDraw)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -1912,6 +1990,9 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_N_EntityRespawned_default_instance_._instance,
   &::se::game::_N_EntityDestroyed_default_instance_._instance,
   &::se::game::_N_TimeStormChange_default_instance_._instance,
+  &::se::game::_DebugDrawSphere_default_instance_._instance,
+  &::se::game::_DebugDrawOBB_default_instance_._instance,
+  &::se::game::_N_DebugDraw_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
@@ -2109,7 +2190,17 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "\265\030\002\230\265\030\004\"\204\001\n\021N_TimeStormChange\022\"\n\006center\030"
   "\001 \001(\0132\022.se.common.Vector3\022\016\n\006radius\030\002 \001("
   "\002\022\024\n\014waiting_time\030\003 \001(\002\022\026\n\016shrinking_tim"
-  "e\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004b\006proto3"
+  "e\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004\"G\n\017DebugDrawSpher"
+  "e\022$\n\010position\030\001 \001(\0132\022.se.common.Vector3\022"
+  "\016\n\006radius\030\002 \001(\002\"\202\001\n\014DebugDrawOBB\022\"\n\006cent"
+  "er\030\001 \001(\0132\022.se.common.Vector3\022(\n\014half_ext"
+  "ents\030\002 \001(\0132\022.se.common.Vector3\022$\n\010rotati"
+  "on\030\003 \001(\0132\022.se.common.Rotator\"\260\001\n\013N_Debug"
+  "Draw\022*\n\006sphere\030\001 \001(\0132\030.se.game.DebugDraw"
+  "SphereH\000\022$\n\003obb\030\002 \001(\0132\025.se.game.DebugDra"
+  "wOBBH\000\022\022\n\ncolor_rgba\030\n \001(\r\022\020\n\010duration\030\013"
+  " \001(\002\022\021\n\tthickness\030\014 \001(\002:\r\210\265\030\272\"\220\265\030\002\230\265\030\004B\007"
+  "\n\005shapeb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -2120,9 +2211,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 7790, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 8175, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
-    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 78,
+    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 81,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
     file_level_metadata_game_2fgame_5fmessages_2eproto, file_level_enum_descriptors_game_2fgame_5fmessages_2eproto,
     file_level_service_descriptors_game_2fgame_5fmessages_2eproto,
@@ -19677,6 +19768,959 @@ void N_TimeStormChange::InternalSwap(N_TimeStormChange* other) {
       file_level_metadata_game_2fgame_5fmessages_2eproto[77]);
 }
 
+// ===================================================================
+
+class DebugDrawSphere::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const DebugDrawSphere* msg);
+};
+
+const ::se::common::Vector3&
+DebugDrawSphere::_Internal::position(const DebugDrawSphere* msg) {
+  return *msg->_impl_.position_;
+}
+void DebugDrawSphere::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+DebugDrawSphere::DebugDrawSphere(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.DebugDrawSphere)
+}
+DebugDrawSphere::DebugDrawSphere(const DebugDrawSphere& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  DebugDrawSphere* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.radius_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  _this->_impl_.radius_ = from._impl_.radius_;
+  // @@protoc_insertion_point(copy_constructor:se.game.DebugDrawSphere)
+}
+
+inline void DebugDrawSphere::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , decltype(_impl_.radius_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+DebugDrawSphere::~DebugDrawSphere() {
+  // @@protoc_insertion_point(destructor:se.game.DebugDrawSphere)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void DebugDrawSphere::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+}
+
+void DebugDrawSphere::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void DebugDrawSphere::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.DebugDrawSphere)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  _impl_.radius_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* DebugDrawSphere::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float radius = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 21)) {
+          _impl_.radius_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* DebugDrawSphere::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.DebugDrawSphere)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  // float radius = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_radius = this->_internal_radius();
+  uint32_t raw_radius;
+  memcpy(&raw_radius, &tmp_radius, sizeof(tmp_radius));
+  if (raw_radius != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(2, this->_internal_radius(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.DebugDrawSphere)
+  return target;
+}
+
+size_t DebugDrawSphere::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.DebugDrawSphere)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  // float radius = 2;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_radius = this->_internal_radius();
+  uint32_t raw_radius;
+  memcpy(&raw_radius, &tmp_radius, sizeof(tmp_radius));
+  if (raw_radius != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData DebugDrawSphere::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    DebugDrawSphere::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DebugDrawSphere::GetClassData() const { return &_class_data_; }
+
+
+void DebugDrawSphere::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<DebugDrawSphere*>(&to_msg);
+  auto& from = static_cast<const DebugDrawSphere&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.DebugDrawSphere)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_radius = from._internal_radius();
+  uint32_t raw_radius;
+  memcpy(&raw_radius, &tmp_radius, sizeof(tmp_radius));
+  if (raw_radius != 0) {
+    _this->_internal_set_radius(from._internal_radius());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DebugDrawSphere::CopyFrom(const DebugDrawSphere& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.DebugDrawSphere)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool DebugDrawSphere::IsInitialized() const {
+  return true;
+}
+
+void DebugDrawSphere::InternalSwap(DebugDrawSphere* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DebugDrawSphere, _impl_.radius_)
+      + sizeof(DebugDrawSphere::_impl_.radius_)
+      - PROTOBUF_FIELD_OFFSET(DebugDrawSphere, _impl_.position_)>(
+          reinterpret_cast<char*>(&_impl_.position_),
+          reinterpret_cast<char*>(&other->_impl_.position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata DebugDrawSphere::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[78]);
+}
+
+// ===================================================================
+
+class DebugDrawOBB::_Internal {
+ public:
+  static const ::se::common::Vector3& center(const DebugDrawOBB* msg);
+  static const ::se::common::Vector3& half_extents(const DebugDrawOBB* msg);
+  static const ::se::common::Rotator& rotation(const DebugDrawOBB* msg);
+};
+
+const ::se::common::Vector3&
+DebugDrawOBB::_Internal::center(const DebugDrawOBB* msg) {
+  return *msg->_impl_.center_;
+}
+const ::se::common::Vector3&
+DebugDrawOBB::_Internal::half_extents(const DebugDrawOBB* msg) {
+  return *msg->_impl_.half_extents_;
+}
+const ::se::common::Rotator&
+DebugDrawOBB::_Internal::rotation(const DebugDrawOBB* msg) {
+  return *msg->_impl_.rotation_;
+}
+void DebugDrawOBB::clear_center() {
+  if (GetArenaForAllocation() == nullptr && _impl_.center_ != nullptr) {
+    delete _impl_.center_;
+  }
+  _impl_.center_ = nullptr;
+}
+void DebugDrawOBB::clear_half_extents() {
+  if (GetArenaForAllocation() == nullptr && _impl_.half_extents_ != nullptr) {
+    delete _impl_.half_extents_;
+  }
+  _impl_.half_extents_ = nullptr;
+}
+void DebugDrawOBB::clear_rotation() {
+  if (GetArenaForAllocation() == nullptr && _impl_.rotation_ != nullptr) {
+    delete _impl_.rotation_;
+  }
+  _impl_.rotation_ = nullptr;
+}
+DebugDrawOBB::DebugDrawOBB(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.DebugDrawOBB)
+}
+DebugDrawOBB::DebugDrawOBB(const DebugDrawOBB& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  DebugDrawOBB* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.center_){nullptr}
+    , decltype(_impl_.half_extents_){nullptr}
+    , decltype(_impl_.rotation_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_center()) {
+    _this->_impl_.center_ = new ::se::common::Vector3(*from._impl_.center_);
+  }
+  if (from._internal_has_half_extents()) {
+    _this->_impl_.half_extents_ = new ::se::common::Vector3(*from._impl_.half_extents_);
+  }
+  if (from._internal_has_rotation()) {
+    _this->_impl_.rotation_ = new ::se::common::Rotator(*from._impl_.rotation_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.game.DebugDrawOBB)
+}
+
+inline void DebugDrawOBB::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.center_){nullptr}
+    , decltype(_impl_.half_extents_){nullptr}
+    , decltype(_impl_.rotation_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+DebugDrawOBB::~DebugDrawOBB() {
+  // @@protoc_insertion_point(destructor:se.game.DebugDrawOBB)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void DebugDrawOBB::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.center_;
+  if (this != internal_default_instance()) delete _impl_.half_extents_;
+  if (this != internal_default_instance()) delete _impl_.rotation_;
+}
+
+void DebugDrawOBB::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void DebugDrawOBB::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.DebugDrawOBB)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.center_ != nullptr) {
+    delete _impl_.center_;
+  }
+  _impl_.center_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.half_extents_ != nullptr) {
+    delete _impl_.half_extents_;
+  }
+  _impl_.half_extents_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.rotation_ != nullptr) {
+    delete _impl_.rotation_;
+  }
+  _impl_.rotation_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* DebugDrawOBB::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 center = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_center(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 half_extents = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_half_extents(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Rotator rotation = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          ptr = ctx->ParseMessage(_internal_mutable_rotation(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* DebugDrawOBB::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.DebugDrawOBB)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 center = 1;
+  if (this->_internal_has_center()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::center(this),
+        _Internal::center(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 half_extents = 2;
+  if (this->_internal_has_half_extents()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::half_extents(this),
+        _Internal::half_extents(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Rotator rotation = 3;
+  if (this->_internal_has_rotation()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(3, _Internal::rotation(this),
+        _Internal::rotation(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.DebugDrawOBB)
+  return target;
+}
+
+size_t DebugDrawOBB::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.DebugDrawOBB)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 center = 1;
+  if (this->_internal_has_center()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.center_);
+  }
+
+  // .se.common.Vector3 half_extents = 2;
+  if (this->_internal_has_half_extents()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.half_extents_);
+  }
+
+  // .se.common.Rotator rotation = 3;
+  if (this->_internal_has_rotation()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.rotation_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData DebugDrawOBB::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    DebugDrawOBB::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*DebugDrawOBB::GetClassData() const { return &_class_data_; }
+
+
+void DebugDrawOBB::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<DebugDrawOBB*>(&to_msg);
+  auto& from = static_cast<const DebugDrawOBB&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.DebugDrawOBB)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_center()) {
+    _this->_internal_mutable_center()->::se::common::Vector3::MergeFrom(
+        from._internal_center());
+  }
+  if (from._internal_has_half_extents()) {
+    _this->_internal_mutable_half_extents()->::se::common::Vector3::MergeFrom(
+        from._internal_half_extents());
+  }
+  if (from._internal_has_rotation()) {
+    _this->_internal_mutable_rotation()->::se::common::Rotator::MergeFrom(
+        from._internal_rotation());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DebugDrawOBB::CopyFrom(const DebugDrawOBB& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.DebugDrawOBB)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool DebugDrawOBB::IsInitialized() const {
+  return true;
+}
+
+void DebugDrawOBB::InternalSwap(DebugDrawOBB* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DebugDrawOBB, _impl_.rotation_)
+      + sizeof(DebugDrawOBB::_impl_.rotation_)
+      - PROTOBUF_FIELD_OFFSET(DebugDrawOBB, _impl_.center_)>(
+          reinterpret_cast<char*>(&_impl_.center_),
+          reinterpret_cast<char*>(&other->_impl_.center_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata DebugDrawOBB::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[79]);
+}
+
+// ===================================================================
+
+class N_DebugDraw::_Internal {
+ public:
+  static const ::se::game::DebugDrawSphere& sphere(const N_DebugDraw* msg);
+  static const ::se::game::DebugDrawOBB& obb(const N_DebugDraw* msg);
+};
+
+const ::se::game::DebugDrawSphere&
+N_DebugDraw::_Internal::sphere(const N_DebugDraw* msg) {
+  return *msg->_impl_.shape_.sphere_;
+}
+const ::se::game::DebugDrawOBB&
+N_DebugDraw::_Internal::obb(const N_DebugDraw* msg) {
+  return *msg->_impl_.shape_.obb_;
+}
+void N_DebugDraw::set_allocated_sphere(::se::game::DebugDrawSphere* sphere) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_shape();
+  if (sphere) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(sphere);
+    if (message_arena != submessage_arena) {
+      sphere = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, sphere, submessage_arena);
+    }
+    set_has_sphere();
+    _impl_.shape_.sphere_ = sphere;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_DebugDraw.sphere)
+}
+void N_DebugDraw::set_allocated_obb(::se::game::DebugDrawOBB* obb) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  clear_shape();
+  if (obb) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+      ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(obb);
+    if (message_arena != submessage_arena) {
+      obb = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, obb, submessage_arena);
+    }
+    set_has_obb();
+    _impl_.shape_.obb_ = obb;
+  }
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_DebugDraw.obb)
+}
+N_DebugDraw::N_DebugDraw(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_DebugDraw)
+}
+N_DebugDraw::N_DebugDraw(const N_DebugDraw& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_DebugDraw* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.color_rgba_){}
+    , decltype(_impl_.duration_){}
+    , decltype(_impl_.thickness_){}
+    , decltype(_impl_.shape_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+    , /*decltype(_impl_._oneof_case_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.color_rgba_, &from._impl_.color_rgba_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.thickness_) -
+    reinterpret_cast<char*>(&_impl_.color_rgba_)) + sizeof(_impl_.thickness_));
+  clear_has_shape();
+  switch (from.shape_case()) {
+    case kSphere: {
+      _this->_internal_mutable_sphere()->::se::game::DebugDrawSphere::MergeFrom(
+          from._internal_sphere());
+      break;
+    }
+    case kObb: {
+      _this->_internal_mutable_obb()->::se::game::DebugDrawOBB::MergeFrom(
+          from._internal_obb());
+      break;
+    }
+    case SHAPE_NOT_SET: {
+      break;
+    }
+  }
+  // @@protoc_insertion_point(copy_constructor:se.game.N_DebugDraw)
+}
+
+inline void N_DebugDraw::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.color_rgba_){0u}
+    , decltype(_impl_.duration_){0}
+    , decltype(_impl_.thickness_){0}
+    , decltype(_impl_.shape_){}
+    , /*decltype(_impl_._cached_size_)*/{}
+    , /*decltype(_impl_._oneof_case_)*/{}
+  };
+  clear_has_shape();
+}
+
+N_DebugDraw::~N_DebugDraw() {
+  // @@protoc_insertion_point(destructor:se.game.N_DebugDraw)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_DebugDraw::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (has_shape()) {
+    clear_shape();
+  }
+}
+
+void N_DebugDraw::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_DebugDraw::clear_shape() {
+// @@protoc_insertion_point(one_of_clear_start:se.game.N_DebugDraw)
+  switch (shape_case()) {
+    case kSphere: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.shape_.sphere_;
+      }
+      break;
+    }
+    case kObb: {
+      if (GetArenaForAllocation() == nullptr) {
+        delete _impl_.shape_.obb_;
+      }
+      break;
+    }
+    case SHAPE_NOT_SET: {
+      break;
+    }
+  }
+  _impl_._oneof_case_[0] = SHAPE_NOT_SET;
+}
+
+
+void N_DebugDraw::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_DebugDraw)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.color_rgba_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.thickness_) -
+      reinterpret_cast<char*>(&_impl_.color_rgba_)) + sizeof(_impl_.thickness_));
+  clear_shape();
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_DebugDraw::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.game.DebugDrawSphere sphere = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_sphere(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.game.DebugDrawOBB obb = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_obb(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 color_rgba = 10;
+      case 10:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 80)) {
+          _impl_.color_rgba_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float duration = 11;
+      case 11:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 93)) {
+          _impl_.duration_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      // float thickness = 12;
+      case 12:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 101)) {
+          _impl_.thickness_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_DebugDraw::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_DebugDraw)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.game.DebugDrawSphere sphere = 1;
+  if (_internal_has_sphere()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::sphere(this),
+        _Internal::sphere(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.game.DebugDrawOBB obb = 2;
+  if (_internal_has_obb()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::obb(this),
+        _Internal::obb(this).GetCachedSize(), target, stream);
+  }
+
+  // uint32 color_rgba = 10;
+  if (this->_internal_color_rgba() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(10, this->_internal_color_rgba(), target);
+  }
+
+  // float duration = 11;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_duration = this->_internal_duration();
+  uint32_t raw_duration;
+  memcpy(&raw_duration, &tmp_duration, sizeof(tmp_duration));
+  if (raw_duration != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(11, this->_internal_duration(), target);
+  }
+
+  // float thickness = 12;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_thickness = this->_internal_thickness();
+  uint32_t raw_thickness;
+  memcpy(&raw_thickness, &tmp_thickness, sizeof(tmp_thickness));
+  if (raw_thickness != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(12, this->_internal_thickness(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_DebugDraw)
+  return target;
+}
+
+size_t N_DebugDraw::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_DebugDraw)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 color_rgba = 10;
+  if (this->_internal_color_rgba() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_color_rgba());
+  }
+
+  // float duration = 11;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_duration = this->_internal_duration();
+  uint32_t raw_duration;
+  memcpy(&raw_duration, &tmp_duration, sizeof(tmp_duration));
+  if (raw_duration != 0) {
+    total_size += 1 + 4;
+  }
+
+  // float thickness = 12;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_thickness = this->_internal_thickness();
+  uint32_t raw_thickness;
+  memcpy(&raw_thickness, &tmp_thickness, sizeof(tmp_thickness));
+  if (raw_thickness != 0) {
+    total_size += 1 + 4;
+  }
+
+  switch (shape_case()) {
+    // .se.game.DebugDrawSphere sphere = 1;
+    case kSphere: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.shape_.sphere_);
+      break;
+    }
+    // .se.game.DebugDrawOBB obb = 2;
+    case kObb: {
+      total_size += 1 +
+        ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+          *_impl_.shape_.obb_);
+      break;
+    }
+    case SHAPE_NOT_SET: {
+      break;
+    }
+  }
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_DebugDraw::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_DebugDraw::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_DebugDraw::GetClassData() const { return &_class_data_; }
+
+
+void N_DebugDraw::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_DebugDraw*>(&to_msg);
+  auto& from = static_cast<const N_DebugDraw&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_DebugDraw)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_color_rgba() != 0) {
+    _this->_internal_set_color_rgba(from._internal_color_rgba());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_duration = from._internal_duration();
+  uint32_t raw_duration;
+  memcpy(&raw_duration, &tmp_duration, sizeof(tmp_duration));
+  if (raw_duration != 0) {
+    _this->_internal_set_duration(from._internal_duration());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_thickness = from._internal_thickness();
+  uint32_t raw_thickness;
+  memcpy(&raw_thickness, &tmp_thickness, sizeof(tmp_thickness));
+  if (raw_thickness != 0) {
+    _this->_internal_set_thickness(from._internal_thickness());
+  }
+  switch (from.shape_case()) {
+    case kSphere: {
+      _this->_internal_mutable_sphere()->::se::game::DebugDrawSphere::MergeFrom(
+          from._internal_sphere());
+      break;
+    }
+    case kObb: {
+      _this->_internal_mutable_obb()->::se::game::DebugDrawOBB::MergeFrom(
+          from._internal_obb());
+      break;
+    }
+    case SHAPE_NOT_SET: {
+      break;
+    }
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_DebugDraw::CopyFrom(const N_DebugDraw& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_DebugDraw)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_DebugDraw::IsInitialized() const {
+  return true;
+}
+
+void N_DebugDraw::InternalSwap(N_DebugDraw* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(N_DebugDraw, _impl_.thickness_)
+      + sizeof(N_DebugDraw::_impl_.thickness_)
+      - PROTOBUF_FIELD_OFFSET(N_DebugDraw, _impl_.color_rgba_)>(
+          reinterpret_cast<char*>(&_impl_.color_rgba_),
+          reinterpret_cast<char*>(&other->_impl_.color_rgba_));
+  swap(_impl_.shape_, other->_impl_.shape_);
+  swap(_impl_._oneof_case_[0], other->_impl_._oneof_case_[0]);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_DebugDraw::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[80]);
+}
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace game
 }  // namespace se
@@ -19992,6 +21036,18 @@ Arena::CreateMaybeMessage< ::se::game::N_EntityDestroyed >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::N_TimeStormChange*
 Arena::CreateMaybeMessage< ::se::game::N_TimeStormChange >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::N_TimeStormChange >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::DebugDrawSphere*
+Arena::CreateMaybeMessage< ::se::game::DebugDrawSphere >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::DebugDrawSphere >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::DebugDrawOBB*
+Arena::CreateMaybeMessage< ::se::game::DebugDrawOBB >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::DebugDrawOBB >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_DebugDraw*
+Arena::CreateMaybeMessage< ::se::game::N_DebugDraw >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_DebugDraw >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 
