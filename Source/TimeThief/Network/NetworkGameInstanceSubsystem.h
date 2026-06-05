@@ -41,7 +41,7 @@ class PacketSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnStorePurchaseSucceeded, uint32 /*PurchasedItemID*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStorePurchaseSucceeded, uint32 /*PurchasedItemID*/, int32 /*NewPrice*/);
 
 UCLASS()
 class TIMETHIEF_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem

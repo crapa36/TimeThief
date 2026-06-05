@@ -1991,7 +1991,7 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 		return;
 	}
 
-	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id());
+	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id(), Pkt.new_price());
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)

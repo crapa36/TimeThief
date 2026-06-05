@@ -114,10 +114,14 @@ void UStoreSlotWidget::PlayPurchaseSuccessSound() const
 	UGameplayStatics::PlaySound2D(this, PurchaseSuccessSound);
 }
 
-void UStoreSlotWidget::OnStorePurchaseSucceeded(uint32 PurchasedItemID)
+void UStoreSlotWidget::OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 NewPrice)
 {
 	if (PurchasedItemID == static_cast<uint32>(ItemID))
 	{
+		if (Price_Text)
+		{
+			Price_Text->SetText(FText::AsNumber(NewPrice));
+		}
 		PlayPurchaseSuccessSound();
 	}
 }

@@ -38,6 +38,6 @@ public:
 
 private:
 	void PlayPurchaseSuccessSound() const;
-	void OnStorePurchaseSucceeded(uint32 PurchasedItemID);
+	void OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 NewPrice);
 };
 
