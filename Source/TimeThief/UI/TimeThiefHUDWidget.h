@@ -14,7 +14,6 @@ class UTimeThiefHealthComponent;
 class UTimeThiefPlayerCombatComponent;
 class UTimeThiefWeaponComponentBase;
 class UTimeThiefWireComponent;
-class UTimeThiefControlGuideWidget;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
@@ -63,7 +62,7 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD")
-	TSubclassOf<UTimeThiefControlGuideWidget> ControlGuideWidgetClass;
+	TSubclassOf<UUserWidget> ControlGuideWidgetClass;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
 	TWeakObjectPtr<ATimeThiefPlayerCharacter> CachedCharacter;
@@ -92,13 +91,18 @@ protected:
 	
 private:
 	void EnsureControlGuideWidget();
+	UUserWidget* GetControlGuideWidget() const;
+	void RefreshControlGuideWidget() const;
 	void UpdateCrosshairDisplay();
 	void UpdateWireCooldownDisplay();
 	
 	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UUserWidget> ControlGuideWidget;
+
 	UPROPERTY(Transient)
-	TObjectPtr<UTimeThiefControlGuideWidget> ControlGuideWidget;
+	TObjectPtr<UUserWidget> SpawnedControlGuideWidget;
 	float LastCrosshairScale = -1.0f;
 	float LastWireCooldownPercent = -1.0f;
 };

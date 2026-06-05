@@ -2,7 +2,6 @@
 #include "TimeThief.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
-#include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "Blueprint/UserWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
@@ -401,8 +400,6 @@ void ATimeThiefPlayerController::SetupInputComponent()
 
 	if (IsLocalPlayerController())
 	{
-		InputComponent->BindKey(EKeys::Slash, IE_Pressed, this, &ThisClass::ToggleControlGuideWidget);
-
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)

@@ -9,17 +9,11 @@
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "UI/TimeThiefControlGuideWidget.h"
-#include "UObject/ConstructorHelpers.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 UTimeThiefHUDWidget::UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	static ConstructorHelpers::FClassFinder<UTimeThiefControlGuideWidget> ControlGuideWidgetFinder(TEXT("/Game/Game/UI/WBP_ControlGuide"));
-	if (ControlGuideWidgetFinder.Succeeded())
-	{
-		ControlGuideWidgetClass = ControlGuideWidgetFinder.Class;
-	}
 }
 
 void UTimeThiefHUDWidget::NativeConstruct()
@@ -40,6 +34,11 @@ void UTimeThiefHUDWidget::NativeConstruct()
 	LastWireCooldownPercent = -1.0f;
 
 	EnsureControlGuideWidget();
+	if (UUserWidget* GuideWidget = GetControlGuideWidget())
+	{
+		GuideWidget->SetVisibility(ESlateVisibility::Hidden);
+		RefreshControlGuideWidget();
+	}
 
 	if (ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 	{
@@ -73,10 +72,10 @@ void UTimeThiefHUDWidget::NativeDestruct()
 	CachedWeapon.Reset();
 	CachedWireComponent.Reset();
 
-	if (ControlGuideWidget)
+	if (SpawnedControlGuideWidget)
 	{
-		ControlGuideWidget->RemoveFromParent();
-		ControlGuideWidget = nullptr;
+		SpawnedControlGuideWidget->RemoveFromParent();
+		SpawnedControlGuideWidget = nullptr;
 	}
 
 	Super::NativeDestruct();
@@ -236,39 +235,50 @@ void UTimeThiefHUDWidget::OnTimePointUpdated(int DisplayTimePoints)
 void UTimeThiefHUDWidget::ToggleControlGuideWidget()
 {
 	EnsureControlGuideWidget();
-	if (!ControlGuideWidget)
+	UUserWidget* GuideWidget = GetControlGuideWidget();
+	if (!GuideWidget)
 	{
 		return;
 	}
 
-	if (ControlGuideWidget->IsVisible())
+	if (GuideWidget->IsVisible())
 	{
-		ControlGuideWidget->SetVisibility(ESlateVisibility::Hidden);
+		GuideWidget->SetVisibility(ESlateVisibility::Hidden);
 		return;
 	}
 
-	ControlGuideWidget->RefreshControlGuide();
-	ControlGuideWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	RefreshControlGuideWidget();
+	GuideWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
 void UTimeThiefHUDWidget::EnsureControlGuideWidget()
 {
-	if (ControlGuideWidget || !ControlGuideWidgetClass)
+	if (GetControlGuideWidget() || !ControlGuideWidgetClass)
 	{
 		return;
 	}
 
-	ControlGuideWidget = CreateWidget<UTimeThiefControlGuideWidget>(GetOwningPlayer(), ControlGuideWidgetClass);
-	if (!ControlGuideWidget)
+	SpawnedControlGuideWidget = CreateWidget<UUserWidget>(GetOwningPlayer(), ControlGuideWidgetClass);
+	if (!SpawnedControlGuideWidget)
 	{
 		return;
 	}
 
-	ControlGuideWidget->AddToViewport(100);
-	ControlGuideWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.0f));
-	ControlGuideWidget->SetPositionInViewport(FVector2D(0.0f, 56.0f), false);
-	ControlGuideWidget->SetVisibility(ESlateVisibility::Hidden);
-	ControlGuideWidget->RefreshControlGuide();
+	SpawnedControlGuideWidget->AddToViewport();
+	SpawnedControlGuideWidget->SetVisibility(ESlateVisibility::Hidden);
+}
+
+UUserWidget* UTimeThiefHUDWidget::GetControlGuideWidget() const
+{
+	return ControlGuideWidget ? ControlGuideWidget.Get() : SpawnedControlGuideWidget.Get();
+}
+
+void UTimeThiefHUDWidget::RefreshControlGuideWidget() const
+{
+	if (UTimeThiefControlGuideWidget* TypedControlGuideWidget = Cast<UTimeThiefControlGuideWidget>(GetControlGuideWidget()))
+	{
+		TypedControlGuideWidget->RefreshControlGuide();
+	}
 }
 
 void UTimeThiefHUDWidget::UpdateCrosshairDisplay()
