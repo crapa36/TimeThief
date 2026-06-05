@@ -26,13 +26,7 @@ public:
 	ATimeThiefNetworkCharacterBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	virtual ~ATimeThiefNetworkCharacterBase();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
 	virtual FRotator GetBaseAimRotation() const override;
 
 	// Called to bind functionality to input

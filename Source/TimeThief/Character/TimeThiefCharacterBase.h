@@ -13,8 +13,10 @@ class UTimePointSystemComponent;
 class UTimeThiefPawnCombatComponent;
 class UTimeThiefHealthComponent;
 class UCameraComponent;
+class UPrimitiveComponent;
 class USkeletalMeshComponent;
 class USpringArmComponent;
+class UStaticMesh;
 struct FStoreOrder;
 
 class UAnimMontage;
@@ -126,6 +128,9 @@ protected:
 	FGameplayTagContainer OwnedGameplayTags;
 
 	float Mask = 1;
+	float LastAppliedMask = -1.0f;
+	TWeakObjectPtr<UPrimitiveComponent> LastMaskWeaponMesh;
+	TWeakObjectPtr<UStaticMesh> LastMaskWeaponStaticMesh;
 
 	UPROPERTY(EditAnywhere, Category = "VFX | Dissolve")
 	float InterpTime = 1;

@@ -25,8 +25,6 @@ class TIMETHIEF_API UTimeThiefWeaponComponentBase : public UActorComponent
 public:
 	UTimeThiefWeaponComponentBase();
 
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 	void SetWeaponTag(FGameplayTag InTag) { WeaponTag = InTag; }
 	void SetWeaponMeshAsset(UStaticMesh* InMesh) { WeaponMeshAsset = InMesh; }
 
@@ -203,11 +201,6 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Effects")
 	TObjectPtr<UParticleSystem> MuzzleFlashEffect;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon")
-	float AlertTime = 2;
-	
-	float RemainingTime = 0.0f;
 	
 	bool bIsFiring = false;
 	bool bIsReloading = false;

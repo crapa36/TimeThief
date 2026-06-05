@@ -41,6 +41,7 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
 
 	int32 AllocateSmokeId();

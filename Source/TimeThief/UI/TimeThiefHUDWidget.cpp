@@ -18,12 +18,14 @@ void UTimeThiefHUDWidget::NativeConstruct()
 	{
 		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
 	}
+	LastCrosshairScale = -1.0f;
 
 	if (WireCooldown_ProgressBar)
 	{
 		WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
 		WireCooldown_ProgressBar->SetPercent(0.0f);
 	}
+	LastWireCooldownPercent = -1.0f;
 
 	if (ATimeThiefPlayerCharacter* PlayerChar = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 	{
@@ -175,6 +177,7 @@ void UTimeThiefHUDWidget::OnWeaponEquipped(UTimeThiefWeaponComponentBase* Weapon
 	{
 		Crosshair_Image->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
+	LastCrosshairScale = -1.0f;
 
 	if (Weapon)
 	{
@@ -199,6 +202,7 @@ void UTimeThiefHUDWidget::OnWeaponUnequipped()
 	{
 		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
 	}
+	LastCrosshairScale = -1.0f;
 
 	OnAmmoUpdated(0, 0, false);
 }
@@ -212,9 +216,13 @@ void UTimeThiefHUDWidget::UpdateCrosshairDisplay()
 {
 	if (CachedCombatComponent.IsValid() && Crosshair_Image && CachedWeapon.IsValid())
 	{
-		float SpreadMultiplier = 1.0f + (CachedWeapon->GetCurrentSpread() * 0.5f);
+		const float SpreadMultiplier = 1.0f + (CachedWeapon->GetCurrentSpread() * 0.5f);
 
-		Crosshair_Image->SetRenderScale(FVector2D(SpreadMultiplier, SpreadMultiplier));
+		if (!FMath::IsNearlyEqual(LastCrosshairScale, SpreadMultiplier, KINDA_SMALL_NUMBER))
+		{
+			Crosshair_Image->SetRenderScale(FVector2D(SpreadMultiplier, SpreadMultiplier));
+			LastCrosshairScale = SpreadMultiplier;
+		}
 	}
 }
 
@@ -225,13 +233,29 @@ void UTimeThiefHUDWidget::UpdateWireCooldownDisplay()
 		return;
 	}
 
-	if (!CachedWireComponent.IsValid() || CachedWireComponent->GetCooldownRemaining() <= 0.0f)
+	const float CooldownRemaining = CachedWireComponent.IsValid() ? CachedWireComponent->GetCooldownRemaining() : 0.0f;
+	if (CooldownRemaining <= 0.0f)
 	{
-		WireCooldown_ProgressBar->SetPercent(0.0f);
-		WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
+		if (!FMath::IsNearlyZero(LastWireCooldownPercent))
+		{
+			WireCooldown_ProgressBar->SetPercent(0.0f);
+			LastWireCooldownPercent = 0.0f;
+		}
+		if (WireCooldown_ProgressBar->GetVisibility() != ESlateVisibility::Collapsed)
+		{
+			WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::Collapsed);
+		}
 		return;
 	}
 
-	WireCooldown_ProgressBar->SetPercent(CachedWireComponent->GetCooldownPercent());
-	WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::HitTestInvisible);
+	const float CooldownPercent = CachedWireComponent->GetCooldownPercent();
+	if (!FMath::IsNearlyEqual(LastWireCooldownPercent, CooldownPercent, KINDA_SMALL_NUMBER))
+	{
+		WireCooldown_ProgressBar->SetPercent(CooldownPercent);
+		LastWireCooldownPercent = CooldownPercent;
+	}
+	if (WireCooldown_ProgressBar->GetVisibility() != ESlateVisibility::HitTestInvisible)
+	{
+		WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
 }

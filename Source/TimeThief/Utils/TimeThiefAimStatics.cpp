@@ -10,7 +10,10 @@ static FCollisionQueryParams BuildTraceParams(const TArray<AActor*>& ActorsToIgn
 {
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefAimTrace), bTraceComplex);
 	QueryParams.bReturnPhysicalMaterial = bReturnPhysicalMaterial;
-	QueryParams.AddIgnoredActors(ActorsToIgnore);
+	if (ActorsToIgnore.Num() > 0)
+	{
+		QueryParams.AddIgnoredActors(ActorsToIgnore);
+	}
 	return QueryParams;
 }
 
@@ -225,7 +228,9 @@ bool UTimeThiefAimStatics::TraceAimHit(
 		return false;
 	}
 
-	TArray<AActor*> ActualActorsToIgnore = ActorsToIgnore;
+	TArray<AActor*> ActualActorsToIgnore;
+	ActualActorsToIgnore.Reserve(ActorsToIgnore.Num() + 1);
+	ActualActorsToIgnore.Append(ActorsToIgnore);
 	ActualActorsToIgnore.AddUnique(const_cast<APawn*>(Pawn));
 
 	return TraceFromView(Pawn->GetWorld(), ViewLocation, ViewDirection, Range, ActualActorsToIgnore, OutHitResult, OutTraceEnd, TraceChannel, bTraceComplex, bReturnPhysicalMaterial);
@@ -244,6 +249,19 @@ bool UTimeThiefAimStatics::TraceFromView(
 	bool bReturnPhysicalMaterial)
 {
 	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
+	return TraceViewTarget(World, ViewLocation, ViewDirection, Range, QueryParams, OutHitResult, OutTraceEnd, TraceChannel);
+}
+
+bool UTimeThiefAimStatics::TraceFromViewWithParams(
+	UWorld* World,
+	const FVector& ViewLocation,
+	const FVector& ViewDirection,
+	float Range,
+	const FCollisionQueryParams& QueryParams,
+	FHitResult& OutHitResult,
+	FVector& OutTraceEnd,
+	ECollisionChannel TraceChannel)
+{
 	return TraceViewTarget(World, ViewLocation, ViewDirection, Range, QueryParams, OutHitResult, OutTraceEnd, TraceChannel);
 }
 
@@ -310,5 +328,21 @@ bool UTimeThiefAimStatics::TraceLine(
 	}
 
 	const FCollisionQueryParams QueryParams = BuildTraceParams(ActorsToIgnore, bTraceComplex, bReturnPhysicalMaterial);
+	return World->LineTraceSingleByChannel(OutHitResult, TraceStart, TraceEnd, TraceChannel, QueryParams);
+}
+
+bool UTimeThiefAimStatics::TraceLineWithParams(
+	UWorld* World,
+	const FVector& TraceStart,
+	const FVector& TraceEnd,
+	const FCollisionQueryParams& QueryParams,
+	FHitResult& OutHitResult,
+	ECollisionChannel TraceChannel)
+{
+	if (!World)
+	{
+		return false;
+	}
+
 	return World->LineTraceSingleByChannel(OutHitResult, TraceStart, TraceEnd, TraceChannel, QueryParams);
 }

@@ -86,4 +86,6 @@ private:
 	void UpdateWireCooldownDisplay();
 	
 	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
+	float LastCrosshairScale = -1.0f;
+	float LastWireCooldownPercent = -1.0f;
 };

@@ -82,7 +82,6 @@ public:
 	virtual void NotifyControllerChanged() override;
 	
 	virtual void PossessedBy(AController* NewController) override;
-	virtual void Tick(float DeltaSeconds) override;
 		
 	virtual void OnDeath() override;
 	virtual void OnBeginRespawn() override;

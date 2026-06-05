@@ -1,6 +1,7 @@
 ﻿#include "Weapon/Components/TimeThiefShotgunComponent.h"
 #include "Animation/Player/TimeThiefPlayerAnimInstance.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "CollisionQueryParams.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
@@ -78,6 +79,13 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 	TArray<FShotgunHitResult> Results;
 	Results.Reserve(PelletCount);
 
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return Results;
+	}
+
+	AActor* OwnerActor = GetOwner();
 	const FVector MuzzleLocation = GetMuzzleLocation();
 	FVector CameraLocation = FVector::ZeroVector;
 	FVector CameraAimDir = FVector::ForwardVector;
@@ -86,35 +94,43 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Reserve(2);
-	ActorsToIgnore.Add(GetOwner());
-	if (GetOwner())
+	ActorsToIgnore.Add(OwnerActor);
+	if (OwnerActor)
 	{
-		ActorsToIgnore.Add(GetOwner()->GetParentActor());
+		ActorsToIgnore.Add(OwnerActor->GetParentActor());
 	}
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefShotgunTrace), true);
+	QueryParams.bReturnPhysicalMaterial = true;
+	QueryParams.AddIgnoredActors(ActorsToIgnore);
 
 	FVector CenterTraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, CameraAimDir, MaxRange);
 	FHitResult CenterHitResult;
-	UTimeThiefAimStatics::TraceFromView(
-		GetWorld(),
+	UTimeThiefAimStatics::TraceFromViewWithParams(
+		World,
 		CameraLocation,
 		CameraAimDir,
 		MaxRange,
-		ActorsToIgnore,
+		QueryParams,
 		CenterHitResult,
 		CenterTraceEnd,
-		ECC_Visibility,
-		true,
-		true);
+		ECC_Visibility);
 	const FVector CenterTargetLocation = CenterHitResult.bBlockingHit ? CenterHitResult.ImpactPoint : CenterTraceEnd;
 	CacheLastShotSyncData(
 		MuzzleLocation,
 		UTimeThiefAimStatics::ResolveAimDirectionToTarget(MuzzleLocation, CenterTargetLocation, CameraAimDir));
 
-	UWorld* World = GetWorld();
-	check(World);
-	ATimeThiefMasterWeapon* MasterWeapon = CastChecked<ATimeThiefMasterWeapon>(GetOwner());
+	ATimeThiefMasterWeapon* MasterWeapon = Cast<ATimeThiefMasterWeapon>(OwnerActor);
+	if (!MasterWeapon)
+	{
+		return Results;
+	}
 	UTimeThiefWeaponTrail* WeaponTrail = MasterWeapon->GetWeaponTrail();
-	check(WeaponTrail);
+	if (!WeaponTrail)
+	{
+		return Results;
+	}
+	UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = World->GetSubsystem<UTimeThiefSmokeWorldSubsystem>();
 
 	const float SpreadAngle = FMath::Max(0.0f, BaseSpread);
 	const float HalfSpreadRad = FMath::DegreesToRadians(FMath::Max(0.0f, SpreadAngle * 0.5f));
@@ -134,29 +150,25 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 		FVector CameraTraceEnd = UTimeThiefAimStatics::ResolveAimTargetLocation(CameraLocation, PelletAimDir, MaxRange);
 
 		FHitResult CameraHitResult;
-		UTimeThiefAimStatics::TraceFromView(
-			GetWorld(),
+		UTimeThiefAimStatics::TraceFromViewWithParams(
+			World,
 			CameraLocation,
 			PelletAimDir,
 			MaxRange,
-			ActorsToIgnore,
+			QueryParams,
 			CameraHitResult,
 			CameraTraceEnd,
-			ECC_Visibility,
-			true,
-			true);
+			ECC_Visibility);
 
 		const FVector TargetLocation = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : CameraTraceEnd;
 		FHitResult WeaponHitResult;
-		const bool bWeaponHit = UTimeThiefAimStatics::TraceLine(
-			GetWorld(),
+		const bool bWeaponHit = UTimeThiefAimStatics::TraceLineWithParams(
+			World,
 			MuzzleLocation,
 			TargetLocation,
-			ActorsToIgnore,
+			QueryParams,
 			WeaponHitResult,
-			ECC_Visibility,
-			true,
-			true);
+			ECC_Visibility);
 
 		const FVector TrailEndLocation = bWeaponHit ? WeaponHitResult.ImpactPoint : TargetLocation;
 		WeaponTrail->DrawHitscanTrail(
@@ -165,7 +177,7 @@ TArray<FShotgunHitResult> UTimeThiefShotgunComponent::PerformPelletHitScan()
 			MuzzleLocation,
 			TrailEndLocation);
 
-		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
+		if (SmokeSubsystem)
 		{
 			SmokeSubsystem->SubmitBulletTrace(MuzzleLocation, TrailEndLocation, 0.65f, static_cast<int32>(RandomSeed + PelletIndex * 104729u));
 		}
