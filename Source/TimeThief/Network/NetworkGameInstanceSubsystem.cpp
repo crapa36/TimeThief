@@ -1986,7 +1986,12 @@ void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupIte
 
 void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt)
 {
-	// TODO: 프로토콜 업데이트 하여 정보를 추가하고 해당 Store UI에 접근하여 적용하여야 함
+	if (!Pkt.success())
+	{
+		return;
+	}
+
+	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id());
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)

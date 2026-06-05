@@ -10,11 +10,29 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Game/ItemSettings.h"
+#include "Kismet/GameplayStatics.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "Sound/SoundBase.h"
 
 void UStoreSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->OnStorePurchaseSucceeded.RemoveAll(this);
+		NGIS->OnStorePurchaseSucceeded.AddUObject(this, &ThisClass::OnStorePurchaseSucceeded);
+	}
+}
+
+void UStoreSlotWidget::NativeDestruct()
+{
+	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		NGIS->OnStorePurchaseSucceeded.RemoveAll(this);
+	}
+
+	Super::NativeDestruct();
 }
 
 void UStoreSlotWidget::OnSlotClicked()
@@ -55,7 +73,11 @@ void UStoreSlotWidget::OnSlotClicked()
 						break;
 					}
 					Order.Price += Level * ItemInfo.Increment;
-					Player->PurchaseItem(Order);
+					const bool bPurchased = Player->PurchaseItem(Order);
+					if (bPurchased)
+					{
+						PlayPurchaseSuccessSound();
+					}
 			
 					UpdateUI();
 				}
@@ -79,6 +101,24 @@ void UStoreSlotWidget::OnSlotClicked()
 			
 			NGIS->SendStoreUse(StoreEntityId, static_cast<uint32>(ItemID));
 		}
+	}
+}
+
+void UStoreSlotWidget::PlayPurchaseSuccessSound() const
+{
+	if (!PurchaseSuccessSound)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySound2D(this, PurchaseSuccessSound);
+}
+
+void UStoreSlotWidget::OnStorePurchaseSucceeded(uint32 PurchasedItemID)
+{
+	if (PurchasedItemID == static_cast<uint32>(ItemID))
+	{
+		PlayPurchaseSuccessSound();
 	}
 }
 

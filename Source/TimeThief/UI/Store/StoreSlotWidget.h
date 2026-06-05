@@ -10,6 +10,7 @@
 class UTextBlock;
 class UImage;
 class UButton;
+class USoundBase;
 /**
  * 
  */
@@ -20,9 +21,13 @@ class TIMETHIEF_API UStoreSlotWidget : public UItemSlotWidgetBase
 	
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	
 	UPROPERTY(meta =(BindWidget))
 	TObjectPtr<UTextBlock> Price_Text;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Store|Feedback")
+	TObjectPtr<USoundBase> PurchaseSuccessSound = nullptr;
 	
 public:
 	virtual void OnSlotClicked() override;
@@ -30,5 +35,9 @@ public:
 	void Init(EItemID InItemID);
 	
 	virtual void UpdateUI() override;
+
+private:
+	void PlayPurchaseSuccessSound() const;
+	void OnStorePurchaseSucceeded(uint32 PurchasedItemID);
 };
 

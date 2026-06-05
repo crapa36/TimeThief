@@ -41,6 +41,7 @@ class PacketSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnStorePurchaseSucceeded, uint32 /*PurchasedItemID*/);
 
 UCLASS()
 class TIMETHIEF_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem
@@ -60,6 +61,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Network|Game")
 	FOnNetworkPlayerGameResult OnPlayerGameResult;
+
+	FOnStorePurchaseSucceeded OnStorePurchaseSucceeded;
 
 	ENetworkPlayState GetPlayState() const { return PlayState; }
 
