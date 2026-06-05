@@ -24,6 +24,11 @@ void UMinimapWidget::NativeConstruct()
 
 	StormZoneMID = StormZone_Image ? StormZone_Image->GetDynamicMaterial() : nullptr;
 	NextStormZoneMID = NextStormZone_Image ? NextStormZone_Image->GetDynamicMaterial() : nullptr;
+
+	if (Player_Icon)
+	{
+		Player_Icon->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+	}
 	
 	if (UWorld* World = GetWorld())
 	{
@@ -78,6 +83,7 @@ void UMinimapWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	if (Player_Icon)
 	{
 		Player_Icon->SetRenderTranslation(MinimapPosition);
+		Player_Icon->SetRenderTransformAngle(PlayerController->GetControlRotation().Yaw);
 	}
 		
 	float Radius;
