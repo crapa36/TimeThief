@@ -81,6 +81,15 @@ void UInventoryWidget::SetVisibility(ESlateVisibility InVisibility)
 
 void UInventoryWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 {
+	if (Player.IsValid())
+	{
+		Player->OnVicinityItemUpdatedEvent.RemoveAll(this);
+		if (UInventorySystemComponent* PreviousInventoryComp = Player->GetInventoryComponent())
+		{
+			PreviousInventoryComp->OnInventoryUpdatedEvent.RemoveAll(this);
+		}
+	}
+
 	Player = InPlayer;
 
 	if (Player.IsValid())
@@ -93,6 +102,32 @@ void UInventoryWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 			
 			ConsumableEquipmentWidget->Init(InPlayer);
 			ThrowableEquipmentWidget->Init(InPlayer);
+		}
+
+		OnVicinityItemUpdated();
+		OnInventoryItemUpdated();
+	}
+	else
+	{
+		if (VicinityItem_ListView)
+		{
+			VicinityItem_ListView->ClearListItems();
+		}
+		if (Inventory_ListView)
+		{
+			Inventory_ListView->ClearListItems();
+		}
+		if (Vicinity_VerticalBox)
+		{
+			Vicinity_VerticalBox->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (ConsumableEquipmentWidget)
+		{
+			ConsumableEquipmentWidget->Init(nullptr);
+		}
+		if (ThrowableEquipmentWidget)
+		{
+			ThrowableEquipmentWidget->Init(nullptr);
 		}
 	}
 }

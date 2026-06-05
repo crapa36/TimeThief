@@ -45,11 +45,6 @@ protected:
 	virtual void OnRegister() override;
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-
-	
 	void ClearInventory();
 	
 	void AddItem(EItemID ItemID, int Amount = 1);
@@ -74,6 +69,7 @@ public:
 
 
 private:
+	void InitializeInventoryObjects();
 	void SetConsumableEquipment(EItemID ItemID);
 	void SetThrowableEquipment(EItemID ItemID);
 	

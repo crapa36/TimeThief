@@ -35,9 +35,7 @@ namespace
 // Sets default values for this component's properties
 UInventorySystemComponent::UInventorySystemComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 
@@ -52,8 +50,15 @@ void UInventorySystemComponent::BeginPlay()
 void UInventorySystemComponent::OnRegister()
 {
 	Super::OnRegister();
-	
+
+	InitializeInventoryObjects();
+}
+
+void UInventorySystemComponent::InitializeInventoryObjects()
+{
 	ItemQuantities.Reset();
+	ConsumableEquipment = EItemID::SIZE;
+	ThrowableEquipment = EItemID::SIZE;
 
 	if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
 	{
@@ -68,30 +73,34 @@ void UInventorySystemComponent::OnRegister()
 			ItemQuantities.Add(NewObject<UInventoryObject>(this, UInventoryObject::StaticClass()));
 			ItemQuantities.Last()->ItemID = ItemID;
 		}
-
-		if (ThrowableEquipment == EItemID::SIZE && FindInventoryObject(EItemID::SmokeGrenade))
-		{
-			SetThrowableEquipment(EItemID::SmokeGrenade);
-#if !UE_BUILD_SHIPPING
-			UE_LOG(LogTemp, Log, TEXT("[ThrowableDebug][Inventory] Default throwable equipment set to SmokeGrenade."));
-#endif
-		}
 	}
-}
-
-
-// Called every frame
-void UInventorySystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                              FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 void UInventorySystemComponent::ClearInventory()
 {
-	ItemQuantities.Reset();
+	if (ItemQuantities.IsEmpty())
+	{
+		InitializeInventoryObjects();
+	}
+
+	for (UInventoryObject* InventoryObject : ItemQuantities)
+	{
+		if (InventoryObject && InventoryObject->Quantity != 0)
+		{
+			InventoryObject->Quantity = 0;
+			InventoryObject->OnInventoryObjectUpdatedEvent.Broadcast();
+		}
+	}
+
+	if (ConsumableEquipment != EItemID::SIZE)
+	{
+		SetConsumableEquipment(EItemID::SIZE);
+	}
+	if (ThrowableEquipment != EItemID::SIZE)
+	{
+		SetThrowableEquipment(EItemID::SIZE);
+	}
+
 	OnInventoryUpdatedEvent.Broadcast();
 }
 
@@ -210,6 +219,11 @@ void UInventorySystemComponent::SetInventory(const TArray<TPair<EItemID,int>>& N
 void UInventorySystemComponent::SetEquipment(EItemID ItemID)
 {
 	if (ItemID == EItemID::SIZE)
+	{
+		return;
+	}
+
+	if (GetItemQuantity(ItemID) <= 0)
 	{
 		return;
 	}

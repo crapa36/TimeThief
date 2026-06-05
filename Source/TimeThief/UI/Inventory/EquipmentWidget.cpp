@@ -12,18 +12,32 @@
 
 void UEquipmentWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 {
+	if (BoundInventoryComponent.IsValid())
+	{
+		BoundInventoryComponent->OnThrowableEquipmentUpdatedEvent.RemoveAll(this);
+		BoundInventoryComponent->OnConsumableEquipmentUpdatedEvent.RemoveAll(this);
+		BoundInventoryComponent.Reset();
+	}
+
+	if (!InPlayer)
+	{
+		OnChangedEquipment(EItemID::SIZE);
+		return;
+	}
+
 	if (auto Inventory = InPlayer->GetInventoryComponent())
 	{
+		BoundInventoryComponent = Inventory;
 		if (EquipmentCategory == EItemCategory::Throwable)
 		{
 			Inventory->OnThrowableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
-			OnChangedEquipment(EItemID::SIZE);
+			OnChangedEquipment(Inventory->GetThrowableEquipment());
 			PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("5")));
 		}
 		else if (EquipmentCategory == EItemCategory::Consumable)
 		{
 			Inventory->OnConsumableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
-			OnChangedEquipment(EItemID::SIZE);
+			OnChangedEquipment(Inventory->GetConsumableEquipment());
 			PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("4")));
 		}
 	}
@@ -39,9 +53,16 @@ void UEquipmentWidget::OnChangedEquipment(EItemID InItemID)
 	const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
 	if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
 	{
+		const FItemData* ItemData = LoadedData->Items.Find(InItemID);
+		if (!ItemData)
+		{
+			SetVisibility(ESlateVisibility::Hidden);
+			return;
+		}
+
 		SetVisibility(ESlateVisibility::Visible);
-		ItemIcon_Image->SetBrushFromTexture(LoadedData->Items[InItemID].Icon);
-		PromptWidget->Prompt_Text->SetText(FText::FromString(LoadedData->Items[InItemID].Name));
+		ItemIcon_Image->SetBrushFromTexture(ItemData->Icon);
+		PromptWidget->Prompt_Text->SetText(FText::FromString(ItemData->Name));
 	}
 }
 
