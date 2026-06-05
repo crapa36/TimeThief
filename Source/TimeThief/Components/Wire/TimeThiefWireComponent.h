@@ -47,9 +47,6 @@ public:
 	void ConfirmWireFire();
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
-	void CancelWireFire();
-
-	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
 	void ReleaseWire();
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Wire")
@@ -119,6 +116,7 @@ private:
 	void BindWireFireAnimation(UAnimInstance* AnimInstance, UAnimMontage* Montage);
 	void ClearWireFireAnimation(bool bClearMontageEndDelegate);
 	FName GetWireFireNotifyEventName() const;
+	void ResetWireToIdle();
 	void OnWireFireMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	UFUNCTION()
