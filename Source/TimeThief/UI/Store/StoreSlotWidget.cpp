@@ -118,7 +118,7 @@ void UStoreSlotWidget::OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 Ne
 {
 	if (PurchasedItemID == static_cast<uint32>(ItemID))
 	{
-		if (Price_Text)
+		if (Price_Text && NewPrice > 0)
 		{
 			Price_Text->SetText(FText::AsNumber(NewPrice));
 		}
