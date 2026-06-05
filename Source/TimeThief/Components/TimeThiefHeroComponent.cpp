@@ -127,6 +127,7 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_TogglePerspective, ETriggerEvent::Started, this, &ThisClass::Input_TogglePerspective);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this, &ThisClass::Input_ToggleMinimap);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_ToggleControlGuide, ETriggerEvent::Started, this, &ThisClass::Input_ToggleControlGuide);
+	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_CloseUI, ETriggerEvent::Started, this, &ThisClass::Input_CloseUI);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Interact, ETriggerEvent::Started, this, &ThisClass::Input_Interact);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Inventory, ETriggerEvent::Started, this, &ThisClass::Input_ToggleInventory);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Started, this, &ThisClass::Input_WheelMenu);
@@ -236,6 +237,14 @@ void UTimeThiefHeroComponent::Input_ToggleControlGuide(const FInputActionValue& 
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 	{
 		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController())) PC->ToggleControlGuideWidget();
+	}
+}
+
+void UTimeThiefHeroComponent::Input_CloseUI(const FInputActionValue& Value)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController())) PC->CloseVisibleWidget();
 	}
 }
 

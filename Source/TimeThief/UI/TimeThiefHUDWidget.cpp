@@ -251,6 +251,18 @@ void UTimeThiefHUDWidget::ToggleControlGuideWidget()
 	GuideWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
+bool UTimeThiefHUDWidget::HideControlGuideWidget()
+{
+	UUserWidget* GuideWidget = GetControlGuideWidget();
+	if (!GuideWidget || !GuideWidget->IsVisible())
+	{
+		return false;
+	}
+
+	GuideWidget->SetVisibility(ESlateVisibility::Hidden);
+	return true;
+}
+
 void UTimeThiefHUDWidget::EnsureControlGuideWidget()
 {
 	if (GetControlGuideWidget() || !ControlGuideWidgetClass)

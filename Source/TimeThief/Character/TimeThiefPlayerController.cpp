@@ -424,6 +424,27 @@ void ATimeThiefPlayerController::ToggleControlGuideWidget()
 	}
 }
 
+bool ATimeThiefPlayerController::CloseVisibleWidget()
+{
+	bool bClosedAnyWidget = false;
+
+	for (UUserWidget* Widget : SubWidgets)
+	{
+		if (Widget && Widget->IsVisible())
+		{
+			Widget->SetVisibility(ESlateVisibility::Hidden);
+			bClosedAnyWidget = true;
+		}
+	}
+
+	if (MainHUDWidget && MainHUDWidget->HideControlGuideWidget())
+	{
+		bClosedAnyWidget = true;
+	}
+
+	return bClosedAnyWidget;
+}
+
 void ATimeThiefPlayerController::ToggleWidget(EWidgetType WidgetType)
 {
 	if (!SubWidgets.IsValidIndex(static_cast<int>(WidgetType)))

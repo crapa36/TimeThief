@@ -69,6 +69,7 @@ private:
 	void Input_TogglePerspective(const FInputActionValue& Value);
 	void Input_ToggleMinimap(const FInputActionValue& Value);
 	void Input_ToggleControlGuide(const FInputActionValue& Value);
+	void Input_CloseUI(const FInputActionValue& Value);
 	void Input_Interact(const FInputActionValue& Value);
 	void Input_ToggleInventory(const FInputActionValue& Value);
 	void Input_WheelMenu(const FInputActionValue& Value);

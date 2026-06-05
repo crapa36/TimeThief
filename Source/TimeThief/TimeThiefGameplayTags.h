@@ -29,6 +29,7 @@ public:
 	FGameplayTag InputTag_Action_TogglePerspective;
 	FGameplayTag InputTag_Action_ToggleMinimap;
 	FGameplayTag InputTag_Action_ToggleControlGuide;
+	FGameplayTag InputTag_Action_CloseUI;
 	FGameplayTag InputTag_Action_Interact;
 	FGameplayTag InputTag_Action_Inventory;
 	FGameplayTag InputTag_Action_WheelMenu;

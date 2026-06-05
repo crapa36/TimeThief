@@ -40,6 +40,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|UI")
 	void ToggleControlGuideWidget();
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|UI")
+	bool CloseVisibleWidget();
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|UI")
 	UTimeThiefHUDWidget* GetHUDWidget() const { return MainHUDWidget; }
 

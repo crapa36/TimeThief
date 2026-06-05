@@ -56,6 +56,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|HUD")
 	void ToggleControlGuideWidget();
 
+	UFUNCTION(BlueprintCallable, Category = "TimeThief|HUD")
+	bool HideControlGuideWidget();
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
