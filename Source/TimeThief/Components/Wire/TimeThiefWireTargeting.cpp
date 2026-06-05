@@ -67,6 +67,34 @@ void UTimeThiefWireTargeting::Initialize(ACharacter* InCharacter)
 	CachedCharacter = InCharacter;
 }
 
+bool UTimeThiefWireTargeting::ShouldRefreshTarget(float DeltaTime, const FVector& AimDirection)
+{
+	const FVector SafeAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
+
+	TargetRefreshTimer = FMath::Max(TargetRefreshTimer - DeltaTime, 0.0f);
+
+	const float RetargetDotThreshold = FMath::Cos(FMath::DegreesToRadians(FMath::Max(RetargetAngleDegrees, 0.0f)));
+	const bool bHasAimDirectionChanged = !bHasCachedTargetAimDirection
+		|| FVector::DotProduct(CachedTargetAimDirection, SafeAimDirection) < RetargetDotThreshold;
+	const bool bShouldRefreshTarget = bHasAimDirectionChanged || TargetRefreshTimer <= 0.0f;
+
+	if (bShouldRefreshTarget)
+	{
+		CachedTargetAimDirection = SafeAimDirection;
+		bHasCachedTargetAimDirection = true;
+		TargetRefreshTimer = FMath::Max(TargetRefreshInterval, 0.0f);
+	}
+
+	return bShouldRefreshTarget;
+}
+
+void UTimeThiefWireTargeting::ResetTargetRefresh()
+{
+	TargetRefreshTimer = 0.0f;
+	CachedTargetAimDirection = FVector::ForwardVector;
+	bHasCachedTargetAimDirection = false;
+}
+
 bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, const FVector& StartLocation, const FVector& AimDirection, float MaxLength)
 {
 	if (!IsValid(CachedCharacter)) return false;
