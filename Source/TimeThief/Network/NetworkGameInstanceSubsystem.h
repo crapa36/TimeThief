@@ -23,6 +23,7 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+class AStoreActor;
 class ATimeThiefPlayerCharacter;
 struct FThrowableMoveSnapshot;
 struct FRemoteAttackNotify;
@@ -187,6 +188,7 @@ private:
 	
 private:
 	void RemoveEntity(uint32 EntityId);
+	void RemoveEntitiesByObjectType(se::common::ObjectType ObjectType);
 	
 private:
 	AActor* FindEntityActor(uint32 EntityId) const;
@@ -274,6 +276,7 @@ public:
 	
 public:
 	const UTimeThiefPawnData* GetDefaultPawnData() const { return DefaultLocalPlayerPawnData; }
+	void GetStoreActors(TArray<AStoreActor*>& OutStoreActors) const;
 	
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")

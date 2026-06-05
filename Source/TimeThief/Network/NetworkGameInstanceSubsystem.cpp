@@ -18,6 +18,7 @@
 #include "TimeThiefNetworkSettings.h"
 #include "Actors/ChestActor.h"
 #include "Actors/Item/ItemBase.h"
+#include "Actors/StoreActor.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
@@ -843,6 +844,7 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 void UNetworkGameInstanceSubsystem::StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt)
 {
 	CancelPendingEntitySpawn();
+	RemoveEntitiesByObjectType(se::common::OBJ_STORE);
 
 	PendingEntitySpawnInfos.Reserve(Pkt.infos_size());
 	for (const auto& Info : Pkt.infos())
@@ -2624,6 +2626,23 @@ void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)
 	UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntity success: EntityId=%u"), EntityId);
 }
 
+void UNetworkGameInstanceSubsystem::RemoveEntitiesByObjectType(se::common::ObjectType ObjectType)
+{
+	TArray<uint32> EntityIds;
+	for (const TPair<uint32, FEntityRuntimeEntry>& Pair : EntityEntries)
+	{
+		if (Pair.Value.State.ObjectType == ObjectType)
+		{
+			EntityIds.Add(Pair.Key);
+		}
+	}
+
+	for (const uint32 EntityId : EntityIds)
+	{
+		RemoveEntity(EntityId);
+	}
+}
+
 bool UNetworkGameInstanceSubsystem::IsLocalPlayerEntity(uint32 EntityId) const
 {
 	return LocalPlayerEntityId != 0 && LocalPlayerEntityId == EntityId;
@@ -3254,6 +3273,24 @@ void UNetworkGameInstanceSubsystem::NetworkEntryAdd(uint32 EntityId, const FEnti
 void UNetworkGameInstanceSubsystem::NetworkEntryRemove(uint32 EntityId)
 {
 	EntityEntries.Remove(EntityId);
+}
+
+void UNetworkGameInstanceSubsystem::GetStoreActors(TArray<AStoreActor*>& OutStoreActors) const
+{
+	OutStoreActors.Reset();
+
+	for (const TPair<uint32, FEntityRuntimeEntry>& Pair : EntityEntries)
+	{
+		if (Pair.Value.State.ObjectType != se::common::OBJ_STORE)
+		{
+			continue;
+		}
+
+		if (AStoreActor* StoreActor = Cast<AStoreActor>(Pair.Value.Actor.Get()))
+		{
+			OutStoreActors.Add(StoreActor);
+		}
+	}
 }
 
 AActor* UNetworkGameInstanceSubsystem::FindEntityActor(uint32 EntityId) const
