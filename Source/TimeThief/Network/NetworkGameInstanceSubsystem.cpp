@@ -55,6 +55,18 @@ namespace
 		return State == ENetworkPlayState::InRoom;
 	}
 
+	static bool UsesSpawnTransformOnly(se::common::ObjectType ObjectType)
+	{
+		switch (ObjectType)
+		{
+		case se::common::ObjectType::OBJ_CHEST:
+		case se::common::ObjectType::OBJ_STORE:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	static constexpr int32 EntitySpawnBatchSize = 10;
 	static constexpr float EntitySpawnBatchIntervalSeconds = 0.01f;
 }
@@ -3579,6 +3591,11 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const
 	if (ATimeThiefRocketProjectile* Projectile = Cast<ATimeThiefRocketProjectile>(Actor))
 	{
 		Projectile->ApplyNetworkMovementState(EntityState);
+		return;
+	}
+
+	if (UsesSpawnTransformOnly(EntityState.ObjectType))
+	{
 		return;
 	}
 	
