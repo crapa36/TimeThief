@@ -7,7 +7,6 @@
 class UProgressBar;
 class UHorizontalBox;
 class UTextBlock;
-class UImage;
 class UTimePointSystemComponent;
 class ATimeThiefPlayerCharacter;
 class UTimeThiefHealthComponent;
@@ -43,9 +42,6 @@ class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TimePoint_Text;
-
-	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UImage> Crosshair_Image;
 	
 public:
 	UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer);
@@ -63,9 +59,33 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
+	                          const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
+	                          int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD")
 	TSubclassOf<UUserWidget> ControlGuideWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair")
+	FLinearColor CrosshairLineColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.85f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair", meta = (ClampMin = "0.0"))
+	float CrosshairBaseGap = 12.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair", meta = (ClampMin = "0.0"))
+	float CrosshairSpreadGapScale = 8.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair", meta = (ClampMin = "0.0"))
+	float CrosshairMaxSpreadGap = 48.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair", meta = (ClampMin = "0.0"))
+	float CrosshairLineLength = 30.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair", meta = (ClampMin = "0.0"))
+	float CrosshairLineThickness = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|HUD|Crosshair", meta = (ClampMin = "0.0"))
+	float CrosshairCenterDotRadius = 3.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
 	TWeakObjectPtr<ATimeThiefPlayerCharacter> CachedCharacter;
@@ -96,7 +116,7 @@ private:
 	void EnsureControlGuideWidget();
 	UUserWidget* GetControlGuideWidget() const;
 	void RefreshControlGuideWidget() const;
-	void UpdateCrosshairDisplay();
+	void UpdateCrosshairInvalidation();
 	void UpdateWireCooldownDisplay();
 	
 	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
@@ -106,6 +126,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UUserWidget> SpawnedControlGuideWidget;
-	float LastCrosshairScale = -1.0f;
+	float LastCrosshairSpread = -1.0f;
 	float LastWireCooldownPercent = -1.0f;
 };

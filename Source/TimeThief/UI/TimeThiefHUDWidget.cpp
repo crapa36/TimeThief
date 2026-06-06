@@ -3,11 +3,11 @@
 #include "Components/HorizontalBox.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
-#include "Components/Image.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "UI/TimeThiefControlGuideWidget.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
@@ -20,11 +20,7 @@ void UTimeThiefHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	if (Crosshair_Image)
-	{
-		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
-	}
-	LastCrosshairScale = -1.0f;
+	LastCrosshairSpread = -1.0f;
 
 	if (WireCooldown_ProgressBar)
 	{
@@ -87,9 +83,77 @@ void UTimeThiefHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 
 	if (CachedCharacter.IsValid())
 	{
-		UpdateCrosshairDisplay();
+		UpdateCrosshairInvalidation();
 		UpdateWireCooldownDisplay();
 	}
+}
+
+int32 UTimeThiefHUDWidget::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
+                                       const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements,
+                                       int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	const int32 MaxLayerId = Super::NativePaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId,
+	                                            InWidgetStyle, bParentEnabled);
+
+	if (!CachedWeapon.IsValid())
+	{
+		return MaxLayerId;
+	}
+
+	const FVector2D Center = AllottedGeometry.GetLocalSize() * 0.5f;
+	const float SpreadGap = FMath::Clamp(
+		CachedWeapon->GetCurrentSpread() * CrosshairSpreadGapScale,
+		0.0f,
+		CrosshairMaxSpreadGap);
+	const float Gap = FMath::Max(0.0f, CrosshairBaseGap + SpreadGap);
+	const float LineLength = FMath::Max(0.0f, CrosshairLineLength);
+	const float LineThickness = FMath::Max(0.0f, CrosshairLineThickness);
+	const FLinearColor DrawColor = CrosshairLineColor * InWidgetStyle.GetColorAndOpacityTint();
+	const int32 CrosshairLayerId = MaxLayerId + 1;
+	const FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry();
+
+	if (LineLength > 0.0f && LineThickness > 0.0f)
+	{
+		constexpr float LineAngles[] = { -90.0f, 30.0f, 150.0f };
+		for (const float Angle : LineAngles)
+		{
+			const float Radians = FMath::DegreesToRadians(Angle);
+			const FVector2D Direction(FMath::Cos(Radians), FMath::Sin(Radians));
+
+			TArray<FVector2D> LinePoints;
+			LinePoints.Reserve(2);
+			LinePoints.Add(Center + Direction * Gap);
+			LinePoints.Add(Center + Direction * (Gap + LineLength));
+
+			FSlateDrawElement::MakeLines(
+				OutDrawElements,
+				CrosshairLayerId,
+				PaintGeometry,
+				MoveTemp(LinePoints),
+				ESlateDrawEffect::None,
+				DrawColor,
+				true,
+				LineThickness);
+		}
+	}
+
+	const float DotRadius = FMath::Max(0.0f, CrosshairCenterDotRadius);
+	if (DotRadius > 0.0f)
+	{
+		const FVector2D DotSize(DotRadius * 2.0f, DotRadius * 2.0f);
+		const FVector2D DotPosition = Center - FVector2D(DotRadius, DotRadius);
+		const FSlateRoundedBoxBrush DotBrush(FLinearColor::White, DotRadius, DotSize);
+
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			CrosshairLayerId,
+			AllottedGeometry.ToPaintGeometry(DotSize, FSlateLayoutTransform(DotPosition)),
+			&DotBrush,
+			ESlateDrawEffect::None,
+			DrawColor);
+	}
+
+	return CrosshairLayerId;
 }
 
 void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
@@ -193,11 +257,8 @@ void UTimeThiefHUDWidget::OnWeaponEquipped(UTimeThiefWeaponComponentBase* Weapon
 
 	CachedWeapon = Weapon;
 
-	if (Crosshair_Image)
-	{
-		Crosshair_Image->SetVisibility(ESlateVisibility::HitTestInvisible);
-	}
-	LastCrosshairScale = -1.0f;
+	LastCrosshairSpread = -1.0f;
+	Invalidate(EInvalidateWidgetReason::Paint);
 
 	if (Weapon)
 	{
@@ -218,11 +279,8 @@ void UTimeThiefHUDWidget::OnWeaponUnequipped()
 		CachedWeapon.Reset();
 	}
 
-	if (Crosshair_Image)
-	{
-		Crosshair_Image->SetVisibility(ESlateVisibility::Hidden);
-	}
-	LastCrosshairScale = -1.0f;
+	LastCrosshairSpread = -1.0f;
+	Invalidate(EInvalidateWidgetReason::Paint);
 
 	OnAmmoUpdated(0, 0, false);
 }
@@ -293,17 +351,23 @@ void UTimeThiefHUDWidget::RefreshControlGuideWidget() const
 	}
 }
 
-void UTimeThiefHUDWidget::UpdateCrosshairDisplay()
+void UTimeThiefHUDWidget::UpdateCrosshairInvalidation()
 {
-	if (CachedCombatComponent.IsValid() && Crosshair_Image && CachedWeapon.IsValid())
+	if (!CachedWeapon.IsValid())
 	{
-		const float SpreadMultiplier = 1.0f + (CachedWeapon->GetCurrentSpread() * 0.5f);
-
-		if (!FMath::IsNearlyEqual(LastCrosshairScale, SpreadMultiplier, KINDA_SMALL_NUMBER))
+		if (!FMath::IsNearlyEqual(LastCrosshairSpread, -1.0f, KINDA_SMALL_NUMBER))
 		{
-			Crosshair_Image->SetRenderScale(FVector2D(SpreadMultiplier, SpreadMultiplier));
-			LastCrosshairScale = SpreadMultiplier;
+			LastCrosshairSpread = -1.0f;
+			Invalidate(EInvalidateWidgetReason::Paint);
 		}
+		return;
+	}
+
+	const float CurrentSpread = CachedWeapon->GetCurrentSpread();
+	if (!FMath::IsNearlyEqual(LastCrosshairSpread, CurrentSpread, KINDA_SMALL_NUMBER))
+	{
+		LastCrosshairSpread = CurrentSpread;
+		Invalidate(EInvalidateWidgetReason::Paint);
 	}
 }
 
