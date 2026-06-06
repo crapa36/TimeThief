@@ -732,6 +732,36 @@ bool Handle_N_MonsterTarget(PacketSessionRef& session, const se::game::N_Monster
 	UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterTarget: Failed to get NGIS"));
 	return false;
 }
+
+bool Handle_N_MonsterImpact(PacketSessionRef& session, const se::game::N_MonsterImpact& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterImpact: pkt has no entity_id"));
+		return false;
+	}
+	
+	if (!pkt.has_position())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterImpact: pkt has no position"));
+		return false;
+	}
+	
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleMonsterImpact(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_MonsterImpact: Failed to get NGIS"));
+	return false;
+}
 	
 bool Handle_N_ThrowGrenade(PacketSessionRef& session, const se::game::N_ThrowGrenade& pkt)
 {
@@ -1595,6 +1625,24 @@ bool Handle_N_TimeStormChange(PacketSessionRef& session, const se::game::N_TimeS
 ////////////////////////////////////////////////////////////////////////////
 /////			Test Packets										////////
 ////////////////////////////////////////////////////////////////////////////
+
+bool Handle_N_DebugDraw(PacketSessionRef& session, const se::game::N_DebugDraw& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleDebugDraw(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_DebugDraw: Failed to get NGIS"));
+	return false;
+}
 
 bool Handle_N_ZoneStop(PacketSessionRef& session, const se::test::N_ZoneStop& pkt)
 {

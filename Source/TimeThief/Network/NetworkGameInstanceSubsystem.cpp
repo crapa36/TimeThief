@@ -28,6 +28,7 @@
 #include "Components/System/TimeStormComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameStateBase.h"
+#include "DrawDebugHelpers.h"
 #include "Microsoft/AllowMicrosoftPlatformTypes.h"
 #include "Network/State/MoveSyncData.h"
 #include "Network/State/EntityRuntimeEntry.h"
@@ -67,8 +68,43 @@ namespace
 		}
 	}
 
+	static FVector ToVector(const se::common::Vector3& Vector)
+	{
+		return FVector(Vector.x(), Vector.y(), Vector.z());
+	}
+
+	static FRotator ToRotator(const se::common::Rotator& Rotator)
+	{
+		return FRotator(Rotator.pitch(), Rotator.yaw(), Rotator.roll());
+	}
+
+	static FColor ToDebugDrawColor(uint32 ColorRgba)
+	{
+		if (ColorRgba == 0)
+		{
+			return FColor::Green;
+		}
+
+		return FColor(
+			static_cast<uint8>((ColorRgba >> 24) & 0xFF),
+			static_cast<uint8>((ColorRgba >> 16) & 0xFF),
+			static_cast<uint8>((ColorRgba >> 8) & 0xFF),
+			static_cast<uint8>(ColorRgba & 0xFF));
+	}
+
+	static float ToDebugDrawDuration(float Duration)
+	{
+		return Duration > 0.0f ? Duration : 1.0f;
+	}
+
+	static float ToDebugDrawThickness(float Thickness)
+	{
+		return Thickness > 0.0f ? Thickness : 1.0f;
+	}
+
 	static constexpr int32 EntitySpawnBatchSize = 10;
 	static constexpr float EntitySpawnBatchIntervalSeconds = 0.01f;
+	static constexpr int32 DebugDrawSphereSegments = 24;
 }
 
 /*---------------------------------
@@ -1541,6 +1577,26 @@ void UNetworkGameInstanceSubsystem::HandleMonsterFire(const se::game::N_MonsterF
 	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
 }
 
+void UNetworkGameInstanceSubsystem::HandleMonsterImpact(const se::game::N_MonsterImpact& Pkt)
+{
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	const uint32 EntityId = Pkt.entity_id().value();
+	FRemoteAttackNotify Notify{};
+	Notify.AttackerEntityId = EntityId;
+	Notify.NotifyType = ECombatNotifyType::Impact;
+	Notify.AttackId = Pkt.attack_type();
+	const auto& Position = Pkt.position();
+	Notify.Origin = FVector(Position.x(), Position.y(), Position.z());
+	
+	ApplyRemoteAttackNotifyToActor(EntityId, Notify);
+}
+
 void UNetworkGameInstanceSubsystem::HandleMonsterTarget(const se::game::N_MonsterTarget& Pkt)
 {
 	check(IsInGameThread());
@@ -2439,6 +2495,58 @@ void UNetworkGameInstanceSubsystem::HandleTimeStormChange(const se::game::N_Time
 	TimeStormComp->SetStormPhase(DestCenter, DestRadius, Pkt.waiting_time(), Pkt.shrinking_time());
 }
 
+void UNetworkGameInstanceSubsystem::HandleDebugDraw(const se::game::N_DebugDraw& Pkt)
+{
+	check(IsInGameThread());
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	const FColor Color = ToDebugDrawColor(Pkt.color_rgba());
+	const float Duration = ToDebugDrawDuration(Pkt.duration());
+	const float Thickness = ToDebugDrawThickness(Pkt.thickness());
+	
+	switch (Pkt.shape_case())
+	{
+	case se::game::N_DebugDraw::kSphere:
+	{
+		const auto& Sphere = Pkt.sphere();
+		DrawDebugSphere(
+			World,
+			ToVector(Sphere.position()),
+			Sphere.radius(),
+			DebugDrawSphereSegments,
+			Color,
+			false,
+			Duration,
+			0,
+			Thickness);
+		break;
+	}
+	case se::game::N_DebugDraw::kObb:
+	{
+		const auto& Obb = Pkt.obb();
+		DrawDebugBox(
+			World,
+			ToVector(Obb.center()),
+			ToVector(Obb.half_extents()),
+			ToRotator(Obb.rotation()).Quaternion(),
+			Color,
+			false,
+			Duration,
+			0,
+			Thickness);
+		break;
+	}
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("HandleDebugDraw: shape is not set"));
+		break;
+	}
+}
+
 void UNetworkGameInstanceSubsystem::HandleZoneStop(const se::test::N_ZoneStop& Pkt)
 {
 	check(IsInGameThread());
@@ -2714,6 +2822,18 @@ TSubclassOf<AActor> UNetworkGameInstanceSubsystem::ResolveActorClass(const FNetw
 			if (SpawnData->CatMonster)
 			{
 				return SpawnData->CatMonster;
+			}
+			
+		case 3:
+			if (SpawnData->MinionMonster)
+			{
+				return SpawnData->MinionMonster;
+			}
+			
+		case 4:
+			if (SpawnData->BossMonster)
+			{
+				return SpawnData->BossMonster;
 			}
 			
 		default:

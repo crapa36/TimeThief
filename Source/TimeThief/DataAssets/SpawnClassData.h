@@ -44,4 +44,10 @@ public:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<AActor> CatMonster;
 	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> MinionMonster;
+	
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> BossMonster;		// Kong
+	
 };

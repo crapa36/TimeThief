@@ -8,6 +8,9 @@
 #include "Interface/PoolObject.h"
 #include "ItemBase.generated.h"
 
+class UNiagaraComponent;
+class UNiagaraSystem;
+
 UCLASS(Blueprintable, BlueprintType)
 class TIMETHIEF_API AItemBase : public AInteractionActorBase, public IPoolObject
 {
@@ -16,6 +19,15 @@ class TIMETHIEF_API AItemBase : public AInteractionActorBase, public IPoolObject
 protected:
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<USphereComponent> LookingSphere;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Item|VFX", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UNiagaraComponent> IdleFXComponent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item|VFX", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UNiagaraSystem> IdleFXSystem;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item|VFX", meta=(AllowPrivateAccess=true))
+	FVector IdleFXOffset = FVector::ZeroVector;
 
 public:
 	// Sets default values for this actor's properties
@@ -54,6 +66,8 @@ public:
 	
 private:
 	void TryRequestServer();
+	void ActivateIdleFX();
+	void DeactivateIdleFX();
 	
 public:
 	UFUNCTION(BlueprintCallable)
