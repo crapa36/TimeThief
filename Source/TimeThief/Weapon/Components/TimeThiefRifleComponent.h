@@ -68,7 +68,7 @@ protected:
 	float MaxVerticalRecoil = 1.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
-	float MaxHorizontalRecoil = 0.6f;
+	float MaxHorizontalRecoil = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Recoil")
 	float RecoilRecoverySpeed = 5.0f;

@@ -55,7 +55,7 @@ public:
 	virtual void SetWeaponStatForNetwork(const FWeaponStatData& InStatData) override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
-	float DamagePerPellet = 12.0f;
+	float DamagePerPellet = 10.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float MaxRange = 3000.0f;
