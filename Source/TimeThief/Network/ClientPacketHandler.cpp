@@ -865,14 +865,32 @@ bool Handle_N_WeaponChanged(PacketSessionRef& session, const se::game::N_WeaponC
 	return false;	
 }
 	
-bool Handle_N_UseAbility(PacketSessionRef& session, const se::game::N_UseAbility& pkt)
+bool Handle_S_UseSkillRes(PacketSessionRef& session, const se::game::S_UseSkillRes& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleUseSkillRes(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_S_UseSkillRes: Failed to get NGIS"));
+	return false;
+}
+
+bool Handle_N_UseSkill(PacketSessionRef& session, const se::game::N_UseSkill& pkt)
 {
 	if (!session)
 		return false;
 	
 	if (!pkt.has_entity_id() || pkt.entity_id().value() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Handle_N_UseAbility: pkt has no entity_id"));
+		UE_LOG(LogTemp, Warning, TEXT("Handle_N_UseSkill: pkt has no entity_id"));
 		return false;
 	}
 	
@@ -880,12 +898,12 @@ bool Handle_N_UseAbility(PacketSessionRef& session, const se::game::N_UseAbility
 	{
 		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
 		{
-			NGIS->HandleUseAbility(pkt);
+			NGIS->HandleUseSkill(pkt);
 			return true;
 		}
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("Handle_N_UseAbility: Failed to get NGIS"));
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_UseSkill: Failed to get NGIS"));
 	return false;	
 }
 	

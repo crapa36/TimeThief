@@ -326,6 +326,28 @@ void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
 	SendPacket(Buffer);
 }
 
+void UNetworkGameInstanceSubsystem::SendUseSkill(uint32 SlotIndex, uint32 SkillId)
+{
+	se::game::C_UseSkillReq Request;
+	Request.set_slot_index(SlotIndex);
+	Request.set_skill_id(SkillId);
+
+	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Use Skill Slot=%u, SkillId=%u"), SlotIndex, SkillId);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
+void UNetworkGameInstanceSubsystem::SendSkillEquip(uint32 SlotIndex, uint32 SkillId)
+{
+	se::game::C_SkillEquipReq Request;
+	Request.set_slot_index(SlotIndex);
+	Request.set_skill_id(SkillId);
+
+	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Equip Skill Slot=%u, SkillId=%u"), SlotIndex, SkillId);
+	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(Buffer);
+}
+
 void UNetworkGameInstanceSubsystem::SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData)
 {
 	se::game::C_GrenadeMoveSyncReq Request;
@@ -1727,7 +1749,26 @@ void UNetworkGameInstanceSubsystem::HandleWeaponStatSnapshot(const se::game::N_W
 	}
 }
 
-void UNetworkGameInstanceSubsystem::HandleUseAbility(const se::game::N_UseAbility& Pkt)
+void UNetworkGameInstanceSubsystem::HandleUseSkillRes(const se::game::S_UseSkillRes& Pkt)
+{
+	if (!Pkt.success())
+	{
+		const auto& Result = Pkt.result();
+		UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] Use skill failed. Slot=%u, SkillId=%u, Result=%s"),
+			Pkt.slot_index(),
+			Pkt.skill_id(),
+			UTF8_TO_TCHAR(Result.message().c_str()));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Use skill accepted. Slot=%u, SkillId=%u, CooldownEndMs=%llu, RemainingCooldownMs=%u"),
+		Pkt.slot_index(),
+		Pkt.skill_id(),
+		static_cast<unsigned long long>(Pkt.cooldown_end_ms()),
+		Pkt.remaining_cooldown_ms());
+}
+
+void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& Pkt)
 {
 }
 

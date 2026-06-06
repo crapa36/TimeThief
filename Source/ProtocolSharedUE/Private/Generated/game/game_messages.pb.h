@@ -103,12 +103,12 @@ PROTOCOLSHAREDUE_API extern C_SkillEquipReqDefaultTypeInternal _C_SkillEquipReq_
 class C_ThrowGrenadeReq;
 struct C_ThrowGrenadeReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_ThrowGrenadeReqDefaultTypeInternal _C_ThrowGrenadeReq_default_instance_;
-class C_UseAbilityReq;
-struct C_UseAbilityReqDefaultTypeInternal;
-PROTOCOLSHAREDUE_API extern C_UseAbilityReqDefaultTypeInternal _C_UseAbilityReq_default_instance_;
 class C_UseItemReq;
 struct C_UseItemReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_UseItemReqDefaultTypeInternal _C_UseItemReq_default_instance_;
+class C_UseSkillReq;
+struct C_UseSkillReqDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern C_UseSkillReqDefaultTypeInternal _C_UseSkillReq_default_instance_;
 class C_UseStoreReq;
 struct C_UseStoreReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_UseStoreReqDefaultTypeInternal _C_UseStoreReq_default_instance_;
@@ -253,12 +253,12 @@ PROTOCOLSHAREDUE_API extern N_TimePointSnapshotDefaultTypeInternal _N_TimePointS
 class N_TimeStormChange;
 struct N_TimeStormChangeDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_TimeStormChangeDefaultTypeInternal _N_TimeStormChange_default_instance_;
-class N_UseAbility;
-struct N_UseAbilityDefaultTypeInternal;
-PROTOCOLSHAREDUE_API extern N_UseAbilityDefaultTypeInternal _N_UseAbility_default_instance_;
 class N_UseItem;
 struct N_UseItemDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_UseItemDefaultTypeInternal _N_UseItem_default_instance_;
+class N_UseSkill;
+struct N_UseSkillDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_UseSkillDefaultTypeInternal _N_UseSkill_default_instance_;
 class N_WeaponChanged;
 struct N_WeaponChangedDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_WeaponChangedDefaultTypeInternal _N_WeaponChanged_default_instance_;
@@ -292,6 +292,9 @@ PROTOCOLSHAREDUE_API extern S_SkillEquipResDefaultTypeInternal _S_SkillEquipRes_
 class S_UseItemRes;
 struct S_UseItemResDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern S_UseItemResDefaultTypeInternal _S_UseItemRes_default_instance_;
+class S_UseSkillRes;
+struct S_UseSkillResDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern S_UseSkillResDefaultTypeInternal _S_UseSkillRes_default_instance_;
 class S_UseStoreRes;
 struct S_UseStoreResDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern S_UseStoreResDefaultTypeInternal _S_UseStoreRes_default_instance_;
@@ -315,8 +318,8 @@ template<> PROTOCOLSHAREDUE_API ::se::game::C_ReloadReq* Arena::CreateMaybeMessa
 template<> PROTOCOLSHAREDUE_API ::se::game::C_SetSavePointReq* Arena::CreateMaybeMessage<::se::game::C_SetSavePointReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::C_SkillEquipReq* Arena::CreateMaybeMessage<::se::game::C_SkillEquipReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::C_ThrowGrenadeReq* Arena::CreateMaybeMessage<::se::game::C_ThrowGrenadeReq>(Arena*);
-template<> PROTOCOLSHAREDUE_API ::se::game::C_UseAbilityReq* Arena::CreateMaybeMessage<::se::game::C_UseAbilityReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::C_UseItemReq* Arena::CreateMaybeMessage<::se::game::C_UseItemReq>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::C_UseSkillReq* Arena::CreateMaybeMessage<::se::game::C_UseSkillReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::C_UseStoreReq* Arena::CreateMaybeMessage<::se::game::C_UseStoreReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::C_WeaponChangeReq* Arena::CreateMaybeMessage<::se::game::C_WeaponChangeReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::C_WireActionEnd* Arena::CreateMaybeMessage<::se::game::C_WireActionEnd>(Arena*);
@@ -365,8 +368,8 @@ template<> PROTOCOLSHAREDUE_API ::se::game::N_ThrowGrenade* Arena::CreateMaybeMe
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimePointChanged* Arena::CreateMaybeMessage<::se::game::N_TimePointChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimePointSnapshot* Arena::CreateMaybeMessage<::se::game::N_TimePointSnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimeStormChange* Arena::CreateMaybeMessage<::se::game::N_TimeStormChange>(Arena*);
-template<> PROTOCOLSHAREDUE_API ::se::game::N_UseAbility* Arena::CreateMaybeMessage<::se::game::N_UseAbility>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_UseItem* Arena::CreateMaybeMessage<::se::game::N_UseItem>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_UseSkill* Arena::CreateMaybeMessage<::se::game::N_UseSkill>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_WeaponChanged* Arena::CreateMaybeMessage<::se::game::N_WeaponChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_WeaponStatChanged* Arena::CreateMaybeMessage<::se::game::N_WeaponStatChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_WeaponStatSnapshot* Arena::CreateMaybeMessage<::se::game::N_WeaponStatSnapshot>(Arena*);
@@ -378,6 +381,7 @@ template<> PROTOCOLSHAREDUE_API ::se::game::S_ReloadRes* Arena::CreateMaybeMessa
 template<> PROTOCOLSHAREDUE_API ::se::game::S_SetSavePointRes* Arena::CreateMaybeMessage<::se::game::S_SetSavePointRes>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::S_SkillEquipRes* Arena::CreateMaybeMessage<::se::game::S_SkillEquipRes>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::S_UseItemRes* Arena::CreateMaybeMessage<::se::game::S_UseItemRes>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::S_UseSkillRes* Arena::CreateMaybeMessage<::se::game::S_UseSkillRes>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::S_UseStoreRes* Arena::CreateMaybeMessage<::se::game::S_UseStoreRes>(Arena*);
 PROTOBUF_NAMESPACE_CLOSE
 namespace se {
@@ -7681,24 +7685,24 @@ class PROTOCOLSHAREDUE_API N_WeaponStatSnapshot final :
 };
 // -------------------------------------------------------------------
 
-class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.C_UseAbilityReq) */ {
+class PROTOCOLSHAREDUE_API C_UseSkillReq final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.C_UseSkillReq) */ {
  public:
-  inline C_UseAbilityReq() : C_UseAbilityReq(nullptr) {}
-  ~C_UseAbilityReq() override;
-  explicit PROTOBUF_CONSTEXPR C_UseAbilityReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+  inline C_UseSkillReq() : C_UseSkillReq(nullptr) {}
+  ~C_UseSkillReq() override;
+  explicit PROTOBUF_CONSTEXPR C_UseSkillReq(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
 
-  C_UseAbilityReq(const C_UseAbilityReq& from);
-  C_UseAbilityReq(C_UseAbilityReq&& from) noexcept
-    : C_UseAbilityReq() {
+  C_UseSkillReq(const C_UseSkillReq& from);
+  C_UseSkillReq(C_UseSkillReq&& from) noexcept
+    : C_UseSkillReq() {
     *this = ::std::move(from);
   }
 
-  inline C_UseAbilityReq& operator=(const C_UseAbilityReq& from) {
+  inline C_UseSkillReq& operator=(const C_UseSkillReq& from) {
     CopyFrom(from);
     return *this;
   }
-  inline C_UseAbilityReq& operator=(C_UseAbilityReq&& from) noexcept {
+  inline C_UseSkillReq& operator=(C_UseSkillReq&& from) noexcept {
     if (this == &from) return *this;
     if (GetOwningArena() == from.GetOwningArena()
   #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
@@ -7721,20 +7725,20 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
   static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const C_UseAbilityReq& default_instance() {
+  static const C_UseSkillReq& default_instance() {
     return *internal_default_instance();
   }
-  static inline const C_UseAbilityReq* internal_default_instance() {
-    return reinterpret_cast<const C_UseAbilityReq*>(
-               &_C_UseAbilityReq_default_instance_);
+  static inline const C_UseSkillReq* internal_default_instance() {
+    return reinterpret_cast<const C_UseSkillReq*>(
+               &_C_UseSkillReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
     43;
 
-  friend void swap(C_UseAbilityReq& a, C_UseAbilityReq& b) {
+  friend void swap(C_UseSkillReq& a, C_UseSkillReq& b) {
     a.Swap(&b);
   }
-  inline void Swap(C_UseAbilityReq* other) {
+  inline void Swap(C_UseSkillReq* other) {
     if (other == this) return;
   #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
     if (GetOwningArena() != nullptr &&
@@ -7747,7 +7751,7 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(C_UseAbilityReq* other) {
+  void UnsafeArenaSwap(C_UseSkillReq* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
     InternalSwap(other);
@@ -7755,14 +7759,14 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
 
   // implements Message ----------------------------------------------
 
-  C_UseAbilityReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<C_UseAbilityReq>(arena);
+  C_UseSkillReq* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_UseSkillReq>(arena);
   }
   using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const C_UseAbilityReq& from);
+  void CopyFrom(const C_UseSkillReq& from);
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const C_UseAbilityReq& from) {
-    C_UseAbilityReq::MergeImpl(*this, from);
+  void MergeFrom( const C_UseSkillReq& from) {
+    C_UseSkillReq::MergeImpl(*this, from);
   }
   private:
   static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
@@ -7780,15 +7784,15 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
   void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
   void SharedDtor();
   void SetCachedSize(int size) const final;
-  void InternalSwap(C_UseAbilityReq* other);
+  void InternalSwap(C_UseSkillReq* other);
 
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "se.game.C_UseAbilityReq";
+    return "se.game.C_UseSkillReq";
   }
   protected:
-  explicit C_UseAbilityReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+  explicit C_UseSkillReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                        bool is_message_owned = false);
   public:
 
@@ -7802,18 +7806,28 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kAbilityIdFieldNumber = 1,
+    kSlotIndexFieldNumber = 1,
+    kSkillIdFieldNumber = 2,
   };
-  // uint32 ability_id = 1;
-  void clear_ability_id();
-  uint32_t ability_id() const;
-  void set_ability_id(uint32_t value);
+  // uint32 slot_index = 1;
+  void clear_slot_index();
+  uint32_t slot_index() const;
+  void set_slot_index(uint32_t value);
   private:
-  uint32_t _internal_ability_id() const;
-  void _internal_set_ability_id(uint32_t value);
+  uint32_t _internal_slot_index() const;
+  void _internal_set_slot_index(uint32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:se.game.C_UseAbilityReq)
+  // uint32 skill_id = 2;
+  void clear_skill_id();
+  uint32_t skill_id() const;
+  void set_skill_id(uint32_t value);
+  private:
+  uint32_t _internal_skill_id() const;
+  void _internal_set_skill_id(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.C_UseSkillReq)
  private:
   class _Internal;
 
@@ -7821,7 +7835,8 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
-    uint32_t ability_id_;
+    uint32_t slot_index_;
+    uint32_t skill_id_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -7829,24 +7844,24 @@ class PROTOCOLSHAREDUE_API C_UseAbilityReq final :
 };
 // -------------------------------------------------------------------
 
-class PROTOCOLSHAREDUE_API N_UseAbility final :
-    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_UseAbility) */ {
+class PROTOCOLSHAREDUE_API S_UseSkillRes final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.S_UseSkillRes) */ {
  public:
-  inline N_UseAbility() : N_UseAbility(nullptr) {}
-  ~N_UseAbility() override;
-  explicit PROTOBUF_CONSTEXPR N_UseAbility(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+  inline S_UseSkillRes() : S_UseSkillRes(nullptr) {}
+  ~S_UseSkillRes() override;
+  explicit PROTOBUF_CONSTEXPR S_UseSkillRes(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
 
-  N_UseAbility(const N_UseAbility& from);
-  N_UseAbility(N_UseAbility&& from) noexcept
-    : N_UseAbility() {
+  S_UseSkillRes(const S_UseSkillRes& from);
+  S_UseSkillRes(S_UseSkillRes&& from) noexcept
+    : S_UseSkillRes() {
     *this = ::std::move(from);
   }
 
-  inline N_UseAbility& operator=(const N_UseAbility& from) {
+  inline S_UseSkillRes& operator=(const S_UseSkillRes& from) {
     CopyFrom(from);
     return *this;
   }
-  inline N_UseAbility& operator=(N_UseAbility&& from) noexcept {
+  inline S_UseSkillRes& operator=(S_UseSkillRes&& from) noexcept {
     if (this == &from) return *this;
     if (GetOwningArena() == from.GetOwningArena()
   #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
@@ -7869,20 +7884,20 @@ class PROTOCOLSHAREDUE_API N_UseAbility final :
   static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
     return default_instance().GetMetadata().reflection;
   }
-  static const N_UseAbility& default_instance() {
+  static const S_UseSkillRes& default_instance() {
     return *internal_default_instance();
   }
-  static inline const N_UseAbility* internal_default_instance() {
-    return reinterpret_cast<const N_UseAbility*>(
-               &_N_UseAbility_default_instance_);
+  static inline const S_UseSkillRes* internal_default_instance() {
+    return reinterpret_cast<const S_UseSkillRes*>(
+               &_S_UseSkillRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
     44;
 
-  friend void swap(N_UseAbility& a, N_UseAbility& b) {
+  friend void swap(S_UseSkillRes& a, S_UseSkillRes& b) {
     a.Swap(&b);
   }
-  inline void Swap(N_UseAbility* other) {
+  inline void Swap(S_UseSkillRes* other) {
     if (other == this) return;
   #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
     if (GetOwningArena() != nullptr &&
@@ -7895,7 +7910,7 @@ class PROTOCOLSHAREDUE_API N_UseAbility final :
       ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
     }
   }
-  void UnsafeArenaSwap(N_UseAbility* other) {
+  void UnsafeArenaSwap(S_UseSkillRes* other) {
     if (other == this) return;
     GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
     InternalSwap(other);
@@ -7903,14 +7918,14 @@ class PROTOCOLSHAREDUE_API N_UseAbility final :
 
   // implements Message ----------------------------------------------
 
-  N_UseAbility* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
-    return CreateMaybeMessage<N_UseAbility>(arena);
+  S_UseSkillRes* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<S_UseSkillRes>(arena);
   }
   using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
-  void CopyFrom(const N_UseAbility& from);
+  void CopyFrom(const S_UseSkillRes& from);
   using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
-  void MergeFrom( const N_UseAbility& from) {
-    N_UseAbility::MergeImpl(*this, from);
+  void MergeFrom( const S_UseSkillRes& from) {
+    S_UseSkillRes::MergeImpl(*this, from);
   }
   private:
   static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
@@ -7928,15 +7943,234 @@ class PROTOCOLSHAREDUE_API N_UseAbility final :
   void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
   void SharedDtor();
   void SetCachedSize(int size) const final;
-  void InternalSwap(N_UseAbility* other);
+  void InternalSwap(S_UseSkillRes* other);
 
   private:
   friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
   static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
-    return "se.game.N_UseAbility";
+    return "se.game.S_UseSkillRes";
   }
   protected:
-  explicit N_UseAbility(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+  explicit S_UseSkillRes(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kResultFieldNumber = 2,
+    kSuccessFieldNumber = 1,
+    kSlotIndexFieldNumber = 3,
+    kCooldownEndMsFieldNumber = 5,
+    kSkillIdFieldNumber = 4,
+    kRemainingCooldownMsFieldNumber = 6,
+  };
+  // .se.common.Result result = 2;
+  bool has_result() const;
+  private:
+  bool _internal_has_result() const;
+  public:
+  void clear_result();
+  const ::se::common::Result& result() const;
+  PROTOBUF_NODISCARD ::se::common::Result* release_result();
+  ::se::common::Result* mutable_result();
+  void set_allocated_result(::se::common::Result* result);
+  private:
+  const ::se::common::Result& _internal_result() const;
+  ::se::common::Result* _internal_mutable_result();
+  public:
+  void unsafe_arena_set_allocated_result(
+      ::se::common::Result* result);
+  ::se::common::Result* unsafe_arena_release_result();
+
+  // bool success = 1;
+  void clear_success();
+  bool success() const;
+  void set_success(bool value);
+  private:
+  bool _internal_success() const;
+  void _internal_set_success(bool value);
+  public:
+
+  // uint32 slot_index = 3;
+  void clear_slot_index();
+  uint32_t slot_index() const;
+  void set_slot_index(uint32_t value);
+  private:
+  uint32_t _internal_slot_index() const;
+  void _internal_set_slot_index(uint32_t value);
+  public:
+
+  // uint64 cooldown_end_ms = 5;
+  void clear_cooldown_end_ms();
+  uint64_t cooldown_end_ms() const;
+  void set_cooldown_end_ms(uint64_t value);
+  private:
+  uint64_t _internal_cooldown_end_ms() const;
+  void _internal_set_cooldown_end_ms(uint64_t value);
+  public:
+
+  // uint32 skill_id = 4;
+  void clear_skill_id();
+  uint32_t skill_id() const;
+  void set_skill_id(uint32_t value);
+  private:
+  uint32_t _internal_skill_id() const;
+  void _internal_set_skill_id(uint32_t value);
+  public:
+
+  // uint32 remaining_cooldown_ms = 6;
+  void clear_remaining_cooldown_ms();
+  uint32_t remaining_cooldown_ms() const;
+  void set_remaining_cooldown_ms(uint32_t value);
+  private:
+  uint32_t _internal_remaining_cooldown_ms() const;
+  void _internal_set_remaining_cooldown_ms(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.S_UseSkillRes)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::se::common::Result* result_;
+    bool success_;
+    uint32_t slot_index_;
+    uint64_t cooldown_end_ms_;
+    uint32_t skill_id_;
+    uint32_t remaining_cooldown_ms_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API N_UseSkill final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_UseSkill) */ {
+ public:
+  inline N_UseSkill() : N_UseSkill(nullptr) {}
+  ~N_UseSkill() override;
+  explicit PROTOBUF_CONSTEXPR N_UseSkill(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_UseSkill(const N_UseSkill& from);
+  N_UseSkill(N_UseSkill&& from) noexcept
+    : N_UseSkill() {
+    *this = ::std::move(from);
+  }
+
+  inline N_UseSkill& operator=(const N_UseSkill& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_UseSkill& operator=(N_UseSkill&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_UseSkill& default_instance() {
+    return *internal_default_instance();
+  }
+  enum DetailCase {
+    kTimeAccel = 10,
+    kAfterImage = 11,
+    kRewind = 12,
+    DETAIL_NOT_SET = 0,
+  };
+
+  static inline const N_UseSkill* internal_default_instance() {
+    return reinterpret_cast<const N_UseSkill*>(
+               &_N_UseSkill_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    45;
+
+  friend void swap(N_UseSkill& a, N_UseSkill& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_UseSkill* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_UseSkill* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_UseSkill* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_UseSkill>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_UseSkill& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_UseSkill& from) {
+    N_UseSkill::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_UseSkill* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_UseSkill";
+  }
+  protected:
+  explicit N_UseSkill(::PROTOBUF_NAMESPACE_ID::Arena* arena,
                        bool is_message_owned = false);
   public:
 
@@ -7951,7 +8185,13 @@ class PROTOCOLSHAREDUE_API N_UseAbility final :
 
   enum : int {
     kEntityIdFieldNumber = 1,
-    kAbilityIdFieldNumber = 2,
+    kSkillIdFieldNumber = 2,
+    kSlotIndexFieldNumber = 3,
+    kStartedAtMsFieldNumber = 5,
+    kDurationMsFieldNumber = 4,
+    kTimeAccelFieldNumber = 10,
+    kAfterImageFieldNumber = 11,
+    kRewindFieldNumber = 12,
   };
   // .se.common.ObjectId entity_id = 1;
   bool has_entity_id() const;
@@ -7971,26 +8211,127 @@ class PROTOCOLSHAREDUE_API N_UseAbility final :
       ::se::common::ObjectId* entity_id);
   ::se::common::ObjectId* unsafe_arena_release_entity_id();
 
-  // uint32 ability_id = 2;
-  void clear_ability_id();
-  uint32_t ability_id() const;
-  void set_ability_id(uint32_t value);
+  // uint32 skill_id = 2;
+  void clear_skill_id();
+  uint32_t skill_id() const;
+  void set_skill_id(uint32_t value);
   private:
-  uint32_t _internal_ability_id() const;
-  void _internal_set_ability_id(uint32_t value);
+  uint32_t _internal_skill_id() const;
+  void _internal_set_skill_id(uint32_t value);
   public:
 
-  // @@protoc_insertion_point(class_scope:se.game.N_UseAbility)
+  // uint32 slot_index = 3;
+  void clear_slot_index();
+  uint32_t slot_index() const;
+  void set_slot_index(uint32_t value);
+  private:
+  uint32_t _internal_slot_index() const;
+  void _internal_set_slot_index(uint32_t value);
+  public:
+
+  // uint64 started_at_ms = 5;
+  void clear_started_at_ms();
+  uint64_t started_at_ms() const;
+  void set_started_at_ms(uint64_t value);
+  private:
+  uint64_t _internal_started_at_ms() const;
+  void _internal_set_started_at_ms(uint64_t value);
+  public:
+
+  // uint32 duration_ms = 4;
+  void clear_duration_ms();
+  uint32_t duration_ms() const;
+  void set_duration_ms(uint32_t value);
+  private:
+  uint32_t _internal_duration_ms() const;
+  void _internal_set_duration_ms(uint32_t value);
+  public:
+
+  // .se.game.TimeAccelEffect time_accel = 10;
+  bool has_time_accel() const;
+  private:
+  bool _internal_has_time_accel() const;
+  public:
+  void clear_time_accel();
+  const ::se::game::TimeAccelEffect& time_accel() const;
+  PROTOBUF_NODISCARD ::se::game::TimeAccelEffect* release_time_accel();
+  ::se::game::TimeAccelEffect* mutable_time_accel();
+  void set_allocated_time_accel(::se::game::TimeAccelEffect* time_accel);
+  private:
+  const ::se::game::TimeAccelEffect& _internal_time_accel() const;
+  ::se::game::TimeAccelEffect* _internal_mutable_time_accel();
+  public:
+  void unsafe_arena_set_allocated_time_accel(
+      ::se::game::TimeAccelEffect* time_accel);
+  ::se::game::TimeAccelEffect* unsafe_arena_release_time_accel();
+
+  // .se.game.TimeAfterImageEffect after_image = 11;
+  bool has_after_image() const;
+  private:
+  bool _internal_has_after_image() const;
+  public:
+  void clear_after_image();
+  const ::se::game::TimeAfterImageEffect& after_image() const;
+  PROTOBUF_NODISCARD ::se::game::TimeAfterImageEffect* release_after_image();
+  ::se::game::TimeAfterImageEffect* mutable_after_image();
+  void set_allocated_after_image(::se::game::TimeAfterImageEffect* after_image);
+  private:
+  const ::se::game::TimeAfterImageEffect& _internal_after_image() const;
+  ::se::game::TimeAfterImageEffect* _internal_mutable_after_image();
+  public:
+  void unsafe_arena_set_allocated_after_image(
+      ::se::game::TimeAfterImageEffect* after_image);
+  ::se::game::TimeAfterImageEffect* unsafe_arena_release_after_image();
+
+  // .se.game.TimeRewindEffect rewind = 12;
+  bool has_rewind() const;
+  private:
+  bool _internal_has_rewind() const;
+  public:
+  void clear_rewind();
+  const ::se::game::TimeRewindEffect& rewind() const;
+  PROTOBUF_NODISCARD ::se::game::TimeRewindEffect* release_rewind();
+  ::se::game::TimeRewindEffect* mutable_rewind();
+  void set_allocated_rewind(::se::game::TimeRewindEffect* rewind);
+  private:
+  const ::se::game::TimeRewindEffect& _internal_rewind() const;
+  ::se::game::TimeRewindEffect* _internal_mutable_rewind();
+  public:
+  void unsafe_arena_set_allocated_rewind(
+      ::se::game::TimeRewindEffect* rewind);
+  ::se::game::TimeRewindEffect* unsafe_arena_release_rewind();
+
+  void clear_detail();
+  DetailCase detail_case() const;
+  // @@protoc_insertion_point(class_scope:se.game.N_UseSkill)
  private:
   class _Internal;
+  void set_has_time_accel();
+  void set_has_after_image();
+  void set_has_rewind();
+
+  inline bool has_detail() const;
+  inline void clear_has_detail();
 
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   struct Impl_ {
     ::se::common::ObjectId* entity_id_;
-    uint32_t ability_id_;
+    uint32_t skill_id_;
+    uint32_t slot_index_;
+    uint64_t started_at_ms_;
+    uint32_t duration_ms_;
+    union DetailUnion {
+      constexpr DetailUnion() : _constinit_{} {}
+        ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+      ::se::game::TimeAccelEffect* time_accel_;
+      ::se::game::TimeAfterImageEffect* after_image_;
+      ::se::game::TimeRewindEffect* rewind_;
+    } detail_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+    uint32_t _oneof_case_[1];
+
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
@@ -8045,7 +8386,7 @@ class PROTOCOLSHAREDUE_API N_EntityHit final :
                &_N_EntityHit_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    45;
+    46;
 
   friend void swap(N_EntityHit& a, N_EntityHit& b) {
     a.Swap(&b);
@@ -8233,7 +8574,7 @@ class PROTOCOLSHAREDUE_API N_KillPlayer final :
                &_N_KillPlayer_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    46;
+    47;
 
   friend void swap(N_KillPlayer& a, N_KillPlayer& b) {
     a.Swap(&b);
@@ -8410,7 +8751,7 @@ class PROTOCOLSHAREDUE_API C_UseItemReq final :
                &_C_UseItemReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    47;
+    48;
 
   friend void swap(C_UseItemReq& a, C_UseItemReq& b) {
     a.Swap(&b);
@@ -8558,7 +8899,7 @@ class PROTOCOLSHAREDUE_API S_UseItemRes final :
                &_S_UseItemRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    48;
+    49;
 
   friend void swap(S_UseItemRes& a, S_UseItemRes& b) {
     a.Swap(&b);
@@ -8737,7 +9078,7 @@ class PROTOCOLSHAREDUE_API N_UseItem final :
                &_N_UseItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    49;
+    50;
 
   friend void swap(N_UseItem& a, N_UseItem& b) {
     a.Swap(&b);
@@ -8905,7 +9246,7 @@ class PROTOCOLSHAREDUE_API C_ChestInteractReq final :
                &_C_ChestInteractReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    50;
+    51;
 
   friend void swap(C_ChestInteractReq& a, C_ChestInteractReq& b) {
     a.Swap(&b);
@@ -9062,7 +9403,7 @@ class PROTOCOLSHAREDUE_API N_ChestInteracted final :
                &_N_ChestInteracted_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    51;
+    52;
 
   friend void swap(N_ChestInteracted& a, N_ChestInteracted& b) {
     a.Swap(&b);
@@ -9239,7 +9580,7 @@ class PROTOCOLSHAREDUE_API C_PickupItemReq final :
                &_C_PickupItemReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    52;
+    53;
 
   friend void swap(C_PickupItemReq& a, C_PickupItemReq& b) {
     a.Swap(&b);
@@ -9396,7 +9737,7 @@ class PROTOCOLSHAREDUE_API N_PickupItem final :
                &_N_PickupItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    53;
+    54;
 
   friend void swap(N_PickupItem& a, N_PickupItem& b) {
     a.Swap(&b);
@@ -9573,7 +9914,7 @@ class PROTOCOLSHAREDUE_API C_EquipItemReq final :
                &_C_EquipItemReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    54;
+    55;
 
   friend void swap(C_EquipItemReq& a, C_EquipItemReq& b) {
     a.Swap(&b);
@@ -9721,7 +10062,7 @@ class PROTOCOLSHAREDUE_API S_EquipItemRes final :
                &_S_EquipItemRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    55;
+    56;
 
   friend void swap(S_EquipItemRes& a, S_EquipItemRes& b) {
     a.Swap(&b);
@@ -9900,7 +10241,7 @@ class PROTOCOLSHAREDUE_API N_EquipItem final :
                &_N_EquipItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    56;
+    57;
 
   friend void swap(N_EquipItem& a, N_EquipItem& b) {
     a.Swap(&b);
@@ -10068,7 +10409,7 @@ class PROTOCOLSHAREDUE_API C_UseStoreReq final :
                &_C_UseStoreReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    57;
+    58;
 
   friend void swap(C_UseStoreReq& a, C_UseStoreReq& b) {
     a.Swap(&b);
@@ -10236,7 +10577,7 @@ class PROTOCOLSHAREDUE_API S_UseStoreRes final :
                &_S_UseStoreRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    58;
+    59;
 
   friend void swap(S_UseStoreRes& a, S_UseStoreRes& b) {
     a.Swap(&b);
@@ -10437,7 +10778,7 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
                &_N_ItemGained_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    59;
+    60;
 
   friend void swap(N_ItemGained& a, N_ItemGained& b) {
     a.Swap(&b);
@@ -10607,7 +10948,7 @@ class PROTOCOLSHAREDUE_API N_ItemLost final :
                &_N_ItemLost_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    60;
+    61;
 
   friend void swap(N_ItemLost& a, N_ItemLost& b) {
     a.Swap(&b);
@@ -10777,7 +11118,7 @@ class PROTOCOLSHAREDUE_API N_ItemSnapshot final :
                &_N_ItemSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    61;
+    62;
 
   friend void swap(N_ItemSnapshot& a, N_ItemSnapshot& b) {
     a.Swap(&b);
@@ -10934,7 +11275,7 @@ class PROTOCOLSHAREDUE_API C_SetSavePointReq final :
                &_C_SetSavePointReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    62;
+    63;
 
   friend void swap(C_SetSavePointReq& a, C_SetSavePointReq& b) {
     a.Swap(&b);
@@ -11091,7 +11432,7 @@ class PROTOCOLSHAREDUE_API S_SetSavePointRes final :
                &_S_SetSavePointRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    63;
+    64;
 
   friend void swap(S_SetSavePointRes& a, S_SetSavePointRes& b) {
     a.Swap(&b);
@@ -11279,7 +11620,7 @@ class PROTOCOLSHAREDUE_API N_HealthChanged final :
                &_N_HealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    64;
+    65;
 
   friend void swap(N_HealthChanged& a, N_HealthChanged& b) {
     a.Swap(&b);
@@ -11458,7 +11799,7 @@ class PROTOCOLSHAREDUE_API N_MaxHealthChanged final :
                &_N_MaxHealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    65;
+    66;
 
   friend void swap(N_MaxHealthChanged& a, N_MaxHealthChanged& b) {
     a.Swap(&b);
@@ -11637,7 +11978,7 @@ class PROTOCOLSHAREDUE_API N_HealthSnapshot final :
                &_N_HealthSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    66;
+    67;
 
   friend void swap(N_HealthSnapshot& a, N_HealthSnapshot& b) {
     a.Swap(&b);
@@ -11796,7 +12137,7 @@ class PROTOCOLSHAREDUE_API N_SpeedChanged final :
                &_N_SpeedChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    67;
+    68;
 
   friend void swap(N_SpeedChanged& a, N_SpeedChanged& b) {
     a.Swap(&b);
@@ -11944,7 +12285,7 @@ class PROTOCOLSHAREDUE_API N_TimePointChanged final :
                &_N_TimePointChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    68;
+    69;
 
   friend void swap(N_TimePointChanged& a, N_TimePointChanged& b) {
     a.Swap(&b);
@@ -12103,7 +12444,7 @@ class PROTOCOLSHAREDUE_API N_TimePointSnapshot final :
                &_N_TimePointSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    69;
+    70;
 
   friend void swap(N_TimePointSnapshot& a, N_TimePointSnapshot& b) {
     a.Swap(&b);
@@ -12251,7 +12592,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlock final :
                &_N_SkillUnlock_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    70;
+    71;
 
   friend void swap(N_SkillUnlock& a, N_SkillUnlock& b) {
     a.Swap(&b);
@@ -12399,7 +12740,7 @@ class PROTOCOLSHAREDUE_API C_SkillEquipReq final :
                &_C_SkillEquipReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    71;
+    72;
 
   friend void swap(C_SkillEquipReq& a, C_SkillEquipReq& b) {
     a.Swap(&b);
@@ -12558,7 +12899,7 @@ class PROTOCOLSHAREDUE_API S_SkillEquipRes final :
                &_S_SkillEquipRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    72;
+    73;
 
   friend void swap(S_SkillEquipRes& a, S_SkillEquipRes& b) {
     a.Swap(&b);
@@ -12748,7 +13089,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
                &_N_SkillUnlockSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    73;
+    74;
 
   friend void swap(N_SkillUnlockSnapshot& a, N_SkillUnlockSnapshot& b) {
     a.Swap(&b);
@@ -12822,6 +13163,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
 
   enum : int {
     kUnlockedSkillIdsFieldNumber = 1,
+    kEquippedSkillSlotsFieldNumber = 2,
   };
   // repeated uint32 unlocked_skill_ids = 1;
   int unlocked_skill_ids_size() const;
@@ -12845,6 +13187,24 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
   ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t >*
       mutable_unlocked_skill_ids();
 
+  // repeated .se.game.SkillSlotSnapshot equipped_skill_slots = 2;
+  int equipped_skill_slots_size() const;
+  private:
+  int _internal_equipped_skill_slots_size() const;
+  public:
+  void clear_equipped_skill_slots();
+  ::se::game::SkillSlotSnapshot* mutable_equipped_skill_slots(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::SkillSlotSnapshot >*
+      mutable_equipped_skill_slots();
+  private:
+  const ::se::game::SkillSlotSnapshot& _internal_equipped_skill_slots(int index) const;
+  ::se::game::SkillSlotSnapshot* _internal_add_equipped_skill_slots();
+  public:
+  const ::se::game::SkillSlotSnapshot& equipped_skill_slots(int index) const;
+  ::se::game::SkillSlotSnapshot* add_equipped_skill_slots();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::SkillSlotSnapshot >&
+      equipped_skill_slots() const;
+
   // @@protoc_insertion_point(class_scope:se.game.N_SkillUnlockSnapshot)
  private:
   class _Internal;
@@ -12855,6 +13215,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
   struct Impl_ {
     ::PROTOBUF_NAMESPACE_ID::RepeatedField< uint32_t > unlocked_skill_ids_;
     mutable std::atomic<int> _unlocked_skill_ids_cached_byte_size_;
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::SkillSlotSnapshot > equipped_skill_slots_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   };
   union { Impl_ _impl_; };
@@ -12910,7 +13271,7 @@ class PROTOCOLSHAREDUE_API N_EntityDied final :
                &_N_EntityDied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    74;
+    75;
 
   friend void swap(N_EntityDied& a, N_EntityDied& b) {
     a.Swap(&b);
@@ -13067,7 +13428,7 @@ class PROTOCOLSHAREDUE_API N_EntityRespawned final :
                &_N_EntityRespawned_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    75;
+    76;
 
   friend void swap(N_EntityRespawned& a, N_EntityRespawned& b) {
     a.Swap(&b);
@@ -13244,7 +13605,7 @@ class PROTOCOLSHAREDUE_API N_EntityDestroyed final :
                &_N_EntityDestroyed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    76;
+    77;
 
   friend void swap(N_EntityDestroyed& a, N_EntityDestroyed& b) {
     a.Swap(&b);
@@ -13401,7 +13762,7 @@ class PROTOCOLSHAREDUE_API N_TimeStormChange final :
                &_N_TimeStormChange_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    77;
+    78;
 
   friend void swap(N_TimeStormChange& a, N_TimeStormChange& b) {
     a.Swap(&b);
@@ -13591,7 +13952,7 @@ class PROTOCOLSHAREDUE_API DebugDrawSphere final :
                &_DebugDrawSphere_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    78;
+    79;
 
   friend void swap(DebugDrawSphere& a, DebugDrawSphere& b) {
     a.Swap(&b);
@@ -13759,7 +14120,7 @@ class PROTOCOLSHAREDUE_API DebugDrawOBB final :
                &_DebugDrawOBB_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    79;
+    80;
 
   friend void swap(DebugDrawOBB& a, DebugDrawOBB& b) {
     a.Swap(&b);
@@ -13962,7 +14323,7 @@ class PROTOCOLSHAREDUE_API N_DebugDraw final :
                &_N_DebugDraw_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    80;
+    81;
 
   friend void swap(N_DebugDraw& a, N_DebugDraw& b) {
     a.Swap(&b);
@@ -19724,49 +20085,258 @@ N_WeaponStatSnapshot::stats() const {
 
 // -------------------------------------------------------------------
 
-// C_UseAbilityReq
+// C_UseSkillReq
 
-// uint32 ability_id = 1;
-inline void C_UseAbilityReq::clear_ability_id() {
-  _impl_.ability_id_ = 0u;
+// uint32 slot_index = 1;
+inline void C_UseSkillReq::clear_slot_index() {
+  _impl_.slot_index_ = 0u;
 }
-inline uint32_t C_UseAbilityReq::_internal_ability_id() const {
-  return _impl_.ability_id_;
+inline uint32_t C_UseSkillReq::_internal_slot_index() const {
+  return _impl_.slot_index_;
 }
-inline uint32_t C_UseAbilityReq::ability_id() const {
-  // @@protoc_insertion_point(field_get:se.game.C_UseAbilityReq.ability_id)
-  return _internal_ability_id();
+inline uint32_t C_UseSkillReq::slot_index() const {
+  // @@protoc_insertion_point(field_get:se.game.C_UseSkillReq.slot_index)
+  return _internal_slot_index();
 }
-inline void C_UseAbilityReq::_internal_set_ability_id(uint32_t value) {
+inline void C_UseSkillReq::_internal_set_slot_index(uint32_t value) {
   
-  _impl_.ability_id_ = value;
+  _impl_.slot_index_ = value;
 }
-inline void C_UseAbilityReq::set_ability_id(uint32_t value) {
-  _internal_set_ability_id(value);
-  // @@protoc_insertion_point(field_set:se.game.C_UseAbilityReq.ability_id)
+inline void C_UseSkillReq::set_slot_index(uint32_t value) {
+  _internal_set_slot_index(value);
+  // @@protoc_insertion_point(field_set:se.game.C_UseSkillReq.slot_index)
+}
+
+// uint32 skill_id = 2;
+inline void C_UseSkillReq::clear_skill_id() {
+  _impl_.skill_id_ = 0u;
+}
+inline uint32_t C_UseSkillReq::_internal_skill_id() const {
+  return _impl_.skill_id_;
+}
+inline uint32_t C_UseSkillReq::skill_id() const {
+  // @@protoc_insertion_point(field_get:se.game.C_UseSkillReq.skill_id)
+  return _internal_skill_id();
+}
+inline void C_UseSkillReq::_internal_set_skill_id(uint32_t value) {
+  
+  _impl_.skill_id_ = value;
+}
+inline void C_UseSkillReq::set_skill_id(uint32_t value) {
+  _internal_set_skill_id(value);
+  // @@protoc_insertion_point(field_set:se.game.C_UseSkillReq.skill_id)
 }
 
 // -------------------------------------------------------------------
 
-// N_UseAbility
+// S_UseSkillRes
+
+// bool success = 1;
+inline void S_UseSkillRes::clear_success() {
+  _impl_.success_ = false;
+}
+inline bool S_UseSkillRes::_internal_success() const {
+  return _impl_.success_;
+}
+inline bool S_UseSkillRes::success() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseSkillRes.success)
+  return _internal_success();
+}
+inline void S_UseSkillRes::_internal_set_success(bool value) {
+  
+  _impl_.success_ = value;
+}
+inline void S_UseSkillRes::set_success(bool value) {
+  _internal_set_success(value);
+  // @@protoc_insertion_point(field_set:se.game.S_UseSkillRes.success)
+}
+
+// .se.common.Result result = 2;
+inline bool S_UseSkillRes::_internal_has_result() const {
+  return this != internal_default_instance() && _impl_.result_ != nullptr;
+}
+inline bool S_UseSkillRes::has_result() const {
+  return _internal_has_result();
+}
+inline const ::se::common::Result& S_UseSkillRes::_internal_result() const {
+  const ::se::common::Result* p = _impl_.result_;
+  return p != nullptr ? *p : reinterpret_cast<const ::se::common::Result&>(
+      ::se::common::_Result_default_instance_);
+}
+inline const ::se::common::Result& S_UseSkillRes::result() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseSkillRes.result)
+  return _internal_result();
+}
+inline void S_UseSkillRes::unsafe_arena_set_allocated_result(
+    ::se::common::Result* result) {
+  if (GetArenaForAllocation() == nullptr) {
+    delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.result_);
+  }
+  _impl_.result_ = result;
+  if (result) {
+    
+  } else {
+    
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.S_UseSkillRes.result)
+}
+inline ::se::common::Result* S_UseSkillRes::release_result() {
+  
+  ::se::common::Result* temp = _impl_.result_;
+  _impl_.result_ = nullptr;
+#ifdef PROTOBUF_FORCE_COPY_IN_RELEASE
+  auto* old =  reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(temp);
+  temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  if (GetArenaForAllocation() == nullptr) { delete old; }
+#else  // PROTOBUF_FORCE_COPY_IN_RELEASE
+  if (GetArenaForAllocation() != nullptr) {
+    temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+  }
+#endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
+  return temp;
+}
+inline ::se::common::Result* S_UseSkillRes::unsafe_arena_release_result() {
+  // @@protoc_insertion_point(field_release:se.game.S_UseSkillRes.result)
+  
+  ::se::common::Result* temp = _impl_.result_;
+  _impl_.result_ = nullptr;
+  return temp;
+}
+inline ::se::common::Result* S_UseSkillRes::_internal_mutable_result() {
+  
+  if (_impl_.result_ == nullptr) {
+    auto* p = CreateMaybeMessage<::se::common::Result>(GetArenaForAllocation());
+    _impl_.result_ = p;
+  }
+  return _impl_.result_;
+}
+inline ::se::common::Result* S_UseSkillRes::mutable_result() {
+  ::se::common::Result* _msg = _internal_mutable_result();
+  // @@protoc_insertion_point(field_mutable:se.game.S_UseSkillRes.result)
+  return _msg;
+}
+inline void S_UseSkillRes::set_allocated_result(::se::common::Result* result) {
+  ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
+  if (message_arena == nullptr) {
+    delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.result_);
+  }
+  if (result) {
+    ::PROTOBUF_NAMESPACE_ID::Arena* submessage_arena =
+        ::PROTOBUF_NAMESPACE_ID::Arena::InternalGetOwningArena(
+                reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(result));
+    if (message_arena != submessage_arena) {
+      result = ::PROTOBUF_NAMESPACE_ID::internal::GetOwnedMessage(
+          message_arena, result, submessage_arena);
+    }
+    
+  } else {
+    
+  }
+  _impl_.result_ = result;
+  // @@protoc_insertion_point(field_set_allocated:se.game.S_UseSkillRes.result)
+}
+
+// uint32 slot_index = 3;
+inline void S_UseSkillRes::clear_slot_index() {
+  _impl_.slot_index_ = 0u;
+}
+inline uint32_t S_UseSkillRes::_internal_slot_index() const {
+  return _impl_.slot_index_;
+}
+inline uint32_t S_UseSkillRes::slot_index() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseSkillRes.slot_index)
+  return _internal_slot_index();
+}
+inline void S_UseSkillRes::_internal_set_slot_index(uint32_t value) {
+  
+  _impl_.slot_index_ = value;
+}
+inline void S_UseSkillRes::set_slot_index(uint32_t value) {
+  _internal_set_slot_index(value);
+  // @@protoc_insertion_point(field_set:se.game.S_UseSkillRes.slot_index)
+}
+
+// uint32 skill_id = 4;
+inline void S_UseSkillRes::clear_skill_id() {
+  _impl_.skill_id_ = 0u;
+}
+inline uint32_t S_UseSkillRes::_internal_skill_id() const {
+  return _impl_.skill_id_;
+}
+inline uint32_t S_UseSkillRes::skill_id() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseSkillRes.skill_id)
+  return _internal_skill_id();
+}
+inline void S_UseSkillRes::_internal_set_skill_id(uint32_t value) {
+  
+  _impl_.skill_id_ = value;
+}
+inline void S_UseSkillRes::set_skill_id(uint32_t value) {
+  _internal_set_skill_id(value);
+  // @@protoc_insertion_point(field_set:se.game.S_UseSkillRes.skill_id)
+}
+
+// uint64 cooldown_end_ms = 5;
+inline void S_UseSkillRes::clear_cooldown_end_ms() {
+  _impl_.cooldown_end_ms_ = uint64_t{0u};
+}
+inline uint64_t S_UseSkillRes::_internal_cooldown_end_ms() const {
+  return _impl_.cooldown_end_ms_;
+}
+inline uint64_t S_UseSkillRes::cooldown_end_ms() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseSkillRes.cooldown_end_ms)
+  return _internal_cooldown_end_ms();
+}
+inline void S_UseSkillRes::_internal_set_cooldown_end_ms(uint64_t value) {
+  
+  _impl_.cooldown_end_ms_ = value;
+}
+inline void S_UseSkillRes::set_cooldown_end_ms(uint64_t value) {
+  _internal_set_cooldown_end_ms(value);
+  // @@protoc_insertion_point(field_set:se.game.S_UseSkillRes.cooldown_end_ms)
+}
+
+// uint32 remaining_cooldown_ms = 6;
+inline void S_UseSkillRes::clear_remaining_cooldown_ms() {
+  _impl_.remaining_cooldown_ms_ = 0u;
+}
+inline uint32_t S_UseSkillRes::_internal_remaining_cooldown_ms() const {
+  return _impl_.remaining_cooldown_ms_;
+}
+inline uint32_t S_UseSkillRes::remaining_cooldown_ms() const {
+  // @@protoc_insertion_point(field_get:se.game.S_UseSkillRes.remaining_cooldown_ms)
+  return _internal_remaining_cooldown_ms();
+}
+inline void S_UseSkillRes::_internal_set_remaining_cooldown_ms(uint32_t value) {
+  
+  _impl_.remaining_cooldown_ms_ = value;
+}
+inline void S_UseSkillRes::set_remaining_cooldown_ms(uint32_t value) {
+  _internal_set_remaining_cooldown_ms(value);
+  // @@protoc_insertion_point(field_set:se.game.S_UseSkillRes.remaining_cooldown_ms)
+}
+
+// -------------------------------------------------------------------
+
+// N_UseSkill
 
 // .se.common.ObjectId entity_id = 1;
-inline bool N_UseAbility::_internal_has_entity_id() const {
+inline bool N_UseSkill::_internal_has_entity_id() const {
   return this != internal_default_instance() && _impl_.entity_id_ != nullptr;
 }
-inline bool N_UseAbility::has_entity_id() const {
+inline bool N_UseSkill::has_entity_id() const {
   return _internal_has_entity_id();
 }
-inline const ::se::common::ObjectId& N_UseAbility::_internal_entity_id() const {
+inline const ::se::common::ObjectId& N_UseSkill::_internal_entity_id() const {
   const ::se::common::ObjectId* p = _impl_.entity_id_;
   return p != nullptr ? *p : reinterpret_cast<const ::se::common::ObjectId&>(
       ::se::common::_ObjectId_default_instance_);
 }
-inline const ::se::common::ObjectId& N_UseAbility::entity_id() const {
-  // @@protoc_insertion_point(field_get:se.game.N_UseAbility.entity_id)
+inline const ::se::common::ObjectId& N_UseSkill::entity_id() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.entity_id)
   return _internal_entity_id();
 }
-inline void N_UseAbility::unsafe_arena_set_allocated_entity_id(
+inline void N_UseSkill::unsafe_arena_set_allocated_entity_id(
     ::se::common::ObjectId* entity_id) {
   if (GetArenaForAllocation() == nullptr) {
     delete reinterpret_cast<::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.entity_id_);
@@ -19777,9 +20347,9 @@ inline void N_UseAbility::unsafe_arena_set_allocated_entity_id(
   } else {
     
   }
-  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_UseAbility.entity_id)
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_UseSkill.entity_id)
 }
-inline ::se::common::ObjectId* N_UseAbility::release_entity_id() {
+inline ::se::common::ObjectId* N_UseSkill::release_entity_id() {
   
   ::se::common::ObjectId* temp = _impl_.entity_id_;
   _impl_.entity_id_ = nullptr;
@@ -19794,14 +20364,14 @@ inline ::se::common::ObjectId* N_UseAbility::release_entity_id() {
 #endif  // !PROTOBUF_FORCE_COPY_IN_RELEASE
   return temp;
 }
-inline ::se::common::ObjectId* N_UseAbility::unsafe_arena_release_entity_id() {
-  // @@protoc_insertion_point(field_release:se.game.N_UseAbility.entity_id)
+inline ::se::common::ObjectId* N_UseSkill::unsafe_arena_release_entity_id() {
+  // @@protoc_insertion_point(field_release:se.game.N_UseSkill.entity_id)
   
   ::se::common::ObjectId* temp = _impl_.entity_id_;
   _impl_.entity_id_ = nullptr;
   return temp;
 }
-inline ::se::common::ObjectId* N_UseAbility::_internal_mutable_entity_id() {
+inline ::se::common::ObjectId* N_UseSkill::_internal_mutable_entity_id() {
   
   if (_impl_.entity_id_ == nullptr) {
     auto* p = CreateMaybeMessage<::se::common::ObjectId>(GetArenaForAllocation());
@@ -19809,12 +20379,12 @@ inline ::se::common::ObjectId* N_UseAbility::_internal_mutable_entity_id() {
   }
   return _impl_.entity_id_;
 }
-inline ::se::common::ObjectId* N_UseAbility::mutable_entity_id() {
+inline ::se::common::ObjectId* N_UseSkill::mutable_entity_id() {
   ::se::common::ObjectId* _msg = _internal_mutable_entity_id();
-  // @@protoc_insertion_point(field_mutable:se.game.N_UseAbility.entity_id)
+  // @@protoc_insertion_point(field_mutable:se.game.N_UseSkill.entity_id)
   return _msg;
 }
-inline void N_UseAbility::set_allocated_entity_id(::se::common::ObjectId* entity_id) {
+inline void N_UseSkill::set_allocated_entity_id(::se::common::ObjectId* entity_id) {
   ::PROTOBUF_NAMESPACE_ID::Arena* message_arena = GetArenaForAllocation();
   if (message_arena == nullptr) {
     delete reinterpret_cast< ::PROTOBUF_NAMESPACE_ID::MessageLite*>(_impl_.entity_id_);
@@ -19832,29 +20402,296 @@ inline void N_UseAbility::set_allocated_entity_id(::se::common::ObjectId* entity
     
   }
   _impl_.entity_id_ = entity_id;
-  // @@protoc_insertion_point(field_set_allocated:se.game.N_UseAbility.entity_id)
+  // @@protoc_insertion_point(field_set_allocated:se.game.N_UseSkill.entity_id)
 }
 
-// uint32 ability_id = 2;
-inline void N_UseAbility::clear_ability_id() {
-  _impl_.ability_id_ = 0u;
+// uint32 skill_id = 2;
+inline void N_UseSkill::clear_skill_id() {
+  _impl_.skill_id_ = 0u;
 }
-inline uint32_t N_UseAbility::_internal_ability_id() const {
-  return _impl_.ability_id_;
+inline uint32_t N_UseSkill::_internal_skill_id() const {
+  return _impl_.skill_id_;
 }
-inline uint32_t N_UseAbility::ability_id() const {
-  // @@protoc_insertion_point(field_get:se.game.N_UseAbility.ability_id)
-  return _internal_ability_id();
+inline uint32_t N_UseSkill::skill_id() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.skill_id)
+  return _internal_skill_id();
 }
-inline void N_UseAbility::_internal_set_ability_id(uint32_t value) {
+inline void N_UseSkill::_internal_set_skill_id(uint32_t value) {
   
-  _impl_.ability_id_ = value;
+  _impl_.skill_id_ = value;
 }
-inline void N_UseAbility::set_ability_id(uint32_t value) {
-  _internal_set_ability_id(value);
-  // @@protoc_insertion_point(field_set:se.game.N_UseAbility.ability_id)
+inline void N_UseSkill::set_skill_id(uint32_t value) {
+  _internal_set_skill_id(value);
+  // @@protoc_insertion_point(field_set:se.game.N_UseSkill.skill_id)
 }
 
+// uint32 slot_index = 3;
+inline void N_UseSkill::clear_slot_index() {
+  _impl_.slot_index_ = 0u;
+}
+inline uint32_t N_UseSkill::_internal_slot_index() const {
+  return _impl_.slot_index_;
+}
+inline uint32_t N_UseSkill::slot_index() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.slot_index)
+  return _internal_slot_index();
+}
+inline void N_UseSkill::_internal_set_slot_index(uint32_t value) {
+  
+  _impl_.slot_index_ = value;
+}
+inline void N_UseSkill::set_slot_index(uint32_t value) {
+  _internal_set_slot_index(value);
+  // @@protoc_insertion_point(field_set:se.game.N_UseSkill.slot_index)
+}
+
+// uint32 duration_ms = 4;
+inline void N_UseSkill::clear_duration_ms() {
+  _impl_.duration_ms_ = 0u;
+}
+inline uint32_t N_UseSkill::_internal_duration_ms() const {
+  return _impl_.duration_ms_;
+}
+inline uint32_t N_UseSkill::duration_ms() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.duration_ms)
+  return _internal_duration_ms();
+}
+inline void N_UseSkill::_internal_set_duration_ms(uint32_t value) {
+  
+  _impl_.duration_ms_ = value;
+}
+inline void N_UseSkill::set_duration_ms(uint32_t value) {
+  _internal_set_duration_ms(value);
+  // @@protoc_insertion_point(field_set:se.game.N_UseSkill.duration_ms)
+}
+
+// uint64 started_at_ms = 5;
+inline void N_UseSkill::clear_started_at_ms() {
+  _impl_.started_at_ms_ = uint64_t{0u};
+}
+inline uint64_t N_UseSkill::_internal_started_at_ms() const {
+  return _impl_.started_at_ms_;
+}
+inline uint64_t N_UseSkill::started_at_ms() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.started_at_ms)
+  return _internal_started_at_ms();
+}
+inline void N_UseSkill::_internal_set_started_at_ms(uint64_t value) {
+  
+  _impl_.started_at_ms_ = value;
+}
+inline void N_UseSkill::set_started_at_ms(uint64_t value) {
+  _internal_set_started_at_ms(value);
+  // @@protoc_insertion_point(field_set:se.game.N_UseSkill.started_at_ms)
+}
+
+// .se.game.TimeAccelEffect time_accel = 10;
+inline bool N_UseSkill::_internal_has_time_accel() const {
+  return detail_case() == kTimeAccel;
+}
+inline bool N_UseSkill::has_time_accel() const {
+  return _internal_has_time_accel();
+}
+inline void N_UseSkill::set_has_time_accel() {
+  _impl_._oneof_case_[0] = kTimeAccel;
+}
+inline ::se::game::TimeAccelEffect* N_UseSkill::release_time_accel() {
+  // @@protoc_insertion_point(field_release:se.game.N_UseSkill.time_accel)
+  if (_internal_has_time_accel()) {
+    clear_has_detail();
+    ::se::game::TimeAccelEffect* temp = _impl_.detail_.time_accel_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.time_accel_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::game::TimeAccelEffect& N_UseSkill::_internal_time_accel() const {
+  return _internal_has_time_accel()
+      ? *_impl_.detail_.time_accel_
+      : reinterpret_cast< ::se::game::TimeAccelEffect&>(::se::game::_TimeAccelEffect_default_instance_);
+}
+inline const ::se::game::TimeAccelEffect& N_UseSkill::time_accel() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.time_accel)
+  return _internal_time_accel();
+}
+inline ::se::game::TimeAccelEffect* N_UseSkill::unsafe_arena_release_time_accel() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.game.N_UseSkill.time_accel)
+  if (_internal_has_time_accel()) {
+    clear_has_detail();
+    ::se::game::TimeAccelEffect* temp = _impl_.detail_.time_accel_;
+    _impl_.detail_.time_accel_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void N_UseSkill::unsafe_arena_set_allocated_time_accel(::se::game::TimeAccelEffect* time_accel) {
+  clear_detail();
+  if (time_accel) {
+    set_has_time_accel();
+    _impl_.detail_.time_accel_ = time_accel;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_UseSkill.time_accel)
+}
+inline ::se::game::TimeAccelEffect* N_UseSkill::_internal_mutable_time_accel() {
+  if (!_internal_has_time_accel()) {
+    clear_detail();
+    set_has_time_accel();
+    _impl_.detail_.time_accel_ = CreateMaybeMessage< ::se::game::TimeAccelEffect >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.time_accel_;
+}
+inline ::se::game::TimeAccelEffect* N_UseSkill::mutable_time_accel() {
+  ::se::game::TimeAccelEffect* _msg = _internal_mutable_time_accel();
+  // @@protoc_insertion_point(field_mutable:se.game.N_UseSkill.time_accel)
+  return _msg;
+}
+
+// .se.game.TimeAfterImageEffect after_image = 11;
+inline bool N_UseSkill::_internal_has_after_image() const {
+  return detail_case() == kAfterImage;
+}
+inline bool N_UseSkill::has_after_image() const {
+  return _internal_has_after_image();
+}
+inline void N_UseSkill::set_has_after_image() {
+  _impl_._oneof_case_[0] = kAfterImage;
+}
+inline ::se::game::TimeAfterImageEffect* N_UseSkill::release_after_image() {
+  // @@protoc_insertion_point(field_release:se.game.N_UseSkill.after_image)
+  if (_internal_has_after_image()) {
+    clear_has_detail();
+    ::se::game::TimeAfterImageEffect* temp = _impl_.detail_.after_image_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.after_image_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::game::TimeAfterImageEffect& N_UseSkill::_internal_after_image() const {
+  return _internal_has_after_image()
+      ? *_impl_.detail_.after_image_
+      : reinterpret_cast< ::se::game::TimeAfterImageEffect&>(::se::game::_TimeAfterImageEffect_default_instance_);
+}
+inline const ::se::game::TimeAfterImageEffect& N_UseSkill::after_image() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.after_image)
+  return _internal_after_image();
+}
+inline ::se::game::TimeAfterImageEffect* N_UseSkill::unsafe_arena_release_after_image() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.game.N_UseSkill.after_image)
+  if (_internal_has_after_image()) {
+    clear_has_detail();
+    ::se::game::TimeAfterImageEffect* temp = _impl_.detail_.after_image_;
+    _impl_.detail_.after_image_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void N_UseSkill::unsafe_arena_set_allocated_after_image(::se::game::TimeAfterImageEffect* after_image) {
+  clear_detail();
+  if (after_image) {
+    set_has_after_image();
+    _impl_.detail_.after_image_ = after_image;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_UseSkill.after_image)
+}
+inline ::se::game::TimeAfterImageEffect* N_UseSkill::_internal_mutable_after_image() {
+  if (!_internal_has_after_image()) {
+    clear_detail();
+    set_has_after_image();
+    _impl_.detail_.after_image_ = CreateMaybeMessage< ::se::game::TimeAfterImageEffect >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.after_image_;
+}
+inline ::se::game::TimeAfterImageEffect* N_UseSkill::mutable_after_image() {
+  ::se::game::TimeAfterImageEffect* _msg = _internal_mutable_after_image();
+  // @@protoc_insertion_point(field_mutable:se.game.N_UseSkill.after_image)
+  return _msg;
+}
+
+// .se.game.TimeRewindEffect rewind = 12;
+inline bool N_UseSkill::_internal_has_rewind() const {
+  return detail_case() == kRewind;
+}
+inline bool N_UseSkill::has_rewind() const {
+  return _internal_has_rewind();
+}
+inline void N_UseSkill::set_has_rewind() {
+  _impl_._oneof_case_[0] = kRewind;
+}
+inline ::se::game::TimeRewindEffect* N_UseSkill::release_rewind() {
+  // @@protoc_insertion_point(field_release:se.game.N_UseSkill.rewind)
+  if (_internal_has_rewind()) {
+    clear_has_detail();
+    ::se::game::TimeRewindEffect* temp = _impl_.detail_.rewind_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.rewind_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::game::TimeRewindEffect& N_UseSkill::_internal_rewind() const {
+  return _internal_has_rewind()
+      ? *_impl_.detail_.rewind_
+      : reinterpret_cast< ::se::game::TimeRewindEffect&>(::se::game::_TimeRewindEffect_default_instance_);
+}
+inline const ::se::game::TimeRewindEffect& N_UseSkill::rewind() const {
+  // @@protoc_insertion_point(field_get:se.game.N_UseSkill.rewind)
+  return _internal_rewind();
+}
+inline ::se::game::TimeRewindEffect* N_UseSkill::unsafe_arena_release_rewind() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.game.N_UseSkill.rewind)
+  if (_internal_has_rewind()) {
+    clear_has_detail();
+    ::se::game::TimeRewindEffect* temp = _impl_.detail_.rewind_;
+    _impl_.detail_.rewind_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void N_UseSkill::unsafe_arena_set_allocated_rewind(::se::game::TimeRewindEffect* rewind) {
+  clear_detail();
+  if (rewind) {
+    set_has_rewind();
+    _impl_.detail_.rewind_ = rewind;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.N_UseSkill.rewind)
+}
+inline ::se::game::TimeRewindEffect* N_UseSkill::_internal_mutable_rewind() {
+  if (!_internal_has_rewind()) {
+    clear_detail();
+    set_has_rewind();
+    _impl_.detail_.rewind_ = CreateMaybeMessage< ::se::game::TimeRewindEffect >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.rewind_;
+}
+inline ::se::game::TimeRewindEffect* N_UseSkill::mutable_rewind() {
+  ::se::game::TimeRewindEffect* _msg = _internal_mutable_rewind();
+  // @@protoc_insertion_point(field_mutable:se.game.N_UseSkill.rewind)
+  return _msg;
+}
+
+inline bool N_UseSkill::has_detail() const {
+  return detail_case() != DETAIL_NOT_SET;
+}
+inline void N_UseSkill::clear_has_detail() {
+  _impl_._oneof_case_[0] = DETAIL_NOT_SET;
+}
+inline N_UseSkill::DetailCase N_UseSkill::detail_case() const {
+  return N_UseSkill::DetailCase(_impl_._oneof_case_[0]);
+}
 // -------------------------------------------------------------------
 
 // N_EntityHit
@@ -22665,6 +23502,43 @@ N_SkillUnlockSnapshot::mutable_unlocked_skill_ids() {
   return _internal_mutable_unlocked_skill_ids();
 }
 
+// repeated .se.game.SkillSlotSnapshot equipped_skill_slots = 2;
+inline int N_SkillUnlockSnapshot::_internal_equipped_skill_slots_size() const {
+  return _impl_.equipped_skill_slots_.size();
+}
+inline int N_SkillUnlockSnapshot::equipped_skill_slots_size() const {
+  return _internal_equipped_skill_slots_size();
+}
+inline ::se::game::SkillSlotSnapshot* N_SkillUnlockSnapshot::mutable_equipped_skill_slots(int index) {
+  // @@protoc_insertion_point(field_mutable:se.game.N_SkillUnlockSnapshot.equipped_skill_slots)
+  return _impl_.equipped_skill_slots_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::SkillSlotSnapshot >*
+N_SkillUnlockSnapshot::mutable_equipped_skill_slots() {
+  // @@protoc_insertion_point(field_mutable_list:se.game.N_SkillUnlockSnapshot.equipped_skill_slots)
+  return &_impl_.equipped_skill_slots_;
+}
+inline const ::se::game::SkillSlotSnapshot& N_SkillUnlockSnapshot::_internal_equipped_skill_slots(int index) const {
+  return _impl_.equipped_skill_slots_.Get(index);
+}
+inline const ::se::game::SkillSlotSnapshot& N_SkillUnlockSnapshot::equipped_skill_slots(int index) const {
+  // @@protoc_insertion_point(field_get:se.game.N_SkillUnlockSnapshot.equipped_skill_slots)
+  return _internal_equipped_skill_slots(index);
+}
+inline ::se::game::SkillSlotSnapshot* N_SkillUnlockSnapshot::_internal_add_equipped_skill_slots() {
+  return _impl_.equipped_skill_slots_.Add();
+}
+inline ::se::game::SkillSlotSnapshot* N_SkillUnlockSnapshot::add_equipped_skill_slots() {
+  ::se::game::SkillSlotSnapshot* _add = _internal_add_equipped_skill_slots();
+  // @@protoc_insertion_point(field_add:se.game.N_SkillUnlockSnapshot.equipped_skill_slots)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::SkillSlotSnapshot >&
+N_SkillUnlockSnapshot::equipped_skill_slots() const {
+  // @@protoc_insertion_point(field_list:se.game.N_SkillUnlockSnapshot.equipped_skill_slots)
+  return _impl_.equipped_skill_slots_;
+}
+
 // -------------------------------------------------------------------
 
 // N_EntityDied
@@ -23758,6 +24632,8 @@ inline N_DebugDraw::ShapeCase N_DebugDraw::shape_case() const {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

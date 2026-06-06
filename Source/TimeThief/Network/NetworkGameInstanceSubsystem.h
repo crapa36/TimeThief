@@ -81,6 +81,8 @@ public:
 	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
 	void SendUseItem(uint32 Itemid);
+	void SendUseSkill(uint32 SlotIndex, uint32 SkillId);
+	void SendSkillEquip(uint32 SlotIndex, uint32 SkillId);
 	void SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData);
 	void SendGrenadeExplosion(uint32 GrenadeEntityId, const FVector& Location);
 	
@@ -139,7 +141,8 @@ public:
 	void HandleReload(const se::game::N_Reload& Pkt);
 	void HandleWeaponChanged(const se::game::N_WeaponChanged& Pkt);
 	void HandleWeaponStatSnapshot(const se::game::N_WeaponStatSnapshot& Pkt);
-	void HandleUseAbility(const se::game::N_UseAbility& Pkt);
+	void HandleUseSkillRes(const se::game::S_UseSkillRes& Pkt);
+	void HandleUseSkill(const se::game::N_UseSkill& Pkt);
 	void HandleKillPlayer(const se::game::N_KillPlayer& Pkt);
 	void HandleReloadRes(const se::game::S_ReloadRes& pkt);
 	void HandleEntityHit(const se::game::N_EntityHit& pkt);

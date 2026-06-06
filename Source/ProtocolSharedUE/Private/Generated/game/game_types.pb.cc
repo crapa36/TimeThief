@@ -124,9 +124,68 @@ struct ItemStackDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemStackDefaultTypeInternal _ItemStack_default_instance_;
+PROTOBUF_CONSTEXPR SkillSlotSnapshot::SkillSlotSnapshot(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.slot_index_)*/0u
+  , /*decltype(_impl_.skill_id_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct SkillSlotSnapshotDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR SkillSlotSnapshotDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~SkillSlotSnapshotDefaultTypeInternal() {}
+  union {
+    SkillSlotSnapshot _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 SkillSlotSnapshotDefaultTypeInternal _SkillSlotSnapshot_default_instance_;
+PROTOBUF_CONSTEXPR TimeAccelEffect::TimeAccelEffect(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.fire_rate_bonus_percent_)*/0u
+  , /*decltype(_impl_.move_speed_bonus_percent_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct TimeAccelEffectDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TimeAccelEffectDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TimeAccelEffectDefaultTypeInternal() {}
+  union {
+    TimeAccelEffect _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TimeAccelEffectDefaultTypeInternal _TimeAccelEffect_default_instance_;
+PROTOBUF_CONSTEXPR TimeAfterImageEffect::TimeAfterImageEffect(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.start_position_)*/nullptr
+  , /*decltype(_impl_.direction_)*/nullptr
+  , /*decltype(_impl_.move_speed_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct TimeAfterImageEffectDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TimeAfterImageEffectDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TimeAfterImageEffectDefaultTypeInternal() {}
+  union {
+    TimeAfterImageEffect _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TimeAfterImageEffectDefaultTypeInternal _TimeAfterImageEffect_default_instance_;
+PROTOBUF_CONSTEXPR TimeRewindEffect::TimeRewindEffect(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.target_position_)*/nullptr
+  , /*decltype(_impl_.rewind_duration_ms_)*/0u
+  , /*decltype(_impl_.invulnerable_duration_ms_)*/0u
+  , /*decltype(_impl_.target_health_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct TimeRewindEffectDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR TimeRewindEffectDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~TimeRewindEffectDefaultTypeInternal() {}
+  union {
+    TimeRewindEffect _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TimeRewindEffectDefaultTypeInternal _TimeRewindEffect_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5ftypes_2eproto[7];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5ftypes_2eproto[11];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5ftypes_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5ftypes_2eproto = nullptr;
 
@@ -193,6 +252,41 @@ const uint32_t TableStruct_game_2fgame_5ftypes_2eproto::offsets[] PROTOBUF_SECTI
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::game::ItemStack, _impl_.item_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::ItemStack, _impl_.amount_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::SkillSlotSnapshot, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::SkillSlotSnapshot, _impl_.slot_index_),
+  PROTOBUF_FIELD_OFFSET(::se::game::SkillSlotSnapshot, _impl_.skill_id_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAccelEffect, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAccelEffect, _impl_.fire_rate_bonus_percent_),
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAccelEffect, _impl_.move_speed_bonus_percent_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAfterImageEffect, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAfterImageEffect, _impl_.start_position_),
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAfterImageEffect, _impl_.direction_),
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeAfterImageEffect, _impl_.move_speed_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeRewindEffect, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeRewindEffect, _impl_.rewind_duration_ms_),
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeRewindEffect, _impl_.invulnerable_duration_ms_),
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeRewindEffect, _impl_.target_health_),
+  PROTOBUF_FIELD_OFFSET(::se::game::TimeRewindEffect, _impl_.target_position_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::se::game::PlayerMovement)},
@@ -202,6 +296,10 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 36, -1, -1, sizeof(::se::game::WeaponSlotSnapshot)},
   { 44, -1, -1, sizeof(::se::game::WeaponStatValue)},
   { 54, -1, -1, sizeof(::se::game::ItemStack)},
+  { 62, -1, -1, sizeof(::se::game::SkillSlotSnapshot)},
+  { 70, -1, -1, sizeof(::se::game::TimeAccelEffect)},
+  { 78, -1, -1, sizeof(::se::game::TimeAfterImageEffect)},
+  { 87, -1, -1, sizeof(::se::game::TimeRewindEffect)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -212,6 +310,10 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_WeaponSlotSnapshot_default_instance_._instance,
   &::se::game::_WeaponStatValue_default_instance_._instance,
   &::se::game::_ItemStack_default_instance_._instance,
+  &::se::game::_SkillSlotSnapshot_default_instance_._instance,
+  &::se::game::_TimeAccelEffect_default_instance_._instance,
+  &::se::game::_TimeAfterImageEffect_default_instance_._instance,
+  &::se::game::_TimeRewindEffect_default_instance_._instance,
 };
 
 const char descriptor_table_protodef_game_2fgame_5ftypes_2eproto[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) =
@@ -233,7 +335,17 @@ const char descriptor_table_protodef_game_2fgame_5ftypes_2eproto[] PROTOBUF_SECT
   " \001(\0162\027.se.game.WeaponStatType\022\023\n\tint_val"
   "ue\030\002 \001(\005H\000\022\025\n\013float_value\030\003 \001(\002H\000B\007\n\005val"
   "ue\",\n\tItemStack\022\017\n\007item_id\030\001 \001(\r\022\016\n\006amou"
-  "nt\030\002 \001(\rb\006proto3"
+  "nt\030\002 \001(\r\"9\n\021SkillSlotSnapshot\022\022\n\nslot_in"
+  "dex\030\001 \001(\r\022\020\n\010skill_id\030\002 \001(\r\"T\n\017TimeAccel"
+  "Effect\022\037\n\027fire_rate_bonus_percent\030\001 \001(\r\022"
+  " \n\030move_speed_bonus_percent\030\002 \001(\r\"}\n\024Tim"
+  "eAfterImageEffect\022*\n\016start_position\030\001 \001("
+  "\0132\022.se.common.Vector3\022%\n\tdirection\030\002 \001(\013"
+  "2\022.se.common.Vector3\022\022\n\nmove_speed\030\003 \001(\002"
+  "\"\224\001\n\020TimeRewindEffect\022\032\n\022rewind_duration"
+  "_ms\030\001 \001(\r\022 \n\030invulnerable_duration_ms\030\002 "
+  "\001(\r\022\025\n\rtarget_health\030\003 \001(\005\022+\n\017target_pos"
+  "ition\030\004 \001(\0132\022.se.common.Vector3b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5ftypes_2eproto_deps[3] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -242,9 +354,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5ftypes
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5ftypes_2eproto = {
-    false, false, 736, descriptor_table_protodef_game_2fgame_5ftypes_2eproto,
+    false, false, 1159, descriptor_table_protodef_game_2fgame_5ftypes_2eproto,
     "game/game_types.proto",
-    &descriptor_table_game_2fgame_5ftypes_2eproto_once, descriptor_table_game_2fgame_5ftypes_2eproto_deps, 3, 7,
+    &descriptor_table_game_2fgame_5ftypes_2eproto_once, descriptor_table_game_2fgame_5ftypes_2eproto_deps, 3, 11,
     schemas, file_default_instances, TableStruct_game_2fgame_5ftypes_2eproto::offsets,
     file_level_metadata_game_2fgame_5ftypes_2eproto, file_level_enum_descriptors_game_2fgame_5ftypes_2eproto,
     file_level_service_descriptors_game_2fgame_5ftypes_2eproto,
@@ -1910,6 +2022,999 @@ void ItemStack::InternalSwap(ItemStack* other) {
       file_level_metadata_game_2fgame_5ftypes_2eproto[6]);
 }
 
+// ===================================================================
+
+class SkillSlotSnapshot::_Internal {
+ public:
+};
+
+SkillSlotSnapshot::SkillSlotSnapshot(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.SkillSlotSnapshot)
+}
+SkillSlotSnapshot::SkillSlotSnapshot(const SkillSlotSnapshot& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  SkillSlotSnapshot* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.slot_index_){}
+    , decltype(_impl_.skill_id_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.slot_index_, &from._impl_.slot_index_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.skill_id_) -
+    reinterpret_cast<char*>(&_impl_.slot_index_)) + sizeof(_impl_.skill_id_));
+  // @@protoc_insertion_point(copy_constructor:se.game.SkillSlotSnapshot)
+}
+
+inline void SkillSlotSnapshot::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.slot_index_){0u}
+    , decltype(_impl_.skill_id_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+SkillSlotSnapshot::~SkillSlotSnapshot() {
+  // @@protoc_insertion_point(destructor:se.game.SkillSlotSnapshot)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void SkillSlotSnapshot::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void SkillSlotSnapshot::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void SkillSlotSnapshot::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.SkillSlotSnapshot)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.slot_index_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.skill_id_) -
+      reinterpret_cast<char*>(&_impl_.slot_index_)) + sizeof(_impl_.skill_id_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* SkillSlotSnapshot::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 slot_index = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.slot_index_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 skill_id = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.skill_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* SkillSlotSnapshot::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.SkillSlotSnapshot)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 slot_index = 1;
+  if (this->_internal_slot_index() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_slot_index(), target);
+  }
+
+  // uint32 skill_id = 2;
+  if (this->_internal_skill_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_skill_id(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.SkillSlotSnapshot)
+  return target;
+}
+
+size_t SkillSlotSnapshot::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.SkillSlotSnapshot)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 slot_index = 1;
+  if (this->_internal_slot_index() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_slot_index());
+  }
+
+  // uint32 skill_id = 2;
+  if (this->_internal_skill_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_skill_id());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData SkillSlotSnapshot::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    SkillSlotSnapshot::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*SkillSlotSnapshot::GetClassData() const { return &_class_data_; }
+
+
+void SkillSlotSnapshot::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<SkillSlotSnapshot*>(&to_msg);
+  auto& from = static_cast<const SkillSlotSnapshot&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.SkillSlotSnapshot)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_slot_index() != 0) {
+    _this->_internal_set_slot_index(from._internal_slot_index());
+  }
+  if (from._internal_skill_id() != 0) {
+    _this->_internal_set_skill_id(from._internal_skill_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void SkillSlotSnapshot::CopyFrom(const SkillSlotSnapshot& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.SkillSlotSnapshot)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool SkillSlotSnapshot::IsInitialized() const {
+  return true;
+}
+
+void SkillSlotSnapshot::InternalSwap(SkillSlotSnapshot* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(SkillSlotSnapshot, _impl_.skill_id_)
+      + sizeof(SkillSlotSnapshot::_impl_.skill_id_)
+      - PROTOBUF_FIELD_OFFSET(SkillSlotSnapshot, _impl_.slot_index_)>(
+          reinterpret_cast<char*>(&_impl_.slot_index_),
+          reinterpret_cast<char*>(&other->_impl_.slot_index_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata SkillSlotSnapshot::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
+      file_level_metadata_game_2fgame_5ftypes_2eproto[7]);
+}
+
+// ===================================================================
+
+class TimeAccelEffect::_Internal {
+ public:
+};
+
+TimeAccelEffect::TimeAccelEffect(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.TimeAccelEffect)
+}
+TimeAccelEffect::TimeAccelEffect(const TimeAccelEffect& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  TimeAccelEffect* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.fire_rate_bonus_percent_){}
+    , decltype(_impl_.move_speed_bonus_percent_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.fire_rate_bonus_percent_, &from._impl_.fire_rate_bonus_percent_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.move_speed_bonus_percent_) -
+    reinterpret_cast<char*>(&_impl_.fire_rate_bonus_percent_)) + sizeof(_impl_.move_speed_bonus_percent_));
+  // @@protoc_insertion_point(copy_constructor:se.game.TimeAccelEffect)
+}
+
+inline void TimeAccelEffect::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.fire_rate_bonus_percent_){0u}
+    , decltype(_impl_.move_speed_bonus_percent_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+TimeAccelEffect::~TimeAccelEffect() {
+  // @@protoc_insertion_point(destructor:se.game.TimeAccelEffect)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void TimeAccelEffect::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void TimeAccelEffect::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void TimeAccelEffect::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.TimeAccelEffect)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.fire_rate_bonus_percent_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.move_speed_bonus_percent_) -
+      reinterpret_cast<char*>(&_impl_.fire_rate_bonus_percent_)) + sizeof(_impl_.move_speed_bonus_percent_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* TimeAccelEffect::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 fire_rate_bonus_percent = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.fire_rate_bonus_percent_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 move_speed_bonus_percent = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.move_speed_bonus_percent_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* TimeAccelEffect::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.TimeAccelEffect)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 fire_rate_bonus_percent = 1;
+  if (this->_internal_fire_rate_bonus_percent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_fire_rate_bonus_percent(), target);
+  }
+
+  // uint32 move_speed_bonus_percent = 2;
+  if (this->_internal_move_speed_bonus_percent() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_move_speed_bonus_percent(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.TimeAccelEffect)
+  return target;
+}
+
+size_t TimeAccelEffect::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.TimeAccelEffect)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 fire_rate_bonus_percent = 1;
+  if (this->_internal_fire_rate_bonus_percent() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_fire_rate_bonus_percent());
+  }
+
+  // uint32 move_speed_bonus_percent = 2;
+  if (this->_internal_move_speed_bonus_percent() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_move_speed_bonus_percent());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData TimeAccelEffect::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    TimeAccelEffect::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TimeAccelEffect::GetClassData() const { return &_class_data_; }
+
+
+void TimeAccelEffect::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<TimeAccelEffect*>(&to_msg);
+  auto& from = static_cast<const TimeAccelEffect&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.TimeAccelEffect)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_fire_rate_bonus_percent() != 0) {
+    _this->_internal_set_fire_rate_bonus_percent(from._internal_fire_rate_bonus_percent());
+  }
+  if (from._internal_move_speed_bonus_percent() != 0) {
+    _this->_internal_set_move_speed_bonus_percent(from._internal_move_speed_bonus_percent());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void TimeAccelEffect::CopyFrom(const TimeAccelEffect& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.TimeAccelEffect)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool TimeAccelEffect::IsInitialized() const {
+  return true;
+}
+
+void TimeAccelEffect::InternalSwap(TimeAccelEffect* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TimeAccelEffect, _impl_.move_speed_bonus_percent_)
+      + sizeof(TimeAccelEffect::_impl_.move_speed_bonus_percent_)
+      - PROTOBUF_FIELD_OFFSET(TimeAccelEffect, _impl_.fire_rate_bonus_percent_)>(
+          reinterpret_cast<char*>(&_impl_.fire_rate_bonus_percent_),
+          reinterpret_cast<char*>(&other->_impl_.fire_rate_bonus_percent_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata TimeAccelEffect::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
+      file_level_metadata_game_2fgame_5ftypes_2eproto[8]);
+}
+
+// ===================================================================
+
+class TimeAfterImageEffect::_Internal {
+ public:
+  static const ::se::common::Vector3& start_position(const TimeAfterImageEffect* msg);
+  static const ::se::common::Vector3& direction(const TimeAfterImageEffect* msg);
+};
+
+const ::se::common::Vector3&
+TimeAfterImageEffect::_Internal::start_position(const TimeAfterImageEffect* msg) {
+  return *msg->_impl_.start_position_;
+}
+const ::se::common::Vector3&
+TimeAfterImageEffect::_Internal::direction(const TimeAfterImageEffect* msg) {
+  return *msg->_impl_.direction_;
+}
+void TimeAfterImageEffect::clear_start_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.start_position_ != nullptr) {
+    delete _impl_.start_position_;
+  }
+  _impl_.start_position_ = nullptr;
+}
+void TimeAfterImageEffect::clear_direction() {
+  if (GetArenaForAllocation() == nullptr && _impl_.direction_ != nullptr) {
+    delete _impl_.direction_;
+  }
+  _impl_.direction_ = nullptr;
+}
+TimeAfterImageEffect::TimeAfterImageEffect(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.TimeAfterImageEffect)
+}
+TimeAfterImageEffect::TimeAfterImageEffect(const TimeAfterImageEffect& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  TimeAfterImageEffect* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.start_position_){nullptr}
+    , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.move_speed_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_start_position()) {
+    _this->_impl_.start_position_ = new ::se::common::Vector3(*from._impl_.start_position_);
+  }
+  if (from._internal_has_direction()) {
+    _this->_impl_.direction_ = new ::se::common::Vector3(*from._impl_.direction_);
+  }
+  _this->_impl_.move_speed_ = from._impl_.move_speed_;
+  // @@protoc_insertion_point(copy_constructor:se.game.TimeAfterImageEffect)
+}
+
+inline void TimeAfterImageEffect::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.start_position_){nullptr}
+    , decltype(_impl_.direction_){nullptr}
+    , decltype(_impl_.move_speed_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+TimeAfterImageEffect::~TimeAfterImageEffect() {
+  // @@protoc_insertion_point(destructor:se.game.TimeAfterImageEffect)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void TimeAfterImageEffect::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.start_position_;
+  if (this != internal_default_instance()) delete _impl_.direction_;
+}
+
+void TimeAfterImageEffect::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void TimeAfterImageEffect::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.TimeAfterImageEffect)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.start_position_ != nullptr) {
+    delete _impl_.start_position_;
+  }
+  _impl_.start_position_ = nullptr;
+  if (GetArenaForAllocation() == nullptr && _impl_.direction_ != nullptr) {
+    delete _impl_.direction_;
+  }
+  _impl_.direction_ = nullptr;
+  _impl_.move_speed_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* TimeAfterImageEffect::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 start_position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_start_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 direction = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 18)) {
+          ptr = ctx->ParseMessage(_internal_mutable_direction(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // float move_speed = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 29)) {
+          _impl_.move_speed_ = ::PROTOBUF_NAMESPACE_ID::internal::UnalignedLoad<float>(ptr);
+          ptr += sizeof(float);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* TimeAfterImageEffect::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.TimeAfterImageEffect)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 start_position = 1;
+  if (this->_internal_has_start_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::start_position(this),
+        _Internal::start_position(this).GetCachedSize(), target, stream);
+  }
+
+  // .se.common.Vector3 direction = 2;
+  if (this->_internal_has_direction()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(2, _Internal::direction(this),
+        _Internal::direction(this).GetCachedSize(), target, stream);
+  }
+
+  // float move_speed = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_move_speed = this->_internal_move_speed();
+  uint32_t raw_move_speed;
+  memcpy(&raw_move_speed, &tmp_move_speed, sizeof(tmp_move_speed));
+  if (raw_move_speed != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteFloatToArray(3, this->_internal_move_speed(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.TimeAfterImageEffect)
+  return target;
+}
+
+size_t TimeAfterImageEffect::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.TimeAfterImageEffect)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 start_position = 1;
+  if (this->_internal_has_start_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.start_position_);
+  }
+
+  // .se.common.Vector3 direction = 2;
+  if (this->_internal_has_direction()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.direction_);
+  }
+
+  // float move_speed = 3;
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_move_speed = this->_internal_move_speed();
+  uint32_t raw_move_speed;
+  memcpy(&raw_move_speed, &tmp_move_speed, sizeof(tmp_move_speed));
+  if (raw_move_speed != 0) {
+    total_size += 1 + 4;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData TimeAfterImageEffect::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    TimeAfterImageEffect::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TimeAfterImageEffect::GetClassData() const { return &_class_data_; }
+
+
+void TimeAfterImageEffect::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<TimeAfterImageEffect*>(&to_msg);
+  auto& from = static_cast<const TimeAfterImageEffect&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.TimeAfterImageEffect)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_start_position()) {
+    _this->_internal_mutable_start_position()->::se::common::Vector3::MergeFrom(
+        from._internal_start_position());
+  }
+  if (from._internal_has_direction()) {
+    _this->_internal_mutable_direction()->::se::common::Vector3::MergeFrom(
+        from._internal_direction());
+  }
+  static_assert(sizeof(uint32_t) == sizeof(float), "Code assumes uint32_t and float are the same size.");
+  float tmp_move_speed = from._internal_move_speed();
+  uint32_t raw_move_speed;
+  memcpy(&raw_move_speed, &tmp_move_speed, sizeof(tmp_move_speed));
+  if (raw_move_speed != 0) {
+    _this->_internal_set_move_speed(from._internal_move_speed());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void TimeAfterImageEffect::CopyFrom(const TimeAfterImageEffect& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.TimeAfterImageEffect)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool TimeAfterImageEffect::IsInitialized() const {
+  return true;
+}
+
+void TimeAfterImageEffect::InternalSwap(TimeAfterImageEffect* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TimeAfterImageEffect, _impl_.move_speed_)
+      + sizeof(TimeAfterImageEffect::_impl_.move_speed_)
+      - PROTOBUF_FIELD_OFFSET(TimeAfterImageEffect, _impl_.start_position_)>(
+          reinterpret_cast<char*>(&_impl_.start_position_),
+          reinterpret_cast<char*>(&other->_impl_.start_position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata TimeAfterImageEffect::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
+      file_level_metadata_game_2fgame_5ftypes_2eproto[9]);
+}
+
+// ===================================================================
+
+class TimeRewindEffect::_Internal {
+ public:
+  static const ::se::common::Vector3& target_position(const TimeRewindEffect* msg);
+};
+
+const ::se::common::Vector3&
+TimeRewindEffect::_Internal::target_position(const TimeRewindEffect* msg) {
+  return *msg->_impl_.target_position_;
+}
+void TimeRewindEffect::clear_target_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.target_position_ != nullptr) {
+    delete _impl_.target_position_;
+  }
+  _impl_.target_position_ = nullptr;
+}
+TimeRewindEffect::TimeRewindEffect(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.TimeRewindEffect)
+}
+TimeRewindEffect::TimeRewindEffect(const TimeRewindEffect& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  TimeRewindEffect* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.target_position_){nullptr}
+    , decltype(_impl_.rewind_duration_ms_){}
+    , decltype(_impl_.invulnerable_duration_ms_){}
+    , decltype(_impl_.target_health_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_target_position()) {
+    _this->_impl_.target_position_ = new ::se::common::Vector3(*from._impl_.target_position_);
+  }
+  ::memcpy(&_impl_.rewind_duration_ms_, &from._impl_.rewind_duration_ms_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.target_health_) -
+    reinterpret_cast<char*>(&_impl_.rewind_duration_ms_)) + sizeof(_impl_.target_health_));
+  // @@protoc_insertion_point(copy_constructor:se.game.TimeRewindEffect)
+}
+
+inline void TimeRewindEffect::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.target_position_){nullptr}
+    , decltype(_impl_.rewind_duration_ms_){0u}
+    , decltype(_impl_.invulnerable_duration_ms_){0u}
+    , decltype(_impl_.target_health_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+TimeRewindEffect::~TimeRewindEffect() {
+  // @@protoc_insertion_point(destructor:se.game.TimeRewindEffect)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void TimeRewindEffect::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.target_position_;
+}
+
+void TimeRewindEffect::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void TimeRewindEffect::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.TimeRewindEffect)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.target_position_ != nullptr) {
+    delete _impl_.target_position_;
+  }
+  _impl_.target_position_ = nullptr;
+  ::memset(&_impl_.rewind_duration_ms_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.target_health_) -
+      reinterpret_cast<char*>(&_impl_.rewind_duration_ms_)) + sizeof(_impl_.target_health_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* TimeRewindEffect::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 rewind_duration_ms = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.rewind_duration_ms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 invulnerable_duration_ms = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.invulnerable_duration_ms_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 target_health = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _impl_.target_health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // .se.common.Vector3 target_position = 4;
+      case 4:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
+          ptr = ctx->ParseMessage(_internal_mutable_target_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* TimeRewindEffect::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.TimeRewindEffect)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 rewind_duration_ms = 1;
+  if (this->_internal_rewind_duration_ms() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_rewind_duration_ms(), target);
+  }
+
+  // uint32 invulnerable_duration_ms = 2;
+  if (this->_internal_invulnerable_duration_ms() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_invulnerable_duration_ms(), target);
+  }
+
+  // int32 target_health = 3;
+  if (this->_internal_target_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(3, this->_internal_target_health(), target);
+  }
+
+  // .se.common.Vector3 target_position = 4;
+  if (this->_internal_has_target_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(4, _Internal::target_position(this),
+        _Internal::target_position(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.TimeRewindEffect)
+  return target;
+}
+
+size_t TimeRewindEffect::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.TimeRewindEffect)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 target_position = 4;
+  if (this->_internal_has_target_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.target_position_);
+  }
+
+  // uint32 rewind_duration_ms = 1;
+  if (this->_internal_rewind_duration_ms() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_rewind_duration_ms());
+  }
+
+  // uint32 invulnerable_duration_ms = 2;
+  if (this->_internal_invulnerable_duration_ms() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_invulnerable_duration_ms());
+  }
+
+  // int32 target_health = 3;
+  if (this->_internal_target_health() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_target_health());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData TimeRewindEffect::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    TimeRewindEffect::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*TimeRewindEffect::GetClassData() const { return &_class_data_; }
+
+
+void TimeRewindEffect::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<TimeRewindEffect*>(&to_msg);
+  auto& from = static_cast<const TimeRewindEffect&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.TimeRewindEffect)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_target_position()) {
+    _this->_internal_mutable_target_position()->::se::common::Vector3::MergeFrom(
+        from._internal_target_position());
+  }
+  if (from._internal_rewind_duration_ms() != 0) {
+    _this->_internal_set_rewind_duration_ms(from._internal_rewind_duration_ms());
+  }
+  if (from._internal_invulnerable_duration_ms() != 0) {
+    _this->_internal_set_invulnerable_duration_ms(from._internal_invulnerable_duration_ms());
+  }
+  if (from._internal_target_health() != 0) {
+    _this->_internal_set_target_health(from._internal_target_health());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void TimeRewindEffect::CopyFrom(const TimeRewindEffect& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.TimeRewindEffect)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool TimeRewindEffect::IsInitialized() const {
+  return true;
+}
+
+void TimeRewindEffect::InternalSwap(TimeRewindEffect* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(TimeRewindEffect, _impl_.target_health_)
+      + sizeof(TimeRewindEffect::_impl_.target_health_)
+      - PROTOBUF_FIELD_OFFSET(TimeRewindEffect, _impl_.target_position_)>(
+          reinterpret_cast<char*>(&_impl_.target_position_),
+          reinterpret_cast<char*>(&other->_impl_.target_position_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata TimeRewindEffect::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
+      file_level_metadata_game_2fgame_5ftypes_2eproto[10]);
+}
+
 // @@protoc_insertion_point(namespace_scope)
 }  // namespace game
 }  // namespace se
@@ -1941,6 +3046,22 @@ Arena::CreateMaybeMessage< ::se::game::WeaponStatValue >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::ItemStack*
 Arena::CreateMaybeMessage< ::se::game::ItemStack >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::ItemStack >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::SkillSlotSnapshot*
+Arena::CreateMaybeMessage< ::se::game::SkillSlotSnapshot >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::SkillSlotSnapshot >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::TimeAccelEffect*
+Arena::CreateMaybeMessage< ::se::game::TimeAccelEffect >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::TimeAccelEffect >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::TimeAfterImageEffect*
+Arena::CreateMaybeMessage< ::se::game::TimeAfterImageEffect >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::TimeAfterImageEffect >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::TimeRewindEffect*
+Arena::CreateMaybeMessage< ::se::game::TimeRewindEffect >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::TimeRewindEffect >(arena);
 }
 PROTOBUF_NAMESPACE_CLOSE
 
