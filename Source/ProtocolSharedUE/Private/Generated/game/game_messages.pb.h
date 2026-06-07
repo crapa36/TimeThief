@@ -7728,6 +7728,12 @@ class PROTOCOLSHAREDUE_API C_UseSkillReq final :
   static const C_UseSkillReq& default_instance() {
     return *internal_default_instance();
   }
+  enum DetailCase {
+    kAfterImage = 10,
+    kRewind = 11,
+    DETAIL_NOT_SET = 0,
+  };
+
   static inline const C_UseSkillReq* internal_default_instance() {
     return reinterpret_cast<const C_UseSkillReq*>(
                &_C_UseSkillReq_default_instance_);
@@ -7808,6 +7814,8 @@ class PROTOCOLSHAREDUE_API C_UseSkillReq final :
   enum : int {
     kSlotIndexFieldNumber = 1,
     kSkillIdFieldNumber = 2,
+    kAfterImageFieldNumber = 10,
+    kRewindFieldNumber = 11,
   };
   // uint32 slot_index = 1;
   void clear_slot_index();
@@ -7827,9 +7835,52 @@ class PROTOCOLSHAREDUE_API C_UseSkillReq final :
   void _internal_set_skill_id(uint32_t value);
   public:
 
+  // .se.game.TimeAfterImageReq after_image = 10;
+  bool has_after_image() const;
+  private:
+  bool _internal_has_after_image() const;
+  public:
+  void clear_after_image();
+  const ::se::game::TimeAfterImageReq& after_image() const;
+  PROTOBUF_NODISCARD ::se::game::TimeAfterImageReq* release_after_image();
+  ::se::game::TimeAfterImageReq* mutable_after_image();
+  void set_allocated_after_image(::se::game::TimeAfterImageReq* after_image);
+  private:
+  const ::se::game::TimeAfterImageReq& _internal_after_image() const;
+  ::se::game::TimeAfterImageReq* _internal_mutable_after_image();
+  public:
+  void unsafe_arena_set_allocated_after_image(
+      ::se::game::TimeAfterImageReq* after_image);
+  ::se::game::TimeAfterImageReq* unsafe_arena_release_after_image();
+
+  // .se.game.TimeRewindReq rewind = 11;
+  bool has_rewind() const;
+  private:
+  bool _internal_has_rewind() const;
+  public:
+  void clear_rewind();
+  const ::se::game::TimeRewindReq& rewind() const;
+  PROTOBUF_NODISCARD ::se::game::TimeRewindReq* release_rewind();
+  ::se::game::TimeRewindReq* mutable_rewind();
+  void set_allocated_rewind(::se::game::TimeRewindReq* rewind);
+  private:
+  const ::se::game::TimeRewindReq& _internal_rewind() const;
+  ::se::game::TimeRewindReq* _internal_mutable_rewind();
+  public:
+  void unsafe_arena_set_allocated_rewind(
+      ::se::game::TimeRewindReq* rewind);
+  ::se::game::TimeRewindReq* unsafe_arena_release_rewind();
+
+  void clear_detail();
+  DetailCase detail_case() const;
   // @@protoc_insertion_point(class_scope:se.game.C_UseSkillReq)
  private:
   class _Internal;
+  void set_has_after_image();
+  void set_has_rewind();
+
+  inline bool has_detail() const;
+  inline void clear_has_detail();
 
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
@@ -7837,7 +7888,15 @@ class PROTOCOLSHAREDUE_API C_UseSkillReq final :
   struct Impl_ {
     uint32_t slot_index_;
     uint32_t skill_id_;
+    union DetailUnion {
+      constexpr DetailUnion() : _constinit_{} {}
+        ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized _constinit_;
+      ::se::game::TimeAfterImageReq* after_image_;
+      ::se::game::TimeRewindReq* rewind_;
+    } detail_;
     mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+    uint32_t _oneof_case_[1];
+
   };
   union { Impl_ _impl_; };
   friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
@@ -20127,6 +20186,147 @@ inline void C_UseSkillReq::set_skill_id(uint32_t value) {
   // @@protoc_insertion_point(field_set:se.game.C_UseSkillReq.skill_id)
 }
 
+// .se.game.TimeAfterImageReq after_image = 10;
+inline bool C_UseSkillReq::_internal_has_after_image() const {
+  return detail_case() == kAfterImage;
+}
+inline bool C_UseSkillReq::has_after_image() const {
+  return _internal_has_after_image();
+}
+inline void C_UseSkillReq::set_has_after_image() {
+  _impl_._oneof_case_[0] = kAfterImage;
+}
+inline ::se::game::TimeAfterImageReq* C_UseSkillReq::release_after_image() {
+  // @@protoc_insertion_point(field_release:se.game.C_UseSkillReq.after_image)
+  if (_internal_has_after_image()) {
+    clear_has_detail();
+    ::se::game::TimeAfterImageReq* temp = _impl_.detail_.after_image_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.after_image_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::game::TimeAfterImageReq& C_UseSkillReq::_internal_after_image() const {
+  return _internal_has_after_image()
+      ? *_impl_.detail_.after_image_
+      : reinterpret_cast< ::se::game::TimeAfterImageReq&>(::se::game::_TimeAfterImageReq_default_instance_);
+}
+inline const ::se::game::TimeAfterImageReq& C_UseSkillReq::after_image() const {
+  // @@protoc_insertion_point(field_get:se.game.C_UseSkillReq.after_image)
+  return _internal_after_image();
+}
+inline ::se::game::TimeAfterImageReq* C_UseSkillReq::unsafe_arena_release_after_image() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.game.C_UseSkillReq.after_image)
+  if (_internal_has_after_image()) {
+    clear_has_detail();
+    ::se::game::TimeAfterImageReq* temp = _impl_.detail_.after_image_;
+    _impl_.detail_.after_image_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void C_UseSkillReq::unsafe_arena_set_allocated_after_image(::se::game::TimeAfterImageReq* after_image) {
+  clear_detail();
+  if (after_image) {
+    set_has_after_image();
+    _impl_.detail_.after_image_ = after_image;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.C_UseSkillReq.after_image)
+}
+inline ::se::game::TimeAfterImageReq* C_UseSkillReq::_internal_mutable_after_image() {
+  if (!_internal_has_after_image()) {
+    clear_detail();
+    set_has_after_image();
+    _impl_.detail_.after_image_ = CreateMaybeMessage< ::se::game::TimeAfterImageReq >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.after_image_;
+}
+inline ::se::game::TimeAfterImageReq* C_UseSkillReq::mutable_after_image() {
+  ::se::game::TimeAfterImageReq* _msg = _internal_mutable_after_image();
+  // @@protoc_insertion_point(field_mutable:se.game.C_UseSkillReq.after_image)
+  return _msg;
+}
+
+// .se.game.TimeRewindReq rewind = 11;
+inline bool C_UseSkillReq::_internal_has_rewind() const {
+  return detail_case() == kRewind;
+}
+inline bool C_UseSkillReq::has_rewind() const {
+  return _internal_has_rewind();
+}
+inline void C_UseSkillReq::set_has_rewind() {
+  _impl_._oneof_case_[0] = kRewind;
+}
+inline ::se::game::TimeRewindReq* C_UseSkillReq::release_rewind() {
+  // @@protoc_insertion_point(field_release:se.game.C_UseSkillReq.rewind)
+  if (_internal_has_rewind()) {
+    clear_has_detail();
+    ::se::game::TimeRewindReq* temp = _impl_.detail_.rewind_;
+    if (GetArenaForAllocation() != nullptr) {
+      temp = ::PROTOBUF_NAMESPACE_ID::internal::DuplicateIfNonNull(temp);
+    }
+    _impl_.detail_.rewind_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline const ::se::game::TimeRewindReq& C_UseSkillReq::_internal_rewind() const {
+  return _internal_has_rewind()
+      ? *_impl_.detail_.rewind_
+      : reinterpret_cast< ::se::game::TimeRewindReq&>(::se::game::_TimeRewindReq_default_instance_);
+}
+inline const ::se::game::TimeRewindReq& C_UseSkillReq::rewind() const {
+  // @@protoc_insertion_point(field_get:se.game.C_UseSkillReq.rewind)
+  return _internal_rewind();
+}
+inline ::se::game::TimeRewindReq* C_UseSkillReq::unsafe_arena_release_rewind() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:se.game.C_UseSkillReq.rewind)
+  if (_internal_has_rewind()) {
+    clear_has_detail();
+    ::se::game::TimeRewindReq* temp = _impl_.detail_.rewind_;
+    _impl_.detail_.rewind_ = nullptr;
+    return temp;
+  } else {
+    return nullptr;
+  }
+}
+inline void C_UseSkillReq::unsafe_arena_set_allocated_rewind(::se::game::TimeRewindReq* rewind) {
+  clear_detail();
+  if (rewind) {
+    set_has_rewind();
+    _impl_.detail_.rewind_ = rewind;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:se.game.C_UseSkillReq.rewind)
+}
+inline ::se::game::TimeRewindReq* C_UseSkillReq::_internal_mutable_rewind() {
+  if (!_internal_has_rewind()) {
+    clear_detail();
+    set_has_rewind();
+    _impl_.detail_.rewind_ = CreateMaybeMessage< ::se::game::TimeRewindReq >(GetArenaForAllocation());
+  }
+  return _impl_.detail_.rewind_;
+}
+inline ::se::game::TimeRewindReq* C_UseSkillReq::mutable_rewind() {
+  ::se::game::TimeRewindReq* _msg = _internal_mutable_rewind();
+  // @@protoc_insertion_point(field_mutable:se.game.C_UseSkillReq.rewind)
+  return _msg;
+}
+
+inline bool C_UseSkillReq::has_detail() const {
+  return detail_case() != DETAIL_NOT_SET;
+}
+inline void C_UseSkillReq::clear_has_detail() {
+  _impl_._oneof_case_[0] = DETAIL_NOT_SET;
+}
+inline C_UseSkillReq::DetailCase C_UseSkillReq::detail_case() const {
+  return C_UseSkillReq::DetailCase(_impl_._oneof_case_[0]);
+}
 // -------------------------------------------------------------------
 
 // S_UseSkillRes
