@@ -13,6 +13,7 @@
 #include "Network/State/CombatAttackRequest.h"
 #include "Network/State/CombatNotifyType.h"
 #include "TimeThiefGameplayTags.h"
+#include "Network/NetworkGameInstanceSubsystem.h"
 #include "Utils/TimeThiefAimStatics.h"
 
 UTimeThiefWeaponComponentBase::UTimeThiefWeaponComponentBase()
@@ -383,6 +384,14 @@ void UTimeThiefWeaponComponentBase::OnMontageEnded(UAnimMontage* Montage, bool b
 {
 	if (Montage == ReloadAnimation)
 	{
+		if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+		{
+			if (NGIS->IsConnected())
+			{
+				return;
+			}
+		}
+
 		FinishReload();
 	}
 }
