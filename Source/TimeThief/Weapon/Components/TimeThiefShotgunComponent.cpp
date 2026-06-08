@@ -43,10 +43,10 @@ UTimeThiefShotgunComponent::UTimeThiefShotgunComponent()
 	RoundsPerSecond = 110.0f / 60.0f;
 	MaxAmmo = 8;
 	ReloadTime = 2.0f;
-	MaxSpread = 7.0f;
+	MaxSpread = 14.0f;
 	SpreadIncreasePerShot = 0.f;
 	SpreadDecreasePerSecond = 0.f;
-	BaseSpread = 3.5f;
+	BaseSpread = 7.0f;
 }
 
 void UTimeThiefShotgunComponent::BeginPlay()

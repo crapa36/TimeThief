@@ -14,6 +14,9 @@ UTimeThiefRifleComponent::UTimeThiefRifleComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	RoundsPerSecond = 10.0f;
+	MaxSpread = 1.5f;
+	BaseSpread = 0.1f;
+	SpreadIncreasePerShot = 0.5f;
 }
 
 void UTimeThiefRifleComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

@@ -18,6 +18,7 @@
 #include "TimeThiefNetworkSettings.h"
 #include "Actors/ChestActor.h"
 #include "Actors/Item/ItemBase.h"
+#include "Actors/StoreActor.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
@@ -54,6 +55,18 @@ namespace
 	static bool IsRoomPlayableState(ENetworkPlayState State)
 	{
 		return State == ENetworkPlayState::InRoom;
+	}
+
+	static bool UsesSpawnTransformOnly(se::common::ObjectType ObjectType)
+	{
+		switch (ObjectType)
+		{
+		case se::common::ObjectType::OBJ_CHEST:
+		case se::common::ObjectType::OBJ_STORE:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	static FVector ToVector(const se::common::Vector3& Vector)
@@ -950,6 +963,7 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 void UNetworkGameInstanceSubsystem::StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt)
 {
 	CancelPendingEntitySpawn();
+	RemoveEntitiesByObjectType(se::common::OBJ_STORE);
 
 	PendingEntitySpawnInfos.Reserve(Pkt.infos_size());
 	for (const auto& Info : Pkt.infos())
@@ -2243,7 +2257,12 @@ void UNetworkGameInstanceSubsystem::HandlePickupItem(const se::game::N_PickupIte
 
 void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt)
 {
-	// TODO: 프로토콜 업데이트 하여 정보를 추가하고 해당 Store UI에 접근하여 적용하여야 함
+	if (!Pkt.success())
+	{
+		return;
+	}
+
+	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id(), Pkt.new_price());
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
@@ -2973,6 +2992,23 @@ void UNetworkGameInstanceSubsystem::RemoveEntity(uint32 EntityId)
 	UE_LOG(LogTemp, Log, TEXT("[Network] RemoveEntity success: EntityId=%u"), EntityId);
 }
 
+void UNetworkGameInstanceSubsystem::RemoveEntitiesByObjectType(se::common::ObjectType ObjectType)
+{
+	TArray<uint32> EntityIds;
+	for (const TPair<uint32, FEntityRuntimeEntry>& Pair : EntityEntries)
+	{
+		if (Pair.Value.State.ObjectType == ObjectType)
+		{
+			EntityIds.Add(Pair.Key);
+		}
+	}
+
+	for (const uint32 EntityId : EntityIds)
+	{
+		RemoveEntity(EntityId);
+	}
+}
+
 bool UNetworkGameInstanceSubsystem::IsLocalPlayerEntity(uint32 EntityId) const
 {
 	return LocalPlayerEntityId != 0 && LocalPlayerEntityId == EntityId;
@@ -3665,6 +3701,24 @@ void UNetworkGameInstanceSubsystem::NetworkEntryRemove(uint32 EntityId)
 	EntityEntries.Remove(EntityId);
 }
 
+void UNetworkGameInstanceSubsystem::GetStoreActors(TArray<AStoreActor*>& OutStoreActors) const
+{
+	OutStoreActors.Reset();
+
+	for (const TPair<uint32, FEntityRuntimeEntry>& Pair : EntityEntries)
+	{
+		if (Pair.Value.State.ObjectType != se::common::OBJ_STORE)
+		{
+			continue;
+		}
+
+		if (AStoreActor* StoreActor = Cast<AStoreActor>(Pair.Value.Actor.Get()))
+		{
+			OutStoreActors.Add(StoreActor);
+		}
+	}
+}
+
 AActor* UNetworkGameInstanceSubsystem::FindEntityActor(uint32 EntityId) const
 {
 	const FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
@@ -3946,6 +4000,11 @@ void UNetworkGameInstanceSubsystem::ApplyEntityStateToActor(AActor* Actor, const
 	if (ATimeThiefRocketProjectile* Projectile = Cast<ATimeThiefRocketProjectile>(Actor))
 	{
 		Projectile->ApplyNetworkMovementState(EntityState);
+		return;
+	}
+
+	if (UsesSpawnTransformOnly(EntityState.ObjectType))
+	{
 		return;
 	}
 	

@@ -12,6 +12,7 @@
  */
 
 class UImage;
+class UInventorySystemComponent;
 class UPromptWidget;
 class ATimeThiefPlayerCharacter;
 
@@ -33,5 +34,8 @@ public:
 	EItemCategory EquipmentCategory;
 	
 private:
+	UPROPERTY(Transient)
+	TWeakObjectPtr<UInventorySystemComponent> BoundInventoryComponent;
+
 	void OnChangedEquipment(EItemID InItemID);
 };

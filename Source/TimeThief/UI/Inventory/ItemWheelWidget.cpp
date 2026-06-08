@@ -1,19 +1,99 @@
-﻿#include "ItemWheelWidget.h"
+#include "ItemWheelWidget.h"
 
 #include "ItemWheelSlotWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/System/InventorySystemComponent.h"
+#include "DataAssets/GameItemData.h"
+#include "Framework/Application/SlateApplication.h"
 #include "Game/ItemSettings.h"
-#include "Kismet/KismetSystemLibrary.h"
+
+namespace
+{
+	constexpr float DefaultSlotSize = 112.0f;
+	constexpr float SingleItemSlotSize = 156.0f;
+	constexpr float TwoItemSlotSize = 136.0f;
+	constexpr float IconSizeRatio = 0.78f;
+
+	bool IsKnownThrowableItem(EItemID ItemID)
+	{
+		return ItemID == EItemID::Grenade || ItemID == EItemID::SmokeGrenade;
+	}
+
+	bool IsWheelItem(EItemID ItemID, const FItemData* ItemData)
+	{
+		return IsKnownThrowableItem(ItemID)
+			|| (ItemData && (ItemData->Category == EItemCategory::Consumable || ItemData->Category == EItemCategory::Throwable));
+	}
+
+	float GetSlotSizeForItemCount(int32 ItemCount)
+	{
+		if (ItemCount <= 1)
+		{
+			return SingleItemSlotSize;
+		}
+
+		if (ItemCount == 2)
+		{
+			return TwoItemSlotSize;
+		}
+
+		return DefaultSlotSize;
+	}
+
+	struct FWheelLayout
+	{
+		float FirstSlotAngle = -90.0f;
+		float SectorAngle = 0.0f;
+
+		float GetSlotAngle(int32 ItemIndex) const
+		{
+			return FirstSlotAngle + (ItemIndex * SectorAngle);
+		}
+
+		float GetDividerAngleAfter(int32 ItemIndex) const
+		{
+			return GetSlotAngle(ItemIndex) + (SectorAngle * 0.5f);
+		}
+
+		FVector2D GetSlotDirection(int32 ItemIndex) const
+		{
+			const float RadAngle = FMath::DegreesToRadians(GetSlotAngle(ItemIndex));
+			return FVector2D(FMath::Cos(RadAngle), FMath::Sin(RadAngle));
+		}
+	};
+
+	FWheelLayout MakeWheelLayout(int32 ItemCount)
+	{
+		FWheelLayout Layout;
+		Layout.SectorAngle = ItemCount > 0 ? 360.0f / ItemCount : 0.0f;
+
+		if (ItemCount == 2)
+		{
+			Layout.FirstSlotAngle = 180.0f;
+		}
+		else if (ItemCount == 3)
+		{
+			Layout.FirstSlotAngle = -30.0f;
+		}
+
+		return Layout;
+	}
+}
 
 void UItemWheelWidget::SetVisibility(ESlateVisibility InVisibility)
 {
+	const bool bWasVisible = IsVisible();
 	Super::SetVisibility(InVisibility);
 
-	if (InVisibility == ESlateVisibility::Hidden)
+	if (InVisibility != ESlateVisibility::Visible)
 	{
+		if (bWasVisible)
+		{
+			ApplySelectedItem();
+		}
+
 		if (APlayerController* PC = GetOwningPlayer())
 		{
 			PC->SetIgnoreLookInput(false);
@@ -22,21 +102,12 @@ void UItemWheelWidget::SetVisibility(ESlateVisibility InVisibility)
 			int32 ViewportSizeX, ViewportSizeY;
 			PC->GetViewportSize(ViewportSizeX, ViewportSizeY);
 			PC->SetMouseLocation(ViewportSizeX / 2, ViewportSizeY / 2);
-			
-			if (CurrentSelectedIndex != -1)
-			{
-				if (auto* Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
-				{
-					if (auto Inven = Player->GetInventoryComponent())
-					{
-						Inven->SetEquipment(ItemList[CurrentSelectedIndex]);
-					}
-				}
-			}
 		}
 	}
-	else if (InVisibility == ESlateVisibility::Visible)
+	else
 	{
+		BuildWheel();
+
 		if (APlayerController* PC = GetOwningPlayer())
 		{
 			PC->SetIgnoreLookInput(true);
@@ -52,70 +123,98 @@ void UItemWheelWidget::SetVisibility(ESlateVisibility InVisibility)
 void UItemWheelWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	BuildWheel();
 
-	HighlightMID = WheelBackGround->GetDynamicMaterial();
-	
-	float SectorSize = 360.0f / ItemList.Num();
-	float HalfAngleRad = FMath::DegreesToRadians(SectorSize * 0.5f);
-	HighlightMID->SetScalarParameterValue(FName("HalfAngleRad"), HalfAngleRad);
+	if (WheelBackGround)
+	{
+		HighlightMID = WheelBackGround->GetDynamicMaterial();
+	}
+
+	BuildWheel();
 }
 
 void UItemWheelWidget::BuildWheel()
 {
-	if (!WheelCanvas || !SlotWidgetClass) return;
+	CurrentSelectedIndex = -1;
 
-	if (auto BorderSlot = Cast<UCanvasPanelSlot>(WheelBackGround->Slot))
+	if (!WheelCanvas || !SlotWidgetClass)
 	{
-		BorderSlot->SetSize(FVector2D(WheelRadius * 2, WheelRadius * 2));
-		BorderSlot->SetPosition(FVector2D(0.0, 0.0));
-		BorderSlot->SetAnchors(FAnchors(0.5, 0.5));
-		BorderSlot->SetAlignment(FVector2D(0.5, 0.5));
+		return;
+	}
+
+	if (WheelBackGround)
+	{
+		if (auto BorderSlot = Cast<UCanvasPanelSlot>(WheelBackGround->Slot))
+		{
+			BorderSlot->SetSize(FVector2D(WheelRadius * 2, WheelRadius * 2));
+			BorderSlot->SetPosition(FVector2D(0.0, 0.0));
+			BorderSlot->SetAnchors(FAnchors(0.5, 0.5));
+			BorderSlot->SetAlignment(FVector2D(0.5, 0.5));
+		}
 	}
 
 	WheelCanvas->ClearChildren();
 
-	int32 TotalSlots = ItemList.Num();
-	if (TotalSlots <= 0) return;
+	const UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData();
+	const UInventorySystemComponent* InventoryComponent = nullptr;
+	if (const ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
+	{
+		InventoryComponent = Player->GetInventoryComponent();
+	}
 
-	float AngleStep = 360.0f / TotalSlots;
+	RebuildVisibleItemList(InventoryComponent, LoadedData);
+
+	const int32 TotalSlots = VisibleItemList.Num();
+	CurrentSelectedIndex = TotalSlots == 1 ? 0 : -1;
+	RefreshHighlightMaterial();
+
+	if (WheelBackGround)
+	{
+		WheelBackGround->SetVisibility(TotalSlots > 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+	}
+
+	if (TotalSlots <= 0 || !LoadedData)
+	{
+		InvalidateLayoutAndVolatility();
+		return;
+	}
+
+	const float EffectiveSlotSize = GetSlotSizeForItemCount(TotalSlots);
+	const FWheelLayout Layout = MakeWheelLayout(TotalSlots);
 
 	for (int32 i = 0; i < TotalSlots; i++)
 	{
+		const FItemData* ItemStat = LoadedData->Items.Find(VisibleItemList[i]);
+		if (!ItemStat)
+		{
+			continue;
+		}
+
 		if (UItemWheelSlotWidget* NewSlot = CreateWidget<UItemWheelSlotWidget>(this, SlotWidgetClass))
 		{
 			UCanvasPanelSlot* CanvasSlot = WheelCanvas->AddChildToCanvas(NewSlot);
 
-			// 12시 방향부터 시작하도록 -90도 보정
-			float CurrentAngle = (i * AngleStep) - 90.0f;
-			float RadAngle = FMath::DegreesToRadians(CurrentAngle);
+			FVector2D SlotPosition = FVector2D::ZeroVector;
+			if (TotalSlots > 1)
+			{
+				SlotPosition = Layout.GetSlotDirection(i) * (WheelRadius * 0.5f);
+			}
 
-			// 삼각함수로 좌표 계산 (X = cos, Y = sin)
-			float PosX = FMath::Cos(RadAngle) * WheelRadius / 2;
-			float PosY = FMath::Sin(RadAngle) * WheelRadius / 2;
-
-			// 중앙 정렬 배치
-			CanvasSlot->SetPosition(FVector2D(PosX, PosY));
+			CanvasSlot->SetPosition(SlotPosition);
 			CanvasSlot->SetAlignment(FVector2D(0.5f, 0.5f));
 			CanvasSlot->SetAnchors(FAnchors(0.5f, 0.5f));
-			
-			double Section = WheelRadius / TotalSlots;
-			CanvasSlot->SetSize(FVector2D(Section * 2, Section * 2)); // 아이콘 크기
-			
-			const UItemSettings* StoreSettings = GetDefault<UItemSettings>();
-			if (UGameItemData* LoadedData = StoreSettings->ItemData.LoadSynchronous())
-			{
-				const FItemData& ItemStat = LoadedData->Items[ItemList[i]];
-				NewSlot->SetData(ItemStat.Name, ItemStat.Icon);
-			}
+			CanvasSlot->SetSize(FVector2D(EffectiveSlotSize, EffectiveSlotSize));
+
+			NewSlot->SetData(ItemStat->Name, ItemStat->Icon, EffectiveSlotSize * IconSizeRatio);
 		}
 	}
+
+	InvalidateLayoutAndVolatility();
 }
 
 void UItemWheelWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	UpdateSelection();
+	UpdateSelection(MyGeometry);
 }
 
 int32 UItemWheelWidget::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
@@ -126,31 +225,32 @@ int32 UItemWheelWidget::NativePaint(const FPaintArgs& Args, const FGeometry& All
 	                                      InWidgetStyle, bParentEnabled);
 
 	FVector2D Center = AllottedGeometry.GetLocalSize() * 0.5f;
-	int32 TotalSlots = ItemList.Num();
+	int32 TotalSlots = VisibleItemList.Num();
 
 	if (TotalSlots <= 0) return MaxLayerId;
 
-	float AngleStep = 360.0f / TotalSlots;
+	const FWheelLayout Layout = MakeWheelLayout(TotalSlots);
 
-	// --- 1. 슬롯 사이 구분선 그리기 ---
-	for (int32 n = 0; n < TotalSlots; n++)
+	if (TotalSlots > 1)
 	{
-		float DividerAngle = (n * AngleStep) - 90.0f + (AngleStep * 0.5f);
-		float RadAngle = FMath::DegreesToRadians(DividerAngle);
-		FVector2D EndPoint = Center + FVector2D(FMath::Cos(RadAngle), FMath::Sin(RadAngle)) * (OuterRingRadius +
-			WheelRadius);
+		for (int32 n = 0; n < TotalSlots; n++)
+		{
+			float DividerAngle = Layout.GetDividerAngleAfter(n);
+			float RadAngle = FMath::DegreesToRadians(DividerAngle);
+			FVector2D EndPoint = Center + FVector2D(FMath::Cos(RadAngle), FMath::Sin(RadAngle)) * (OuterRingRadius +
+				WheelRadius);
 
-		TArray<FVector2D> LinePoints;
-		LinePoints.Add(Center);
-		LinePoints.Add(EndPoint);
+			TArray<FVector2D> LinePoints;
+			LinePoints.Add(Center);
+			LinePoints.Add(EndPoint);
 
-		FSlateDrawElement::MakeLines(
-			OutDrawElements, MaxLayerId + 3, AllottedGeometry.ToPaintGeometry(),
-			LinePoints, ESlateDrawEffect::None, LineColor, true, LineThickness
-		);
+			FSlateDrawElement::MakeLines(
+				OutDrawElements, MaxLayerId + 3, AllottedGeometry.ToPaintGeometry(),
+				LinePoints, ESlateDrawEffect::None, LineColor, true, LineThickness
+			);
+		}
 	}
 
-	// --- 2. 외곽 휠 테두리 원형 그리기 ---
 	TArray<FVector2D> RingPoints;
 	for (int32 o = 0; o <= RingSegments; o++)
 	{
@@ -169,40 +269,144 @@ int32 UItemWheelWidget::NativePaint(const FPaintArgs& Args, const FGeometry& All
 	return MaxLayerId + 3;
 }
 
-void UItemWheelWidget::UpdateSelection()
+void UItemWheelWidget::ApplySelectedItem()
 {
+	if (!VisibleItemList.IsValidIndex(CurrentSelectedIndex))
+	{
+		return;
+	}
+
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
+	{
+		if (UInventorySystemComponent* InventoryComponent = Player->GetInventoryComponent())
+		{
+			InventoryComponent->SetEquipment(VisibleItemList[CurrentSelectedIndex]);
+		}
+	}
+}
+
+void UItemWheelWidget::RebuildVisibleItemList(const UInventorySystemComponent* InventoryComponent, const UGameItemData* ItemData)
+{
+	VisibleItemList.Reset();
+	if (!InventoryComponent || !ItemData)
+	{
+		return;
+	}
+
+	auto TryAddItem = [this, InventoryComponent, ItemData](EItemID ItemID)
+	{
+		if (ItemID == EItemID::SIZE || VisibleItemList.Contains(ItemID) || InventoryComponent->GetItemQuantity(ItemID) <= 0)
+		{
+			return;
+		}
+
+		const FItemData* ItemStat = ItemData->Items.Find(ItemID);
+		if (IsWheelItem(ItemID, ItemStat))
+		{
+			VisibleItemList.Add(ItemID);
+		}
+	};
+
+	if (ItemList.Num() > 0)
+	{
+		for (EItemID ItemID : ItemList)
+		{
+			TryAddItem(ItemID);
+		}
+	}
+
+	for (EItemID ItemID : TEnumRange<EItemID>())
+	{
+		if (ItemList.Contains(ItemID))
+		{
+			continue;
+		}
+
+		TryAddItem(ItemID);
+	}
+}
+
+void UItemWheelWidget::SetCurrentSelectedIndex(int32 NewSelectedIndex)
+{
+	if (CurrentSelectedIndex == NewSelectedIndex)
+	{
+		return;
+	}
+
+	CurrentSelectedIndex = NewSelectedIndex;
+	RefreshHighlightMaterial();
+}
+
+void UItemWheelWidget::RefreshHighlightMaterial()
+{
+	if (!HighlightMID)
+	{
+		return;
+	}
+
+	const int32 TotalSlots = VisibleItemList.Num();
+	const FWheelLayout Layout = MakeWheelLayout(TotalSlots);
+	if (TotalSlots <= 0 || !VisibleItemList.IsValidIndex(CurrentSelectedIndex))
+	{
+		HighlightMID->SetScalarParameterValue(FName("HalfAngleRad"), 0.0f);
+		HighlightMID->SetVectorParameterValue(FName("HighlightDir"), FLinearColor(0.0f, -1.0f, 0.0f, 0.0f));
+		return;
+	}
+
+	const float HalfAngleRad = FMath::DegreesToRadians(Layout.SectorAngle * 0.5f);
+	HighlightMID->SetScalarParameterValue(FName("HalfAngleRad"), HalfAngleRad);
+
+	const FVector2D Direction = Layout.GetSlotDirection(CurrentSelectedIndex);
+	HighlightMID->SetVectorParameterValue(FName("HighlightDir"), FLinearColor(Direction.X, Direction.Y, 0.0f, 0.0f));
+}
+
+void UItemWheelWidget::UpdateSelection(const FGeometry& WheelGeometry)
+{
+	if (!IsVisible())
+	{
+		return;
+	}
+
+	const int32 TotalSlots = VisibleItemList.Num();
+	if (TotalSlots <= 0)
+	{
+		SetCurrentSelectedIndex(-1);
+		return;
+	}
+
+	if (TotalSlots == 1)
+	{
+		SetCurrentSelectedIndex(0);
+		return;
+	}
+
 	FVector2D AbsoluteMousePos = FSlateApplication::Get().GetCursorPos();
 	
-	FVector2D LocalMousePos = GetCachedGeometry().AbsoluteToLocal(AbsoluteMousePos);
-	FVector2D Center = GetCachedGeometry().GetLocalSize() * 0.5f;
+	FVector2D LocalMousePos = WheelGeometry.AbsoluteToLocal(AbsoluteMousePos);
+	FVector2D Center = WheelGeometry.GetLocalSize() * 0.5f;
 	
 	float Distance = FVector2D::Distance(LocalMousePos, Center);
 	if (Distance < 10.0f)
 	{
-		CurrentSelectedIndex = -1;
+		SetCurrentSelectedIndex(-1);
 		return;
 	}
 	
 	FVector2D Dir = LocalMousePos - Center;
-	float AtanDegree = FMath::RadiansToDegrees(FMath::Atan2(Dir.Y, Dir.X));
-	
-	float FinalAngle = FMath::Fmod(AtanDegree + 90.0f + 360.0f, 360.0f);
-	
-	int32 TotalSlots = ItemList.Num();
-	if (TotalSlots > 0)
-	{
-		float SectorSize = 360.0f / TotalSlots;
-		CurrentSelectedIndex = FMath::FloorToInt((FinalAngle + (SectorSize * 0.5f)) / SectorSize) % TotalSlots;
-	}
+	Dir.Normalize();
 
-	if (HighlightMID && CurrentSelectedIndex != -1 && TotalSlots > 0)
+	float BestDot = -1.0f;
+	int32 BestIndex = -1;
+	const FWheelLayout Layout = MakeWheelLayout(TotalSlots);
+	for (int32 i = 0; i < TotalSlots; ++i)
 	{
-		float SectorSize = 360.0f / TotalSlots;
-		
-		float TargetAngle = (CurrentSelectedIndex * SectorSize) - 90.0f;
-		float RadAngle = FMath::DegreesToRadians(TargetAngle);
-		
-		FLinearColor DirColor(FMath::Cos(RadAngle), FMath::Sin(RadAngle), 0.0f, 0.0f);
-		HighlightMID->SetVectorParameterValue(FName("HighlightDir"), DirColor);
+		const FVector2D SlotDir = Layout.GetSlotDirection(i);
+		const float Dot = FVector2D::DotProduct(Dir, SlotDir);
+		if (Dot > BestDot)
+		{
+			BestDot = Dot;
+			BestIndex = i;
+		}
 	}
+	SetCurrentSelectedIndex(BestIndex);
 }

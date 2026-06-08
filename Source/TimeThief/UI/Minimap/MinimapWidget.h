@@ -11,8 +11,11 @@
  */
 
 class ATimeThiefGameState;
+class AStoreActor;
+class UCanvasPanel;
 class UImage;
 class UMaterialInstanceDynamic;
+class UTexture2D;
 
 UCLASS()
 class TIMETHIEF_API UMinimapWidget : public UUserWidget
@@ -21,6 +24,8 @@ class TIMETHIEF_API UMinimapWidget : public UUserWidget
 	
 protected:
 	virtual void NativeConstruct() override;
+
+	virtual void NativeDestruct() override;
 	
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
@@ -50,4 +55,24 @@ public:
 	TObjectPtr<ATimeThiefGameState> GameState;
 
 	FVector2D MinimapSize;
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Minimap")
+	TObjectPtr<UTexture2D> StoreIconTexture;
+
+	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Minimap")
+	FVector2D StoreIconSize = FVector2D(40.0f, 40.0f);
+
+private:
+	FVector2D WorldToMinimapPosition(const FVector& WorldLocation, const FVector2f& MapSize) const;
+	void GatherStoreActors(UWorld* World, TArray<AStoreActor*>& OutStoreActors) const;
+	void UpdateStoreIcons(UWorld* World, const FVector2f& MapSize);
+	UImage* GetOrCreateStoreIcon(AStoreActor* StoreActor);
+	void RemoveStaleStoreIcons(const TSet<TWeakObjectPtr<AStoreActor>>& ActiveStores);
+	void ClearStoreIcons();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UCanvasPanel> MinimapCanvas;
+
+	TMap<TWeakObjectPtr<AStoreActor>, TObjectPtr<UImage>> StoreIcons;
 };

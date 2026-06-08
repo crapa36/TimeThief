@@ -38,6 +38,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	const UTimeThiefInputConfig* GetInputConfig() const;
 
+	void GetInputMappingContexts(TArray<const UInputMappingContext*>& OutMappingContexts) const;
+
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Hero")
 	bool IsReadyToBindInputs() const { return bReadyToBindInputs; }
 
@@ -66,6 +68,8 @@ private:
 	void Input_Jump(const FInputActionValue& Value);
 	void Input_TogglePerspective(const FInputActionValue& Value);
 	void Input_ToggleMinimap(const FInputActionValue& Value);
+	void Input_ToggleControlGuide(const FInputActionValue& Value);
+	void Input_CloseUI(const FInputActionValue& Value);
 	void Input_Interact(const FInputActionValue& Value);
 	void Input_ToggleInventory(const FInputActionValue& Value);
 	void Input_WheelMenu(const FInputActionValue& Value);

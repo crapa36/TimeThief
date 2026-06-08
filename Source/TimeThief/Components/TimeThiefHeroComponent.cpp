@@ -83,6 +83,24 @@ const UTimeThiefInputConfig* UTimeThiefHeroComponent::GetInputConfig() const
 	return PawnData ? PawnData->InputConfig : nullptr;
 }
 
+void UTimeThiefHeroComponent::GetInputMappingContexts(TArray<const UInputMappingContext*>& OutMappingContexts) const
+{
+	OutMappingContexts.Reset();
+
+	if (!PawnData)
+	{
+		return;
+	}
+
+	for (const UInputMappingContext* MappingContext : PawnData->InputMappingContexts)
+	{
+		if (MappingContext)
+		{
+			OutMappingContexts.Add(MappingContext);
+		}
+	}
+}
+
 void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputComponent)
 {
 	check(PlayerInputComponent);
@@ -108,6 +126,8 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Jump, ETriggerEvent::Started, this, &ThisClass::Input_Jump);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_TogglePerspective, ETriggerEvent::Started, this, &ThisClass::Input_TogglePerspective);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_ToggleMinimap, ETriggerEvent::Started, this, &ThisClass::Input_ToggleMinimap);
+	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_ToggleControlGuide, ETriggerEvent::Started, this, &ThisClass::Input_ToggleControlGuide);
+	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_CloseUI, ETriggerEvent::Started, this, &ThisClass::Input_CloseUI);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Interact, ETriggerEvent::Started, this, &ThisClass::Input_Interact);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_Inventory, ETriggerEvent::Started, this, &ThisClass::Input_ToggleInventory);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Started, this, &ThisClass::Input_WheelMenu);
@@ -209,6 +229,22 @@ void UTimeThiefHeroComponent::Input_ToggleMinimap(const FInputActionValue& Value
 	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
 	{
 		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController())) PC->ToggleWidget(EWidgetType::Minimap);
+	}
+}
+
+void UTimeThiefHeroComponent::Input_ToggleControlGuide(const FInputActionValue& Value)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController())) PC->ToggleControlGuideWidget();
+	}
+}
+
+void UTimeThiefHeroComponent::Input_CloseUI(const FInputActionValue& Value)
+{
+	if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetPawn()))
+	{
+		if (ATimeThiefPlayerController* PC = Cast<ATimeThiefPlayerController>(Player->GetController())) PC->CloseVisibleWidget();
 	}
 }
 

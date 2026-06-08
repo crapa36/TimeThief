@@ -226,7 +226,8 @@ void UTimeThiefWireComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		CachedCameraManager->UnlockFOV();
 	}
-	ReleaseWire();
+	ClearWireFireAnimation(true);
+	ResetWireToIdle();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -243,7 +244,7 @@ void UTimeThiefWireComponent::TickComponent(float DeltaTime, ELevelTick TickType
 
 			if (CurrentFireDistance >= MaxWireLength)
 			{
-				ReleaseWire();
+				ResetWireToIdle();
 			}
 			else
 			{
@@ -371,9 +372,17 @@ bool UTimeThiefWireComponent::ShouldTickComponent() const
 
 void UTimeThiefWireComponent::UpdateCooldown(float DeltaTime)
 {
-	if (CooldownRemaining > 0.0f)
+	if (CooldownRemaining <= 0.0f)
 	{
-		CooldownRemaining = FMath::Max(0.0f, CooldownRemaining - DeltaTime);
+		return;
+	}
+
+	const float PreviousCooldownRemaining = CooldownRemaining;
+	CooldownRemaining = FMath::Max(0.0f, CooldownRemaining - DeltaTime);
+
+	if (PreviousCooldownRemaining > 0.0f && CooldownRemaining <= 0.0f)
+	{
+		ClearTargetIndicatorCache();
 	}
 }
 
@@ -402,7 +411,7 @@ void UTimeThiefWireComponent::FireWire()
 	bool bHasFireNotify = false;
 	if (!PlayWireFireMontage(bHasFireNotify))
 	{
-		CancelWireFire();
+		ClearWireFireAnimation(true);
 		LaunchWire();
 		return;
 	}
@@ -419,13 +428,6 @@ void UTimeThiefWireComponent::ConfirmWireFire()
 	if (CurrentState != EWireState::Idle) return;
 
 	LaunchWire();
-}
-
-void UTimeThiefWireComponent::CancelWireFire()
-{
-	if (!bPendingWireFire) return;
-
-	ClearWireFireAnimation(true);
 }
 
 void UTimeThiefWireComponent::LaunchWire()
@@ -449,23 +451,8 @@ void UTimeThiefWireComponent::LaunchWire()
 
 	AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
 
-	FVector TargetLocation = FVector::ZeroVector;
-	bool bHasTargetLocation = false;
-	const float RetargetDotThreshold = FMath::Cos(FMath::DegreesToRadians(FMath::Max(TargetIndicatorRetargetAngleDegrees, 0.0f)));
-	if (bHasCachedTargetIndicator && bHasCachedTargetAimDirection
-		&& FVector::DotProduct(CachedTargetAimDirection, AimDirection) >= RetargetDotThreshold)
-	{
-		TargetLocation = CachedTargetIndicatorLocation;
-		bHasTargetLocation = true;
-	}
-	else if (WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength))
-	{
-		CachedTargetIndicatorLocation = TargetLocation;
-		CachedTargetAimDirection = AimDirection;
-		bHasCachedTargetIndicator = true;
-		bHasCachedTargetAimDirection = true;
-		bHasTargetLocation = true;
-	}
+	const bool bHasTargetLocation = bHasCachedTargetIndicator;
+	const FVector TargetLocation = CachedTargetIndicatorLocation;
 
 	FireStartLocation = WireStartLocation;
 	FireTargetLocation = bHasTargetLocation ? TargetLocation : FireStartLocation + AimDirection * MaxWireLength;
@@ -486,7 +473,7 @@ void UTimeThiefWireComponent::LaunchWire()
 	CurrentFireDistance = 0.0f;
 	StuckCheckTimer = 0.0f;
 	GroundCheckTimer = 0.0f;
-	SetTargetIndicatorVisible(false);
+	SetTargetIndicatorVisible(bHasTargetLocation);
 
 	if (FireSound)
 	{
@@ -562,13 +549,8 @@ UAnimInstance* UTimeThiefWireComponent::GetWireMontageAnimInstance() const
 {
 	if (!IsValid(CachedCharacter)) return nullptr;
 
-	USkeletalMeshComponent* MontageMesh = CachedCharacter->GetMesh();
-	if (const ATimeThiefCharacterBase* CharacterBase = Cast<ATimeThiefCharacterBase>(CachedCharacter))
-	{
-		MontageMesh = CharacterBase->GetMontagePlaybackMesh();
-	}
-
-	return MontageMesh ? MontageMesh->GetAnimInstance() : nullptr;
+	USkeletalMeshComponent* Mesh = CachedCharacter->GetMesh();
+	return Mesh ? Mesh->GetAnimInstance() : nullptr;
 }
 
 void UTimeThiefWireComponent::PlayMontageOnWireMeshes(UAnimMontage* Montage, UAnimInstance* PrimaryAnimInstance)
@@ -690,13 +672,16 @@ void UTimeThiefWireComponent::OnPawnControllerChanged(APawn* Pawn, AController* 
 
 void UTimeThiefWireComponent::ReleaseWire()
 {
-	CancelWireFire();
+	if (CurrentState != EWireState::Attached) return;
 
+	ResetWireToIdle();
+}
+
+void UTimeThiefWireComponent::ResetWireToIdle()
+{
 	if (CurrentState == EWireState::Idle) return;
-
-	TargetIndicatorRefreshTimer = 0.0f;
-	bHasCachedTargetIndicator = false;
-	bHasCachedTargetAimDirection = false;
+	
+	ClearTargetIndicatorCache();
 	SetTargetIndicatorVisible(false);
 
 	if (CurrentState == EWireState::Attached)
@@ -777,15 +762,13 @@ void UTimeThiefWireComponent::UpdateFiringAnchor(float DeltaTime)
 	
 	if (CurrentFireDistance >= MaxWireLength)
 	{
-		ReleaseWire();
+		ResetWireToIdle();
 	}
 }
 
 void UTimeThiefWireComponent::OnAnchorAttached()
 {
-	TargetIndicatorRefreshTimer = 0.0f;
-	bHasCachedTargetIndicator = false;
-	bHasCachedTargetAimDirection = false;
+	ClearTargetIndicatorCache();
 	SetTargetIndicatorVisible(false);
 
 	if (!IsValid(CachedMovementComponent)) return;
@@ -882,7 +865,7 @@ void UTimeThiefWireComponent::HandleInputPressed(FGameplayTag InputTag)
 		{
 			FireWire();
 		}
-		else
+		else if (CurrentState == EWireState::Attached)
 		{
 			ReleaseWire();
 		}
@@ -1143,11 +1126,21 @@ void UTimeThiefWireComponent::UpdateWireVisuals()
 
 void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 {
-	if (CurrentState != EWireState::Idle || CooldownRemaining > 0.0f)
+	if (CurrentState != EWireState::Idle)
 	{
-		TargetIndicatorRefreshTimer = 0.0f;
-		bHasCachedTargetIndicator = false;
-		bHasCachedTargetAimDirection = false;
+		return;
+	}
+	
+	if (CooldownRemaining > 0.0f)
+	{
+		ClearTargetIndicatorCache();
+		SetTargetIndicatorVisible(false);
+		return;
+	}
+
+	if (!WireTargeting)
+	{
+		ClearTargetIndicatorCache();
 		SetTargetIndicatorVisible(false);
 		return;
 	}
@@ -1167,23 +1160,14 @@ void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 
 	AimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
 
-	TargetIndicatorRefreshTimer = FMath::Max(TargetIndicatorRefreshTimer - DeltaTime, 0.0f);
-	const float RetargetDotThreshold = FMath::Cos(FMath::DegreesToRadians(FMath::Max(TargetIndicatorRetargetAngleDegrees, 0.0f)));
-	const bool bShouldRefreshTarget = !bHasCachedTargetAimDirection
-		|| FVector::DotProduct(CachedTargetAimDirection, AimDirection) < RetargetDotThreshold;
-
-	if (bShouldRefreshTarget && TargetIndicatorRefreshTimer <= 0.0f)
+	if (WireTargeting->ShouldRefreshTarget(DeltaTime, AimDirection))
 	{
 		FVector TargetLocation = FVector::ZeroVector;
-		bHasCachedTargetIndicator = WireTargeting && WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength);
+		bHasCachedTargetIndicator = WireTargeting->FindBestAnchorTarget(TargetLocation, CamLoc, AimDirection, MaxWireLength);
 		if (bHasCachedTargetIndicator)
 		{
 			CachedTargetIndicatorLocation = TargetLocation;
 		}
-		CachedTargetAimDirection = AimDirection;
-		bHasCachedTargetAimDirection = true;
-
-		TargetIndicatorRefreshTimer = FMath::Max(TargetIndicatorUpdateInterval, 0.0f);
 	}
 
 	if (bHasCachedTargetIndicator)
@@ -1197,6 +1181,15 @@ void UTimeThiefWireComponent::UpdateTargetIndicator(float DeltaTime)
 	else
 	{
 		SetTargetIndicatorVisible(false);
+	}
+}
+
+void UTimeThiefWireComponent::ClearTargetIndicatorCache()
+{
+	bHasCachedTargetIndicator = false;
+	if (WireTargeting)
+	{
+		WireTargeting->ResetTargetRefresh();
 	}
 }
 
@@ -1215,8 +1208,7 @@ void UTimeThiefWireComponent::RefreshLocalControllerState()
 {
 	if (!IsValid(CachedCharacter) || !CachedCharacter->IsLocallyControlled())
 	{
-		bHasCachedTargetIndicator = false;
-		bHasCachedTargetAimDirection = false;
+		ClearTargetIndicatorCache();
 		SetTargetIndicatorVisible(false);
 		return;
 	}
@@ -1234,8 +1226,7 @@ void UTimeThiefWireComponent::RefreshLocalControllerState()
 		}
 	}
 
-	TargetIndicatorRefreshTimer = 0.0f;
-	bHasCachedTargetAimDirection = false;
+	ClearTargetIndicatorCache();
 	SetComponentTickEnabled(true);
 }
 

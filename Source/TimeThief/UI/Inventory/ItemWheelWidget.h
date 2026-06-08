@@ -7,7 +7,9 @@
 #include "ItemWheelWidget.generated.h"
 
 class UBorder;
+class UGameItemData;
 class UItemWheelSlotWidget;
+class UInventorySystemComponent;
 
 UCLASS()
 class TIMETHIEF_API UItemWheelWidget : public UUserWidget
@@ -48,6 +50,9 @@ protected:
 	// 런타임에 수치를 조절할 다이내믹 머티리얼
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> HighlightMID;
+
+	UPROPERTY(Transient)
+	TArray<EItemID> VisibleItemList;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
 	int32 CurrentSelectedIndex = -1;
@@ -60,5 +65,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Emote")
 	void BuildWheel();
 	
-	void UpdateSelection();
+	void ApplySelectedItem();
+	void RebuildVisibleItemList(const UInventorySystemComponent* InventoryComponent, const UGameItemData* ItemData);
+	void SetCurrentSelectedIndex(int32 NewSelectedIndex);
+	void RefreshHighlightMaterial();
+	void UpdateSelection(const FGeometry& WheelGeometry);
 };

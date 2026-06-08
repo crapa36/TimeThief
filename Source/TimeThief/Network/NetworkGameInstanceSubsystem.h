@@ -23,6 +23,7 @@
 
 #include "NetworkGameInstanceSubsystem.generated.h"
 
+class AStoreActor;
 class ATimeThiefPlayerCharacter;
 class USkillBaseComponent;
 struct FThrowableMoveSnapshot;
@@ -41,6 +42,7 @@ class PacketSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStorePurchaseSucceeded, uint32 /*PurchasedItemID*/, int32 /*NewPrice*/);
 
 enum class EUseSkillRequestDetailType : uint8
 {
@@ -94,6 +96,8 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Network|Game")
 	FOnNetworkPlayerGameResult OnPlayerGameResult;
+
+	FOnStorePurchaseSucceeded OnStorePurchaseSucceeded;
 
 	ENetworkPlayState GetPlayState() const { return PlayState; }
 
@@ -229,6 +233,7 @@ private:
 	
 private:
 	void RemoveEntity(uint32 EntityId);
+	void RemoveEntitiesByObjectType(se::common::ObjectType ObjectType);
 	
 private:
 	AActor* FindEntityActor(uint32 EntityId) const;
@@ -316,6 +321,7 @@ public:
 	
 public:
 	const UTimeThiefPawnData* GetDefaultPawnData() const { return DefaultLocalPlayerPawnData; }
+	void GetStoreActors(TArray<AStoreActor*>& OutStoreActors) const;
 	
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Network|Spawn")

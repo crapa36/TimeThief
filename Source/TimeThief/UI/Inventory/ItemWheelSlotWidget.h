@@ -17,7 +17,7 @@ class TIMETHIEF_API UItemWheelSlotWidget : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	void SetData(const FString& Name, UTexture2D* Icon);
+	void SetData(const FString& Name, UTexture2D* Icon, float IconSize = 0.0f);
 
 protected:
 	UPROPERTY(meta = (BindWidget))
