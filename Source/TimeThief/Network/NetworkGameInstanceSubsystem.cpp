@@ -22,6 +22,7 @@
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/Skill/SkillBaseComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/System/TimeStormComponent.h"
@@ -58,6 +59,18 @@ namespace
 	static FVector ToVector(const se::common::Vector3& Vector)
 	{
 		return FVector(Vector.x(), Vector.y(), Vector.z());
+	}
+
+	static void FillProtoVector(se::common::Vector3* OutVector, const FVector& InVector)
+	{
+		if (OutVector == nullptr)
+		{
+			return;
+		}
+
+		OutVector->set_x(InVector.X);
+		OutVector->set_y(InVector.Y);
+		OutVector->set_z(InVector.Z);
 	}
 
 	static FRotator ToRotator(const se::common::Rotator& Rotator)
@@ -326,13 +339,49 @@ void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
 	SendPacket(Buffer);
 }
 
-void UNetworkGameInstanceSubsystem::SendUseSkill(uint32 SlotIndex, uint32 SkillId)
+void UNetworkGameInstanceSubsystem::SendUseSkill(uint32 SlotIndex, uint32 SkillId, const FUseSkillRequestDetail& Detail)
 {
+	// Minsoo
+	// 사용 방법
+	// SendUseSkill( [스킬 장착 슬롯 index 0, 1 중 하나], [스킬 아이디 1, 2, 3 중 하나], [스킬 별 추가 정보] );
+	// 위와 같은 식으로 호출
+	// 예시1) SendUseSkill(0, 2, FUseSkillRequestDetail::MakeAfterImage(FVector(100, 200, 300), FVector(1, 0, 0)));
+	// 예시2) SendUseSkill(1, 3, FUseSkillRequestDetail::MakeRewind(3000, FVector(400, 500, 600)));
+	// 예시3) SendUseSkill(0, 1); // 추가 정보 없는 스킬 (시간 가속 사용)
+	// 스킬 Id는 
+	// 1: 시간 가속 (추가 정보 없음)
+	// 2: 시간 잔상 (추가 정보: 시작 위치, 방향)
+	// 3: 시간 역행 (추가 정보: 역행 시간, 예측된 목표 위치) 역행 시간은 3000ms로 일단 고정 (3초 전의 Pos를 예측된 목표 위치로 같이 보내줘야 함)
+	
 	se::game::C_UseSkillReq Request;
 	Request.set_slot_index(SlotIndex);
 	Request.set_skill_id(SkillId);
 
-	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Use Skill Slot=%u, SkillId=%u"), SlotIndex, SkillId);
+	switch (Detail.Type)
+	{
+	case EUseSkillRequestDetailType::AfterImage:
+		{
+			auto* AfterImage = Request.mutable_after_image();
+			FillProtoVector(AfterImage->mutable_start_position(), Detail.StartPosition);
+			FillProtoVector(AfterImage->mutable_direction(), Detail.Direction);
+			break;
+		}
+	case EUseSkillRequestDetailType::Rewind:
+		{
+			auto* Rewind = Request.mutable_rewind();
+			Rewind->set_rewind_duration_ms(Detail.RewindDurationMs);
+			FillProtoVector(Rewind->mutable_predicted_target_position(), Detail.PredictedTargetPosition);
+			break;
+		}
+	case EUseSkillRequestDetailType::None:
+	default:
+		break;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Use Skill Slot=%u, SkillId=%u, Detail=%d"),
+		SlotIndex,
+		SkillId,
+		static_cast<int32>(Detail.Type));
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -1751,25 +1800,138 @@ void UNetworkGameInstanceSubsystem::HandleWeaponStatSnapshot(const se::game::N_W
 
 void UNetworkGameInstanceSubsystem::HandleUseSkillRes(const se::game::S_UseSkillRes& Pkt)
 {
+	// Minsoo
+	// 우선 존재하는 SkillBaseComponent를 사용하였음
+	// 마음에 안들 경우 위 class를 갈아 엎거나 새로 만들어서 연결해도 무방
+	const uint32 SlotIndex = Pkt.slot_index();							// 사용하려 한 스킬 슬롯 인덱스
+	const uint32 SkillId = Pkt.skill_id();								// 사용하려 한 스킬 ID
+	const uint64 CooldownEndMs = Pkt.cooldown_end_ms();					// 스킬 쿨다운이 끝나는 절대 시간 (ms) <- 서버 시간 기준 (신뢰하여 사용하면 곤란함)
+	const uint32 RemainingCooldownMs = Pkt.remaining_cooldown_ms();		// 스킬이 다시 사용 가능해질 때까지 남은 시간 (ms)
+
 	if (!Pkt.success())
 	{
+		// 사용 실패 시 로그
 		const auto& Result = Pkt.result();
-		UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] Use skill failed. Slot=%u, SkillId=%u, Result=%s"),
-			Pkt.slot_index(),
-			Pkt.skill_id(),
+		// 쿨타임도 RemainingCooldownMs로 설정해줘야 함 (아래 코드)
+		ApplyUseSkillCooldown(Pkt);
+		UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] Use skill failed. Slot=%u, SkillId=%u, RemainingCooldownMs=%u, Result=%s"),
+			SlotIndex,
+			SkillId,
+			RemainingCooldownMs,
 			UTF8_TO_TCHAR(Result.message().c_str()));
 		return;
 	}
 
+	// 사용 성공 시 스킬 쿨다운 적용 및 로그
+	ApplyUseSkillCooldown(Pkt);
 	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Use skill accepted. Slot=%u, SkillId=%u, CooldownEndMs=%llu, RemainingCooldownMs=%u"),
-		Pkt.slot_index(),
-		Pkt.skill_id(),
-		static_cast<unsigned long long>(Pkt.cooldown_end_ms()),
-		Pkt.remaining_cooldown_ms());
+		SlotIndex,
+		SkillId,
+		static_cast<unsigned long long>(CooldownEndMs),
+		RemainingCooldownMs);
 }
 
 void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& Pkt)
 {
+	// Minsoo
+	// 스킬 사용에 대한 다양한 효과(발사체, 버프, 이동 등)를 처리하기 위한 패킷
+	
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	const uint32 EntityId = Pkt.has_entity_id() ? Pkt.entity_id().value() : 0;		// 스킬을 사용한 Entity의 ID
+	const uint32 SkillId = Pkt.skill_id();				// 사용한 스킬의 ID
+	const uint32 SlotIndex = Pkt.slot_index();			// 사용한 스킬 슬롯 인덱스
+	const uint64 StartedAtMs = Pkt.started_at_ms();		// 스킬 사용이 시작된 절대 시간 (ms) <- 서버 시간 기준 (디버깅용, 실제 사용 X)
+	const uint32 DurationMs = Pkt.duration_ms();		// 스킬 효과의 지속 시간 (ms) <- (역행의 경우 돌아가는데 걸리는 시간, 1000ms 라면 1초 안에 원래 상태로 돌아가도록)
+	// 이 EntityId가 LocalPlayer의 경우 직접 효과 적용
+	const bool bIsLocalPlayer = IsLocalPlayerEntity(EntityId);
+	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
+	AActor* SourceActor = EntityEntry != nullptr ? EntityEntry->Actor.Get() : nullptr;
+
+	switch (Pkt.detail_case())
+	{
+	case se::game::N_UseSkill::kTimeAccel:		// 이때의 SKill Id 는 1 (KTimeAccel이랑은 다른 것임)
+		{
+			const auto& TimeAccel = Pkt.time_accel();
+			const uint32 FireRateBonusPercent = TimeAccel.fire_rate_bonus_percent();		// 전투 관련 가속 효과 (n% <- n은 정수) 
+			const uint32 MoveSpeedBonusPercent = TimeAccel.move_speed_bonus_percent();		// 이동 관련 가속 효과 (n% <- n은 정수)
+
+			// TODO: 우선 해당 스킬을 사용한 Entity Id에게 시각 효과가 나타나야 할 거 같음
+			//	     그리고 LocalPlayer의 경우 실제 버프가 들어가고 Duration이 지나면 버프 효과가 사라져야 함
+			//		 일단은 FireRate는 전투 관련으로 발사 속도, 재장전 속도가 % 만큼 빨라지는 효과로, MoveSpeed는 이동 관련으로 걷기/뛰기 속도가 % 만큼 빨라지는 효과로 가정하고 로그에 출력함
+			UE_LOG(LogTemp, Log, TEXT("[SkillPkt] N_UseSkill TimeAccel. Entity=%u, SkillId=%u, Slot=%u, DurationMs=%u, FireRateBonus=%u, MoveSpeedBonus=%u"),
+				EntityId,
+				SkillId,
+				SlotIndex,
+				DurationMs,
+				FireRateBonusPercent,
+				MoveSpeedBonusPercent);
+			break;
+		}
+	case se::game::N_UseSkill::kAfterImage:		// 이때의 SKill Id 는 2 (KAfterImage이랑은 다른 것임)
+		{
+			const auto& AfterImage = Pkt.after_image();
+			const FVector StartPosition = ToVector(AfterImage.start_position());	// 유령(더미)이 Spawn 되는 위치
+			const FVector Direction = ToVector(AfterImage.direction());				// 유령(더미)이 이동하는 방향 (단위 벡터)
+			const float MoveSpeed = AfterImage.move_speed();						// 유령(더미)의 이동 속도 (단위: Unreal units per second)
+
+			// TODO: 모든 Client에서 StartPos에서 Spawn 시킨 유령(더미)가 Direction으로 이동하게
+			//	     Duration 동안 지속되고 Duration이 끝나면 자연 소멸(Despawn) 되도록
+			UE_LOG(LogTemp, Log, TEXT("[SkillPkt] N_UseSkill AfterImage. Entity=%u, SkillId=%u, Slot=%u, DurationMs=%u, Start=(%.1f, %.1f, %.1f), Dir=(%.2f, %.2f, %.2f), MoveSpeed=%.2f"),
+				EntityId,
+				SkillId,
+				SlotIndex,
+				DurationMs,
+				StartPosition.X,
+				StartPosition.Y,
+				StartPosition.Z,
+				Direction.X,
+				Direction.Y,
+				Direction.Z,
+				MoveSpeed);
+			break;
+		}
+	case se::game::N_UseSkill::kRewind:		// 이때의 SKill Id 는 3 (KRewind이랑은 다른 것임)
+		{
+			const auto& Rewind = Pkt.rewind();
+			const uint32 RewindDurationMs = Rewind.rewind_duration_ms();				// 역행으로 돌아가는 DeltaTime 지점 (ex. 3000ms 라면 3초 전으로 돌아가는 것) 
+			const uint32 InvulnerableDurationMs = Rewind.invulnerable_duration_ms();	// 역행을 시전하는 동안 무적이 되는 시간 (Duration 값이랑 같음)
+			const int32 TargetHealth = Rewind.target_health();							// 역행이 끝났을 때 돌아갈 체력 (HP)
+			const FVector TargetPosition = Rewind.has_target_position() ? ToVector(Rewind.target_position()) : FVector::ZeroVector;	// 역행이 끝났을 때 돌아갈 위치 (만약 패킷에 포함되어 있지 않다면 Local에서 알아서 처리)
+
+			// TODO: 체력의 경우 바로 세팅해도 되고, 위치의 경우는 Client에서 직접 Local Player의 현재 위치를 일정 주기마자 저장해 두고
+			//	     현재 패킷이 도착한 경우 RewindDurationMs의 시각으로 천천히 돌아가도록 (테이프 뒤로 감듯이)
+			UE_LOG(LogTemp, Log, TEXT("[SkillPkt] N_UseSkill Rewind. Entity=%u, SkillId=%u, Slot=%u, DurationMs=%u, RewindMs=%u, InvulnerableMs=%u, TargetHealth=%d, Target=(%.1f, %.1f, %.1f)"),
+				EntityId,
+				SkillId,
+				SlotIndex,
+				DurationMs,
+				RewindDurationMs,
+				InvulnerableDurationMs,
+				TargetHealth,
+				TargetPosition.X,
+				TargetPosition.Y,
+				TargetPosition.Z);
+			break;
+		}
+	case se::game::N_UseSkill::DETAIL_NOT_SET:
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] N_UseSkill without detail. Entity=%u, SkillId=%u, Slot=%u, StartedAtMs=%llu, DurationMs=%u"),
+			EntityId,
+			SkillId,
+			SlotIndex,
+			static_cast<unsigned long long>(StartedAtMs),
+			DurationMs);
+		break;
+	}
+
+	(void)bIsLocalPlayer;
+	(void)SourceActor;
 }
 
 void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlayer& Pkt)
@@ -2394,18 +2556,56 @@ void UNetworkGameInstanceSubsystem::HandleTimePointChanged(const se::game::N_Tim
 
 void UNetworkGameInstanceSubsystem::HandleTimePointSnapshot(const se::game::N_TimePointSnapshot& Pkt)
 {
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	UWorld* World = GetWorld();
+	if (World == nullptr)
+	{
+		return;
+	}
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	UTimePointSystemComponent* TimePointComp = LocalPlayer ? LocalPlayer->FindComponentByClass<UTimePointSystemComponent>() : nullptr;
+	if (TimePointComp == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Local player has no UTime)PointSystemComponent"));
+		return;
+	}
+	
+	TimePointComp->SetTimePoints(Pkt.time_points());
 }
 
 void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt)
 {
+	// 사용하지 않음
 }
 
 void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt)
 {
+	// 사용하지 않음
+	// UI가 있다면 사용 가능해짐
 }
 
 void UNetworkGameInstanceSubsystem::HandleSkillUnlockSnapshot(const se::game::N_SkillUnlockSnapshot& Pkt)
 {
+	// Minsoo
+	
+	check(IsInGameThread());
+	
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+	
+	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
+	// Skill System에 통지하도록
+	// Pkt의 unlocked_skill_ids에 들어있는 값들은 사용 가능한 스킬들
+	// equipped_skill_slots에 있는 값은 slot_index와 skill_id로 이루어져 있고, 현재 장착된 스킬 슬롯 정보임
 }
 
 void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt)
@@ -2891,6 +3091,54 @@ ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
 	}
 	
 	return Cast<ATimeThiefPlayerCharacter>(Actor);
+}
+
+// Minsoo
+// 실제 Skill 구현과 연결은 어떻게 될 지 몰라서 다음과 같이 작성하여 남겨두었음,
+// 본인 구현에 맞게 수정하는 것이 좋아보임
+
+USkillBaseComponent* UNetworkGameInstanceSubsystem::FindLocalSkillComponent(uint32 SkillId)
+{
+	if (SkillId == 0)
+	{
+		return nullptr;
+	}
+
+	ATimeThiefPlayerCharacter* LocalPlayerPawn = GetLocalPlayerPawn();
+	if (LocalPlayerPawn == nullptr)
+	{
+		return nullptr;
+	}
+
+	TArray<USkillBaseComponent*> SkillComponents;
+	LocalPlayerPawn->GetComponents<USkillBaseComponent>(SkillComponents);
+	for (USkillBaseComponent* SkillComponent : SkillComponents)
+	{
+		if (SkillComponent != nullptr && SkillComponent->GetSkillId() == SkillId)
+		{
+			return SkillComponent;
+		}
+	}
+
+	return nullptr;
+}
+
+void UNetworkGameInstanceSubsystem::ApplyUseSkillCooldown(const se::game::S_UseSkillRes& Pkt)
+{
+	const uint32 RemainingCooldownMs = Pkt.remaining_cooldown_ms();
+	USkillBaseComponent* SkillComponent = FindLocalSkillComponent(Pkt.skill_id());
+	if (SkillComponent == nullptr)
+	{
+		if (RemainingCooldownMs > 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] Could not apply skill cooldown. SkillId=%u, RemainingCooldownMs=%u"),
+				Pkt.skill_id(),
+				RemainingCooldownMs);
+		}
+		return;
+	}
+
+	SkillComponent->ApplyServerCooldownMs(RemainingCooldownMs);
 }
 
 void UNetworkGameInstanceSubsystem::ResetLoadingGate()

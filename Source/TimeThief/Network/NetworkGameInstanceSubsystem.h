@@ -24,6 +24,7 @@
 #include "NetworkGameInstanceSubsystem.generated.h"
 
 class ATimeThiefPlayerCharacter;
+class USkillBaseComponent;
 struct FThrowableMoveSnapshot;
 struct FRemoteAttackNotify;
 struct FEntityRuntimeEntry;
@@ -40,6 +41,40 @@ class PacketSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
+
+enum class EUseSkillRequestDetailType : uint8
+{
+	None,
+	AfterImage,
+	Rewind,
+};
+
+struct FUseSkillRequestDetail
+{
+	EUseSkillRequestDetailType Type = EUseSkillRequestDetailType::None;
+	FVector StartPosition = FVector::ZeroVector;
+	FVector Direction = FVector::ForwardVector;
+	FVector PredictedTargetPosition = FVector::ZeroVector;
+	uint32 RewindDurationMs = 0;
+
+	static FUseSkillRequestDetail MakeAfterImage(const FVector& InStartPosition, const FVector& InDirection)
+	{
+		FUseSkillRequestDetail Detail;
+		Detail.Type = EUseSkillRequestDetailType::AfterImage;
+		Detail.StartPosition = InStartPosition;
+		Detail.Direction = InDirection;
+		return Detail;
+	}
+
+	static FUseSkillRequestDetail MakeRewind(uint32 InRewindDurationMs, const FVector& InPredictedTargetPosition)
+	{
+		FUseSkillRequestDetail Detail;
+		Detail.Type = EUseSkillRequestDetailType::Rewind;
+		Detail.RewindDurationMs = InRewindDurationMs;
+		Detail.PredictedTargetPosition = InPredictedTargetPosition;
+		return Detail;
+	}
+};
 
 UCLASS()
 class TIMETHIEF_API UNetworkGameInstanceSubsystem : public UGameInstanceSubsystem
@@ -81,7 +116,7 @@ public:
 	void SendStoreUse(uint32 StoreEntityId, uint32 ItemId);
 	void SendChestInteract(uint32 ChestEntityId);
 	void SendUseItem(uint32 Itemid);
-	void SendUseSkill(uint32 SlotIndex, uint32 SkillId);
+	void SendUseSkill(uint32 SlotIndex, uint32 SkillId, const FUseSkillRequestDetail& Detail = FUseSkillRequestDetail());
 	void SendSkillEquip(uint32 SlotIndex, uint32 SkillId);
 	void SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData);
 	void SendGrenadeExplosion(uint32 GrenadeEntityId, const FVector& Location);
@@ -189,6 +224,8 @@ private:
 	void CancelPendingEntitySpawn();
 	bool ApplyPlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt);
 	void TryApplyPendingPlayerInitSetup();
+	USkillBaseComponent* FindLocalSkillComponent(uint32 SkillId);
+	void ApplyUseSkillCooldown(const se::game::S_UseSkillRes& Pkt);
 	
 private:
 	void RemoveEntity(uint32 EntityId);

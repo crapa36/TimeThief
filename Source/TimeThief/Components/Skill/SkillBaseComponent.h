@@ -33,15 +33,21 @@ public:
 	virtual void ActivateSkill(){}
 	
 	bool CanActivate() const;
-	
+	uint32 GetSkillId() const { return SkillId; }
+	float GetRemainingCoolTime() const { return LeftCoolTime; }
+	void ApplyServerCooldownMs(uint32 RemainingCooldownMs);
+
 protected:
+	UPROPERTY(EditDefaultsOnly, Category="Skill")
+	uint32 SkillId = 0;
+
 	bool bCanActivate = false;
-	
+
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	float CoolTime = 0;
-	
-	float LeftCoolTime;
-	
+
+	float LeftCoolTime = 0;
+
 	UPROPERTY()
 	TObjectPtr<ATimeThiefCharacterBase> OwnerCharacter;
 };

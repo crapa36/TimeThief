@@ -49,3 +49,8 @@ bool USkillBaseComponent::CanActivate() const
 	return bCanActivate && LeftCoolTime == 0;
 }
 
+void USkillBaseComponent::ApplyServerCooldownMs(uint32 RemainingCooldownMs)
+{
+	LeftCoolTime = FMath::Max(0.0f, static_cast<float>(RemainingCooldownMs) / 1000.0f);
+}
+
