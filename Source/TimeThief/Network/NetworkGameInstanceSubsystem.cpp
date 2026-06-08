@@ -461,6 +461,22 @@ void UNetworkGameInstanceSubsystem::SendGrenadeExplosion(uint32 GrenadeEntityId,
 	SendPacket(Buffer);
 }
 
+bool UNetworkGameInstanceSubsystem::GetStoreItemPrice(uint32 StoreItemId, int32& OutPrice) const
+{
+	if (const int32* FoundPrice = StoreItemPrices.Find(StoreItemId))
+	{
+		OutPrice = *FoundPrice;
+		return true;
+	}
+
+	return false;
+}
+
+bool UNetworkGameInstanceSubsystem::IsStoreItemSoldOut(uint32 StoreItemId) const
+{
+	return SoldOutStoreItems.Contains(StoreItemId);
+}
+
 void UNetworkGameInstanceSubsystem::ConnectToServer()
 {
 	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("Client Socket"));
@@ -1217,6 +1233,27 @@ void UNetworkGameInstanceSubsystem::HandlePlayerGameResult(const se::game::N_Pla
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Game Result - Rank: %u, Score: %d, Killer: %s"), Rank, Score, *PlayerName);
 	OnPlayerGameResult.Broadcast(static_cast<int32>(Rank), Score, PlayerName);
+}
+
+void UNetworkGameInstanceSubsystem::HandleGameDataInit(const se::game::N_GameDataInit& Pkt)
+{
+	check(IsInGameThread());
+
+	StoreItemPrices.Reset();
+	SoldOutStoreItems.Reset();
+
+	for (const se::game::StoreEntryInitData& Entry : Pkt.store_entries())
+	{
+		StoreItemPrices.Add(Entry.store_item_id(), Entry.price());
+		if (Entry.price() <= 0)
+		{
+			SoldOutStoreItems.Add(Entry.store_item_id());
+		}
+	}
+
+	OnStorePriceDataUpdated.Broadcast();
+
+	UE_LOG(LogTemp, Log, TEXT("[StorePkt] N_GameDataInit StoreEntries=%d"), Pkt.store_entries_size());
 }
 
 void UNetworkGameInstanceSubsystem::HandleMove(const se::game::N_Move& Pkt)
@@ -2262,7 +2299,22 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 		return;
 	}
 
-	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id(), Pkt.new_price());
+	const int32 NewPrice = Pkt.new_price();
+	if (NewPrice > 0)
+	{
+		StoreItemPrices.Add(Pkt.store_item_id(), NewPrice);
+	}
+
+	if (Pkt.is_sold_out())
+	{
+		SoldOutStoreItems.Add(Pkt.store_item_id());
+	}
+	else
+	{
+		SoldOutStoreItems.Remove(Pkt.store_item_id());
+	}
+	OnStorePriceDataUpdated.Broadcast();
+	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id(), NewPrice, Pkt.is_sold_out());
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
@@ -3651,6 +3703,8 @@ void UNetworkGameInstanceSubsystem::StopPingTimer()
 void UNetworkGameInstanceSubsystem::ClearRoomState()
 {
 	ResetTimeStormState();
+	StoreItemPrices.Reset();
+	SoldOutStoreItems.Reset();
 
 	if (IsRoomStateCleared())
 	{

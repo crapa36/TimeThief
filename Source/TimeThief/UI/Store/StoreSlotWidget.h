@@ -28,6 +28,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Store|Feedback")
 	TObjectPtr<USoundBase> PurchaseSuccessSound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Store|Display")
+	FText SoldOutPriceText = FText::FromString(TEXT("None"));
 	
 public:
 	virtual void OnSlotClicked() override;
@@ -38,6 +41,7 @@ public:
 
 private:
 	void PlayPurchaseSuccessSound() const;
-	void OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 NewPrice);
+	void OnStorePriceDataUpdated();
+	void OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 NewPrice, bool bIsSoldOut);
 };
 

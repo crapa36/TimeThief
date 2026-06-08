@@ -8,6 +8,7 @@
 #include "Character/TimeThiefPlayerController.h"
 #include "Character/TimeThiefPlayerState.h"
 #include "Components/Image.h"
+#include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Game/ItemSettings.h"
 #include "Kismet/GameplayStatics.h"
@@ -22,6 +23,8 @@ void UStoreSlotWidget::NativeConstruct()
 	{
 		NGIS->OnStorePurchaseSucceeded.RemoveAll(this);
 		NGIS->OnStorePurchaseSucceeded.AddUObject(this, &ThisClass::OnStorePurchaseSucceeded);
+		NGIS->OnStorePriceDataUpdated.RemoveAll(this);
+		NGIS->OnStorePriceDataUpdated.AddUObject(this, &ThisClass::OnStorePriceDataUpdated);
 	}
 }
 
@@ -30,6 +33,7 @@ void UStoreSlotWidget::NativeDestruct()
 	if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
 		NGIS->OnStorePurchaseSucceeded.RemoveAll(this);
+		NGIS->OnStorePriceDataUpdated.RemoveAll(this);
 	}
 
 	Super::NativeDestruct();
@@ -37,8 +41,6 @@ void UStoreSlotWidget::NativeDestruct()
 
 void UStoreSlotWidget::OnSlotClicked()
 {
-	UGameItemData* ItemData = GetDefault<UItemSettings>()->ItemData.LoadSynchronous();
-
 	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 	{
 		if (!NGIS->IsConnected())
@@ -85,6 +87,11 @@ void UStoreSlotWidget::OnSlotClicked()
 		}
 		else
 		{
+			if (NGIS->IsStoreItemSoldOut(static_cast<uint32>(ItemID)))
+			{
+				return;
+			}
+
 			uint32 StoreEntityId = 0;
 			if (ATimeThiefPlayerCharacter* Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 			{
@@ -114,13 +121,26 @@ void UStoreSlotWidget::PlayPurchaseSuccessSound() const
 	UGameplayStatics::PlaySound2D(this, PurchaseSuccessSound);
 }
 
-void UStoreSlotWidget::OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 NewPrice)
+void UStoreSlotWidget::OnStorePriceDataUpdated()
+{
+	UpdateUI();
+}
+
+void UStoreSlotWidget::OnStorePurchaseSucceeded(uint32 PurchasedItemID, int32 NewPrice, bool bIsSoldOut)
 {
 	if (PurchasedItemID == static_cast<uint32>(ItemID))
 	{
 		if (Price_Text && NewPrice > 0)
 		{
 			Price_Text->SetText(FText::AsNumber(NewPrice));
+		}
+		else if (Price_Text && bIsSoldOut)
+		{
+			Price_Text->SetText(SoldOutPriceText);
+		}
+		if (Slot_Button)
+		{
+			Slot_Button->SetIsEnabled(!bIsSoldOut);
 		}
 		PlayPurchaseSuccessSound();
 	}
@@ -145,31 +165,46 @@ void UStoreSlotWidget::UpdateUI()
 		if (Price_Text)
 		{
 			int Price = ItemStat.Price;
-			if (ATimeThiefCharacterBase* Player = Cast<ATimeThiefCharacterBase>(GetOwningPlayerPawn()))
+			bool bUseServerPrice = false;
+			bool bIsSoldOut = false;
+			if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 			{
-				if (ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
+				bUseServerPrice = NGIS->GetStoreItemPrice(static_cast<uint32>(ItemID), Price);
+				bIsSoldOut = NGIS->IsStoreItemSoldOut(static_cast<uint32>(ItemID));
+			}
+
+			if (!bUseServerPrice)
+			{
+				if (ATimeThiefCharacterBase* Player = Cast<ATimeThiefCharacterBase>(GetOwningPlayerPawn()))
 				{
-					Price += ItemStat.Increment * [&]()
+					if (ATimeThiefPlayerState* PS = Cast<ATimeThiefPlayerState>(Player->GetPlayerState()))
 					{
-						switch (ItemID)
+						Price += ItemStat.Increment * [&]()
 						{
-						case EItemID::DamageUpgrade:
-							return PS->Status.Damage;
-						case EItemID::StabilityUpgrade:
-							return PS->Status.Stability;
-						case EItemID::CapacityUpgrade:
-							return PS->Status.Capacity;
-						case EItemID::HealthUpgrade:
-							return PS->Status.Health;
-						case EItemID::SpeedUpgrade:
-							return PS->Status.Speed;
-						default:
-							return 0;
-						}
-					}();
+							switch (ItemID)
+							{
+							case EItemID::DamageUpgrade:
+								return PS->Status.Damage;
+							case EItemID::StabilityUpgrade:
+								return PS->Status.Stability;
+							case EItemID::CapacityUpgrade:
+								return PS->Status.Capacity;
+							case EItemID::HealthUpgrade:
+								return PS->Status.Health;
+							case EItemID::SpeedUpgrade:
+								return PS->Status.Speed;
+							default:
+								return 0;
+							}
+						}();
+					}
 				}
 			}
-			Price_Text->SetText(FText::AsNumber(Price));
+			Price_Text->SetText(bIsSoldOut ? SoldOutPriceText : FText::AsNumber(Price));
+			if (Slot_Button)
+			{
+				Slot_Button->SetIsEnabled(!bIsSoldOut);
+			}
 		}
 	}
 }

@@ -353,6 +353,24 @@ bool Handle_N_PlayerGameResult(PacketSessionRef& session, const se::game::N_Play
 	return false;	
 	
 }
+
+bool Handle_N_GameDataInit(PacketSessionRef& session, const se::game::N_GameDataInit& pkt)
+{
+	if (!session)
+		return false;
+
+	if (UGameInstance* GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (UNetworkGameInstanceSubsystem* NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleGameDataInit(pkt);
+			return true;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_GameDataInit: Failed to get NGIS"));
+	return false;
+}
 	
 bool Handle_N_Move(PacketSessionRef& session, const se::game::N_Move& pkt)
 {

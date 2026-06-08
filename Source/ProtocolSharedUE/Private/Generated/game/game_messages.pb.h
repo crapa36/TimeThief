@@ -166,6 +166,9 @@ PROTOCOLSHAREDUE_API extern N_EquipItemDefaultTypeInternal _N_EquipItem_default_
 class N_Fire;
 struct N_FireDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_FireDefaultTypeInternal _N_Fire_default_instance_;
+class N_GameDataInit;
+struct N_GameDataInitDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_GameDataInitDefaultTypeInternal _N_GameDataInit_default_instance_;
 class N_GameEnd;
 struct N_GameEndDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_GameEndDefaultTypeInternal _N_GameEnd_default_instance_;
@@ -339,6 +342,7 @@ template<> PROTOCOLSHAREDUE_API ::se::game::N_EntityHit* Arena::CreateMaybeMessa
 template<> PROTOCOLSHAREDUE_API ::se::game::N_EntityRespawned* Arena::CreateMaybeMessage<::se::game::N_EntityRespawned>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_EquipItem* Arena::CreateMaybeMessage<::se::game::N_EquipItem>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_Fire* Arena::CreateMaybeMessage<::se::game::N_Fire>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_GameDataInit* Arena::CreateMaybeMessage<::se::game::N_GameDataInit>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_GameEnd* Arena::CreateMaybeMessage<::se::game::N_GameEnd>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_GameStart* Arena::CreateMaybeMessage<::se::game::N_GameStart>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_GrenadeExplosion* Arena::CreateMaybeMessage<::se::game::N_GrenadeExplosion>(Arena*);
@@ -1119,6 +1123,163 @@ class PROTOCOLSHAREDUE_API N_PlayerGameResult final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API N_GameDataInit final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_GameDataInit) */ {
+ public:
+  inline N_GameDataInit() : N_GameDataInit(nullptr) {}
+  ~N_GameDataInit() override;
+  explicit PROTOBUF_CONSTEXPR N_GameDataInit(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_GameDataInit(const N_GameDataInit& from);
+  N_GameDataInit(N_GameDataInit&& from) noexcept
+    : N_GameDataInit() {
+    *this = ::std::move(from);
+  }
+
+  inline N_GameDataInit& operator=(const N_GameDataInit& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_GameDataInit& operator=(N_GameDataInit&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_GameDataInit& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_GameDataInit* internal_default_instance() {
+    return reinterpret_cast<const N_GameDataInit*>(
+               &_N_GameDataInit_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    5;
+
+  friend void swap(N_GameDataInit& a, N_GameDataInit& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_GameDataInit* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_GameDataInit* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_GameDataInit* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_GameDataInit>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_GameDataInit& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_GameDataInit& from) {
+    N_GameDataInit::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_GameDataInit* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_GameDataInit";
+  }
+  protected:
+  explicit N_GameDataInit(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStoreEntriesFieldNumber = 1,
+  };
+  // repeated .se.game.StoreEntryInitData store_entries = 1;
+  int store_entries_size() const;
+  private:
+  int _internal_store_entries_size() const;
+  public:
+  void clear_store_entries();
+  ::se::game::StoreEntryInitData* mutable_store_entries(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryInitData >*
+      mutable_store_entries();
+  private:
+  const ::se::game::StoreEntryInitData& _internal_store_entries(int index) const;
+  ::se::game::StoreEntryInitData* _internal_add_store_entries();
+  public:
+  const ::se::game::StoreEntryInitData& store_entries(int index) const;
+  ::se::game::StoreEntryInitData* add_store_entries();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryInitData >&
+      store_entries() const;
+
+  // @@protoc_insertion_point(class_scope:se.game.N_GameDataInit)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryInitData > store_entries_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API C_MoveReq final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.C_MoveReq) */ {
  public:
@@ -1167,7 +1328,7 @@ class PROTOCOLSHAREDUE_API C_MoveReq final :
                &_C_MoveReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    5;
+    6;
 
   friend void swap(C_MoveReq& a, C_MoveReq& b) {
     a.Swap(&b);
@@ -1331,7 +1492,7 @@ class PROTOCOLSHAREDUE_API N_Move final :
                &_N_Move_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   friend void swap(N_Move& a, N_Move& b) {
     a.Swap(&b);
@@ -1592,7 +1753,7 @@ class PROTOCOLSHAREDUE_API C_JumpReq final :
                &_C_JumpReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    8;
 
   friend void swap(C_JumpReq& a, C_JumpReq& b) {
     a.Swap(&b);
@@ -1711,7 +1872,7 @@ class PROTOCOLSHAREDUE_API N_Jump final :
                &_N_Jump_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    9;
 
   friend void swap(N_Jump& a, N_Jump& b) {
     a.Swap(&b);
@@ -1867,7 +2028,7 @@ class PROTOCOLSHAREDUE_API C_DoubleJumpReq final :
                &_C_DoubleJumpReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    10;
 
   friend void swap(C_DoubleJumpReq& a, C_DoubleJumpReq& b) {
     a.Swap(&b);
@@ -1986,7 +2147,7 @@ class PROTOCOLSHAREDUE_API N_DoubleJump final :
                &_N_DoubleJump_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    11;
 
   friend void swap(N_DoubleJump& a, N_DoubleJump& b) {
     a.Swap(&b);
@@ -2142,7 +2303,7 @@ class PROTOCOLSHAREDUE_API C_JumpLand final :
                &_C_JumpLand_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    12;
 
   friend void swap(C_JumpLand& a, C_JumpLand& b) {
     a.Swap(&b);
@@ -2261,7 +2422,7 @@ class PROTOCOLSHAREDUE_API N_JumpLand final :
                &_N_JumpLand_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    13;
 
   friend void swap(N_JumpLand& a, N_JumpLand& b) {
     a.Swap(&b);
@@ -2418,7 +2579,7 @@ class PROTOCOLSHAREDUE_API C_CrouchReq final :
                &_C_CrouchReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    14;
 
   friend void swap(C_CrouchReq& a, C_CrouchReq& b) {
     a.Swap(&b);
@@ -2566,7 +2727,7 @@ class PROTOCOLSHAREDUE_API N_Crouch final :
                &_N_Crouch_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    15;
 
   friend void swap(N_Crouch& a, N_Crouch& b) {
     a.Swap(&b);
@@ -2734,7 +2895,7 @@ class PROTOCOLSHAREDUE_API C_WireLaunchReq final :
                &_C_WireLaunchReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    16;
 
   friend void swap(C_WireLaunchReq& a, C_WireLaunchReq& b) {
     a.Swap(&b);
@@ -2911,7 +3072,7 @@ class PROTOCOLSHAREDUE_API N_WireLaunch final :
                &_N_WireLaunch_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    17;
 
   friend void swap(N_WireLaunch& a, N_WireLaunch& b) {
     a.Swap(&b);
@@ -3108,7 +3269,7 @@ class PROTOCOLSHAREDUE_API C_WireActionReq final :
                &_C_WireActionReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    18;
 
   friend void swap(C_WireActionReq& a, C_WireActionReq& b) {
     a.Swap(&b);
@@ -3265,7 +3426,7 @@ class PROTOCOLSHAREDUE_API N_WireAction final :
                &_N_WireAction_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    19;
 
   friend void swap(N_WireAction& a, N_WireAction& b) {
     a.Swap(&b);
@@ -3441,7 +3602,7 @@ class PROTOCOLSHAREDUE_API C_WireActionEnd final :
                &_C_WireActionEnd_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    20;
 
   friend void swap(C_WireActionEnd& a, C_WireActionEnd& b) {
     a.Swap(&b);
@@ -3560,7 +3721,7 @@ class PROTOCOLSHAREDUE_API N_WireActionEnd final :
                &_N_WireActionEnd_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    21;
 
   friend void swap(N_WireActionEnd& a, N_WireActionEnd& b) {
     a.Swap(&b);
@@ -3717,7 +3878,7 @@ class PROTOCOLSHAREDUE_API C_AimReq final :
                &_C_AimReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    22;
 
   friend void swap(C_AimReq& a, C_AimReq& b) {
     a.Swap(&b);
@@ -3865,7 +4026,7 @@ class PROTOCOLSHAREDUE_API N_Aim final :
                &_N_Aim_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    23;
 
   friend void swap(N_Aim& a, N_Aim& b) {
     a.Swap(&b);
@@ -4033,7 +4194,7 @@ class PROTOCOLSHAREDUE_API C_FireReq final :
                &_C_FireReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    23;
+    24;
 
   friend void swap(C_FireReq& a, C_FireReq& b) {
     a.Swap(&b);
@@ -4232,7 +4393,7 @@ class PROTOCOLSHAREDUE_API N_Fire final :
                &_N_Fire_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    24;
+    25;
 
   friend void swap(N_Fire& a, N_Fire& b) {
     a.Swap(&b);
@@ -4451,7 +4612,7 @@ class PROTOCOLSHAREDUE_API C_ReloadReq final :
                &_C_ReloadReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    25;
+    26;
 
   friend void swap(C_ReloadReq& a, C_ReloadReq& b) {
     a.Swap(&b);
@@ -4599,7 +4760,7 @@ class PROTOCOLSHAREDUE_API S_ReloadRes final :
                &_S_ReloadRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    26;
+    27;
 
   friend void swap(S_ReloadRes& a, S_ReloadRes& b) {
     a.Swap(&b);
@@ -4780,7 +4941,7 @@ class PROTOCOLSHAREDUE_API N_Reload final :
                &_N_Reload_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    27;
+    28;
 
   friend void swap(N_Reload& a, N_Reload& b) {
     a.Swap(&b);
@@ -4948,7 +5109,7 @@ class PROTOCOLSHAREDUE_API C_WeaponChangeReq final :
                &_C_WeaponChangeReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    28;
+    29;
 
   friend void swap(C_WeaponChangeReq& a, C_WeaponChangeReq& b) {
     a.Swap(&b);
@@ -5096,7 +5257,7 @@ class PROTOCOLSHAREDUE_API N_WeaponChanged final :
                &_N_WeaponChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    29;
+    30;
 
   friend void swap(N_WeaponChanged& a, N_WeaponChanged& b) {
     a.Swap(&b);
@@ -5264,7 +5425,7 @@ class PROTOCOLSHAREDUE_API N_Attack final :
                &_N_Attack_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    30;
+    31;
 
   friend void swap(N_Attack& a, N_Attack& b) {
     a.Swap(&b);
@@ -5432,7 +5593,7 @@ class PROTOCOLSHAREDUE_API N_MonsterTarget final :
                &_N_MonsterTarget_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    31;
+    32;
 
   friend void swap(N_MonsterTarget& a, N_MonsterTarget& b) {
     a.Swap(&b);
@@ -5609,7 +5770,7 @@ class PROTOCOLSHAREDUE_API N_MonsterFire final :
                &_N_MonsterFire_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    32;
+    33;
 
   friend void swap(N_MonsterFire& a, N_MonsterFire& b) {
     a.Swap(&b);
@@ -5828,7 +5989,7 @@ class PROTOCOLSHAREDUE_API N_MonsterImpact final :
                &_N_MonsterImpact_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    33;
+    34;
 
   friend void swap(N_MonsterImpact& a, N_MonsterImpact& b) {
     a.Swap(&b);
@@ -6016,7 +6177,7 @@ class PROTOCOLSHAREDUE_API C_ThrowGrenadeReq final :
                &_C_ThrowGrenadeReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    34;
+    35;
 
   friend void swap(C_ThrowGrenadeReq& a, C_ThrowGrenadeReq& b) {
     a.Swap(&b);
@@ -6204,7 +6365,7 @@ class PROTOCOLSHAREDUE_API N_ThrowGrenade final :
                &_N_ThrowGrenade_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    35;
+    36;
 
   friend void swap(N_ThrowGrenade& a, N_ThrowGrenade& b) {
     a.Swap(&b);
@@ -6432,7 +6593,7 @@ class PROTOCOLSHAREDUE_API C_GrenadeMoveSyncReq final :
                &_C_GrenadeMoveSyncReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    36;
+    37;
 
   friend void swap(C_GrenadeMoveSyncReq& a, C_GrenadeMoveSyncReq& b) {
     a.Swap(&b);
@@ -6649,7 +6810,7 @@ class PROTOCOLSHAREDUE_API N_GrenadeMoveSync final :
                &_N_GrenadeMoveSync_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    37;
+    38;
 
   friend void swap(N_GrenadeMoveSync& a, N_GrenadeMoveSync& b) {
     a.Swap(&b);
@@ -6866,7 +7027,7 @@ class PROTOCOLSHAREDUE_API C_GrenadeExplosionReq final :
                &_C_GrenadeExplosionReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    38;
+    39;
 
   friend void swap(C_GrenadeExplosionReq& a, C_GrenadeExplosionReq& b) {
     a.Swap(&b);
@@ -7043,7 +7204,7 @@ class PROTOCOLSHAREDUE_API N_GrenadeExplosion final :
                &_N_GrenadeExplosion_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    39;
+    40;
 
   friend void swap(N_GrenadeExplosion& a, N_GrenadeExplosion& b) {
     a.Swap(&b);
@@ -7220,7 +7381,7 @@ class PROTOCOLSHAREDUE_API N_ProjectileExplosion final :
                &_N_ProjectileExplosion_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    40;
+    41;
 
   friend void swap(N_ProjectileExplosion& a, N_ProjectileExplosion& b) {
     a.Swap(&b);
@@ -7408,7 +7569,7 @@ class PROTOCOLSHAREDUE_API N_WeaponStatChanged final :
                &_N_WeaponStatChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    41;
+    42;
 
   friend void swap(N_WeaponStatChanged& a, N_WeaponStatChanged& b) {
     a.Swap(&b);
@@ -7576,7 +7737,7 @@ class PROTOCOLSHAREDUE_API N_WeaponStatSnapshot final :
                &_N_WeaponStatSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    42;
+    43;
 
   friend void swap(N_WeaponStatSnapshot& a, N_WeaponStatSnapshot& b) {
     a.Swap(&b);
@@ -7739,7 +7900,7 @@ class PROTOCOLSHAREDUE_API C_UseSkillReq final :
                &_C_UseSkillReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    43;
+    44;
 
   friend void swap(C_UseSkillReq& a, C_UseSkillReq& b) {
     a.Swap(&b);
@@ -7951,7 +8112,7 @@ class PROTOCOLSHAREDUE_API S_UseSkillRes final :
                &_S_UseSkillRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    44;
+    45;
 
   friend void swap(S_UseSkillRes& a, S_UseSkillRes& b) {
     a.Swap(&b);
@@ -8170,7 +8331,7 @@ class PROTOCOLSHAREDUE_API N_UseSkill final :
                &_N_UseSkill_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    45;
+    46;
 
   friend void swap(N_UseSkill& a, N_UseSkill& b) {
     a.Swap(&b);
@@ -8445,7 +8606,7 @@ class PROTOCOLSHAREDUE_API N_EntityHit final :
                &_N_EntityHit_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    46;
+    47;
 
   friend void swap(N_EntityHit& a, N_EntityHit& b) {
     a.Swap(&b);
@@ -8633,7 +8794,7 @@ class PROTOCOLSHAREDUE_API N_KillPlayer final :
                &_N_KillPlayer_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    47;
+    48;
 
   friend void swap(N_KillPlayer& a, N_KillPlayer& b) {
     a.Swap(&b);
@@ -8810,7 +8971,7 @@ class PROTOCOLSHAREDUE_API C_UseItemReq final :
                &_C_UseItemReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    48;
+    49;
 
   friend void swap(C_UseItemReq& a, C_UseItemReq& b) {
     a.Swap(&b);
@@ -8958,7 +9119,7 @@ class PROTOCOLSHAREDUE_API S_UseItemRes final :
                &_S_UseItemRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    49;
+    50;
 
   friend void swap(S_UseItemRes& a, S_UseItemRes& b) {
     a.Swap(&b);
@@ -9137,7 +9298,7 @@ class PROTOCOLSHAREDUE_API N_UseItem final :
                &_N_UseItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    50;
+    51;
 
   friend void swap(N_UseItem& a, N_UseItem& b) {
     a.Swap(&b);
@@ -9305,7 +9466,7 @@ class PROTOCOLSHAREDUE_API C_ChestInteractReq final :
                &_C_ChestInteractReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    51;
+    52;
 
   friend void swap(C_ChestInteractReq& a, C_ChestInteractReq& b) {
     a.Swap(&b);
@@ -9462,7 +9623,7 @@ class PROTOCOLSHAREDUE_API N_ChestInteracted final :
                &_N_ChestInteracted_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    52;
+    53;
 
   friend void swap(N_ChestInteracted& a, N_ChestInteracted& b) {
     a.Swap(&b);
@@ -9639,7 +9800,7 @@ class PROTOCOLSHAREDUE_API C_PickupItemReq final :
                &_C_PickupItemReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    53;
+    54;
 
   friend void swap(C_PickupItemReq& a, C_PickupItemReq& b) {
     a.Swap(&b);
@@ -9796,7 +9957,7 @@ class PROTOCOLSHAREDUE_API N_PickupItem final :
                &_N_PickupItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    54;
+    55;
 
   friend void swap(N_PickupItem& a, N_PickupItem& b) {
     a.Swap(&b);
@@ -9973,7 +10134,7 @@ class PROTOCOLSHAREDUE_API C_EquipItemReq final :
                &_C_EquipItemReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    55;
+    56;
 
   friend void swap(C_EquipItemReq& a, C_EquipItemReq& b) {
     a.Swap(&b);
@@ -10121,7 +10282,7 @@ class PROTOCOLSHAREDUE_API S_EquipItemRes final :
                &_S_EquipItemRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    56;
+    57;
 
   friend void swap(S_EquipItemRes& a, S_EquipItemRes& b) {
     a.Swap(&b);
@@ -10300,7 +10461,7 @@ class PROTOCOLSHAREDUE_API N_EquipItem final :
                &_N_EquipItem_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    57;
+    58;
 
   friend void swap(N_EquipItem& a, N_EquipItem& b) {
     a.Swap(&b);
@@ -10468,7 +10629,7 @@ class PROTOCOLSHAREDUE_API C_UseStoreReq final :
                &_C_UseStoreReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    58;
+    59;
 
   friend void swap(C_UseStoreReq& a, C_UseStoreReq& b) {
     a.Swap(&b);
@@ -10636,7 +10797,7 @@ class PROTOCOLSHAREDUE_API S_UseStoreRes final :
                &_S_UseStoreRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    59;
+    60;
 
   friend void swap(S_UseStoreRes& a, S_UseStoreRes& b) {
     a.Swap(&b);
@@ -10837,7 +10998,7 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
                &_N_ItemGained_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    60;
+    61;
 
   friend void swap(N_ItemGained& a, N_ItemGained& b) {
     a.Swap(&b);
@@ -11007,7 +11168,7 @@ class PROTOCOLSHAREDUE_API N_ItemLost final :
                &_N_ItemLost_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    61;
+    62;
 
   friend void swap(N_ItemLost& a, N_ItemLost& b) {
     a.Swap(&b);
@@ -11177,7 +11338,7 @@ class PROTOCOLSHAREDUE_API N_ItemSnapshot final :
                &_N_ItemSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    62;
+    63;
 
   friend void swap(N_ItemSnapshot& a, N_ItemSnapshot& b) {
     a.Swap(&b);
@@ -11334,7 +11495,7 @@ class PROTOCOLSHAREDUE_API C_SetSavePointReq final :
                &_C_SetSavePointReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    63;
+    64;
 
   friend void swap(C_SetSavePointReq& a, C_SetSavePointReq& b) {
     a.Swap(&b);
@@ -11491,7 +11652,7 @@ class PROTOCOLSHAREDUE_API S_SetSavePointRes final :
                &_S_SetSavePointRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    64;
+    65;
 
   friend void swap(S_SetSavePointRes& a, S_SetSavePointRes& b) {
     a.Swap(&b);
@@ -11679,7 +11840,7 @@ class PROTOCOLSHAREDUE_API N_HealthChanged final :
                &_N_HealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    65;
+    66;
 
   friend void swap(N_HealthChanged& a, N_HealthChanged& b) {
     a.Swap(&b);
@@ -11858,7 +12019,7 @@ class PROTOCOLSHAREDUE_API N_MaxHealthChanged final :
                &_N_MaxHealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    66;
+    67;
 
   friend void swap(N_MaxHealthChanged& a, N_MaxHealthChanged& b) {
     a.Swap(&b);
@@ -12037,7 +12198,7 @@ class PROTOCOLSHAREDUE_API N_HealthSnapshot final :
                &_N_HealthSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    67;
+    68;
 
   friend void swap(N_HealthSnapshot& a, N_HealthSnapshot& b) {
     a.Swap(&b);
@@ -12196,7 +12357,7 @@ class PROTOCOLSHAREDUE_API N_SpeedChanged final :
                &_N_SpeedChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    68;
+    69;
 
   friend void swap(N_SpeedChanged& a, N_SpeedChanged& b) {
     a.Swap(&b);
@@ -12344,7 +12505,7 @@ class PROTOCOLSHAREDUE_API N_TimePointChanged final :
                &_N_TimePointChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    69;
+    70;
 
   friend void swap(N_TimePointChanged& a, N_TimePointChanged& b) {
     a.Swap(&b);
@@ -12503,7 +12664,7 @@ class PROTOCOLSHAREDUE_API N_TimePointSnapshot final :
                &_N_TimePointSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    70;
+    71;
 
   friend void swap(N_TimePointSnapshot& a, N_TimePointSnapshot& b) {
     a.Swap(&b);
@@ -12651,7 +12812,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlock final :
                &_N_SkillUnlock_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    71;
+    72;
 
   friend void swap(N_SkillUnlock& a, N_SkillUnlock& b) {
     a.Swap(&b);
@@ -12799,7 +12960,7 @@ class PROTOCOLSHAREDUE_API C_SkillEquipReq final :
                &_C_SkillEquipReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    72;
+    73;
 
   friend void swap(C_SkillEquipReq& a, C_SkillEquipReq& b) {
     a.Swap(&b);
@@ -12958,7 +13119,7 @@ class PROTOCOLSHAREDUE_API S_SkillEquipRes final :
                &_S_SkillEquipRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    73;
+    74;
 
   friend void swap(S_SkillEquipRes& a, S_SkillEquipRes& b) {
     a.Swap(&b);
@@ -13148,7 +13309,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
                &_N_SkillUnlockSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    74;
+    75;
 
   friend void swap(N_SkillUnlockSnapshot& a, N_SkillUnlockSnapshot& b) {
     a.Swap(&b);
@@ -13330,7 +13491,7 @@ class PROTOCOLSHAREDUE_API N_EntityDied final :
                &_N_EntityDied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    75;
+    76;
 
   friend void swap(N_EntityDied& a, N_EntityDied& b) {
     a.Swap(&b);
@@ -13487,7 +13648,7 @@ class PROTOCOLSHAREDUE_API N_EntityRespawned final :
                &_N_EntityRespawned_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    76;
+    77;
 
   friend void swap(N_EntityRespawned& a, N_EntityRespawned& b) {
     a.Swap(&b);
@@ -13664,7 +13825,7 @@ class PROTOCOLSHAREDUE_API N_EntityDestroyed final :
                &_N_EntityDestroyed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    77;
+    78;
 
   friend void swap(N_EntityDestroyed& a, N_EntityDestroyed& b) {
     a.Swap(&b);
@@ -13821,7 +13982,7 @@ class PROTOCOLSHAREDUE_API N_TimeStormChange final :
                &_N_TimeStormChange_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    78;
+    79;
 
   friend void swap(N_TimeStormChange& a, N_TimeStormChange& b) {
     a.Swap(&b);
@@ -14011,7 +14172,7 @@ class PROTOCOLSHAREDUE_API DebugDrawSphere final :
                &_DebugDrawSphere_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    79;
+    80;
 
   friend void swap(DebugDrawSphere& a, DebugDrawSphere& b) {
     a.Swap(&b);
@@ -14179,7 +14340,7 @@ class PROTOCOLSHAREDUE_API DebugDrawOBB final :
                &_DebugDrawOBB_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    80;
+    81;
 
   friend void swap(DebugDrawOBB& a, DebugDrawOBB& b) {
     a.Swap(&b);
@@ -14382,7 +14543,7 @@ class PROTOCOLSHAREDUE_API N_DebugDraw final :
                &_N_DebugDraw_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    81;
+    82;
 
   friend void swap(N_DebugDraw& a, N_DebugDraw& b) {
     a.Swap(&b);
@@ -14787,6 +14948,47 @@ inline void N_PlayerGameResult::set_allocated_killer(std::string* killer) {
   }
 #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   // @@protoc_insertion_point(field_set_allocated:se.game.N_PlayerGameResult.killer)
+}
+
+// -------------------------------------------------------------------
+
+// N_GameDataInit
+
+// repeated .se.game.StoreEntryInitData store_entries = 1;
+inline int N_GameDataInit::_internal_store_entries_size() const {
+  return _impl_.store_entries_.size();
+}
+inline int N_GameDataInit::store_entries_size() const {
+  return _internal_store_entries_size();
+}
+inline ::se::game::StoreEntryInitData* N_GameDataInit::mutable_store_entries(int index) {
+  // @@protoc_insertion_point(field_mutable:se.game.N_GameDataInit.store_entries)
+  return _impl_.store_entries_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryInitData >*
+N_GameDataInit::mutable_store_entries() {
+  // @@protoc_insertion_point(field_mutable_list:se.game.N_GameDataInit.store_entries)
+  return &_impl_.store_entries_;
+}
+inline const ::se::game::StoreEntryInitData& N_GameDataInit::_internal_store_entries(int index) const {
+  return _impl_.store_entries_.Get(index);
+}
+inline const ::se::game::StoreEntryInitData& N_GameDataInit::store_entries(int index) const {
+  // @@protoc_insertion_point(field_get:se.game.N_GameDataInit.store_entries)
+  return _internal_store_entries(index);
+}
+inline ::se::game::StoreEntryInitData* N_GameDataInit::_internal_add_store_entries() {
+  return _impl_.store_entries_.Add();
+}
+inline ::se::game::StoreEntryInitData* N_GameDataInit::add_store_entries() {
+  ::se::game::StoreEntryInitData* _add = _internal_add_store_entries();
+  // @@protoc_insertion_point(field_add:se.game.N_GameDataInit.store_entries)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryInitData >&
+N_GameDataInit::store_entries() const {
+  // @@protoc_insertion_point(field_list:se.game.N_GameDataInit.store_entries)
+  return _impl_.store_entries_;
 }
 
 // -------------------------------------------------------------------
@@ -24832,6 +25034,8 @@ inline N_DebugDraw::ShapeCase N_DebugDraw::shape_case() const {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -42,7 +42,8 @@ class PacketSession;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNetworkPlayStateChanged, ENetworkPlayState, NewState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnNetworkPlayerGameResult, int32, Rank, int32, Score, FString, KillerName);
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStorePurchaseSucceeded, uint32 /*PurchasedItemID*/, int32 /*NewPrice*/);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnStorePurchaseSucceeded, uint32 /*PurchasedItemID*/, int32 /*NewPrice*/, bool /*bIsSoldOut*/);
+DECLARE_MULTICAST_DELEGATE(FOnStorePriceDataUpdated);
 
 enum class EUseSkillRequestDetailType : uint8
 {
@@ -98,6 +99,7 @@ public:
 	FOnNetworkPlayerGameResult OnPlayerGameResult;
 
 	FOnStorePurchaseSucceeded OnStorePurchaseSucceeded;
+	FOnStorePriceDataUpdated OnStorePriceDataUpdated;
 
 	ENetworkPlayState GetPlayState() const { return PlayState; }
 
@@ -124,6 +126,8 @@ public:
 	void SendSkillEquip(uint32 SlotIndex, uint32 SkillId);
 	void SendGrenadeMoveSync(const FThrowableMoveSnapshot& MoveData);
 	void SendGrenadeExplosion(uint32 GrenadeEntityId, const FVector& Location);
+	bool GetStoreItemPrice(uint32 StoreItemId, int32& OutPrice) const;
+	bool IsStoreItemSoldOut(uint32 StoreItemId) const;
 	
 private:
 	void ConnectToServer();
@@ -162,6 +166,7 @@ public:
 	void HandleGameEnd(const se::game::N_GameEnd& Pkt);
 	void HandlePlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt);
 	void HandlePlayerGameResult(const se::game::N_PlayerGameResult& Pkt);
+	void HandleGameDataInit(const se::game::N_GameDataInit& Pkt);
 	void HandleMove(const se::game::N_Move& Pkt);
 	void HandleJump(const se::game::N_Jump& pkt);
 	void HandleJumpLand(const se::game::N_JumpLand& pkt);
@@ -363,6 +368,8 @@ private:
 	TArray<se::room::SpawnInfo> PendingEntitySpawnInfos;
 	int32 PendingEntitySpawnIndex = 0;
 	se::game::N_PlayerInitSetup PendingPlayerInitSetup;
+	TMap<uint32, int32> StoreItemPrices;
+	TSet<uint32> SoldOutStoreItems;
 	
 private:
 	bool bReceivedRoomEnterRes = false;
