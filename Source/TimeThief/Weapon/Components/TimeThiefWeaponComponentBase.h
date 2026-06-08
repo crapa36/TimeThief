@@ -249,6 +249,7 @@ private:
 	void StopFiringLoop();
 	void HandleAutoFireShot();
 	void FinishReload();
+	void FinishReloadWithAmmo(int32 NewAmmo);
 	
 	UFUNCTION()
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);

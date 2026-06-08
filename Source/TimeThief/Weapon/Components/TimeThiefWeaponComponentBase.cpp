@@ -341,23 +341,23 @@ void UTimeThiefWeaponComponentBase::HandleAutoFireShot()
 
 void UTimeThiefWeaponComponentBase::HandleReloadResult(uint32 DeltaAmmo, uint32 NewAmmo)
 {
-	if ((MaxAmmo - CurrentAmmo) != DeltaAmmo)
+	const int32 ServerAmmo = FMath::Clamp(static_cast<int32>(NewAmmo), 0, MaxAmmo);
+	if (ServerAmmo != static_cast<int32>(NewAmmo))
+	{
+		UE_LOG(LogTemp, Warning,
+		       TEXT("HandleReloadResult: Server ammo is out of range. MaxAmmo: %d, ServerAmmo: %u"),
+		       MaxAmmo, NewAmmo);
+	}
+
+	if ((ServerAmmo - CurrentAmmo) != static_cast<int32>(DeltaAmmo))
 	{
 		// 이건 경고
 		UE_LOG(LogTemp, Warning,
-		       TEXT("HandleReloadResult: DeltaAmmo does not match the expected value. Expected: %d, Actual: %d"),
-		       MaxAmmo - CurrentAmmo, DeltaAmmo);
+		       TEXT("HandleReloadResult: DeltaAmmo does not match the expected value. Expected: %d, Actual: %u"),
+		       ServerAmmo - CurrentAmmo, DeltaAmmo);
 	}
 
-	if (NewAmmo != MaxAmmo)
-	{
-		// 이건 오류
-		UE_LOG(LogTemp, Error, TEXT("HandleReloadResult: NewAmmo does not match MaxAmmo. Expected: %d, Actual: %d"),
-		       MaxAmmo, NewAmmo);
-		return;
-	}
-
-	FinishReload();
+	FinishReloadWithAmmo(ServerAmmo);
 }
 
 float UTimeThiefWeaponComponentBase::GetFireInterval() const
@@ -373,24 +373,37 @@ void UTimeThiefWeaponComponentBase::StopFiringLoop()
 
 void UTimeThiefWeaponComponentBase::FinishReload()
 {
-	CurrentAmmo = MaxAmmo;
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+	{
+		if (!NGIS->IsConnected())
+		{
+			CurrentAmmo = MaxAmmo;
+			NotifyAmmoChanged();
+		}
+	}
+	
 	bIsReloading = false;
-	NotifyAmmoChanged();
 	OnReloadFinished();
 	if (bWantsToFire) StartFire();
+}
+
+void UTimeThiefWeaponComponentBase::FinishReloadWithAmmo(int32 NewAmmo)
+{
+	CurrentAmmo = FMath::Clamp(NewAmmo, 0, MaxAmmo);
+	NotifyAmmoChanged();
 }
 
 void UTimeThiefWeaponComponentBase::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage == ReloadAnimation)
 	{
-		if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
-		{
-			if (NGIS->IsConnected())
-			{
-				return;
-			}
-		}
+		// if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+		// {
+		// 	if (NGIS->IsConnected())
+		// 	{
+		// 		return;
+		// 	}
+		// }
 
 		FinishReload();
 	}

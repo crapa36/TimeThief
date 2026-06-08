@@ -2015,16 +2015,14 @@ void UNetworkGameInstanceSubsystem::HandleReloadRes(const se::game::S_ReloadRes&
 		{
 			if (auto MasterWeapon = CombatComp->GetMasterWeapon())
 			{
-				if (auto EquipWeapon = MasterWeapon->GetActiveWeaponComponent())
+				const FGameplayTag WeaponTag = FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId);
+				if (auto WeaponComp = MasterWeapon->GetWeaponComponentByTag(WeaponTag))
 				{
-					if (EquipWeapon->GetWeaponTag() != FTimeThiefGameplayTags::ResolveWeaponTagFromId(WeaponId))
-					{
-						// 재장전 완료 패킷이 왔지만 다른 무기로 장착이 바뀐 경우, 재장전 결과를 무시한다. <- 재장전 실패 한 것
-						UE_LOG(LogTemp, Warning, TEXT("Received ReloadRes for WeaponId=%u, but currently equipped weapon is different. Ignoring reload result."), WeaponId);
-						return;
-					}
-					
-					EquipWeapon->HandleReloadResult(ReloadedAmmo, RemainingAmmo);
+					WeaponComp->HandleReloadResult(ReloadedAmmo, RemainingAmmo);
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Received ReloadRes for unknown WeaponId=%u"), WeaponId);
 				}
 			}
 		}
