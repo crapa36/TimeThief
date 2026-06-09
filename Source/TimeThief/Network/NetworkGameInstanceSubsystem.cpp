@@ -2651,13 +2651,18 @@ void UNetworkGameInstanceSubsystem::HandleTimePointSnapshot(const se::game::N_Ti
 
 void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt)
 {
-	// 사용하지 않음
+	// 해당 스킬은 이제 사용 가능한 스킬이 되었음 (UI에서 잠금 해제된 것으로 업데이트)
+	UE_LOG(LogTemp, Log, TEXT("Skill unlocked: SkillId=%u"), Pkt.skill_id());
 }
 
 void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt)
 {
 	// 사용하지 않음
 	// UI가 있다면 사용 가능해짐
+	// Client 상에서 UI로 장착 요청을 하고 그에 따른 피드백 용도임
+	// 이 패킷이 오면 UI에서 해당 슬롯이 장착된 것으로 업데이트
+	
+	UE_LOG(LogTemp, Log, TEXT("Skill equip result: SkillId=%u, SlotIndex=%u, Success=%s"), Pkt.skill_id(), Pkt.slot_index(), Pkt.success() ? TEXT("true") : TEXT("false"));
 }
 
 void UNetworkGameInstanceSubsystem::HandleSkillUnlockSnapshot(const se::game::N_SkillUnlockSnapshot& Pkt)
@@ -2675,6 +2680,12 @@ void UNetworkGameInstanceSubsystem::HandleSkillUnlockSnapshot(const se::game::N_
 	// Skill System에 통지하도록
 	// Pkt의 unlocked_skill_ids에 들어있는 값들은 사용 가능한 스킬들
 	// equipped_skill_slots에 있는 값은 slot_index와 skill_id로 이루어져 있고, 현재 장착된 스킬 슬롯 정보임
+}
+
+void UNetworkGameInstanceSubsystem::HandleSkillEquip(const se::game::N_SkillEquip& Pkt)
+{
+	// TODO: 서버에서 Skill 구매 시 빈 슬롯으로 자동 장착된 경우 UI에서 해당 슬롯이 장착된 것으로 업데이트
+	UE_LOG(LogTemp, Log, TEXT("Skill equipped: SkillId=%u, SlotIndex=%u"), Pkt.skill_id(), Pkt.slot_index());
 }
 
 void UNetworkGameInstanceSubsystem::HandleMaxHealthChanged(const se::game::N_MaxHealthChanged& Pkt)

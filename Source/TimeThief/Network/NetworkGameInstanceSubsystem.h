@@ -217,6 +217,7 @@ public:
 	void HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt);
 	void HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt);
 	void HandleSkillUnlockSnapshot(const se::game::N_SkillUnlockSnapshot& Pkt);
+	void HandleSkillEquip(const se::game::N_SkillEquip& Pkt);
 	void HandleTimeStormChange(const se::game::N_TimeStormChange& Pkt);
 
 // Test

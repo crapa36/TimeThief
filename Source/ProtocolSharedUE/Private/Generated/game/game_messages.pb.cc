@@ -1097,6 +1097,20 @@ struct N_SkillUnlockSnapshotDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_SkillUnlockSnapshotDefaultTypeInternal _N_SkillUnlockSnapshot_default_instance_;
+PROTOBUF_CONSTEXPR N_SkillEquip::N_SkillEquip(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.skill_id_)*/0u
+  , /*decltype(_impl_.slot_index_)*/0u
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_SkillEquipDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_SkillEquipDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_SkillEquipDefaultTypeInternal() {}
+  union {
+    N_SkillEquip _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_SkillEquipDefaultTypeInternal _N_SkillEquip_default_instance_;
 PROTOBUF_CONSTEXPR N_EntityDied::N_EntityDied(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.entity_id_)*/nullptr
@@ -1201,7 +1215,7 @@ struct N_DebugDrawDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_DebugDrawDefaultTypeInternal _N_DebugDraw_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[83];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[84];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 
@@ -1837,6 +1851,14 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   PROTOBUF_FIELD_OFFSET(::se::game::N_SkillUnlockSnapshot, _impl_.unlocked_skill_ids_),
   PROTOBUF_FIELD_OFFSET(::se::game::N_SkillUnlockSnapshot, _impl_.equipped_skill_slots_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_SkillEquip, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_SkillEquip, _impl_.skill_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_SkillEquip, _impl_.slot_index_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_EntityDied, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -1975,13 +1997,14 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 604, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
   { 612, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
   { 622, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
-  { 630, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 637, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 645, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 652, -1, -1, sizeof(::se::game::N_TimeStormChange)},
-  { 662, -1, -1, sizeof(::se::game::DebugDrawSphere)},
-  { 670, -1, -1, sizeof(::se::game::DebugDrawOBB)},
-  { 679, -1, -1, sizeof(::se::game::N_DebugDraw)},
+  { 630, -1, -1, sizeof(::se::game::N_SkillEquip)},
+  { 638, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 645, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 653, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 660, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 670, -1, -1, sizeof(::se::game::DebugDrawSphere)},
+  { 678, -1, -1, sizeof(::se::game::DebugDrawOBB)},
+  { 687, -1, -1, sizeof(::se::game::N_DebugDraw)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -2061,6 +2084,7 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_C_SkillEquipReq_default_instance_._instance,
   &::se::game::_S_SkillEquipRes_default_instance_._instance,
   &::se::game::_N_SkillUnlockSnapshot_default_instance_._instance,
+  &::se::game::_N_SkillEquip_default_instance_._instance,
   &::se::game::_N_EntityDied_default_instance_._instance,
   &::se::game::_N_EntityRespawned_default_instance_._instance,
   &::se::game::_N_EntityDestroyed_default_instance_._instance,
@@ -2272,26 +2296,28 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "\025N_SkillUnlockSnapshot\022\032\n\022unlocked_skill"
   "_ids\030\001 \003(\r\0228\n\024equipped_skill_slots\030\002 \003(\013"
   "2\032.se.game.SkillSlotSnapshot:\r\210\265\030\343!\220\265\030\002\230"
-  "\265\030\004\"E\n\014N_EntityDied\022&\n\tentity_id\030\001 \001(\0132\023"
-  ".se.common.ObjectId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N_"
-  "EntityRespawned\022&\n\tentity_id\030\001 \001(\0132\023.se."
-  "common.ObjectId\022\'\n\ttransform\030\002 \001(\0132\024.se."
-  "common.Transform:\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_Ent"
-  "ityDestroyed\022&\n\tentity_id\030\001 \001(\0132\023.se.com"
-  "mon.ObjectId:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeSt"
-  "ormChange\022\"\n\006center\030\001 \001(\0132\022.se.common.Ve"
-  "ctor3\022\016\n\006radius\030\002 \001(\002\022\024\n\014waiting_time\030\003 "
-  "\001(\002\022\026\n\016shrinking_time\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265"
-  "\030\004\"G\n\017DebugDrawSphere\022$\n\010position\030\001 \001(\0132"
-  "\022.se.common.Vector3\022\016\n\006radius\030\002 \001(\002\"\202\001\n\014"
-  "DebugDrawOBB\022\"\n\006center\030\001 \001(\0132\022.se.common"
-  ".Vector3\022(\n\014half_extents\030\002 \001(\0132\022.se.comm"
-  "on.Vector3\022$\n\010rotation\030\003 \001(\0132\022.se.common"
-  ".Rotator\"\260\001\n\013N_DebugDraw\022*\n\006sphere\030\001 \001(\013"
-  "2\030.se.game.DebugDrawSphereH\000\022$\n\003obb\030\002 \001("
-  "\0132\025.se.game.DebugDrawOBBH\000\022\022\n\ncolor_rgba"
-  "\030\n \001(\r\022\020\n\010duration\030\013 \001(\002\022\021\n\tthickness\030\014 "
-  "\001(\002:\r\210\265\030\272\"\220\265\030\002\230\265\030\004B\007\n\005shapeb\006proto3"
+  "\265\030\004\"C\n\014N_SkillEquip\022\020\n\010skill_id\030\001 \001(\r\022\022\n"
+  "\nslot_index\030\002 \001(\r:\r\210\265\030\344!\220\265\030\002\230\265\030\004\"E\n\014N_En"
+  "tityDied\022&\n\tentity_id\030\001 \001(\0132\023.se.common."
+  "ObjectId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespa"
+  "wned\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obje"
+  "ctId\022\'\n\ttransform\030\002 \001(\0132\024.se.common.Tran"
+  "sform:\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroye"
+  "d\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectI"
+  "d:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeStormChange\022\""
+  "\n\006center\030\001 \001(\0132\022.se.common.Vector3\022\016\n\006ra"
+  "dius\030\002 \001(\002\022\024\n\014waiting_time\030\003 \001(\002\022\026\n\016shri"
+  "nking_time\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004\"G\n\017Debug"
+  "DrawSphere\022$\n\010position\030\001 \001(\0132\022.se.common"
+  ".Vector3\022\016\n\006radius\030\002 \001(\002\"\202\001\n\014DebugDrawOB"
+  "B\022\"\n\006center\030\001 \001(\0132\022.se.common.Vector3\022(\n"
+  "\014half_extents\030\002 \001(\0132\022.se.common.Vector3\022"
+  "$\n\010rotation\030\003 \001(\0132\022.se.common.Rotator\"\260\001"
+  "\n\013N_DebugDraw\022*\n\006sphere\030\001 \001(\0132\030.se.game."
+  "DebugDrawSphereH\000\022$\n\003obb\030\002 \001(\0132\025.se.game"
+  ".DebugDrawOBBH\000\022\022\n\ncolor_rgba\030\n \001(\r\022\020\n\010d"
+  "uration\030\013 \001(\002\022\021\n\tthickness\030\014 \001(\002:\r\210\265\030\272\"\220"
+  "\265\030\002\230\265\030\004B\007\n\005shapeb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -2302,9 +2328,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 8835, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 8904, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
-    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 83,
+    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 84,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
     file_level_metadata_game_2fgame_5fmessages_2eproto, file_level_enum_descriptors_game_2fgame_5fmessages_2eproto,
     file_level_service_descriptors_game_2fgame_5fmessages_2eproto,
@@ -19969,6 +19995,217 @@ void N_SkillUnlockSnapshot::InternalSwap(N_SkillUnlockSnapshot* other) {
 
 // ===================================================================
 
+class N_SkillEquip::_Internal {
+ public:
+};
+
+N_SkillEquip::N_SkillEquip(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_SkillEquip)
+}
+N_SkillEquip::N_SkillEquip(const N_SkillEquip& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_SkillEquip* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.skill_id_){}
+    , decltype(_impl_.slot_index_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.skill_id_, &from._impl_.skill_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.slot_index_) -
+    reinterpret_cast<char*>(&_impl_.skill_id_)) + sizeof(_impl_.slot_index_));
+  // @@protoc_insertion_point(copy_constructor:se.game.N_SkillEquip)
+}
+
+inline void N_SkillEquip::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.skill_id_){0u}
+    , decltype(_impl_.slot_index_){0u}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_SkillEquip::~N_SkillEquip() {
+  // @@protoc_insertion_point(destructor:se.game.N_SkillEquip)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_SkillEquip::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void N_SkillEquip::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_SkillEquip::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_SkillEquip)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.skill_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.slot_index_) -
+      reinterpret_cast<char*>(&_impl_.skill_id_)) + sizeof(_impl_.slot_index_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_SkillEquip::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 skill_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.skill_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // uint32 slot_index = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.slot_index_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_SkillEquip::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_SkillEquip)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 skill_id = 1;
+  if (this->_internal_skill_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_skill_id(), target);
+  }
+
+  // uint32 slot_index = 2;
+  if (this->_internal_slot_index() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(2, this->_internal_slot_index(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_SkillEquip)
+  return target;
+}
+
+size_t N_SkillEquip::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_SkillEquip)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 skill_id = 1;
+  if (this->_internal_skill_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_skill_id());
+  }
+
+  // uint32 slot_index = 2;
+  if (this->_internal_slot_index() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_slot_index());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_SkillEquip::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_SkillEquip::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_SkillEquip::GetClassData() const { return &_class_data_; }
+
+
+void N_SkillEquip::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_SkillEquip*>(&to_msg);
+  auto& from = static_cast<const N_SkillEquip&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_SkillEquip)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_skill_id() != 0) {
+    _this->_internal_set_skill_id(from._internal_skill_id());
+  }
+  if (from._internal_slot_index() != 0) {
+    _this->_internal_set_slot_index(from._internal_slot_index());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_SkillEquip::CopyFrom(const N_SkillEquip& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_SkillEquip)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_SkillEquip::IsInitialized() const {
+  return true;
+}
+
+void N_SkillEquip::InternalSwap(N_SkillEquip* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(N_SkillEquip, _impl_.slot_index_)
+      + sizeof(N_SkillEquip::_impl_.slot_index_)
+      - PROTOBUF_FIELD_OFFSET(N_SkillEquip, _impl_.skill_id_)>(
+          reinterpret_cast<char*>(&_impl_.skill_id_),
+          reinterpret_cast<char*>(&other->_impl_.skill_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_SkillEquip::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[76]);
+}
+
+// ===================================================================
+
 class N_EntityDied::_Internal {
  public:
   static const ::se::common::ObjectId& entity_id(const N_EntityDied* msg);
@@ -20163,7 +20400,7 @@ void N_EntityDied::InternalSwap(N_EntityDied* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDied::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[76]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[77]);
 }
 
 // ===================================================================
@@ -20414,7 +20651,7 @@ void N_EntityRespawned::InternalSwap(N_EntityRespawned* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityRespawned::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[77]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[78]);
 }
 
 // ===================================================================
@@ -20613,7 +20850,7 @@ void N_EntityDestroyed::InternalSwap(N_EntityDestroyed* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDestroyed::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[78]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[79]);
 }
 
 // ===================================================================
@@ -20931,7 +21168,7 @@ void N_TimeStormChange::InternalSwap(N_TimeStormChange* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimeStormChange::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[79]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[80]);
 }
 
 // ===================================================================
@@ -21173,7 +21410,7 @@ void DebugDrawSphere::InternalSwap(DebugDrawSphere* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DebugDrawSphere::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[80]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[81]);
 }
 
 // ===================================================================
@@ -21471,7 +21708,7 @@ void DebugDrawOBB::InternalSwap(DebugDrawOBB* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DebugDrawOBB::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[81]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[82]);
 }
 
 // ===================================================================
@@ -21884,7 +22121,7 @@ void N_DebugDraw::InternalSwap(N_DebugDraw* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_DebugDraw::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[82]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[83]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -22194,6 +22431,10 @@ Arena::CreateMaybeMessage< ::se::game::S_SkillEquipRes >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::N_SkillUnlockSnapshot*
 Arena::CreateMaybeMessage< ::se::game::N_SkillUnlockSnapshot >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::N_SkillUnlockSnapshot >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_SkillEquip*
+Arena::CreateMaybeMessage< ::se::game::N_SkillEquip >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_SkillEquip >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::game::N_EntityDied*
 Arena::CreateMaybeMessage< ::se::game::N_EntityDied >(Arena* arena) {
