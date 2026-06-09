@@ -196,6 +196,17 @@ void AServerMapExportTestActor::ExportMonsterSpawnLocations()
 	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
 }
 
+void AServerMapExportTestActor::ExportPawnCollisionProfiles()
+{
+	UWorld* World = GetWorld();
+
+	const FString OutputPath = FPaths::ProjectSavedDir() / TEXT("ServerMap/TestPawnCollisionProfiles.json");
+	const bool bResult = ServerMapExporter::ExportPawnCollisionProfilesToJsonFile(World, OutputPath);
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] ExportPawnCollisionProfiles result: %s"), bResult ? TEXT("true") : TEXT("false"));
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapTest] OutputPath: %s"), *OutputPath);
+}
+
 void AServerMapExportTestActor::ReplaceSelectedActorWithStaticMeshActors()
 {
 #if WITH_EDITOR

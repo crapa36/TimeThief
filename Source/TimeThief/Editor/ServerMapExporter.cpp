@@ -371,6 +371,210 @@ bool ServerMapExporter::ExportMonsterSpawnLocationsToJsonFile(UWorld* World, con
 	return true;
 }
 
+bool ServerMapExporter::ExportPawnCollisionProfilesToJsonFile(UWorld* World, const FString& OutputPath)
+{
+	if (World == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] World is null"));
+		return false;
+	}
+
+	if (OutputPath.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] OutputPath is empty"));
+		return false;
+	}
+
+	TArray<AActor*> PawnActors;
+	CollectActorsWithTag(World, ServerTags::CollisionPawn, PawnActors);
+
+	if (PawnActors.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No pawn collision actors found. ActorTag=%s"),
+			*ServerTags::CollisionPawn.ToString());
+		return false;
+	}
+
+	PawnActors.Sort([](const AActor& Left, const AActor& Right)
+	{
+		return Left.GetName() < Right.GetName();
+	});
+
+	TArray<TSharedPtr<FJsonValue>> ProfileArray;
+	TSet<FString> ExportedPawnTypes;
+	int32 ExportedColliderCount = 0;
+	int32 SkippedActorCount = 0;
+	int32 SkippedComponentCount = 0;
+
+	for (AActor* Actor : PawnActors)
+	{
+		if (Actor == nullptr)
+		{
+			continue;
+		}
+
+		const FName PawnTypeTag = FindPawnTypeTag(Actor);
+		if (PawnTypeTag.IsNone())
+		{
+			++SkippedActorCount;
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Pawn collision actor has no Pawn.* tag: %s"), *GetNameSafe(Actor));
+			continue;
+		}
+
+		const FString PawnTypeName = ServerPawnTags::GetTypeName(PawnTypeTag);
+		if (ExportedPawnTypes.Contains(PawnTypeName))
+		{
+			++SkippedActorCount;
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Duplicate pawn collision profile skipped. Type=%s Actor=%s"),
+				*PawnTypeName,
+				*GetNameSafe(Actor));
+			continue;
+		}
+
+		TArray<UShapeComponent*> ShapeComponents;
+		CollectShapeComponents(Actor, ShapeComponents);
+
+		TArray<TSharedPtr<FJsonValue>> ColliderArray;
+		for (const UShapeComponent* ShapeComponent : ShapeComponents)
+		{
+			if (ShapeComponent == nullptr)
+			{
+				continue;
+			}
+
+			if (!ShapeComponent->ComponentHasTag(ServerPawnColliderTags::Collider) ||
+				ShapeComponent->ComponentHasTag(ServerTags::Ignore))
+			{
+				continue;
+			}
+
+			const FName PartTag = FindPawnPartTag(ShapeComponent);
+			if (PartTag.IsNone())
+			{
+				++SkippedComponentCount;
+				UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Pawn collider has no Part.* tag: Actor=%s Component=%s"),
+					*GetNameSafe(Actor),
+					*GetNameSafe(ShapeComponent));
+				continue;
+			}
+
+			const FTransform LocalTransform = ShapeComponent->GetComponentTransform().GetRelativeTransform(Actor->GetActorTransform());
+			const FVector LocalScale = LocalTransform.GetScale3D().GetAbs();
+			const FVector LocalPosition = LocalTransform.GetLocation();
+			const FRotator LocalRotation = LocalTransform.Rotator();
+			const FString PartName = ServerPawnPartTags::GetPartName(PartTag);
+			const FString ComponentName = GetNameSafe(ShapeComponent);
+			const FString ColliderId = FString::Printf(TEXT("%s.%s.%s"), *PawnTypeName, *PartName, *ComponentName.ToLower());
+
+			TSharedPtr<FJsonObject> ColliderObject = MakeShared<FJsonObject>();
+			ColliderObject->SetStringField(TEXT("collider_id"), ColliderId);
+			ColliderObject->SetStringField(TEXT("component_name"), ComponentName);
+			ColliderObject->SetStringField(TEXT("part"), PartName);
+			ColliderObject->SetObjectField(TEXT("local_position"), MakeVectorJsonObject(LocalPosition));
+			ColliderObject->SetObjectField(TEXT("local_rotation"), MakeVectorJsonObject(FVector(LocalRotation.Pitch, LocalRotation.Yaw, LocalRotation.Roll)));
+
+			TArray<TSharedPtr<FJsonValue>> FlagArray;
+			if (ShapeComponent->ComponentHasTag(ServerPawnColliderTags::DamageReceiver))
+			{
+				FlagArray.Add(MakeShared<FJsonValueString>(TEXT("damage_receiver")));
+			}
+			if (ShapeComponent->ComponentHasTag(ServerTags::BlockMovement))
+			{
+				FlagArray.Add(MakeShared<FJsonValueString>(TEXT("block_movement")));
+			}
+			if (ShapeComponent->ComponentHasTag(ServerTags::BlockProjectile))
+			{
+				FlagArray.Add(MakeShared<FJsonValueString>(TEXT("block_projectile")));
+			}
+			ColliderObject->SetArrayField(TEXT("flags"), FlagArray);
+
+			if (const USphereComponent* SphereComponent = Cast<USphereComponent>(ShapeComponent))
+			{
+				const float UniformScale = FMath::Max3(LocalScale.X, LocalScale.Y, LocalScale.Z);
+				ColliderObject->SetStringField(TEXT("shape"), TEXT("sphere"));
+				ColliderObject->SetNumberField(TEXT("radius"), SphereComponent->GetUnscaledSphereRadius() * UniformScale);
+			}
+			else if (const UCapsuleComponent* CapsuleComponent = Cast<UCapsuleComponent>(ShapeComponent))
+			{
+				const float RadiusScale = FMath::Max(LocalScale.X, LocalScale.Y);
+				const float HeightScale = LocalScale.Z;
+				ColliderObject->SetStringField(TEXT("shape"), TEXT("capsule"));
+				ColliderObject->SetNumberField(TEXT("radius"), CapsuleComponent->GetUnscaledCapsuleRadius() * RadiusScale);
+				ColliderObject->SetNumberField(TEXT("half_height"), CapsuleComponent->GetUnscaledCapsuleHalfHeight() * HeightScale);
+			}
+			else if (const UBoxComponent* BoxComponent = Cast<UBoxComponent>(ShapeComponent))
+			{
+				const FVector ScaledExtent = FVector(
+					BoxComponent->GetUnscaledBoxExtent().X * LocalScale.X,
+					BoxComponent->GetUnscaledBoxExtent().Y * LocalScale.Y,
+					BoxComponent->GetUnscaledBoxExtent().Z * LocalScale.Z);
+
+				ColliderObject->SetStringField(TEXT("shape"), TEXT("obb"));
+				ColliderObject->SetObjectField(TEXT("extents"), MakeVectorJsonObject(ScaledExtent));
+			}
+			else
+			{
+				++SkippedComponentCount;
+				UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Unsupported pawn collider skipped: Actor=%s Component=%s"),
+					*GetNameSafe(Actor),
+					*GetNameSafe(ShapeComponent));
+				continue;
+			}
+
+			ColliderArray.Add(MakeShared<FJsonValueObject>(ColliderObject));
+		}
+
+		if (ColliderArray.IsEmpty())
+		{
+			++SkippedActorCount;
+			UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Pawn collision actor has no exportable colliders: %s"), *GetNameSafe(Actor));
+			continue;
+		}
+
+		TSharedPtr<FJsonObject> ProfileObject = MakeShared<FJsonObject>();
+		ProfileObject->SetStringField(TEXT("collision_id"), PawnTypeName);
+		ProfileObject->SetStringField(TEXT("pawn_type"), PawnTypeName);
+		ProfileObject->SetStringField(TEXT("actor_name"), GetNameSafe(Actor));
+		ProfileObject->SetArrayField(TEXT("colliders"), ColliderArray);
+
+		ProfileArray.Add(MakeShared<FJsonValueObject>(ProfileObject));
+		ExportedPawnTypes.Add(PawnTypeName);
+		ExportedColliderCount += ColliderArray.Num();
+	}
+
+	if (ProfileArray.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] No valid pawn collision profiles built"));
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> RootObject = MakeShared<FJsonObject>();
+	RootObject->SetArrayField(TEXT("pawn_collision_profiles"), ProfileArray);
+
+	FString JsonString;
+	const TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonString);
+	if (!FJsonSerializer::Serialize(RootObject.ToSharedRef(), Writer))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to serialize pawn collision profile json"));
+		return false;
+	}
+
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(OutputPath), true);
+	if (!FFileHelper::SaveStringToFile(JsonString, *OutputPath))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ServerMapExporter] Failed to save pawn collision profile json: %s"), *OutputPath);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Pawn collision profile json saved: %s"), *OutputPath);
+	UE_LOG(LogTemp, Log, TEXT("[ServerMapExporter] Pawn collision profiles. Profiles=%d Colliders=%d SkippedActors=%d SkippedComponents=%d"),
+		ProfileArray.Num(),
+		ExportedColliderCount,
+		SkippedActorCount,
+		SkippedComponentCount);
+	return true;
+}
+
 bool ServerMapExporter::ExportPresetToFile(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset,
 	const FString& OutputPath)
 {
@@ -2556,6 +2760,42 @@ uint32 ServerMapExporter::BuildColliderFlagsFromShapeComponent(const UShapeCompo
 	}
 
 	return Flags;
+}
+
+FName ServerMapExporter::FindPawnTypeTag(const AActor* Actor)
+{
+	if (Actor == nullptr)
+	{
+		return NAME_None;
+	}
+
+	for (const FName& PawnTag : ServerPawnTags::GetAll())
+	{
+		if (Actor->ActorHasTag(PawnTag))
+		{
+			return PawnTag;
+		}
+	}
+
+	return NAME_None;
+}
+
+FName ServerMapExporter::FindPawnPartTag(const UShapeComponent* ShapeComponent)
+{
+	if (ShapeComponent == nullptr)
+	{
+		return NAME_None;
+	}
+
+	for (const FName& PartTag : ServerPawnPartTags::GetAll())
+	{
+		if (ShapeComponent->ComponentHasTag(PartTag))
+		{
+			return PartTag;
+		}
+	}
+
+	return NAME_None;
 }
 
 bool ServerMapExporter::BuildColliderDataFromShapeComponent(const UShapeComponent* ShapeComponent,
