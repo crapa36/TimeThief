@@ -3,6 +3,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHeroComponent.h"
+#include "Components/TimeThiefPhysicalHitReactionComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Combat/TimeThiefThrowableComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
@@ -43,6 +44,7 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
 	HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
 	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
+	PhysicalHitReactionComponent = CreateDefaultSubobject<UTimeThiefPhysicalHitReactionComponent>(TEXT("PhysicalHitReactionComponent"));
 	WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
 	NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));

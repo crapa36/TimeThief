@@ -27,6 +27,7 @@ class MORPHINGMESH_API UMorphingMeshComponent : public USceneComponent
 	GENERATED_BODY()
 public:
 	USkeletalMeshComponent* BaseSkeletalMeshComponent{nullptr};
+	USkeletalMeshComponent* BoneMatrixSourceSkeletalMeshComponent{nullptr};
 	
 	UPROPERTY(EditAnywhere, Category = "Morphing | Settings")
 	TObjectPtr<UMorphingMeshData> MorphingMeshData;
@@ -57,6 +58,8 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 	
 	void SetSkeletalMeshComponent(USkeletalMeshComponent* NewSkeletalMeshComponent);
+	void SetBoneMatrixSourceSkeletalMeshComponent(USkeletalMeshComponent* NewSkeletalMeshComponent);
+	USkeletalMeshComponent* GetBoneMatrixSourceSkeletalMeshComponent() const;
 	
 	int GetActiveSkeletalIndex() const;
 	
