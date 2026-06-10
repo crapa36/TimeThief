@@ -120,6 +120,16 @@ void UMorphingMeshComponent::SetSkeletalMeshComponent(USkeletalMeshComponent* Ne
 	Check();
 }
 
+void UMorphingMeshComponent::SetBoneMatrixSourceSkeletalMeshComponent(USkeletalMeshComponent* NewSkeletalMeshComponent)
+{
+	BoneMatrixSourceSkeletalMeshComponent = NewSkeletalMeshComponent;
+}
+
+USkeletalMeshComponent* UMorphingMeshComponent::GetBoneMatrixSourceSkeletalMeshComponent() const
+{
+	return BoneMatrixSourceSkeletalMeshComponent ? BoneMatrixSourceSkeletalMeshComponent : BaseSkeletalMeshComponent;
+}
+
 int UMorphingMeshComponent::GetActiveSkeletalIndex() const
 {
 	if (CurrAlpha == FVector::ZeroVector)

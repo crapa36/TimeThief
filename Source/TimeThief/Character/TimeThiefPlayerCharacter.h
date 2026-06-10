@@ -13,6 +13,7 @@ class AItemBase;
 class USpringArmComponent;
 class UCameraComponent;
 class UTimeThiefPlayerCombatComponent;
+class UTimeThiefPhysicalHitReactionComponent;
 class UTimeThiefThrowableComponent;
 class UTimeThiefHeroComponent;
 class UCharacterTrajectoryComponent;
@@ -115,6 +116,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat)
 	TObjectPtr<UTimeThiefPlayerCombatComponent> PlayerCombatComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "TimeThief|HitReaction")
+	TObjectPtr<UTimeThiefPhysicalHitReactionComponent> PhysicalHitReactionComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MotionMatching")
 	TObjectPtr<UCharacterTrajectoryComponent> CharacterTrajectoryComponent;
