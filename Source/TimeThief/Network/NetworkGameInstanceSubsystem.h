@@ -25,7 +25,6 @@
 
 class AStoreActor;
 class ATimeThiefPlayerCharacter;
-class USkillBaseComponent;
 struct FThrowableMoveSnapshot;
 struct FRemoteAttackNotify;
 struct FEntityRuntimeEntry;
@@ -233,8 +232,7 @@ private:
 	void CancelPendingEntitySpawn();
 	bool ApplyPlayerInitSetup(const se::game::N_PlayerInitSetup& Pkt);
 	void TryApplyPendingPlayerInitSetup();
-	USkillBaseComponent* FindLocalSkillComponent(uint32 SkillId);
-	void ApplyUseSkillCooldown(const se::game::S_UseSkillRes& Pkt);
+	void TryAutoEquipPurchasedSkill(uint32 PurchasedItemId);
 	
 private:
 	void RemoveEntity(uint32 EntityId);

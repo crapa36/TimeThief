@@ -18,6 +18,7 @@
 #include "Character/TimeThiefPlayerController.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Skill/SavePointSkillComponent.h"
+#include "Skill/TimeThiefSkillComponent.h"
 #include "InputCoreTypes.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
@@ -60,12 +61,14 @@ void UTimeThiefHeroComponent::RebuildCachedComponents()
 		CachedWireComponent = Pawn->FindComponentByClass<UTimeThiefWireComponent>();
 		CachedCombatComponent = Pawn->FindComponentByClass<UTimeThiefPawnCombatComponent>();
 		CachedThrowableComponent = Pawn->FindComponentByClass<UTimeThiefThrowableComponent>();
+		CachedSkillComponent = Pawn->FindComponentByClass<UTimeThiefSkillComponent>();
 		return;
 	}
 
 	CachedWireComponent = nullptr;
 	CachedCombatComponent = nullptr;
 	CachedThrowableComponent = nullptr;
+	CachedSkillComponent = nullptr;
 }
 
 void UTimeThiefHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -173,6 +176,11 @@ void UTimeThiefHeroComponent::RemoveInputMappingContext(const UInputMappingConte
 
 void UTimeThiefHeroComponent::Input_Move(const FInputActionValue& Value)
 {
+	if (CachedSkillComponent && CachedSkillComponent->IsRewinding())
+	{
+		return;
+	}
+
 	ACharacter* Character = GetPawn<ACharacter>();
 	if (!Character) return;
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -211,6 +219,11 @@ void UTimeThiefHeroComponent::Input_Look(const FInputActionValue& Value)
 
 void UTimeThiefHeroComponent::Input_Jump(const FInputActionValue& Value)
 {
+	if (CachedSkillComponent && CachedSkillComponent->IsRewinding())
+	{
+		return;
+	}
+
 	if (CachedWireComponent && CachedWireComponent->IsWireAttached())
 	{
 		CachedWireComponent->Jump();
@@ -292,6 +305,19 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 
 void UTimeThiefHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
 {
+	if (CachedSkillComponent)
+	{
+		if (CachedSkillComponent->HandleSkillInput(InputTag))
+		{
+			return;
+		}
+
+		if (CachedSkillComponent->IsRewinding())
+		{
+			return;
+		}
+	}
+
 	if (CachedCombatComponent) CachedCombatComponent->HandleInputPressed(InputTag);
 	if (CachedWireComponent) CachedWireComponent->HandleInputPressed(InputTag);
 	if (CachedThrowableComponent) CachedThrowableComponent->HandleInputPressed(InputTag);

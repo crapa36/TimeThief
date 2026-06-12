@@ -223,7 +223,7 @@ void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& Hi
 
 		UGameplayStatics::ApplyPointDamage(
 			HitResult.HitActor.Get(),
-			DamagePerPellet + GetDamageBonus(),
+			GetEffectiveDamage(DamagePerPellet),
 			HitResult.FireDirection,
 			HitResult.OriginalHitResult,
 			InstigatorController,
@@ -233,7 +233,7 @@ void UTimeThiefShotgunComponent::ApplyDamage(const TArray<FShotgunHitResult>& Hi
 	}
 
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogTemp, Log, TEXT("[Shotgun][Damage] PelletBase=%.2f Bonus=%.2f FinalPerPellet=%.2f PelletCount=%d"), DamagePerPellet, GetDamageBonus(), DamagePerPellet + GetDamageBonus(), PelletCount);
+	UE_LOG(LogTemp, Log, TEXT("[Shotgun][Damage] PelletBase=%.2f Bonus=%.2f Multiplier=%.2f FinalPerPellet=%.2f PelletCount=%d"), DamagePerPellet, GetDamageBonus(), GetDamageMultiplier(), GetEffectiveDamage(DamagePerPellet), PelletCount);
 #endif
 }
 

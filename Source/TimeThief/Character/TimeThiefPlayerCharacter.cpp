@@ -10,7 +10,6 @@
 #include "Character/TimeThiefPawnData.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/System/InventorySystemComponent.h"
-#include "Components/TimeThiefTrajectoryComponent.h"
 #include "Actors/InteractionActorBase.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "ChannelCommons.h"
@@ -49,12 +48,6 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 	NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
 	ThrowableComponent = CreateDefaultSubobject<UTimeThiefThrowableComponent>(TEXT("ThrowableComponent"));
-
-	CharacterTrajectoryComponent = CreateDefaultSubobject<UTimeThiefTrajectoryComponent>(
-		TEXT("CharacterTrajectoryComponent"));
-	CharacterTrajectoryComponent->SetAutoActivate(true);
-	CharacterTrajectoryComponent->PrimaryComponentTick.bCanEverTick = true;
-	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;

@@ -7,6 +7,7 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Character/TimeThiefPlayerState.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -74,6 +75,17 @@ void UTimeThiefPlayerCombatComponent::BeginPlay()
 
 void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 {
+	if (const AActor* OwnerActor = GetOwner())
+	{
+		if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+		{
+			if (SkillComponent->IsRewinding())
+			{
+				return;
+			}
+		}
+	}
+
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
 
 	if (const FGameplayTag* WeaponTag = InputToWeaponTagMap.Find(InputTag))
@@ -126,6 +138,17 @@ void UTimeThiefPlayerCombatComponent::HandleInputPressed(FGameplayTag InputTag)
 
 void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 {
+	if (const AActor* OwnerActor = GetOwner())
+	{
+		if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+		{
+			if (SkillComponent->IsRewinding())
+			{
+				return;
+			}
+		}
+	}
+
 	const FTimeThiefGameplayTags& Tags = FTimeThiefGameplayTags::Get();
 
 	if (InputTag == Tags.InputTag_Action_Fire)
@@ -149,6 +172,17 @@ void UTimeThiefPlayerCombatComponent::HandleInputReleased(FGameplayTag InputTag)
 
 void UTimeThiefPlayerCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 {
+	if (const AActor* OwnerActor = GetOwner())
+	{
+		if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+		{
+			if (SkillComponent->IsRewinding())
+			{
+				return;
+			}
+		}
+	}
+
 	Super::EquipWeapon(WeaponTag);
 	ApplyUpgradeStatsToActiveWeapon();
 }
@@ -467,6 +501,12 @@ void UTimeThiefPlayerCombatComponent::UpdateAimFOV(float DeltaTime)
 
 void UTimeThiefPlayerCombatComponent::SetMoveSpeedUpgradeBonus(float InMoveSpeedBonus)
 {
+	MoveSpeedUpgradeBonus = FMath::Max(0.0f, InMoveSpeedBonus);
+	RefreshMoveSpeed();
+}
+
+void UTimeThiefPlayerCombatComponent::RefreshMoveSpeed()
+{
 	ACharacter* OwningCharacter = GetPawn<ACharacter>();
 	if (!OwningCharacter) return;
 
@@ -483,6 +523,13 @@ void UTimeThiefPlayerCombatComponent::SetMoveSpeedUpgradeBonus(float InMoveSpeed
 		BaseSpeed = MC->MaxWalkSpeed;
 	}
 
-	DefaultMaxWalkSpeed = BaseSpeed + InMoveSpeedBonus;
-	MC->MaxWalkSpeed = DefaultMaxWalkSpeed;
+	DefaultMaxWalkSpeed = BaseSpeed + MoveSpeedUpgradeBonus;
+
+	float SkillMoveSpeedMultiplier = 1.0f;
+	if (const UTimeThiefSkillComponent* SkillComponent = OwningCharacter->FindComponentByClass<UTimeThiefSkillComponent>())
+	{
+		SkillMoveSpeedMultiplier = SkillComponent->GetMoveSpeedMultiplier();
+	}
+
+	MC->MaxWalkSpeed = DefaultMaxWalkSpeed * SkillMoveSpeedMultiplier;
 }

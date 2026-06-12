@@ -2,10 +2,12 @@
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimSequenceBase.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
 #include "GameFramework/Pawn.h"
@@ -110,13 +112,14 @@ void UTimeThiefWeaponComponentBase::OnEquipped()
 void UTimeThiefWeaponComponentBase::OnUnequipped()
 {
 	StopFire();
+	CancelReload();
 }
 
 FWeaponStatData UTimeThiefWeaponComponentBase::GetWeaponStatDataForNetwork() const
 {
 	FWeaponStatData StatData{};
 	StatData.MagCapacity = MaxAmmo;
-	StatData.FireInterval = GetFireInterval();
+	StatData.FireInterval = GetBaseFireInterval();
 	StatData.ReloadTime = ReloadTime;
 
 	return StatData;
@@ -137,6 +140,11 @@ void UTimeThiefWeaponComponentBase::SetWeaponStatForNetwork(const FWeaponStatDat
 
 void UTimeThiefWeaponComponentBase::StartFire()
 {
+	if (IsOwnerSkillRewinding())
+	{
+		return;
+	}
+
 	bWantsToFire = true;
 	if (bIsReloading || bIsFiring) return;
 	if (CurrentAmmo <= 0)
@@ -171,6 +179,11 @@ void UTimeThiefWeaponComponentBase::StopFire()
 
 void UTimeThiefWeaponComponentBase::Reload()
 {
+	if (IsOwnerSkillRewinding())
+	{
+		return;
+	}
+
 	if (!CanReload()) return;
 	
 	if (CurrentAmmo == 0)
@@ -254,7 +267,7 @@ void UTimeThiefWeaponComponentBase::OnReloadStarted()
 	if (auto AnimInstance = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor())->GetMesh()->GetAnimInstance();
 		AnimInstance && ReloadAnimation)
 	{
-		AnimInstance->Montage_Play(ReloadAnimation);
+		AnimInstance->Montage_Play(ReloadAnimation, GetReloadSpeedMultiplier());
 	}
 	if (ReloadSound)
 	{
@@ -278,6 +291,27 @@ uint32 UTimeThiefWeaponComponentBase::GetCombatAttackShotSeed() const
 void UTimeThiefWeaponComponentBase::NotifyAmmoChanged()
 {
 	OnAmmoChanged_Delegate.Broadcast(CurrentAmmo, MaxAmmo);
+}
+
+float UTimeThiefWeaponComponentBase::GetDamageMultiplier() const
+{
+	if (const AActor* MasterWeapon = GetOwner())
+	{
+		if (const AActor* OwnerActor = MasterWeapon->GetOwner())
+		{
+			if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+			{
+				return SkillComponent->GetDamageMultiplier();
+			}
+		}
+	}
+
+	return 1.0f;
+}
+
+float UTimeThiefWeaponComponentBase::GetEffectiveDamage(float BaseDamage) const
+{
+	return (BaseDamage + GetDamageBonus()) * GetDamageMultiplier();
 }
 
 FVector UTimeThiefWeaponComponentBase::GetMuzzleLocation() const
@@ -360,15 +394,115 @@ void UTimeThiefWeaponComponentBase::HandleReloadResult(uint32 DeltaAmmo, uint32 
 	FinishReloadWithAmmo(ServerAmmo);
 }
 
-float UTimeThiefWeaponComponentBase::GetFireInterval() const
+void UTimeThiefWeaponComponentBase::SetAmmoFromSkillRewind(int32 NewAmmo)
+{
+	CurrentAmmo = FMath::Clamp(NewAmmo, 0, MaxAmmo);
+	NotifyAmmoChanged();
+}
+
+float UTimeThiefWeaponComponentBase::GetBaseFireInterval() const
 {
 	return RoundsPerSecond > 0.0f ? 1.0f / RoundsPerSecond : (FireRate > 0.0f ? 60.0f / FireRate : 0.1f);
+}
+
+float UTimeThiefWeaponComponentBase::GetFireInterval() const
+{
+	float FireRateMultiplier = 1.0f;
+	if (const AActor* MasterWeapon = GetOwner())
+	{
+		if (const AActor* OwnerActor = MasterWeapon->GetOwner())
+		{
+			if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+			{
+				FireRateMultiplier = SkillComponent->GetFireRateMultiplier();
+			}
+		}
+	}
+
+	return GetBaseFireInterval() / FMath::Max(FireRateMultiplier, 0.01f);
+}
+
+float UTimeThiefWeaponComponentBase::GetReloadSpeedMultiplier() const
+{
+	if (const AActor* MasterWeapon = GetOwner())
+	{
+		if (const AActor* OwnerActor = MasterWeapon->GetOwner())
+		{
+			if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+			{
+				return SkillComponent->GetReloadSpeedMultiplier();
+			}
+		}
+	}
+
+	return 1.0f;
+}
+
+bool UTimeThiefWeaponComponentBase::IsOwnerSkillRewinding() const
+{
+	if (const AActor* MasterWeapon = GetOwner())
+	{
+		if (const AActor* OwnerActor = MasterWeapon->GetOwner())
+		{
+			if (const UTimeThiefSkillComponent* SkillComponent = OwnerActor->FindComponentByClass<UTimeThiefSkillComponent>())
+			{
+				return SkillComponent->IsRewinding();
+			}
+		}
+	}
+
+	return false;
 }
 
 void UTimeThiefWeaponComponentBase::StopFiringLoop()
 {
 	bIsFiring = false;
 	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(AutoFireTimerHandle);
+}
+
+void UTimeThiefWeaponComponentBase::CancelReload()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ReloadTimerHandle);
+	}
+
+	const bool bWasReloading = bIsReloading;
+	bIsReloading = false;
+
+	if (ATimeThiefCharacterBase* OwnerCharacter = Cast<ATimeThiefCharacterBase>(GetOwner() ? GetOwner()->GetParentActor() : nullptr))
+	{
+		if (FireAnimation)
+		{
+			if (UAnimInstance* AnimInstance = OwnerCharacter->GetMesh() ? OwnerCharacter->GetMesh()->GetAnimInstance() : nullptr)
+			{
+				FOnMontageSectionChanged EmptySectionChangedDelegate;
+				AnimInstance->Montage_SetSectionChangedDelegate(EmptySectionChangedDelegate, FireAnimation);
+			}
+		}
+
+		if (ReloadAnimation)
+		{
+			TArray<USkeletalMeshComponent*, TInlineAllocator<3>> Meshes;
+			Meshes.Add(OwnerCharacter->GetMesh());
+			Meshes.AddUnique(OwnerCharacter->GetThirdPersonMesh());
+			Meshes.AddUnique(OwnerCharacter->GetFirstPersonMesh());
+
+			for (USkeletalMeshComponent* Mesh : Meshes)
+			{
+				UAnimInstance* AnimInstance = Mesh ? Mesh->GetAnimInstance() : nullptr;
+				if (AnimInstance && AnimInstance->Montage_IsPlaying(ReloadAnimation))
+				{
+					AnimInstance->Montage_Stop(0.1f, ReloadAnimation);
+				}
+			}
+		}
+	}
+
+	if (bWasReloading)
+	{
+		OnReloadFinished();
+	}
 }
 
 void UTimeThiefWeaponComponentBase::FinishReload()
@@ -397,13 +531,16 @@ void UTimeThiefWeaponComponentBase::OnMontageEnded(UAnimMontage* Montage, bool b
 {
 	if (Montage == ReloadAnimation)
 	{
-		// if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
-		// {
-		// 	if (NGIS->IsConnected())
-		// 	{
-		// 		return;
-		// 	}
-		// }
+		if (!bIsReloading)
+		{
+			return;
+		}
+
+		if (bInterrupted)
+		{
+			CancelReload();
+			return;
+		}
 
 		FinishReload();
 	}

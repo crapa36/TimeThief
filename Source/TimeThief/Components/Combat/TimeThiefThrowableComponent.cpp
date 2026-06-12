@@ -27,6 +27,11 @@ UTimeThiefThrowableComponent::UTimeThiefThrowableComponent()
 
 void UTimeThiefThrowableComponent::HandleInputPressed(FGameplayTag InputTag)
 {
+	if (InputTag != FTimeThiefGameplayTags::Get().InputTag_Action_Throw)
+	{
+		return;
+	}
+
 #if !UE_BUILD_SHIPPING
 	UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] HandleInputPressed Tag=%s Expected=%s Owner=%s"),
 		*InputTag.ToString(),
@@ -34,15 +39,12 @@ void UTimeThiefThrowableComponent::HandleInputPressed(FGameplayTag InputTag)
 		*GetNameSafe(GetOwner()));
 #endif
 
-	if (InputTag == FTimeThiefGameplayTags::Get().InputTag_Action_Throw)
-	{
-		const bool bThrown = TryThrowEquippedThrowable();
+	const bool bThrown = TryThrowEquippedThrowable();
 
 #if !UE_BUILD_SHIPPING
-		UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] TryThrowEquippedThrowable Result=%s"),
-			bThrown ? TEXT("Success") : TEXT("Failed"));
+	UE_LOG(LogTemp, Warning, TEXT("[ThrowableDebug][Component] TryThrowEquippedThrowable Result=%s"),
+		bThrown ? TEXT("Success") : TEXT("Failed"));
 #endif
-	}
 }
 
 bool UTimeThiefThrowableComponent::TryThrowEquippedThrowable()
