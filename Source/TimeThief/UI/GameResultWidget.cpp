@@ -19,6 +19,11 @@ void UGameResultWidget::SetLeavePending(bool bInLeavePending)
 	RefreshLeaveButton();
 }
 
+UWidget* UGameResultWidget::GetInitialFocusWidget() const
+{
+	return LeaveRoom_Button && LeaveRoom_Button->GetIsFocusable() ? LeaveRoom_Button : nullptr;
+}
+
 void UGameResultWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
