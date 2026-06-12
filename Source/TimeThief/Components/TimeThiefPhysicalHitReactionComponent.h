@@ -6,7 +6,6 @@
 
 class ATimeThiefCharacterBase;
 class UMorphingMeshComponent;
-class UPhysicalAnimationComponent;
 class USkeletalMeshComponent;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -28,7 +27,6 @@ private:
 	{
 		FName BoneName = NAME_None;
 		float BlendWeight = 0.0f;
-		float StrengthScale = 0.0f;
 	};
 
 	UFUNCTION()
@@ -43,12 +41,14 @@ private:
 
 	void PlayHitReaction(float Damage, const FVector& HitLocation, const FVector& IncomingDirection,
 	                     FName HitBoneName, bool bRadialDamage);
+	void StartReactionRecovery();
 	void StopReaction();
 
 	bool EnsureSimulationReady(USkeletalMeshComponent*& OutSourceMesh, UMorphingMeshComponent*& OutMorphingComponent);
 	void ConfigureSimulationMesh(USkeletalMeshComponent* SourceMesh);
 	void SyncSimulationMeshTransform(USkeletalMeshComponent* SourceMesh);
-	bool EnsureComponentSpaceTransforms(USkeletalMeshComponent* Mesh) const;
+	bool EnsureSimulationPoseReady(USkeletalMeshComponent* Mesh) const;
+	bool EnsureSimulationPhysicsBodiesReady() const;
 	bool IsMorphingInProgress(const UMorphingMeshComponent* MorphingComponent) const;
 	void BeginSimulationMeshPresentation(USkeletalMeshComponent* SourceMesh);
 	void EndSimulationMeshPresentation();
@@ -66,9 +66,6 @@ private:
 	float ResolveImpulseMagnitude(float Damage, bool bRadialDamage) const;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UPhysicalAnimationComponent> PhysicalAnimationComponent;
-
-	UPROPERTY(Transient)
 	TObjectPtr<USkeletalMeshComponent> SimulationMesh;
 
 	UPROPERTY(Transient)
@@ -77,11 +74,13 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UMorphingMeshComponent> CachedMorphingComponent;
 
-	FTimerHandle StopReactionTimerHandle;
+	FTimerHandle ReactionHoldTimerHandle;
 	TArray<FActiveReactionBody> ActiveReactionBodies;
 	bool bSourceMeshVisibilityCached = false;
 	bool bSourceMeshWasVisible = false;
 	bool bSourceMeshWasHiddenInGame = false;
 	bool bReactionActive = false;
+	bool bReactionRecovering = false;
+	float ReactionRecoveryElapsedTime = 0.0f;
 	float LastReactionTime = -1000.0f;
 };

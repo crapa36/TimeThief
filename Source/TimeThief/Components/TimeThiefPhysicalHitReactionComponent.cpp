@@ -7,34 +7,31 @@
 #include "GameFramework/Actor.h"
 #include "MorphingMesh/MorphingMeshComponent.h"
 #include "PhysicsEngine/BodyInstance.h"
-#include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PhysicsEngine/SkeletalBodySetup.h"
 #include "TimerManager.h"
 
 namespace
 {
-	constexpr float ReactionDuration = 0.2f;
+	constexpr float ReactionHoldDuration = 0.25f;
+	constexpr float ReactionRecoveryDuration = 0.16f;
 	constexpr float MinReactionInterval = 0.035f;
 	constexpr float PhysicsBlendWeight = 0.7f;
-	constexpr float CommonStrengthScale = 0.5f;
 	constexpr float CommonBlendWeightScale = 0.6f;
 	constexpr float BaseImpulseMagnitude = 1000.0f;
-	constexpr float MaxPointImpulseMagnitude = 22000.0f;
+	constexpr float MaxPointImpulseMagnitude = 20000.0f;
 	constexpr float MaxRadialImpulseMagnitude = 100000.0f;
-	constexpr float PhysicalOrientationStrength = 850.0f;
-	constexpr float PhysicalAngularVelocityStrength = 100.0f;
-	constexpr float PhysicalMaxAngularForce = 90000.0f;
 	constexpr int32 MaxReactionBoneDistance = 4;
-	constexpr float AdjacentBodyWeightScale = 0.75f;
+	constexpr float AdjacentBodyWeightScale = 0.5f;
 	constexpr float SecondaryBodyWeightScale = 0.33f;
 
 	const FName NAME_PhysicalHitReactionSimulationMesh(TEXT("PhysicalHitReactionSimulationMesh"));
-	const FName NAME_PhysicalHitReactionAnimation(TEXT("PhysicalHitReactionAnimation"));
 
 	const FName Bone_Pelvis(TEXT("pelvis"));
 	const FName Bone_HandL(TEXT("hand_l"));
 	const FName Bone_HandR(TEXT("hand_r"));
+	const FName Bone_FootL(TEXT("foot_l"));
+	const FName Bone_FootR(TEXT("foot_r"));
 }
 
 UTimeThiefPhysicalHitReactionComponent::UTimeThiefPhysicalHitReactionComponent()
@@ -75,6 +72,22 @@ void UTimeThiefPhysicalHitReactionComponent::TickComponent(float DeltaTime, ELev
 	if (bReactionActive && IsMorphingInProgress(CachedMorphingComponent))
 	{
 		StopReaction();
+		return;
+	}
+
+	if (bReactionRecovering)
+	{
+		ReactionRecoveryElapsedTime += DeltaTime;
+
+		const float RecoveryAlpha = FMath::Clamp(ReactionRecoveryElapsedTime / ReactionRecoveryDuration, 0.0f, 1.0f);
+		const float SmoothedRecoveryAlpha = RecoveryAlpha * RecoveryAlpha * (3.0f - 2.0f * RecoveryAlpha);
+		ApplyActiveBodyBlend(1.0f - SmoothedRecoveryAlpha);
+		DisableCenterBodyPhysics();
+
+		if (RecoveryAlpha >= 1.0f)
+		{
+			StopReaction();
+		}
 	}
 }
 
@@ -170,18 +183,16 @@ void UTimeThiefPhysicalHitReactionComponent::PlayHitReaction(
 
 	for (const FActiveReactionBody& ActiveBody : ActiveReactionBodies)
 	{
-		FPhysicalAnimationData PhysicalAnimationData;
-		PhysicalAnimationData.bIsLocalSimulation = true;
-		PhysicalAnimationData.OrientationStrength = PhysicalOrientationStrength * ActiveBody.StrengthScale;
-		PhysicalAnimationData.AngularVelocityStrength = PhysicalAngularVelocityStrength * ActiveBody.StrengthScale;
-		PhysicalAnimationData.MaxAngularForce = PhysicalMaxAngularForce * ActiveBody.StrengthScale;
-
-		PhysicalAnimationComponent->ApplyPhysicalAnimationSettings(ActiveBody.BoneName, PhysicalAnimationData);
 		SimulationMesh->SetBodySimulatePhysics(ActiveBody.BoneName, true);
 	}
 
 	ApplyActiveBodyBlend(1.0f);
 	DisableCenterBodyPhysics();
+	if (!EnsureSimulationPoseReady(SimulationMesh) || !EnsureSimulationPhysicsBodiesReady())
+	{
+		StopReaction();
+		return;
+	}
 
 	CachedSourceMesh = SourceMesh;
 	CachedMorphingComponent = MorphingComponent;
@@ -199,18 +210,35 @@ void UTimeThiefPhysicalHitReactionComponent::PlayHitReaction(
 	SetComponentTickEnabled(true);
 
 	World->GetTimerManager().SetTimer(
-		StopReactionTimerHandle,
+		ReactionHoldTimerHandle,
 		this,
-		&ThisClass::StopReaction,
-		ReactionDuration,
+		&ThisClass::StartReactionRecovery,
+		ReactionHoldDuration,
 		false);
+}
+
+void UTimeThiefPhysicalHitReactionComponent::StartReactionRecovery()
+{
+	if (!bReactionActive || bReactionRecovering)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(ReactionHoldTimerHandle);
+	}
+
+	bReactionRecovering = true;
+	ReactionRecoveryElapsedTime = 0.0f;
+	SetComponentTickEnabled(true);
 }
 
 void UTimeThiefPhysicalHitReactionComponent::StopReaction()
 {
 	if (UWorld* World = GetWorld())
 	{
-		World->GetTimerManager().ClearTimer(StopReactionTimerHandle);
+		World->GetTimerManager().ClearTimer(ReactionHoldTimerHandle);
 	}
 
 	if (SimulationMesh)
@@ -230,15 +258,12 @@ void UTimeThiefPhysicalHitReactionComponent::StopReaction()
 
 	EndSimulationMeshPresentation();
 
-	if (PhysicalAnimationComponent)
-	{
-		PhysicalAnimationComponent->SetStrengthMultiplyer(0.0f);
-	}
-
 	CachedSourceMesh = nullptr;
 	CachedMorphingComponent = nullptr;
 	ActiveReactionBodies.Reset();
 	bReactionActive = false;
+	bReactionRecovering = false;
+	ReactionRecoveryElapsedTime = 0.0f;
 	SetComponentTickEnabled(false);
 }
 
@@ -287,23 +312,10 @@ bool UTimeThiefPhysicalHitReactionComponent::EnsureSimulationReady(
 		SimulationMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
 	}
 
-	if (!PhysicalAnimationComponent)
-	{
-		AActor* Owner = GetOwner();
-		PhysicalAnimationComponent = NewObject<UPhysicalAnimationComponent>(Owner, NAME_PhysicalHitReactionAnimation);
-		Owner->AddInstanceComponent(PhysicalAnimationComponent);
-		PhysicalAnimationComponent->RegisterComponent();
-	}
-
 	ConfigureSimulationMesh(SourceMesh);
-	if (!EnsureComponentSpaceTransforms(SimulationMesh))
+	if (!EnsureSimulationPoseReady(SimulationMesh) || !EnsureSimulationPhysicsBodiesReady())
 	{
 		return false;
-	}
-
-	if (PhysicalAnimationComponent->GetSkeletalMesh() != SimulationMesh)
-	{
-		PhysicalAnimationComponent->SetSkeletalMeshComponent(SimulationMesh);
 	}
 
 	OutSourceMesh = SourceMesh;
@@ -351,7 +363,7 @@ void UTimeThiefPhysicalHitReactionComponent::SyncSimulationMeshTransform(USkelet
 		ETeleportType::TeleportPhysics);
 }
 
-bool UTimeThiefPhysicalHitReactionComponent::EnsureComponentSpaceTransforms(USkeletalMeshComponent* Mesh) const
+bool UTimeThiefPhysicalHitReactionComponent::EnsureSimulationPoseReady(USkeletalMeshComponent* Mesh) const
 {
 	const USkeletalMesh* SkeletalMesh = Mesh ? Mesh->GetSkeletalMeshAsset() : nullptr;
 	if (!SkeletalMesh)
@@ -360,13 +372,34 @@ bool UTimeThiefPhysicalHitReactionComponent::EnsureComponentSpaceTransforms(USke
 	}
 
 	const int32 ExpectedTransformCount = SkeletalMesh->GetRefSkeleton().GetNum();
-	if (Mesh->GetNumComponentSpaceTransforms() != ExpectedTransformCount)
+	TArray<FTransform> BoneSpaceTransforms = Mesh->GetBoneSpaceTransforms();
+	if (Mesh->GetNumComponentSpaceTransforms() != ExpectedTransformCount
+		|| BoneSpaceTransforms.Num() != ExpectedTransformCount)
 	{
 		Mesh->TickAnimation(0.0f, false);
 		Mesh->RefreshBoneTransforms();
+		BoneSpaceTransforms = Mesh->GetBoneSpaceTransforms();
 	}
 
-	return Mesh->GetNumComponentSpaceTransforms() == ExpectedTransformCount;
+	return Mesh->GetNumComponentSpaceTransforms() == ExpectedTransformCount
+		&& BoneSpaceTransforms.Num() == ExpectedTransformCount;
+}
+
+bool UTimeThiefPhysicalHitReactionComponent::EnsureSimulationPhysicsBodiesReady() const
+{
+	const UPhysicsAsset* PhysicsAsset = SimulationMesh ? SimulationMesh->GetPhysicsAsset() : nullptr;
+	if (!PhysicsAsset || PhysicsAsset->SkeletalBodySetups.IsEmpty())
+	{
+		return false;
+	}
+
+	const int32 ExpectedBodyCount = PhysicsAsset->SkeletalBodySetups.Num();
+	if (SimulationMesh->Bodies.Num() < ExpectedBodyCount)
+	{
+		SimulationMesh->RecreatePhysicsState();
+	}
+
+	return SimulationMesh->Bodies.Num() >= ExpectedBodyCount;
 }
 
 bool UTimeThiefPhysicalHitReactionComponent::IsMorphingInProgress(const UMorphingMeshComponent* MorphingComponent) const
@@ -494,7 +527,6 @@ void UTimeThiefPhysicalHitReactionComponent::GatherActiveReactionBodies(
 		FActiveReactionBody& ActiveBody = ActiveReactionBodies.AddDefaulted_GetRef();
 		ActiveBody.BoneName = BodyBoneName;
 		ActiveBody.BlendWeight = PhysicsBlendWeight * CommonBlendWeightScale * FalloffWeight;
-		ActiveBody.StrengthScale = CommonStrengthScale * FalloffWeight;
 	}
 }
 
@@ -507,8 +539,6 @@ void UTimeThiefPhysicalHitReactionComponent::ApplyActiveBodyBlend(float BlendAlp
 			BodyInstance->PhysicsBlendWeight = ActiveBody.BlendWeight * BlendAlpha;
 		}
 	}
-
-	PhysicalAnimationComponent->SetStrengthMultiplyer(BlendAlpha);
 }
 
 float UTimeThiefPhysicalHitReactionComponent::ResolveBodyFalloffWeight(
@@ -587,12 +617,22 @@ bool UTimeThiefPhysicalHitReactionComponent::IsCenterLockedBone(
 	return BoneName == Bone_Pelvis
 		|| BoneName == Bone_HandL
 		|| BoneName == Bone_HandR
+		|| BoneName == Bone_FootL
+		|| BoneName == Bone_FootR
 		|| BoneName == GetSkeletonRootBoneName(Mesh);
 }
 
 void UTimeThiefPhysicalHitReactionComponent::DisableCenterBodyPhysics()
 {
-	const FName CenterBones[] = {GetSkeletonRootBoneName(SimulationMesh), Bone_Pelvis, Bone_HandL, Bone_HandR};
+	const FName CenterBones[] =
+	{
+		GetSkeletonRootBoneName(SimulationMesh),
+		Bone_Pelvis,
+		Bone_HandL,
+		Bone_HandR,
+		Bone_FootL,
+		Bone_FootR,
+	};
 	for (const FName CenterBone : CenterBones)
 	{
 		if (FBodyInstance* BodyInstance = SimulationMesh->GetBodyInstance(CenterBone))
