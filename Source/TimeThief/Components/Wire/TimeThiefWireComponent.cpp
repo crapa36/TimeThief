@@ -703,6 +703,7 @@ void UTimeThiefWireComponent::ResetWireToIdle()
 	FireTargetLocation = FVector::ZeroVector;
 	CurrentFireDistance = 0.0f;
 	AttachedWireLength = 0.0f;
+	UpdateWireVisuals();
 }
 
 void UTimeThiefWireComponent::Jump()
