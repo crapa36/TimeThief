@@ -7,6 +7,9 @@
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "MorphingMesh/MorphingMeshComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 
 ATimeThiefSkillDummyCharacter::ATimeThiefSkillDummyCharacter(const FObjectInitializer& ObjectInitializer)
@@ -26,11 +29,31 @@ ATimeThiefSkillDummyCharacter::ATimeThiefSkillDummyCharacter(const FObjectInitia
 		Movement->bRunPhysicsWithNoController = true;
 	}
 
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		Capsule->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	}
+
 	CopiedWeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CopiedWeaponMesh"));
 	CopiedWeaponMesh->SetupAttachment(GetMesh());
 	CopiedWeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+	GetMesh()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+}
+
+void ATimeThiefSkillDummyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (EndPlayReason == EEndPlayReason::Destroyed && DespawnNiagaraEffect && GetNetMode() != NM_DedicatedServer)
+	{
+		const USkeletalMeshComponent* MeshComponent = GetMesh();
+		const FVector DespawnLocation = MeshComponent ? MeshComponent->Bounds.Origin : GetActorLocation();
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DespawnNiagaraEffect, DespawnLocation, GetActorRotation());
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ATimeThiefSkillDummyCharacter::Tick(float DeltaTime)
@@ -87,6 +110,11 @@ void ATimeThiefSkillDummyCharacter::InitializeFromSource(ATimeThiefCharacterBase
 	}
 }
 
+void ATimeThiefSkillDummyCharacter::SetDespawnNiagaraEffect(UNiagaraSystem* InDespawnNiagaraEffect)
+{
+	DespawnNiagaraEffect = InDespawnNiagaraEffect;
+}
+
 void ATimeThiefSkillDummyCharacter::ConfigureMovement()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -102,7 +130,16 @@ void ATimeThiefSkillDummyCharacter::ConfigureMeshFromSource(ATimeThiefCharacterB
 {
 	USkeletalMeshComponent* DummyMesh = GetMesh();
 
-	USkeletalMeshComponent* SourceMesh = SourceCharacter->GetMesh();
+	USkeletalMeshComponent* SourceMesh = SourceCharacter->GetWeaponAttachMesh();
+	if (!SourceMesh)
+	{
+		SourceMesh = SourceCharacter->GetMesh();
+	}
+
+	if (!SourceMesh)
+	{
+		return;
+	}
 
 	if (const UMorphingMeshComponent* MorphingComponent = SourceCharacter->GetMorphingMeshComponent())
 	{
@@ -110,7 +147,9 @@ void ATimeThiefSkillDummyCharacter::ConfigureMeshFromSource(ATimeThiefCharacterB
 	}
 
 	DummyMesh->SetSkeletalMesh(SourceMesh->GetSkeletalMeshAsset(), true);
-	DummyMesh->SetRelativeTransform(SourceMesh->GetRelativeTransform());
+	const FTransform SourceMeshActorRelativeTransform =
+		SourceMesh->GetComponentTransform().GetRelativeTransform(SourceCharacter->GetActorTransform());
+	DummyMesh->SetRelativeTransform(SourceMeshActorRelativeTransform);
 
 	UClass* SourceAnimClass = SourceMesh->GetAnimClass();
 	if (!SourceAnimClass)
@@ -140,18 +179,18 @@ void ATimeThiefSkillDummyCharacter::ConfigureWeaponFromSource(ATimeThiefCharacte
 {
 	ATimeThiefMasterWeapon* SourceWeapon = SourceCharacter->GetWeaponActor();
 	UStaticMeshComponent* SourceWeaponMesh = SourceWeapon ? SourceWeapon->GetWeaponMesh() : nullptr;
-	if (!SourceWeaponMesh || !SourceWeaponMesh->GetStaticMesh())
+	const UTimeThiefWeaponComponentBase* SourceWeaponComponent = SourceWeapon ? SourceWeapon->GetActiveWeaponComponent() : nullptr;
+	if (!SourceWeaponMesh || !SourceWeaponMesh->GetStaticMesh() || !SourceWeaponComponent)
 	{
 		CopiedWeaponMesh->SetStaticMesh(nullptr);
 		return;
 	}
 
+	CopiedWeaponMesh->SetStaticMesh(SourceWeaponMesh->GetStaticMesh());
 	CopiedWeaponMesh->AttachToComponent(
 		GetMesh(),
-		FAttachmentTransformRules::KeepRelativeTransform,
-		SourceWeaponMesh->GetAttachSocketName());
-	CopiedWeaponMesh->SetRelativeTransform(SourceWeaponMesh->GetRelativeTransform());
-	CopiedWeaponMesh->SetStaticMesh(SourceWeaponMesh->GetStaticMesh());
+		FAttachmentTransformRules::SnapToTargetIncludingScale,
+		SourceWeaponComponent->GetSocketName());
 	CopiedWeaponMesh->EmptyOverrideMaterials();
 
 	for (int32 MaterialIndex = 0; MaterialIndex < SourceWeaponMesh->GetNumMaterials(); ++MaterialIndex)

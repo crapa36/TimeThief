@@ -3,12 +3,22 @@
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefSkillDummyCharacter.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
+#include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "TimeThiefGameplayTags.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+#include "MorphingMesh/Core/LiquidMeshComponent.h"
+#include "MorphingMesh/MorphingMeshComponent.h"
 
 namespace
 {
@@ -31,6 +41,21 @@ namespace
 			FVector(Direction.X, Direction.Y, 0.0f),
 			FVector(FallbackDirection.X, FallbackDirection.Y, 0.0f));
 	}
+
+	FVector GetMeshCenterRelativeLocation(const USkeletalMeshComponent& MeshComponent)
+	{
+		return MeshComponent.GetComponentTransform().InverseTransformPosition(MeshComponent.Bounds.Origin);
+	}
+
+	FVector GetMeshCenterWorldLocation(const ACharacter& Character)
+	{
+		if (const USkeletalMeshComponent* MeshComponent = Character.GetMesh())
+		{
+			return MeshComponent->Bounds.Origin;
+		}
+
+		return Character.GetActorLocation();
+	}
 }
 
 UTimeThiefSkillComponent::UTimeThiefSkillComponent()
@@ -46,6 +71,10 @@ void UTimeThiefSkillComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		World->GetTimerManager().ClearTimer(EnhanceTimerHandle);
 	}
+
+	StopEnhanceVFX();
+	StopRewindVFX();
+	RestoreRewindMeshes();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -218,6 +247,8 @@ void UTimeThiefSkillComponent::SpawnDummyEffect(const FVector& StartPosition, co
 	}
 
 	Dummy->InitializeFromSource(OwnerCharacter, MoveDirection, ResolvedMoveSpeed, LifetimeSeconds);
+	Dummy->SetDespawnNiagaraEffect(DummyDespawnNiagaraEffect);
+	PlaySkillNiagaraAtLocation(DummySpawnNiagaraEffect, GetMeshCenterWorldLocation(*Dummy), SpawnRotation);
 }
 
 void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 RewindDurationMs, int32 TargetHealth, const FVector& TargetPosition, bool bHasTargetPosition)
@@ -265,10 +296,16 @@ void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 Rewin
 
 	bRewinding = true;
 	SnapshotAccumulatorSeconds = 0.0f;
+	HideRewindMeshes(*OwnerCharacter);
 
 	if (UTimeThiefPlayerCombatComponent* CombatComponent = OwnerCharacter->FindComponentByClass<UTimeThiefPlayerCombatComponent>())
 	{
 		CombatComponent->ForceStopCombatInput();
+	}
+
+	if (UTimeThiefWireComponent* WireComponent = OwnerCharacter->FindComponentByClass<UTimeThiefWireComponent>())
+	{
+		WireComponent->ReleaseWire();
 	}
 
 	if (UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement())
@@ -278,6 +315,7 @@ void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 Rewin
 		Movement->DisableMovement();
 	}
 
+	StartRewindVFX(*OwnerCharacter);
 }
 
 float UTimeThiefSkillComponent::GetMoveSpeedMultiplier() const
@@ -589,12 +627,20 @@ bool UTimeThiefSkillComponent::BuildRewindPathFromHistory(float TargetSecondsAgo
 void UTimeThiefSkillComponent::FinishRewind()
 {
 	ATimeThiefCharacterBase* OwnerCharacter = GetOwnerCharacter();
+	const bool bPlayArrivalVFX = ActiveRewindPath.Num() >= 2;
 	if (OwnerCharacter)
 	{
 		if (UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement())
 		{
 			Movement->SetMovementMode(SavedMovementMode);
 		}
+	}
+
+	StopRewindVFX();
+	RestoreRewindMeshes();
+	if (bPlayArrivalVFX && OwnerCharacter)
+	{
+		PlaySkillNiagaraAtLocation(RewindArrivalNiagaraEffect, GetMeshCenterWorldLocation(*OwnerCharacter), OwnerCharacter->GetActorRotation());
 	}
 
 	bRewinding = false;
@@ -621,6 +667,10 @@ void UTimeThiefSkillComponent::ApplyFinalRewindSnapshot(const FTimeThiefRewindSn
 		if (Snapshot.ActiveWeaponTag.IsValid())
 		{
 			CombatComponent->EquipWeapon(Snapshot.ActiveWeaponTag);
+			if (UMorphingMeshComponent* MorphingComponent = OwnerCharacter->GetMorphingMeshComponent())
+			{
+				MorphingComponent->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(Snapshot.ActiveWeaponTag));
+			}
 		}
 
 		if (UTimeThiefWeaponComponentBase* Weapon = CombatComponent->GetCharacterCurrentEquippedWeapon())
@@ -646,6 +696,7 @@ void UTimeThiefSkillComponent::StartEnhance(float DurationSeconds, float MoveSpe
 	ActiveEquipSpeedMultiplier = EquipSpeedMultiplier;
 
 	RefreshSkillModifiedStats();
+	StartEnhanceVFX(*OwnerCharacter);
 
 	if (UWorld* World = GetWorld())
 	{
@@ -663,7 +714,167 @@ void UTimeThiefSkillComponent::StopEnhance()
 	ActiveDamageMultiplier = 1.0f;
 	ActiveEquipSpeedMultiplier = 1.0f;
 
+	StopEnhanceVFX();
 	RefreshSkillModifiedStats();
+}
+
+void UTimeThiefSkillComponent::StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCharacter)
+{
+	StopEnhanceVFX();
+
+	if (USkeletalMeshComponent* MeshComponent = OwnerCharacter.GetMesh())
+	{
+		const FVector MeshCenterRelativeLocation = GetMeshCenterRelativeLocation(*MeshComponent);
+		PlaySkillNiagaraAtLocation(
+			EnhanceStartNiagaraEffect,
+			MeshComponent->Bounds.Origin,
+			OwnerCharacter.GetActorRotation());
+
+		ActiveEnhanceAuraNiagaraComponent = PlaySkillNiagaraAttached(
+			EnhanceAuraNiagaraEffect,
+			*MeshComponent,
+			MeshCenterRelativeLocation);
+
+		if (EnhanceScreenNiagaraEffect && EnhanceScreenNiagaraEffect != EnhanceAuraNiagaraEffect)
+		{
+			ActiveEnhanceScreenNiagaraComponent = PlaySkillNiagaraAttached(
+				EnhanceScreenNiagaraEffect,
+				*MeshComponent,
+				MeshCenterRelativeLocation);
+		}
+	}
+}
+
+void UTimeThiefSkillComponent::StopEnhanceVFX()
+{
+	StopSkillNiagaraComponent(ActiveEnhanceAuraNiagaraComponent);
+	StopSkillNiagaraComponent(ActiveEnhanceScreenNiagaraComponent);
+}
+
+void UTimeThiefSkillComponent::StartRewindVFX(ATimeThiefCharacterBase& OwnerCharacter)
+{
+	StopRewindVFX();
+
+	if (USkeletalMeshComponent* MeshComponent = OwnerCharacter.GetMesh())
+	{
+		const FVector MeshCenterRelativeLocation = GetMeshCenterRelativeLocation(*MeshComponent);
+		ActiveRewindTrailNiagaraComponent = PlaySkillNiagaraAttached(
+			RewindTrailNiagaraEffect,
+			*MeshComponent,
+			MeshCenterRelativeLocation);
+	}
+}
+
+void UTimeThiefSkillComponent::StopRewindVFX()
+{
+	StopSkillNiagaraComponent(ActiveRewindTrailNiagaraComponent);
+}
+
+void UTimeThiefSkillComponent::PlaySkillNiagaraAtLocation(UNiagaraSystem* NiagaraSystem, const FVector& Location, const FRotator& Rotation) const
+{
+	if (!CanSpawnSkillNiagara() || !NiagaraSystem)
+	{
+		return;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, NiagaraSystem, Location, Rotation);
+}
+
+UNiagaraComponent* UTimeThiefSkillComponent::PlaySkillNiagaraAttached(UNiagaraSystem* NiagaraSystem, USceneComponent& AttachComponent, const FVector& RelativeLocation) const
+{
+	if (!CanSpawnSkillNiagara() || !NiagaraSystem)
+	{
+		return nullptr;
+	}
+
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		NiagaraSystem,
+		&AttachComponent,
+		NAME_None,
+		RelativeLocation,
+		FRotator::ZeroRotator,
+		EAttachLocation::KeepRelativeOffset,
+		true,
+		false,
+		ENCPoolMethod::AutoRelease,
+		false);
+
+	if (NiagaraComponent)
+	{
+		NiagaraComponent->Activate(true);
+	}
+
+	return NiagaraComponent;
+}
+
+void UTimeThiefSkillComponent::StopSkillNiagaraComponent(TObjectPtr<UNiagaraComponent>& NiagaraComponent) const
+{
+	if (!IsValid(NiagaraComponent))
+	{
+		NiagaraComponent = nullptr;
+		return;
+	}
+
+	NiagaraComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+	NiagaraComponent->Deactivate();
+	NiagaraComponent = nullptr;
+}
+
+bool UTimeThiefSkillComponent::CanSpawnSkillNiagara() const
+{
+	const UWorld* World = GetWorld();
+	return World && World->GetNetMode() != NM_DedicatedServer;
+}
+
+void UTimeThiefSkillComponent::HideRewindMeshes(ATimeThiefCharacterBase& OwnerCharacter)
+{
+	RestoreRewindMeshes();
+
+	HideRewindMesh(OwnerCharacter.GetMesh());
+	HideRewindMesh(OwnerCharacter.GetFirstPersonMesh());
+
+	if (UMorphingMeshComponent* MorphingMeshComponent = OwnerCharacter.GetMorphingMeshComponent())
+	{
+		HideRewindMesh(MorphingMeshComponent->BaseSkeletalMeshComponent);
+		HideRewindMesh(MorphingMeshComponent->BaseMeshComponent);
+		HideRewindMesh(MorphingMeshComponent->LiquidMeshComponent);
+	}
+}
+
+void UTimeThiefSkillComponent::HideRewindMesh(UPrimitiveComponent* Component)
+{
+	if (!Component)
+	{
+		return;
+	}
+
+	if (RewindHiddenMeshStates.ContainsByPredicate([Component](const FTimeThiefRewindHiddenMeshState& State)
+	{
+		return State.Component.Get() == Component;
+	}))
+	{
+		return;
+	}
+
+	FTimeThiefRewindHiddenMeshState State;
+	State.Component = Component;
+	State.bHiddenInGame = Component->bHiddenInGame;
+	RewindHiddenMeshStates.Add(State);
+
+	Component->SetHiddenInGame(true, true);
+}
+
+void UTimeThiefSkillComponent::RestoreRewindMeshes()
+{
+	for (const FTimeThiefRewindHiddenMeshState& State : RewindHiddenMeshStates)
+	{
+		if (UPrimitiveComponent* Component = State.Component.Get())
+		{
+			Component->SetHiddenInGame(State.bHiddenInGame, true);
+		}
+	}
+
+	RewindHiddenMeshStates.Reset();
 }
 
 void UTimeThiefSkillComponent::RefreshSkillModifiedStats() const

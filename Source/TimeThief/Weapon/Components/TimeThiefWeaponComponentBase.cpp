@@ -396,6 +396,7 @@ void UTimeThiefWeaponComponentBase::HandleReloadResult(uint32 DeltaAmmo, uint32 
 
 void UTimeThiefWeaponComponentBase::SetAmmoFromSkillRewind(int32 NewAmmo)
 {
+	CancelReload();
 	CurrentAmmo = FMath::Clamp(NewAmmo, 0, MaxAmmo);
 	NotifyAmmoChanged();
 }
@@ -523,8 +524,15 @@ void UTimeThiefWeaponComponentBase::FinishReload()
 
 void UTimeThiefWeaponComponentBase::FinishReloadWithAmmo(int32 NewAmmo)
 {
+	const bool bWasReloading = bIsReloading;
+	bIsReloading = false;
 	CurrentAmmo = FMath::Clamp(NewAmmo, 0, MaxAmmo);
 	NotifyAmmoChanged();
+
+	if (bWasReloading)
+	{
+		OnReloadFinished();
+	}
 }
 
 void UTimeThiefWeaponComponentBase::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)

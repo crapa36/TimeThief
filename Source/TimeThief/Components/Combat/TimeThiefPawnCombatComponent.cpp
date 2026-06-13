@@ -138,8 +138,8 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 
 					if (auto MorphingComp = BaseChar->GetMorphingMeshComponent())
 					{
-						MorphingComp->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(WeaponTag));
 						MorphingComp->MaxMorphingTime = MontageLength;
+						MorphingComp->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(WeaponTag));
 					}
 				}
 			}

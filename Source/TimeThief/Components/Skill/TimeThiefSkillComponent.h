@@ -8,6 +8,10 @@
 
 class ATimeThiefCharacterBase;
 class ATimeThiefSkillDummyCharacter;
+class UNiagaraComponent;
+class UNiagaraSystem;
+class UPrimitiveComponent;
+class USceneComponent;
 
 UENUM(BlueprintType)
 enum class ETimeThiefSkillType : uint8
@@ -82,6 +86,12 @@ struct FTimeThiefRewindSnapshot
 	int32 CurrentAmmo = 0;
 };
 
+struct FTimeThiefRewindHiddenMeshState
+{
+	TWeakObjectPtr<UPrimitiveComponent> Component;
+	bool bHiddenInGame = false;
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UTimeThiefSkillComponent : public UActorComponent
 {
@@ -128,6 +138,17 @@ private:
 
 	void StartEnhance(float DurationSeconds, float MoveSpeedMultiplier, float FireRateMultiplier, float ReloadSpeedMultiplier, float DamageMultiplier, float EquipSpeedMultiplier);
 	void StopEnhance();
+	void StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCharacter);
+	void StopEnhanceVFX();
+	void StartRewindVFX(ATimeThiefCharacterBase& OwnerCharacter);
+	void StopRewindVFX();
+	void PlaySkillNiagaraAtLocation(UNiagaraSystem* NiagaraSystem, const FVector& Location, const FRotator& Rotation) const;
+	UNiagaraComponent* PlaySkillNiagaraAttached(UNiagaraSystem* NiagaraSystem, USceneComponent& AttachComponent, const FVector& RelativeLocation) const;
+	void StopSkillNiagaraComponent(TObjectPtr<UNiagaraComponent>& NiagaraComponent) const;
+	bool CanSpawnSkillNiagara() const;
+	void HideRewindMeshes(ATimeThiefCharacterBase& OwnerCharacter);
+	void HideRewindMesh(UPrimitiveComponent* Component);
+	void RestoreRewindMeshes();
 	void RefreshSkillModifiedStats() const;
 
 	ATimeThiefCharacterBase* GetOwnerCharacter() const;
@@ -139,11 +160,33 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Skill|Dummy")
 	TSubclassOf<ATimeThiefSkillDummyCharacter> DummyClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> EnhanceAuraNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> EnhanceStartNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> EnhanceScreenNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> DummySpawnNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> DummyDespawnNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> RewindTrailNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UNiagaraSystem> RewindArrivalNiagaraEffect;
+
 	UPROPERTY(Transient)
 	TArray<FTimeThiefSkillSlotState> SkillSlots;
 
 	TArray<FTimeThiefRewindSnapshot> RewindSnapshots;
 	TArray<FTimeThiefRewindSnapshot> ActiveRewindPath;
+	TArray<FTimeThiefRewindHiddenMeshState> RewindHiddenMeshStates;
 
 	FTimerHandle EnhanceTimerHandle;
 
@@ -158,4 +201,13 @@ private:
 	float ActiveEquipSpeedMultiplier = 1.0f;
 	bool bEnhanceActive = false;
 	bool bRewinding = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ActiveEnhanceAuraNiagaraComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ActiveEnhanceScreenNiagaraComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> ActiveRewindTrailNiagaraComponent;
 };

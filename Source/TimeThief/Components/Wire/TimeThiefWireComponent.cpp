@@ -672,7 +672,9 @@ void UTimeThiefWireComponent::OnPawnControllerChanged(APawn* Pawn, AController* 
 
 void UTimeThiefWireComponent::ReleaseWire()
 {
-	if (CurrentState != EWireState::Attached) return;
+	ClearWireFireAnimation(true);
+
+	if (CurrentState == EWireState::Idle) return;
 
 	ResetWireToIdle();
 }
