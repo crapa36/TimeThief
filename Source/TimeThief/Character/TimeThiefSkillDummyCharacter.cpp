@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Character/TimeThiefCharacterBase.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/ChildActorComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -35,9 +36,8 @@ ATimeThiefSkillDummyCharacter::ATimeThiefSkillDummyCharacter(const FObjectInitia
 		Capsule->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 	}
 
-	CopiedWeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CopiedWeaponMesh"));
-	CopiedWeaponMesh->SetupAttachment(GetMesh());
-	CopiedWeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CopiedWeaponActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("CopiedWeaponActorComponent"));
+	CopiedWeaponActorComponent->SetupAttachment(GetMesh());
 
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 	GetMesh()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
@@ -115,6 +115,14 @@ void ATimeThiefSkillDummyCharacter::SetDespawnNiagaraEffect(UNiagaraSystem* InDe
 	DespawnNiagaraEffect = InDespawnNiagaraEffect;
 }
 
+UStaticMeshComponent* ATimeThiefSkillDummyCharacter::GetCopiedWeaponMesh() const
+{
+	const ATimeThiefMasterWeapon* CopiedWeapon = CopiedWeaponActorComponent
+		? Cast<ATimeThiefMasterWeapon>(CopiedWeaponActorComponent->GetChildActor())
+		: nullptr;
+	return CopiedWeapon ? CopiedWeapon->GetWeaponMesh() : nullptr;
+}
+
 void ATimeThiefSkillDummyCharacter::ConfigureMovement()
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -179,23 +187,57 @@ void ATimeThiefSkillDummyCharacter::ConfigureWeaponFromSource(ATimeThiefCharacte
 {
 	ATimeThiefMasterWeapon* SourceWeapon = SourceCharacter->GetWeaponActor();
 	UStaticMeshComponent* SourceWeaponMesh = SourceWeapon ? SourceWeapon->GetWeaponMesh() : nullptr;
-	const UTimeThiefWeaponComponentBase* SourceWeaponComponent = SourceWeapon ? SourceWeapon->GetActiveWeaponComponent() : nullptr;
+	UTimeThiefWeaponComponentBase* SourceWeaponComponent = SourceWeapon ? SourceWeapon->GetActiveWeaponComponent() : nullptr;
 	if (!SourceWeaponMesh || !SourceWeaponMesh->GetStaticMesh() || !SourceWeaponComponent)
 	{
-		CopiedWeaponMesh->SetStaticMesh(nullptr);
+		if (CopiedWeaponActorComponent)
+		{
+			CopiedWeaponActorComponent->SetChildActorClass(nullptr);
+		}
+		CopiedWeaponComponent = nullptr;
+		CopiedWeaponLeftHandIKSocketName = TEXT("LeftHandIK");
+		CopiedWeaponTag = FGameplayTag();
 		return;
 	}
 
-	CopiedWeaponMesh->SetStaticMesh(SourceWeaponMesh->GetStaticMesh());
-	CopiedWeaponMesh->AttachToComponent(
+	if (!CopiedWeaponActorComponent)
+	{
+		return;
+	}
+
+	CopiedWeaponActorComponent->SetChildActorClass(SourceWeapon->GetClass());
+	ATimeThiefMasterWeapon* CopiedWeapon = Cast<ATimeThiefMasterWeapon>(CopiedWeaponActorComponent->GetChildActor());
+	if (!CopiedWeapon)
+	{
+		CopiedWeaponComponent = nullptr;
+		return;
+	}
+
+	const FGameplayTag WeaponTag = SourceWeaponComponent->GetWeaponTag();
+	CopiedWeapon->SwitchWeapon(WeaponTag);
+
+	CopiedWeaponComponent = CopiedWeapon->GetActiveWeaponComponent();
+	CopiedWeaponLeftHandIKSocketName = SourceWeaponComponent->GetLeftHandIKSocketName();
+	CopiedWeaponTag = WeaponTag;
+	CopiedWeapon->AttachToComponent(
 		GetMesh(),
 		FAttachmentTransformRules::SnapToTargetIncludingScale,
 		SourceWeaponComponent->GetSocketName());
-	CopiedWeaponMesh->EmptyOverrideMaterials();
 
-	for (int32 MaterialIndex = 0; MaterialIndex < SourceWeaponMesh->GetNumMaterials(); ++MaterialIndex)
+	if (UStaticMeshComponent* CopiedWeaponMesh = CopiedWeapon->GetWeaponMesh())
 	{
-		CopiedWeaponMesh->SetMaterial(MaterialIndex, SourceWeaponMesh->GetMaterial(MaterialIndex));
+		CopiedWeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CopiedWeaponMesh->EmptyOverrideMaterials();
+
+		for (int32 MaterialIndex = 0; MaterialIndex < SourceWeaponMesh->GetNumMaterials(); ++MaterialIndex)
+		{
+			CopiedWeaponMesh->SetMaterial(MaterialIndex, SourceWeaponMesh->GetMaterial(MaterialIndex));
+		}
+	}
+
+	if (TSubclassOf<UAnimInstance> AnimLayer = SourceWeaponComponent->GetEquipAnimLayer())
+	{
+		GetMesh()->LinkAnimClassLayers(AnimLayer);
 	}
 }
 

@@ -1,4 +1,5 @@
 #include "Animation/Player/TimeThiefPlayerAnimInstance.h"
+#include "Character/TimeThiefSkillDummyCharacter.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/Combat/TimeThiefPawnCombatComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
@@ -26,14 +27,29 @@ void UTimeThiefPlayerAnimInstance::NativeInitializeAnimation() {
 void UTimeThiefPlayerAnimInstance::NativeUpdateAnimation(float DeltaSeconds) {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (!PlayerCharacter) {
-		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(TryGetPawnOwner());
+	APawn* PawnOwner = TryGetPawnOwner();
+	if (!PlayerCharacter || PlayerCharacter != PawnOwner) {
+		PlayerCharacter = Cast<ATimeThiefPlayerCharacter>(PawnOwner);
 		if (PlayerCharacter) {
 			WireComponent = PlayerCharacter->GetWireComponent();
+		} else {
+			WireComponent = nullptr;
 		}
 	}
 
 	if (!PlayerCharacter) {
+		if (ATimeThiefSkillDummyCharacter* SkillDummy = Cast<ATimeThiefSkillDummyCharacter>(PawnOwner)) {
+			UpdateDummyAimData(SkillDummy);
+			UpdateDummyWeaponData(SkillDummy);
+			bIsWireAttached = false;
+			bIsWireActive = false;
+			SwingVelocity = FVector::ZeroVector;
+			WireAnchorDirectionWorld = FVector::ForwardVector;
+			WireLeftHandIKAlpha = 0.0f;
+			WireLeftHandIKTransform = FTransform::Identity;
+			UpdateRecoil(DeltaSeconds);
+			UpdateSpreadAndRecoil(DeltaSeconds);
+		}
 		return;
 	}
 
@@ -113,6 +129,40 @@ void UTimeThiefPlayerAnimInstance::UpdateAimData() {
 	}
 }
 
+void UTimeThiefPlayerAnimInstance::UpdateDummyAimData(ATimeThiefSkillDummyCharacter* SkillDummy) {
+	if (!SkillDummy) {
+		AimPitch = 0.0f;
+		AimYaw = 0.0f;
+		AimDirection = FVector::ForwardVector;
+		WorldAimLocation = FVector::ZeroVector;
+		ControlRigWorldAimLocation = FVector::ZeroVector;
+		ControlRigAimLocationCS = FVector::ZeroVector;
+		bHasValidControlRigAimLocation = false;
+		return;
+	}
+
+	const FVector ViewDirection = UTimeThiefAimStatics::NormalizeAimDirection(SkillDummy->GetActorForwardVector());
+	const FVector ViewLocation = SkillDummy->GetPawnViewLocation();
+
+	AimDirection = ViewDirection;
+	WorldAimLocation = UTimeThiefAimStatics::ResolveAimTargetLocation(ViewLocation, ViewDirection, 10000.0f);
+	ControlRigWorldAimLocation = WorldAimLocation;
+	bHasValidControlRigAimLocation = !ControlRigWorldAimLocation.IsNearlyZero();
+
+	if (const USkeletalMeshComponent* OwningMesh = GetOwningComponent()) {
+		ControlRigAimLocationCS = OwningMesh->GetComponentTransform().InverseTransformPosition(ControlRigWorldAimLocation);
+	} else {
+		ControlRigAimLocationCS = FVector::ZeroVector;
+	}
+
+	UTimeThiefAimStatics::ResolveRelativeAimPitchYaw(
+		SkillDummy->GetActorTransform(),
+		ViewDirection,
+		AimPitch,
+		AimYaw,
+		ViewDirection);
+}
+
 void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
 	UTimeThiefPawnCombatComponent* CombatComp = PlayerCharacter->GetCombatComponent();
 	if (!CombatComp) {
@@ -139,6 +189,25 @@ void UTimeThiefPlayerAnimInstance::UpdateWeaponData() {
 		}
 	} else {
 		EquippedWeaponTag = FGameplayTag();
+	}
+}
+
+void UTimeThiefPlayerAnimInstance::UpdateDummyWeaponData(ATimeThiefSkillDummyCharacter* SkillDummy) {
+	CurrentWeapon = SkillDummy ? SkillDummy->GetCopiedWeaponComponent() : nullptr;
+	EquippedWeaponTag = SkillDummy ? SkillDummy->GetCopiedWeaponTag() : FGameplayTag();
+	LeftHandIKTransform = FTransform::Identity;
+
+	UStaticMeshComponent* WeaponMesh = SkillDummy ? SkillDummy->GetCopiedWeaponMesh() : nullptr;
+	bHasWeapon = WeaponMesh && WeaponMesh->GetStaticMesh();
+	if (!bHasWeapon) {
+		return;
+	}
+
+	const FName LHIKSocket = SkillDummy->GetCopiedWeaponLeftHandIKSocketName();
+	USkeletalMeshComponent* OwningMesh = GetOwningComponent();
+	if (OwningMesh && WeaponMesh->DoesSocketExist(LHIKSocket)) {
+		const FTransform SocketTransform = WeaponMesh->GetSocketTransform(LHIKSocket, RTS_World);
+		LeftHandIKTransform = SocketTransform.GetRelativeTransform(OwningMesh->GetComponentTransform());
 	}
 }
 

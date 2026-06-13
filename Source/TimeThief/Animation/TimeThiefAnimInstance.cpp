@@ -7,6 +7,7 @@
 #include "CharacterTrajectoryComponent.h"
 #include "Character/TimeThiefNetworkCharacterBase.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
 
@@ -154,6 +155,15 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	}
 	else if (SkillDummyOwner)
 	{
+		if (UStaticMeshComponent* CopiedWeaponMesh = SkillDummyOwner->GetCopiedWeaponMesh())
+		{
+			const FName LeftHandIKSocketName = SkillDummyOwner->GetCopiedWeaponLeftHandIKSocketName();
+			if (CopiedWeaponMesh->DoesSocketExist(LeftHandIKSocketName))
+			{
+				WeaponSocket = CopiedWeaponMesh->GetSocketTransform(LeftHandIKSocketName);
+			}
+		}
+
 		MeshAlpha = SkillDummyOwner->GetCopiedMeshAlpha();
 		TurnDirection = 0;
 	}

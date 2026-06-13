@@ -2,6 +2,7 @@
 
 #include "Character/TimeThiefCharacterBase.h"
 #include "Character/TimeThiefSkillDummyCharacter.h"
+#include "Camera/CameraComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/SceneComponent.h"
@@ -19,6 +20,8 @@
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "MorphingMesh/Core/LiquidMeshComponent.h"
 #include "MorphingMesh/MorphingMeshComponent.h"
+#include "Engine/BlendableInterface.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 namespace
 {
@@ -29,6 +32,9 @@ namespace
 
 	constexpr uint32 Slot1Index = 0;
 	constexpr uint32 Slot2Index = 1;
+	const FName EffectStrengthParameterName(TEXT("EffectStrength"));
+	const FName NiagaraIntensityParameterName(TEXT("User.Intensity"));
+	const FVector ScreenLightningRelativeLocation(120.0f, 0.0f, 0.0f);
 
 	float PercentToMultiplier(uint32 Percent)
 	{
@@ -72,7 +78,7 @@ void UTimeThiefSkillComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(EnhanceTimerHandle);
 	}
 
-	StopEnhanceVFX();
+	StopEnhanceVFX(true);
 	StopRewindVFX();
 	RestoreRewindMeshes();
 
@@ -82,6 +88,8 @@ void UTimeThiefSkillComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void UTimeThiefSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	UpdateEnhanceScreenPostProcess(DeltaTime);
 
 	if (bRewinding)
 	{
@@ -720,7 +728,9 @@ void UTimeThiefSkillComponent::StopEnhance()
 
 void UTimeThiefSkillComponent::StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCharacter)
 {
-	StopEnhanceVFX();
+	StopSkillNiagaraComponent(ActiveEnhanceAuraNiagaraComponent);
+	StartEnhanceScreenVFX(OwnerCharacter);
+	StartEnhanceScreenLightningVFX(OwnerCharacter);
 
 	if (USkeletalMeshComponent* MeshComponent = OwnerCharacter.GetMesh())
 	{
@@ -734,21 +744,143 @@ void UTimeThiefSkillComponent::StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCha
 			EnhanceAuraNiagaraEffect,
 			*MeshComponent,
 			MeshCenterRelativeLocation);
+	}
+}
 
-		if (EnhanceScreenNiagaraEffect && EnhanceScreenNiagaraEffect != EnhanceAuraNiagaraEffect)
+void UTimeThiefSkillComponent::StopEnhanceVFX(bool bImmediate)
+{
+	StopSkillNiagaraComponent(ActiveEnhanceAuraNiagaraComponent);
+	StopEnhanceScreenLightningVFX();
+	StopEnhanceScreenVFX(bImmediate);
+}
+
+void UTimeThiefSkillComponent::StartEnhanceScreenVFX(ATimeThiefCharacterBase& OwnerCharacter)
+{
+	if (!OwnerCharacter.IsLocallyControlled())
+	{
+		return;
+	}
+
+	TargetEnhanceScreenPostProcessStrength = 1.0f;
+	if (EnhanceScreenPostProcessFadeInSeconds <= KINDA_SMALL_NUMBER)
+	{
+		SetEnhanceScreenPostProcessStrength(1.0f);
+	}
+}
+
+void UTimeThiefSkillComponent::StopEnhanceScreenVFX(bool bImmediate)
+{
+	TargetEnhanceScreenPostProcessStrength = 0.0f;
+	if (bImmediate || EnhanceScreenPostProcessFadeOutSeconds <= KINDA_SMALL_NUMBER)
+	{
+		SetEnhanceScreenPostProcessStrength(0.0f);
+	}
+}
+
+void UTimeThiefSkillComponent::StartEnhanceScreenLightningVFX(ATimeThiefCharacterBase& OwnerCharacter)
+{
+	if (!OwnerCharacter.IsLocallyControlled())
+	{
+		return;
+	}
+
+	StopEnhanceScreenLightningVFX();
+
+	TArray<UCameraComponent*> CameraComponents;
+	OwnerCharacter.GetComponents<UCameraComponent>(CameraComponents);
+	for (UCameraComponent* CameraComponent : CameraComponents)
+	{
+		if (!CameraComponent)
 		{
-			ActiveEnhanceScreenNiagaraComponent = PlaySkillNiagaraAttached(
-				EnhanceScreenNiagaraEffect,
-				*MeshComponent,
-				MeshCenterRelativeLocation);
+			continue;
+		}
+
+		ActiveEnhanceScreenLightningNiagaraComponent = PlaySkillNiagaraAttached(
+			EnhanceScreenLightningNiagaraEffect,
+			*CameraComponent,
+			ScreenLightningRelativeLocation);
+		if (ActiveEnhanceScreenLightningNiagaraComponent)
+		{
+			ActiveEnhanceScreenLightningNiagaraComponent->SetVariableFloat(NiagaraIntensityParameterName, 1.0f);
+			return;
 		}
 	}
 }
 
-void UTimeThiefSkillComponent::StopEnhanceVFX()
+void UTimeThiefSkillComponent::StopEnhanceScreenLightningVFX()
 {
-	StopSkillNiagaraComponent(ActiveEnhanceAuraNiagaraComponent);
-	StopSkillNiagaraComponent(ActiveEnhanceScreenNiagaraComponent);
+	StopSkillNiagaraComponent(ActiveEnhanceScreenLightningNiagaraComponent);
+}
+
+void UTimeThiefSkillComponent::UpdateEnhanceScreenPostProcess(float DeltaTime)
+{
+	if (FMath::IsNearlyEqual(EnhanceScreenPostProcessStrength, TargetEnhanceScreenPostProcessStrength))
+	{
+		return;
+	}
+
+	const float FadeSeconds = TargetEnhanceScreenPostProcessStrength > EnhanceScreenPostProcessStrength
+		? EnhanceScreenPostProcessFadeInSeconds
+		: EnhanceScreenPostProcessFadeOutSeconds;
+	const float NewStrength = FadeSeconds > KINDA_SMALL_NUMBER
+		? FMath::FInterpConstantTo(
+			EnhanceScreenPostProcessStrength,
+			TargetEnhanceScreenPostProcessStrength,
+			DeltaTime,
+			1.0f / FadeSeconds)
+		: TargetEnhanceScreenPostProcessStrength;
+
+	SetEnhanceScreenPostProcessStrength(NewStrength);
+}
+
+void UTimeThiefSkillComponent::SetEnhanceScreenPostProcessStrength(float Strength)
+{
+	EnhanceScreenPostProcessStrength = FMath::Clamp(Strength, 0.0f, 1.0f);
+
+	ATimeThiefCharacterBase* OwnerCharacter = GetOwnerCharacter();
+	if (!OwnerCharacter || !OwnerCharacter->IsLocallyControlled() || !EnhanceScreenPostProcessMaterial)
+	{
+		return;
+	}
+	if (!ActiveEnhanceScreenPostProcessMaterial && EnhanceScreenPostProcessStrength <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	if (!ActiveEnhanceScreenPostProcessMaterial)
+	{
+		ActiveEnhanceScreenPostProcessMaterial = UMaterialInstanceDynamic::Create(EnhanceScreenPostProcessMaterial, this);
+		if (!ActiveEnhanceScreenPostProcessMaterial)
+		{
+			return;
+		}
+	}
+
+	ActiveEnhanceScreenPostProcessMaterial->SetScalarParameterValue(EffectStrengthParameterName, EnhanceScreenPostProcessStrength);
+
+	TArray<UCameraComponent*> CameraComponents;
+	OwnerCharacter->GetComponents<UCameraComponent>(CameraComponents);
+	for (UCameraComponent* CameraComponent : CameraComponents)
+	{
+		if (CameraComponent)
+		{
+			AddOrUpdateEnhanceScreenPostProcessBlendable(*CameraComponent);
+		}
+	}
+}
+
+void UTimeThiefSkillComponent::AddOrUpdateEnhanceScreenPostProcessBlendable(UCameraComponent& CameraComponent) const
+{
+	if (!ActiveEnhanceScreenPostProcessMaterial)
+	{
+		return;
+	}
+
+	TScriptInterface<IBlendableInterface> Blendable;
+	Blendable.SetObject(ActiveEnhanceScreenPostProcessMaterial);
+	Blendable.SetInterface(Cast<IBlendableInterface>(ActiveEnhanceScreenPostProcessMaterial));
+	const float BlendableWeight = EnhanceScreenPostProcessStrength > KINDA_SMALL_NUMBER ? 1.0f : 0.0f;
+	CameraComponent.AddOrUpdateBlendable(Blendable, BlendableWeight);
 }
 
 void UTimeThiefSkillComponent::StartRewindVFX(ATimeThiefCharacterBase& OwnerCharacter)

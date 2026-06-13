@@ -6,6 +6,7 @@
 #include "TimeThiefPlayerAnimInstance.generated.h"
 
 class ATimeThiefPlayerCharacter;
+class ATimeThiefSkillDummyCharacter;
 class UTimeThiefWeaponComponentBase;
 class UTimeThiefWireComponent;
 
@@ -115,7 +116,9 @@ protected:
 
 private:
 	void UpdateAimData();
+	void UpdateDummyAimData(ATimeThiefSkillDummyCharacter* SkillDummy);
 	void UpdateWeaponData();
+	void UpdateDummyWeaponData(ATimeThiefSkillDummyCharacter* SkillDummy);
 	void UpdateWireData();
 	void UpdateWireHandIK(float DeltaSeconds);
 	void UpdateRecoil(float DeltaSeconds);

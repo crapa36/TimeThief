@@ -8,6 +8,9 @@
 
 class ATimeThiefCharacterBase;
 class ATimeThiefSkillDummyCharacter;
+class UCameraComponent;
+class UMaterialInterface;
+class UMaterialInstanceDynamic;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class UPrimitiveComponent;
@@ -139,7 +142,14 @@ private:
 	void StartEnhance(float DurationSeconds, float MoveSpeedMultiplier, float FireRateMultiplier, float ReloadSpeedMultiplier, float DamageMultiplier, float EquipSpeedMultiplier);
 	void StopEnhance();
 	void StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCharacter);
-	void StopEnhanceVFX();
+	void StopEnhanceVFX(bool bImmediate = false);
+	void StartEnhanceScreenVFX(ATimeThiefCharacterBase& OwnerCharacter);
+	void StopEnhanceScreenVFX(bool bImmediate);
+	void StartEnhanceScreenLightningVFX(ATimeThiefCharacterBase& OwnerCharacter);
+	void StopEnhanceScreenLightningVFX();
+	void UpdateEnhanceScreenPostProcess(float DeltaTime);
+	void SetEnhanceScreenPostProcessStrength(float Strength);
+	void AddOrUpdateEnhanceScreenPostProcessBlendable(UCameraComponent& CameraComponent) const;
 	void StartRewindVFX(ATimeThiefCharacterBase& OwnerCharacter);
 	void StopRewindVFX();
 	void PlaySkillNiagaraAtLocation(UNiagaraSystem* NiagaraSystem, const FVector& Location, const FRotator& Rotation) const;
@@ -167,7 +177,16 @@ private:
 	TObjectPtr<UNiagaraSystem> EnhanceStartNiagaraEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UNiagaraSystem> EnhanceScreenNiagaraEffect;
+	TObjectPtr<UNiagaraSystem> EnhanceScreenLightningNiagaraEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UMaterialInterface> EnhanceScreenPostProcessMaterial;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float EnhanceScreenPostProcessFadeInSeconds = 0.15f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float EnhanceScreenPostProcessFadeOutSeconds = 0.25f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraSystem> DummySpawnNiagaraEffect;
@@ -206,8 +225,14 @@ private:
 	TObjectPtr<UNiagaraComponent> ActiveEnhanceAuraNiagaraComponent;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> ActiveEnhanceScreenNiagaraComponent;
+	TObjectPtr<UNiagaraComponent> ActiveEnhanceScreenLightningNiagaraComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> ActiveEnhanceScreenPostProcessMaterial;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraComponent> ActiveRewindTrailNiagaraComponent;
+
+	float EnhanceScreenPostProcessStrength = 0.0f;
+	float TargetEnhanceScreenPostProcessStrength = 0.0f;
 };

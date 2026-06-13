@@ -2,11 +2,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameplayTagContainer.h"
 #include "TimeThiefSkillDummyCharacter.generated.h"
 
 class ATimeThiefCharacterBase;
+class ATimeThiefMasterWeapon;
 class UNiagaraSystem;
+class UChildActorComponent;
 class UStaticMeshComponent;
+class UTimeThiefWeaponComponentBase;
 
 UCLASS()
 class TIMETHIEF_API ATimeThiefSkillDummyCharacter : public ACharacter
@@ -23,6 +27,10 @@ public:
 	void SetDespawnNiagaraEffect(UNiagaraSystem* InDespawnNiagaraEffect);
 	const FVector& GetCopiedMeshAlpha() const { return CopiedMeshAlpha; }
 	FVector GetIntendedMoveVelocity() const { return MoveDirection * MoveSpeed; }
+	UStaticMeshComponent* GetCopiedWeaponMesh() const;
+	UTimeThiefWeaponComponentBase* GetCopiedWeaponComponent() const { return CopiedWeaponComponent; }
+	FName GetCopiedWeaponLeftHandIKSocketName() const { return CopiedWeaponLeftHandIKSocketName; }
+	FGameplayTag GetCopiedWeaponTag() const { return CopiedWeaponTag; }
 
 private:
 	void ConfigureMovement();
@@ -31,12 +39,17 @@ private:
 	void RequestForwardMove(float DeltaTime);
 
 	UPROPERTY(VisibleAnywhere, Category = "TimeThief|Dummy")
-	TObjectPtr<UStaticMeshComponent> CopiedWeaponMesh;
+	TObjectPtr<UChildActorComponent> CopiedWeaponActorComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefWeaponComponentBase> CopiedWeaponComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraSystem> DespawnNiagaraEffect;
 
 	FVector MoveDirection = FVector::ForwardVector;
 	FVector CopiedMeshAlpha = FVector(0.0f, 1.0f, 0.0f);
+	FName CopiedWeaponLeftHandIKSocketName = TEXT("LeftHandIK");
+	FGameplayTag CopiedWeaponTag;
 	float MoveSpeed = 0.0f;
 };
