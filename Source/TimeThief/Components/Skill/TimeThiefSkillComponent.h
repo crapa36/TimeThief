@@ -8,8 +8,6 @@
 
 class ATimeThiefCharacterBase;
 class ATimeThiefSkillDummyCharacter;
-class UNiagaraComponent;
-class UNiagaraSystem;
 
 UENUM(BlueprintType)
 enum class ETimeThiefSkillType : uint8
@@ -92,19 +90,18 @@ class TIMETHIEF_API UTimeThiefSkillComponent : public UActorComponent
 public:
 	UTimeThiefSkillComponent();
 
-	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	bool HandleSkillInput(FGameplayTag InputTag);
 	void ApplySkillSnapshot(const TArray<FTimeThiefSkillSlotState>& InEquippedSlots);
-	bool SetEquippedSkillSlot(uint32 SlotIndex, uint32 SkillId);
+	void SetEquippedSkillSlot(uint32 SlotIndex, uint32 SkillId);
 	bool FindEquippedSkillSlot(uint32 SkillId, uint32& OutSlotIndex) const;
 	bool FindFirstAvailableSkillSlot(uint32& OutSlotIndex) const;
 
 	void ApplyTimeAccelEffect(uint32 DurationMs, uint32 FireRateBonusPercent, uint32 MoveSpeedBonusPercent);
 	void SpawnDummyEffect(const FVector& StartPosition, const FVector& Direction, float MoveSpeed, uint32 DurationMs);
-	void ApplyRewindEffect(uint32 DurationMs, uint32 RewindDurationMs, uint32 InvulnerableDurationMs, int32 TargetHealth, const FVector& TargetPosition, bool bHasTargetPosition);
+	void ApplyRewindEffect(uint32 DurationMs, uint32 RewindDurationMs, int32 TargetHealth, const FVector& TargetPosition, bool bHasTargetPosition);
 
 	bool IsRewinding() const { return bRewinding; }
 	bool IsEnhanceActive() const { return bEnhanceActive; }
@@ -116,14 +113,13 @@ public:
 	float GetEquipSpeedMultiplier() const;
 
 	static ETimeThiefSkillType ResolveSkillTypeFromId(uint32 SkillId);
-	static uint32 ResolveSkillIdFromType(ETimeThiefSkillType SkillType);
 
 private:
 	bool TryUseSkillSlot(uint32 SlotIndex);
 	bool TryUseSkill(ETimeThiefSkillType SkillType, uint32 SlotIndex, uint32 SkillId);
 	const FTimeThiefSkillSlotState* FindSlot(uint32 SlotIndex) const;
-	FTimeThiefSkillSlotState* FindSlot(uint32 SlotIndex);
 
+	FTimeThiefRewindSnapshot CaptureRewindSnapshot() const;
 	void RecordRewindSnapshot();
 	void TickRewind(float DeltaTime);
 	bool BuildRewindPathFromHistory(float TargetSecondsAgo);
@@ -133,7 +129,6 @@ private:
 	void StartEnhance(float DurationSeconds, float MoveSpeedMultiplier, float FireRateMultiplier, float ReloadSpeedMultiplier, float DamageMultiplier, float EquipSpeedMultiplier);
 	void StopEnhance();
 	void RefreshSkillModifiedStats() const;
-	void StopEnhanceEffects();
 
 	ATimeThiefCharacterBase* GetOwnerCharacter() const;
 
@@ -143,24 +138,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Skill|Dummy")
 	TSubclassOf<ATimeThiefSkillDummyCharacter> DummyClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Skill|VFX")
-	TObjectPtr<UNiagaraSystem> EnhanceAuraEffect;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Skill|VFX")
-	TObjectPtr<UNiagaraSystem> EnhanceLightningEffect;
-
-	UPROPERTY(EditDefaultsOnly, Category = "TimeThief|Skill|VFX")
-	TObjectPtr<UNiagaraSystem> RewindTrailEffect;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> ActiveEnhanceAura;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> ActiveEnhanceLightning;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> ActiveRewindTrail;
 
 	UPROPERTY(Transient)
 	TArray<FTimeThiefSkillSlotState> SkillSlots;

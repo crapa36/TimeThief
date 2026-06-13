@@ -87,15 +87,9 @@ namespace
 		OutVector->set_z(InVector.Z);
 	}
 
-	static bool ResolveSkillIdFromStoreItem(uint32 StoreItemId, uint32& OutSkillId)
+	static uint32 ResolveSkillIdFromStoreItem(uint32 StoreItemId)
 	{
-		if (StoreItemId < static_cast<uint32>(EItemID::Skill1) || StoreItemId > static_cast<uint32>(EItemID::Skill3))
-		{
-			return false;
-		}
-
-		OutSkillId = StoreItemId - static_cast<uint32>(EItemID::Skill1) + 1;
-		return true;
+		return StoreItemId - static_cast<uint32>(EItemID::Skill1) + 1;
 	}
 
 	static FRotator ToRotator(const se::common::Rotator& Rotator)
@@ -1988,7 +1982,7 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 				TargetPosition.Z);
 			if (SourceSkillComponent)
 			{
-				SourceSkillComponent->ApplyRewindEffect(DurationMs, RewindDurationMs, InvulnerableDurationMs, TargetHealth, TargetPosition, Rewind.has_target_position());
+				SourceSkillComponent->ApplyRewindEffect(DurationMs, RewindDurationMs, TargetHealth, TargetPosition, Rewind.has_target_position());
 			}
 			break;
 		}
@@ -2339,7 +2333,17 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 	}
 	OnStorePriceDataUpdated.Broadcast();
 	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id(), NewPrice, Pkt.is_sold_out());
-	TryAutoEquipPurchasedSkill(Pkt.store_item_id());
+
+	switch (static_cast<EItemID>(Pkt.store_item_id()))
+	{
+	case EItemID::Skill1:
+	case EItemID::Skill2:
+	case EItemID::Skill3:
+		TryAutoEquipPurchasedSkill(Pkt.store_item_id());
+		break;
+	default:
+		break;
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
@@ -3228,11 +3232,7 @@ ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
 
 void UNetworkGameInstanceSubsystem::TryAutoEquipPurchasedSkill(uint32 PurchasedItemId)
 {
-	uint32 SkillId = 0;
-	if (!ResolveSkillIdFromStoreItem(PurchasedItemId, SkillId))
-	{
-		return;
-	}
+	const uint32 SkillId = ResolveSkillIdFromStoreItem(PurchasedItemId);
 
 	ATimeThiefPlayerCharacter* LocalPlayer = GetLocalPlayerPawn();
 	UTimeThiefSkillComponent* SkillComponent = LocalPlayer ? LocalPlayer->FindComponentByClass<UTimeThiefSkillComponent>() : nullptr;

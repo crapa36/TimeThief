@@ -15,6 +15,7 @@
 #include "ChannelCommons.h"
 #include "TimeThiefPlayerState.h"
 #include "Components/System/TimePointSystemComponent.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/NetworkWireComponent.h"
@@ -26,6 +27,14 @@
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "Utils/TimeThiefAimStatics.h"
+
+namespace
+{
+	uint32 ResolveSkillIdFromStoreItem(EItemID ItemID)
+	{
+		return static_cast<uint32>(ItemID) - static_cast<uint32>(EItemID::Skill1) + 1;
+	}
+}
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -98,11 +107,9 @@ bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
 			return false;
 		}
 		break;
-	default:
-		if (!InventoryComponent)
-		{
-			return false;
-		}
+	case EItemID::Skill1:
+	case EItemID::Skill2:
+	case EItemID::Skill3:
 		break;
 	}
 
@@ -282,6 +289,20 @@ bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
 #endif
 		}
 		break;
+	case EItemID::Skill1:
+	case EItemID::Skill2:
+	case EItemID::Skill3:
+		{
+			const uint32 SkillId = ResolveSkillIdFromStoreItem(Order.ItemID);
+			uint32 SlotIndex = 0;
+			UTimeThiefSkillComponent* SkillComp = GetSkillComponent();
+			if (!SkillComp->FindEquippedSkillSlot(SkillId, SlotIndex)
+				&& SkillComp->FindFirstAvailableSkillSlot(SlotIndex))
+			{
+				SkillComp->SetEquippedSkillSlot(SlotIndex, SkillId);
+			}
+			break;
+		}
 	default:
 		InventoryComponent->AddItem(Order.ItemID);
 		break;

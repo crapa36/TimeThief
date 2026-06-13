@@ -6,8 +6,6 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
-#include "NiagaraComponent.h"
-#include "NiagaraFunctionLibrary.h"
 #include "TimeThiefGameplayTags.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
@@ -42,11 +40,6 @@ UTimeThiefSkillComponent::UTimeThiefSkillComponent()
 	DummyClass = ATimeThiefSkillDummyCharacter::StaticClass();
 }
 
-void UTimeThiefSkillComponent::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void UTimeThiefSkillComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UWorld* World = GetWorld())
@@ -54,7 +47,6 @@ void UTimeThiefSkillComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(EnhanceTimerHandle);
 	}
 
-	StopEnhanceEffects();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -109,7 +101,7 @@ void UTimeThiefSkillComponent::ApplySkillSnapshot(const TArray<FTimeThiefSkillSl
 	}
 }
 
-bool UTimeThiefSkillComponent::SetEquippedSkillSlot(uint32 SlotIndex, uint32 SkillId)
+void UTimeThiefSkillComponent::SetEquippedSkillSlot(uint32 SlotIndex, uint32 SkillId)
 {
 	const ETimeThiefSkillType SkillType = ResolveSkillTypeFromId(SkillId);
 
@@ -130,7 +122,6 @@ bool UTimeThiefSkillComponent::SetEquippedSkillSlot(uint32 SlotIndex, uint32 Ski
 	{
 		return Lhs.SlotIndex < Rhs.SlotIndex;
 	});
-	return true;
 }
 
 bool UTimeThiefSkillComponent::FindEquippedSkillSlot(uint32 SkillId, uint32& OutSlotIndex) const
@@ -229,7 +220,7 @@ void UTimeThiefSkillComponent::SpawnDummyEffect(const FVector& StartPosition, co
 	Dummy->InitializeFromSource(OwnerCharacter, MoveDirection, ResolvedMoveSpeed, LifetimeSeconds);
 }
 
-void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 RewindDurationMs, uint32 InvulnerableDurationMs, int32 TargetHealth, const FVector& TargetPosition, bool bHasTargetPosition)
+void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 RewindDurationMs, int32 TargetHealth, const FVector& TargetPosition, bool bHasTargetPosition)
 {
 	ATimeThiefCharacterBase* OwnerCharacter = GetOwnerCharacter();
 	if (!OwnerCharacter || bRewinding)
@@ -243,28 +234,33 @@ void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 Rewin
 		? static_cast<float>(DurationMs) / 1000.0f
 		: Tuning.RewindPlaybackSeconds;
 
+	const float TargetSecondsAgo = RewindDurationMs > 0
+		? static_cast<float>(RewindDurationMs) / 1000.0f
+		: Tuning.RewindHistorySeconds;
+	const bool bHasHistoryPath = BuildRewindPathFromHistory(TargetSecondsAgo);
+
 	if (bHasTargetPosition)
 	{
-		FTimeThiefRewindSnapshot CurrentSnapshot;
-		CurrentSnapshot.Location = OwnerCharacter->GetActorLocation();
-		CurrentSnapshot.Rotation = OwnerCharacter->GetActorRotation();
-
-		FTimeThiefRewindSnapshot TargetSnapshot = CurrentSnapshot;
-		TargetSnapshot.Location = TargetPosition;
-		TargetSnapshot.Health = TargetHealth;
-
-		ActiveRewindPath.Add(CurrentSnapshot);
-		ActiveRewindPath.Add(TargetSnapshot);
-	}
-	else
-	{
-		const float TargetSecondsAgo = RewindDurationMs > 0
-			? static_cast<float>(RewindDurationMs) / 1000.0f
-			: Tuning.RewindHistorySeconds;
-		if (!BuildRewindPathFromHistory(TargetSecondsAgo))
+		if (bHasHistoryPath)
 		{
-			return;
+			FTimeThiefRewindSnapshot& TargetSnapshot = ActiveRewindPath.Last();
+			TargetSnapshot.Location = TargetPosition;
+			TargetSnapshot.Health = TargetHealth;
 		}
+		else
+		{
+			FTimeThiefRewindSnapshot CurrentSnapshot = CaptureRewindSnapshot();
+			FTimeThiefRewindSnapshot TargetSnapshot = CurrentSnapshot;
+			TargetSnapshot.Location = TargetPosition;
+			TargetSnapshot.Health = TargetHealth;
+
+			ActiveRewindPath.Add(CurrentSnapshot);
+			ActiveRewindPath.Add(TargetSnapshot);
+		}
+	}
+	else if (!bHasHistoryPath)
+	{
+		return;
 	}
 
 	bRewinding = true;
@@ -282,19 +278,6 @@ void UTimeThiefSkillComponent::ApplyRewindEffect(uint32 DurationMs, uint32 Rewin
 		Movement->DisableMovement();
 	}
 
-	if (RewindTrailEffect)
-	{
-		ActiveRewindTrail = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			RewindTrailEffect,
-			OwnerCharacter->GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			true);
-	}
-
-	(void)InvulnerableDurationMs;
 }
 
 float UTimeThiefSkillComponent::GetMoveSpeedMultiplier() const
@@ -334,21 +317,6 @@ ETimeThiefSkillType UTimeThiefSkillComponent::ResolveSkillTypeFromId(uint32 Skil
 		return ETimeThiefSkillType::Rewind;
 	default:
 		return ETimeThiefSkillType::None;
-	}
-}
-
-uint32 UTimeThiefSkillComponent::ResolveSkillIdFromType(ETimeThiefSkillType SkillType)
-{
-	switch (SkillType)
-	{
-	case ETimeThiefSkillType::Enhance:
-		return EnhanceSkillId;
-	case ETimeThiefSkillType::Dummy:
-		return DummySkillId;
-	case ETimeThiefSkillType::Rewind:
-		return RewindSkillId;
-	default:
-		return 0;
 	}
 }
 
@@ -447,7 +415,6 @@ bool UTimeThiefSkillComponent::TryUseSkill(ETimeThiefSkillType SkillType, uint32
 			static_cast<uint32>(Tuning.RewindPlaybackSeconds * 1000.0f),
 			static_cast<uint32>(Tuning.RewindHistorySeconds * 1000.0f),
 			0,
-			0,
 			FVector::ZeroVector,
 			false);
 		break;
@@ -471,28 +438,15 @@ const FTimeThiefSkillSlotState* UTimeThiefSkillComponent::FindSlot(uint32 SlotIn
 	return nullptr;
 }
 
-FTimeThiefSkillSlotState* UTimeThiefSkillComponent::FindSlot(uint32 SlotIndex)
+FTimeThiefRewindSnapshot UTimeThiefSkillComponent::CaptureRewindSnapshot() const
 {
-	for (FTimeThiefSkillSlotState& Slot : SkillSlots)
-	{
-		if (Slot.SlotIndex == static_cast<int32>(SlotIndex))
-		{
-			return &Slot;
-		}
-	}
-
-	return nullptr;
-}
-
-void UTimeThiefSkillComponent::RecordRewindSnapshot()
-{
+	FTimeThiefRewindSnapshot Snapshot;
 	ATimeThiefCharacterBase* OwnerCharacter = GetOwnerCharacter();
 	if (!OwnerCharacter)
 	{
-		return;
+		return Snapshot;
 	}
 
-	FTimeThiefRewindSnapshot Snapshot;
 	Snapshot.TimeSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 	Snapshot.Location = OwnerCharacter->GetActorLocation();
 	Snapshot.Rotation = OwnerCharacter->GetActorRotation();
@@ -511,6 +465,17 @@ void UTimeThiefSkillComponent::RecordRewindSnapshot()
 		}
 	}
 
+	return Snapshot;
+}
+
+void UTimeThiefSkillComponent::RecordRewindSnapshot()
+{
+	if (!GetOwnerCharacter())
+	{
+		return;
+	}
+
+	FTimeThiefRewindSnapshot Snapshot = CaptureRewindSnapshot();
 	RewindSnapshots.Add(Snapshot);
 
 	const int32 MaxSnapshotCount = FMath::Max(2, FMath::CeilToInt(Tuning.RewindHistorySeconds / Tuning.RewindSnapshotIntervalSeconds) + 1);
@@ -534,9 +499,45 @@ void UTimeThiefSkillComponent::TickRewind(float DeltaTime)
 		? FMath::Clamp(RewindElapsedSeconds / RewindPlaybackSeconds, 0.0f, 1.0f)
 		: 1.0f;
 
-	const float PathPosition = Alpha * static_cast<float>(ActiveRewindPath.Num() - 1);
-	const int32 SegmentIndex = FMath::Clamp(FMath::FloorToInt(PathPosition), 0, ActiveRewindPath.Num() - 2);
-	const float SegmentAlpha = PathPosition - static_cast<float>(SegmentIndex);
+	float TotalPathDistance = 0.0f;
+	for (int32 Index = 0; Index < ActiveRewindPath.Num() - 1; ++Index)
+	{
+		TotalPathDistance += FVector::Dist(ActiveRewindPath[Index].Location, ActiveRewindPath[Index + 1].Location);
+	}
+
+	int32 SegmentIndex = ActiveRewindPath.Num() - 2;
+	float SegmentAlpha = 1.0f;
+	if (Alpha < 1.0f)
+	{
+		if (TotalPathDistance > KINDA_SMALL_NUMBER)
+		{
+			const float TargetDistance = TotalPathDistance * Alpha;
+			float TraversedDistance = 0.0f;
+			for (int32 Index = 0; Index < ActiveRewindPath.Num() - 1; ++Index)
+			{
+				const float SegmentDistance = FVector::Dist(ActiveRewindPath[Index].Location, ActiveRewindPath[Index + 1].Location);
+				if (SegmentDistance <= KINDA_SMALL_NUMBER)
+				{
+					continue;
+				}
+
+				if (TraversedDistance + SegmentDistance >= TargetDistance)
+				{
+					SegmentIndex = Index;
+					SegmentAlpha = FMath::Clamp((TargetDistance - TraversedDistance) / SegmentDistance, 0.0f, 1.0f);
+					break;
+				}
+
+				TraversedDistance += SegmentDistance;
+			}
+		}
+		else
+		{
+			const float PathPosition = Alpha * static_cast<float>(ActiveRewindPath.Num() - 1);
+			SegmentIndex = FMath::Clamp(FMath::FloorToInt(PathPosition), 0, ActiveRewindPath.Num() - 2);
+			SegmentAlpha = PathPosition - static_cast<float>(SegmentIndex);
+		}
+	}
 
 	const FTimeThiefRewindSnapshot& From = ActiveRewindPath[SegmentIndex];
 	const FTimeThiefRewindSnapshot& To = ActiveRewindPath[SegmentIndex + 1];
@@ -555,7 +556,7 @@ void UTimeThiefSkillComponent::TickRewind(float DeltaTime)
 
 bool UTimeThiefSkillComponent::BuildRewindPathFromHistory(float TargetSecondsAgo)
 {
-	if (RewindSnapshots.Num() < 2)
+	if (RewindSnapshots.Num() < 1)
 	{
 		return false;
 	}
@@ -569,11 +570,14 @@ bool UTimeThiefSkillComponent::BuildRewindPathFromHistory(float TargetSecondsAgo
 		if (RewindSnapshots[Index].TimeSeconds <= TargetTime)
 		{
 			OldestUsableIndex = Index;
-			break;
+			continue;
 		}
+
+		break;
 	}
 
 	ActiveRewindPath.Reset();
+	ActiveRewindPath.Add(CaptureRewindSnapshot());
 	for (int32 Index = RewindSnapshots.Num() - 1; Index >= OldestUsableIndex; --Index)
 	{
 		ActiveRewindPath.Add(RewindSnapshots[Index]);
@@ -591,13 +595,6 @@ void UTimeThiefSkillComponent::FinishRewind()
 		{
 			Movement->SetMovementMode(SavedMovementMode);
 		}
-	}
-
-	if (ActiveRewindTrail)
-	{
-		ActiveRewindTrail->Deactivate();
-		ActiveRewindTrail->DestroyComponent();
-		ActiveRewindTrail = nullptr;
 	}
 
 	bRewinding = false;
@@ -650,30 +647,6 @@ void UTimeThiefSkillComponent::StartEnhance(float DurationSeconds, float MoveSpe
 
 	RefreshSkillModifiedStats();
 
-	StopEnhanceEffects();
-	if (EnhanceAuraEffect)
-	{
-		ActiveEnhanceAura = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			EnhanceAuraEffect,
-			OwnerCharacter->GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			true);
-	}
-	if (EnhanceLightningEffect)
-	{
-		ActiveEnhanceLightning = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			EnhanceLightningEffect,
-			OwnerCharacter->GetRootComponent(),
-			NAME_None,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			true);
-	}
-
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(EnhanceTimerHandle);
@@ -690,7 +663,6 @@ void UTimeThiefSkillComponent::StopEnhance()
 	ActiveDamageMultiplier = 1.0f;
 	ActiveEquipSpeedMultiplier = 1.0f;
 
-	StopEnhanceEffects();
 	RefreshSkillModifiedStats();
 }
 
@@ -702,23 +674,6 @@ void UTimeThiefSkillComponent::RefreshSkillModifiedStats() const
 		{
 			CombatComponent->RefreshMoveSpeed();
 		}
-	}
-}
-
-void UTimeThiefSkillComponent::StopEnhanceEffects()
-{
-	if (ActiveEnhanceAura)
-	{
-		ActiveEnhanceAura->Deactivate();
-		ActiveEnhanceAura->DestroyComponent();
-		ActiveEnhanceAura = nullptr;
-	}
-
-	if (ActiveEnhanceLightning)
-	{
-		ActiveEnhanceLightning->Deactivate();
-		ActiveEnhanceLightning->DestroyComponent();
-		ActiveEnhanceLightning = nullptr;
 	}
 }
 
