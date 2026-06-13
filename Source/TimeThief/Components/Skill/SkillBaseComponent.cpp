@@ -4,24 +4,14 @@
 #include "SkillBaseComponent.h"
 
 #include "Character/TimeThiefCharacterBase.h"
+#include "Engine/World.h"
 
 
 // Sets default values for this component's properties
 USkillBaseComponent::USkillBaseComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-}
-
-
-// Called when the game starts
-void USkillBaseComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// ...
-	
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void USkillBaseComponent::OnRegister()
@@ -32,25 +22,39 @@ void USkillBaseComponent::OnRegister()
 }
 
 
-// Called every frame
-void USkillBaseComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                        FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (LeftCoolTime != 0)
-	{
-		LeftCoolTime = FMath::Max(0, LeftCoolTime - DeltaTime);
-	}
-}
-
 bool USkillBaseComponent::CanActivate() const
 {
-	return bCanActivate && LeftCoolTime == 0;
+	return bCanActivate && GetRemainingCoolTime() <= 0.0f;
+}
+
+float USkillBaseComponent::GetRemainingCoolTime() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Max(0.0f, CooldownEndTimeSeconds - World->GetTimeSeconds());
 }
 
 void USkillBaseComponent::ApplyServerCooldownMs(uint32 RemainingCooldownMs)
 {
-	LeftCoolTime = FMath::Max(0.0f, static_cast<float>(RemainingCooldownMs) / 1000.0f);
+	StartCooldown(static_cast<float>(RemainingCooldownMs) / 1000.0f);
+}
+
+void USkillBaseComponent::StartCooldown(float DurationSeconds)
+{
+	const float CooldownSeconds = FMath::Max(0.0f, DurationSeconds);
+	if (CooldownSeconds <= 0.0f)
+	{
+		CooldownEndTimeSeconds = 0.0f;
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	CooldownEndTimeSeconds = World
+		? World->GetTimeSeconds() + CooldownSeconds
+		: 0.0f;
 }
 
