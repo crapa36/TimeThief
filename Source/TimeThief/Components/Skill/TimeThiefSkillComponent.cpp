@@ -1117,14 +1117,44 @@ void UTimeThiefSkillComponent::HideRewindMeshes(ATimeThiefCharacterBase& OwnerCh
 {
 	RestoreRewindMeshes();
 
-	HideRewindMesh(OwnerCharacter.GetMesh());
-	HideRewindMesh(OwnerCharacter.GetFirstPersonMesh());
+	TArray<UPrimitiveComponent*> ComponentsToHide;
+	ComponentsToHide.Add(OwnerCharacter.GetMesh());
+	ComponentsToHide.Add(OwnerCharacter.GetFirstPersonMesh());
 
 	if (UMorphingMeshComponent* MorphingMeshComponent = OwnerCharacter.GetMorphingMeshComponent())
 	{
-		HideRewindMesh(MorphingMeshComponent->BaseSkeletalMeshComponent);
-		HideRewindMesh(MorphingMeshComponent->BaseMeshComponent);
-		HideRewindMesh(MorphingMeshComponent->LiquidMeshComponent);
+		ComponentsToHide.Add(MorphingMeshComponent->BaseSkeletalMeshComponent);
+		ComponentsToHide.Add(MorphingMeshComponent->BaseMeshComponent);
+		ComponentsToHide.Add(MorphingMeshComponent->LiquidMeshComponent);
+	}
+
+	for (UPrimitiveComponent* Component : ComponentsToHide)
+	{
+		if (!Component)
+		{
+			continue;
+		}
+
+		if (RewindHiddenMeshStates.ContainsByPredicate([Component](const FTimeThiefRewindHiddenMeshState& State)
+		{
+			return State.Component.Get() == Component;
+		}))
+		{
+			continue;
+		}
+
+		FTimeThiefRewindHiddenMeshState State;
+		State.Component = Component;
+		State.bHiddenInGame = Component->bHiddenInGame;
+		RewindHiddenMeshStates.Add(State);
+	}
+
+	for (UPrimitiveComponent* Component : ComponentsToHide)
+	{
+		if (Component)
+		{
+			Component->SetHiddenInGame(true, true);
+		}
 	}
 }
 
