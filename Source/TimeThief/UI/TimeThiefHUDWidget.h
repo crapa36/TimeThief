@@ -145,7 +145,7 @@ private:
 	void UpdateCrosshairInvalidation();
 	void UpdateWireCooldownDisplay();
 	void UpdateSkillSlotsDisplay();
-	void UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget);
+	void UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget);
 	void UpdateSkillCooldownDisplay();
 	void UpdateSkillCooldownSlotDisplay(uint32 SlotIndex, UProgressBar* CooldownProgressBar, UTextBlock* CooldownText, float& LastCooldownPercent, int32& LastCooldownSeconds);
 	UTexture2D* ResolveSkillIcon(int32 SkillId) const;

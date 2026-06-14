@@ -266,7 +266,6 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	if (CachedHealthComponent.IsValid())
 	{
 		CachedHealthComponent->OnHealthChanged_Delegate.AddUObject(this, &UTimeThiefHUDWidget::OnHealthUpdated);
-		// OnHealthUpdated(CachedHealthComponent.Get(), 100, 100, nullptr);
 		OnHealthUpdated(CachedHealthComponent.Get(), CachedHealthComponent->GetCurrentHealth(), CachedHealthComponent->GetCurrentHealth(), nullptr);
 	}
 	
@@ -514,24 +513,37 @@ void UTimeThiefHUDWidget::UpdateWireCooldownDisplay()
 
 void UTimeThiefHUDWidget::UpdateSkillSlotsDisplay()
 {
-	UpdateSkillSlotDisplay(SkillSlot1Index, SkillSlot1_Icon);
-	UpdateSkillSlotDisplay(SkillSlot2Index, SkillSlot2_Icon);
+	UpdateSkillSlotDisplay(SkillSlot1Index, SkillSlot1_Icon, SkillSlot1_Cooldown_ProgressBar);
+	UpdateSkillSlotDisplay(SkillSlot2Index, SkillSlot2_Icon, SkillSlot2_Cooldown_ProgressBar);
 }
 
-void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget)
+void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget)
 {
-	if (!IconWidget)
-	{
-		return;
-	}
-
 	FTimeThiefSkillSlotState SlotState;
 	const bool bHasSkill = CachedSkillComponent.IsValid()
 		&& CachedSkillComponent->GetSkillSlotState(static_cast<int32>(SlotIndex), SlotState)
 		&& SlotState.SkillId > 0;
+
 	if (!bHasSkill)
 	{
-		IconWidget->SetVisibility(ESlateVisibility::Hidden);
+		if (IconWidget)
+		{
+			IconWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (ProgressBarWidget)
+		{
+			ProgressBarWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+		return;
+	}
+
+	if (ProgressBarWidget)
+	{
+		ProgressBarWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+
+	if (!IconWidget)
+	{
 		return;
 	}
 
