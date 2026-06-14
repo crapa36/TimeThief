@@ -85,7 +85,7 @@ void ATimeThiefCharacterBase::OnDeath()
 {
 	bIsRespawn = false;
 	bIsDead = true;
-	
+
 	if (UTimeThiefPlayerCombatComponent* CombatComp = FindComponentByClass<UTimeThiefPlayerCombatComponent>())
 	{
 		CombatComp->ForceStopCombatInput();
@@ -398,28 +398,18 @@ void ATimeThiefCharacterBase::FinishRespawnPresentation()
 
 void ATimeThiefCharacterBase::UpdateMask()
 {
-	static const FName MaskParameterName(TEXT("Mask"));
-	static const FName UserMaskParameterName(TEXT("User.Mask"));
-
 	USkeletalMeshComponent* CharacterMesh = GetMesh();
 	ATimeThiefMasterWeapon* WeaponActor = GetWeaponActor();
 	UStaticMeshComponent* WeaponMesh = WeaponActor ? WeaponActor->GetWeaponMesh() : nullptr;
 	UStaticMesh* WeaponStaticMesh = WeaponMesh ? WeaponMesh->GetStaticMesh() : nullptr;
-
-	if (FMath::IsNearlyEqual(LastAppliedMask, Mask, KINDA_SMALL_NUMBER)
-		&& LastMaskWeaponMesh.Get() == WeaponMesh
-		&& LastMaskWeaponStaticMesh.Get() == WeaponStaticMesh)
-	{
-		return;
-	}
-
+	
 	if (CharacterMesh)
 	{
 		for (int i = 0; i < CharacterMesh->GetNumMaterials(); ++i)
 		{
 			if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(CharacterMesh, i))
 			{
-				MID->SetScalarParameterValue(MaskParameterName, Mask);
+				MID->SetScalarParameterValue(TEXT("Mask"), Mask);
 			}
 		}
 	}
@@ -430,14 +420,14 @@ void ATimeThiefCharacterBase::UpdateMask()
 		{
 			if (UMaterialInstanceDynamic* MID = GetOrCreateMaterialInstanceDynamic(WeaponMesh, i))
 			{
-				MID->SetScalarParameterValue(MaskParameterName, Mask);
+				MID->SetScalarParameterValue(TEXT("Mask"), Mask);
 			}
 		}
 	}
 
 	if (DisappearFX)
 	{
-		DisappearFX->SetVariableFloat(UserMaskParameterName, Mask);
+		DisappearFX->SetVariableFloat(TEXT("User.Mask"), Mask);
 	}
 
 	LastAppliedMask = Mask;
