@@ -15,6 +15,7 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UPrimitiveComponent;
 class USceneComponent;
+class USoundBase;
 
 UENUM(BlueprintType)
 enum class ETimeThiefSkillType : uint8
@@ -76,6 +77,30 @@ struct FTimeThiefSkillSlotState
 	ETimeThiefSkillType SkillType = ETimeThiefSkillType::None;
 };
 
+USTRUCT(BlueprintType)
+struct FTimeThiefSkillCooldownState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Skill")
+	int32 SlotIndex = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Skill")
+	int32 SkillId = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Skill")
+	float RemainingSeconds = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Skill")
+	float TotalSeconds = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Skill")
+	bool bCoolingDown = false;
+};
+
+DECLARE_MULTICAST_DELEGATE(FOnTimeThiefSkillSlotsChanged);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnTimeThiefSkillCooldownChanged, uint32);
+
 USTRUCT()
 struct FTimeThiefRewindSnapshot
 {
@@ -115,6 +140,19 @@ public:
 	void ApplyTimeAccelEffect(uint32 DurationMs, uint32 FireRateBonusPercent, uint32 MoveSpeedBonusPercent);
 	void SpawnDummyEffect(const FVector& StartPosition, const FVector& Direction, float MoveSpeed, uint32 DurationMs);
 	void ApplyRewindEffect(uint32 DurationMs, uint32 RewindDurationMs, int32 TargetHealth, const FVector& TargetPosition, bool bHasTargetPosition);
+	void ApplySkillCooldown(uint32 SlotIndex, uint32 SkillId, uint32 RemainingCooldownMs);
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Skill|HUD")
+	bool GetSkillSlotState(int32 SlotIndex, FTimeThiefSkillSlotState& OutSlotState) const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Skill|HUD")
+	FTimeThiefSkillCooldownState GetSkillCooldownState(int32 SlotIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Skill|HUD")
+	float GetSkillCooldownPercent(int32 SlotIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Skill|HUD")
+	float GetSkillCooldownRemainingSeconds(int32 SlotIndex) const;
 
 	bool IsRewinding() const { return bRewinding; }
 	bool IsEnhanceActive() const { return bEnhanceActive; }
@@ -127,10 +165,17 @@ public:
 
 	static ETimeThiefSkillType ResolveSkillTypeFromId(uint32 SkillId);
 
+	FOnTimeThiefSkillSlotsChanged OnSkillSlotsChanged;
+	FOnTimeThiefSkillCooldownChanged OnSkillCooldownChanged;
+
 private:
 	bool TryUseSkillSlot(uint32 SlotIndex);
 	bool TryUseSkill(ETimeThiefSkillType SkillType, uint32 SlotIndex, uint32 SkillId);
 	const FTimeThiefSkillSlotState* FindSlot(uint32 SlotIndex) const;
+	FTimeThiefSkillCooldownState* FindCooldownState(uint32 SlotIndex);
+	const FTimeThiefSkillCooldownState* FindCooldownState(uint32 SlotIndex) const;
+	void TickSkillCooldowns(float DeltaTime);
+	void ResetSkillCooldown(uint32 SlotIndex, uint32 SkillId);
 
 	FTimeThiefRewindSnapshot CaptureRewindSnapshot() const;
 	void RecordRewindSnapshot();
@@ -145,8 +190,6 @@ private:
 	void StopEnhanceVFX(bool bImmediate = false);
 	void StartEnhanceScreenVFX(ATimeThiefCharacterBase& OwnerCharacter);
 	void StopEnhanceScreenVFX(bool bImmediate);
-	void StartEnhanceScreenLightningVFX(ATimeThiefCharacterBase& OwnerCharacter);
-	void StopEnhanceScreenLightningVFX();
 	void UpdateEnhanceScreenPostProcess(float DeltaTime);
 	void SetEnhanceScreenPostProcessStrength(float Strength);
 	void AddOrUpdateEnhanceScreenPostProcessBlendable(UCameraComponent& CameraComponent) const;
@@ -155,6 +198,7 @@ private:
 	void PlaySkillNiagaraAtLocation(UNiagaraSystem* NiagaraSystem, const FVector& Location, const FRotator& Rotation) const;
 	UNiagaraComponent* PlaySkillNiagaraAttached(UNiagaraSystem* NiagaraSystem, USceneComponent& AttachComponent, const FVector& RelativeLocation) const;
 	void StopSkillNiagaraComponent(TObjectPtr<UNiagaraComponent>& NiagaraComponent) const;
+	void PlaySkillSoundAtLocation(USoundBase* Sound, const FVector& Location) const;
 	bool CanSpawnSkillNiagara() const;
 	void HideRewindMeshes(ATimeThiefCharacterBase& OwnerCharacter);
 	void HideRewindMesh(UPrimitiveComponent* Component);
@@ -176,8 +220,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraSystem> EnhanceStartNiagaraEffect;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UNiagaraSystem> EnhanceScreenLightningNiagaraEffect;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Sound", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> EnhanceStartSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UMaterialInterface> EnhanceScreenPostProcessMaterial;
@@ -197,11 +241,17 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraSystem> RewindTrailNiagaraEffect;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Sound", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USoundBase> RewindStartSound;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Skill|Effects", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UNiagaraSystem> RewindArrivalNiagaraEffect;
 
 	UPROPERTY(Transient)
 	TArray<FTimeThiefSkillSlotState> SkillSlots;
+
+	UPROPERTY(Transient)
+	TArray<FTimeThiefSkillCooldownState> SkillCooldowns;
 
 	TArray<FTimeThiefRewindSnapshot> RewindSnapshots;
 	TArray<FTimeThiefRewindSnapshot> ActiveRewindPath;
@@ -223,9 +273,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraComponent> ActiveEnhanceAuraNiagaraComponent;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> ActiveEnhanceScreenLightningNiagaraComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> ActiveEnhanceScreenPostProcessMaterial;

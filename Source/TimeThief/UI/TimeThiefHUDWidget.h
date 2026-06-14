@@ -6,11 +6,14 @@
 
 class UProgressBar;
 class UHorizontalBox;
+class UImage;
 class UTextBlock;
+class UTexture2D;
 class UTimePointSystemComponent;
 class ATimeThiefPlayerCharacter;
 class UTimeThiefHealthComponent;
 class UTimeThiefPlayerCombatComponent;
+class UTimeThiefSkillComponent;
 class UTimeThiefWeaponComponentBase;
 class UTimeThiefWireComponent;
 
@@ -42,6 +45,24 @@ class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
 	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UTextBlock> TimePoint_Text;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> SkillSlot1_Icon;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> SkillSlot1_Cooldown_ProgressBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> SkillSlot1_Cooldown_Text;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> SkillSlot2_Icon;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> SkillSlot2_Cooldown_ProgressBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> SkillSlot2_Cooldown_Text;
 	
 public:
 	UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer);
@@ -99,6 +120,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
 	TWeakObjectPtr<UTimeThiefWireComponent> CachedWireComponent;
 
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
+	TWeakObjectPtr<UTimeThiefSkillComponent> CachedSkillComponent;
+
 	UPROPERTY()
 	TWeakObjectPtr<UTimePointSystemComponent> CachedTimePointSystemComponent;
 	
@@ -108,6 +132,8 @@ protected:
 	void HandleAmmoChanged(int32 CurrentAmmo, int32 MaxAmmo);
 	void OnWeaponEquipped(UTimeThiefWeaponComponentBase* Weapon);
 	void OnWeaponUnequipped();
+	void OnSkillSlotsChanged();
+	void OnSkillCooldownChanged(uint32 SlotIndex);
 
 	UFUNCTION()
 	void OnTimePointUpdated(int DisplayTimePoints);
@@ -118,6 +144,11 @@ private:
 	void RefreshControlGuideWidget() const;
 	void UpdateCrosshairInvalidation();
 	void UpdateWireCooldownDisplay();
+	void UpdateSkillSlotsDisplay();
+	void UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget);
+	void UpdateSkillCooldownDisplay();
+	void UpdateSkillCooldownSlotDisplay(uint32 SlotIndex, UProgressBar* CooldownProgressBar, UTextBlock* CooldownText, float& LastCooldownPercent, int32& LastCooldownSeconds);
+	UTexture2D* ResolveSkillIcon(int32 SkillId) const;
 	
 	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
 
@@ -128,4 +159,8 @@ private:
 	TObjectPtr<UUserWidget> SpawnedControlGuideWidget;
 	float LastCrosshairSpread = -1.0f;
 	float LastWireCooldownPercent = -1.0f;
+	float LastSkillSlot1CooldownPercent = -1.0f;
+	float LastSkillSlot2CooldownPercent = -1.0f;
+	int32 LastSkillSlot1CooldownSeconds = -1;
+	int32 LastSkillSlot2CooldownSeconds = -1;
 };

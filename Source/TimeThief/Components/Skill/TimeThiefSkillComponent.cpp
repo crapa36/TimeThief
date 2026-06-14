@@ -11,10 +11,12 @@
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Sound/SoundBase.h"
 #include "TimeThiefGameplayTags.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
@@ -33,8 +35,6 @@ namespace
 	constexpr uint32 Slot1Index = 0;
 	constexpr uint32 Slot2Index = 1;
 	const FName EffectStrengthParameterName(TEXT("EffectStrength"));
-	const FName NiagaraIntensityParameterName(TEXT("User.Intensity"));
-	const FVector ScreenLightningRelativeLocation(120.0f, 0.0f, 0.0f);
 
 	float PercentToMultiplier(uint32 Percent)
 	{
@@ -90,6 +90,7 @@ void UTimeThiefSkillComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	UpdateEnhanceScreenPostProcess(DeltaTime);
+	TickSkillCooldowns(DeltaTime);
 
 	if (bRewinding)
 	{
@@ -136,10 +137,25 @@ void UTimeThiefSkillComponent::ApplySkillSnapshot(const TArray<FTimeThiefSkillSl
 		Slot.SkillType = ResolveSkillTypeFromId(static_cast<uint32>(Slot.SkillId));
 		SkillSlots.Add(Slot);
 	}
+
+	for (int32 Index = SkillCooldowns.Num() - 1; Index >= 0; --Index)
+	{
+		const FTimeThiefSkillSlotState* Slot = FindSlot(static_cast<uint32>(SkillCooldowns[Index].SlotIndex));
+		if (!Slot || Slot->SkillId != SkillCooldowns[Index].SkillId)
+		{
+			const uint32 SlotIndex = static_cast<uint32>(SkillCooldowns[Index].SlotIndex);
+			SkillCooldowns.RemoveAt(Index);
+			OnSkillCooldownChanged.Broadcast(SlotIndex);
+		}
+	}
+
+	OnSkillSlotsChanged.Broadcast();
 }
 
 void UTimeThiefSkillComponent::SetEquippedSkillSlot(uint32 SlotIndex, uint32 SkillId)
 {
+	const FTimeThiefSkillSlotState* PreviousSlot = FindSlot(SlotIndex);
+	const bool bSkillChanged = PreviousSlot == nullptr || PreviousSlot->SkillId != static_cast<int32>(SkillId);
 	const ETimeThiefSkillType SkillType = ResolveSkillTypeFromId(SkillId);
 
 	for (int32 Index = SkillSlots.Num() - 1; Index >= 0; --Index)
@@ -159,6 +175,13 @@ void UTimeThiefSkillComponent::SetEquippedSkillSlot(uint32 SlotIndex, uint32 Ski
 	{
 		return Lhs.SlotIndex < Rhs.SlotIndex;
 	});
+
+	if (bSkillChanged)
+	{
+		ResetSkillCooldown(SlotIndex, SkillId);
+	}
+
+	OnSkillSlotsChanged.Broadcast();
 }
 
 bool UTimeThiefSkillComponent::FindEquippedSkillSlot(uint32 SkillId, uint32& OutSlotIndex) const
@@ -188,6 +211,97 @@ bool UTimeThiefSkillComponent::FindFirstAvailableSkillSlot(uint32& OutSlotIndex)
 	}
 
 	return false;
+}
+
+void UTimeThiefSkillComponent::ApplySkillCooldown(uint32 SlotIndex, uint32 SkillId, uint32 RemainingCooldownMs)
+{
+	const float RemainingSeconds = static_cast<float>(RemainingCooldownMs) / 1000.0f;
+	FTimeThiefSkillCooldownState* CooldownState = FindCooldownState(SlotIndex);
+	if (!CooldownState)
+	{
+		CooldownState = &SkillCooldowns.AddDefaulted_GetRef();
+		CooldownState->SlotIndex = static_cast<int32>(SlotIndex);
+	}
+
+	CooldownState->SkillId = static_cast<int32>(SkillId);
+	CooldownState->RemainingSeconds = FMath::Max(RemainingSeconds, 0.0f);
+	CooldownState->bCoolingDown = CooldownState->RemainingSeconds > 0.0f;
+
+	if (!CooldownState->bCoolingDown)
+	{
+		CooldownState->TotalSeconds = 0.0f;
+		OnSkillCooldownChanged.Broadcast(SlotIndex);
+		return;
+	}
+
+	if (CooldownState->TotalSeconds <= 0.0f || CooldownState->RemainingSeconds > CooldownState->TotalSeconds)
+	{
+		CooldownState->TotalSeconds = CooldownState->RemainingSeconds;
+	}
+
+	OnSkillCooldownChanged.Broadcast(SlotIndex);
+}
+
+bool UTimeThiefSkillComponent::GetSkillSlotState(int32 SlotIndex, FTimeThiefSkillSlotState& OutSlotState) const
+{
+	if (SlotIndex < 0)
+	{
+		return false;
+	}
+
+	if (const FTimeThiefSkillSlotState* Slot = FindSlot(static_cast<uint32>(SlotIndex)))
+	{
+		OutSlotState = *Slot;
+		return true;
+	}
+
+	OutSlotState = FTimeThiefSkillSlotState();
+	OutSlotState.SlotIndex = SlotIndex;
+	return false;
+}
+
+FTimeThiefSkillCooldownState UTimeThiefSkillComponent::GetSkillCooldownState(int32 SlotIndex) const
+{
+	FTimeThiefSkillCooldownState Result;
+	Result.SlotIndex = SlotIndex;
+	if (SlotIndex < 0)
+	{
+		return Result;
+	}
+
+	if (const FTimeThiefSkillCooldownState* CooldownState = FindCooldownState(static_cast<uint32>(SlotIndex)))
+	{
+		Result = *CooldownState;
+	}
+
+	return Result;
+}
+
+float UTimeThiefSkillComponent::GetSkillCooldownPercent(int32 SlotIndex) const
+{
+	if (SlotIndex < 0)
+	{
+		return 0.0f;
+	}
+
+	const FTimeThiefSkillCooldownState* CooldownState = FindCooldownState(static_cast<uint32>(SlotIndex));
+	if (!CooldownState || CooldownState->TotalSeconds <= KINDA_SMALL_NUMBER)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Clamp(CooldownState->RemainingSeconds / CooldownState->TotalSeconds, 0.0f, 1.0f);
+}
+
+float UTimeThiefSkillComponent::GetSkillCooldownRemainingSeconds(int32 SlotIndex) const
+{
+	if (SlotIndex < 0)
+	{
+		return 0.0f;
+	}
+
+	const FTimeThiefSkillCooldownState* CooldownState = FindCooldownState(static_cast<uint32>(SlotIndex));
+	return CooldownState ? FMath::Max(CooldownState->RemainingSeconds, 0.0f) : 0.0f;
 }
 
 void UTimeThiefSkillComponent::ApplyTimeAccelEffect(uint32 DurationMs, uint32 FireRateBonusPercent, uint32 MoveSpeedBonusPercent)
@@ -484,6 +598,66 @@ const FTimeThiefSkillSlotState* UTimeThiefSkillComponent::FindSlot(uint32 SlotIn
 	return nullptr;
 }
 
+FTimeThiefSkillCooldownState* UTimeThiefSkillComponent::FindCooldownState(uint32 SlotIndex)
+{
+	for (FTimeThiefSkillCooldownState& CooldownState : SkillCooldowns)
+	{
+		if (CooldownState.SlotIndex == static_cast<int32>(SlotIndex))
+		{
+			return &CooldownState;
+		}
+	}
+
+	return nullptr;
+}
+
+const FTimeThiefSkillCooldownState* UTimeThiefSkillComponent::FindCooldownState(uint32 SlotIndex) const
+{
+	for (const FTimeThiefSkillCooldownState& CooldownState : SkillCooldowns)
+	{
+		if (CooldownState.SlotIndex == static_cast<int32>(SlotIndex))
+		{
+			return &CooldownState;
+		}
+	}
+
+	return nullptr;
+}
+
+void UTimeThiefSkillComponent::TickSkillCooldowns(float DeltaTime)
+{
+	for (FTimeThiefSkillCooldownState& CooldownState : SkillCooldowns)
+	{
+		if (!CooldownState.bCoolingDown)
+		{
+			continue;
+		}
+
+		CooldownState.RemainingSeconds = FMath::Max(0.0f, CooldownState.RemainingSeconds - DeltaTime);
+		if (CooldownState.RemainingSeconds <= 0.0f)
+		{
+			CooldownState.bCoolingDown = false;
+			CooldownState.TotalSeconds = 0.0f;
+			OnSkillCooldownChanged.Broadcast(static_cast<uint32>(CooldownState.SlotIndex));
+		}
+	}
+}
+
+void UTimeThiefSkillComponent::ResetSkillCooldown(uint32 SlotIndex, uint32 SkillId)
+{
+	FTimeThiefSkillCooldownState* CooldownState = FindCooldownState(SlotIndex);
+	if (!CooldownState)
+	{
+		return;
+	}
+
+	CooldownState->SkillId = static_cast<int32>(SkillId);
+	CooldownState->RemainingSeconds = 0.0f;
+	CooldownState->TotalSeconds = 0.0f;
+	CooldownState->bCoolingDown = false;
+	OnSkillCooldownChanged.Broadcast(SlotIndex);
+}
+
 FTimeThiefRewindSnapshot UTimeThiefSkillComponent::CaptureRewindSnapshot() const
 {
 	FTimeThiefRewindSnapshot Snapshot;
@@ -730,7 +904,7 @@ void UTimeThiefSkillComponent::StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCha
 {
 	StopSkillNiagaraComponent(ActiveEnhanceAuraNiagaraComponent);
 	StartEnhanceScreenVFX(OwnerCharacter);
-	StartEnhanceScreenLightningVFX(OwnerCharacter);
+	PlaySkillSoundAtLocation(EnhanceStartSound, GetMeshCenterWorldLocation(OwnerCharacter));
 
 	if (USkeletalMeshComponent* MeshComponent = OwnerCharacter.GetMesh())
 	{
@@ -750,7 +924,6 @@ void UTimeThiefSkillComponent::StartEnhanceVFX(ATimeThiefCharacterBase& OwnerCha
 void UTimeThiefSkillComponent::StopEnhanceVFX(bool bImmediate)
 {
 	StopSkillNiagaraComponent(ActiveEnhanceAuraNiagaraComponent);
-	StopEnhanceScreenLightningVFX();
 	StopEnhanceScreenVFX(bImmediate);
 }
 
@@ -775,41 +948,6 @@ void UTimeThiefSkillComponent::StopEnhanceScreenVFX(bool bImmediate)
 	{
 		SetEnhanceScreenPostProcessStrength(0.0f);
 	}
-}
-
-void UTimeThiefSkillComponent::StartEnhanceScreenLightningVFX(ATimeThiefCharacterBase& OwnerCharacter)
-{
-	if (!OwnerCharacter.IsLocallyControlled())
-	{
-		return;
-	}
-
-	StopEnhanceScreenLightningVFX();
-
-	TArray<UCameraComponent*> CameraComponents;
-	OwnerCharacter.GetComponents<UCameraComponent>(CameraComponents);
-	for (UCameraComponent* CameraComponent : CameraComponents)
-	{
-		if (!CameraComponent)
-		{
-			continue;
-		}
-
-		ActiveEnhanceScreenLightningNiagaraComponent = PlaySkillNiagaraAttached(
-			EnhanceScreenLightningNiagaraEffect,
-			*CameraComponent,
-			ScreenLightningRelativeLocation);
-		if (ActiveEnhanceScreenLightningNiagaraComponent)
-		{
-			ActiveEnhanceScreenLightningNiagaraComponent->SetVariableFloat(NiagaraIntensityParameterName, 1.0f);
-			return;
-		}
-	}
-}
-
-void UTimeThiefSkillComponent::StopEnhanceScreenLightningVFX()
-{
-	StopSkillNiagaraComponent(ActiveEnhanceScreenLightningNiagaraComponent);
 }
 
 void UTimeThiefSkillComponent::UpdateEnhanceScreenPostProcess(float DeltaTime)
@@ -886,6 +1024,7 @@ void UTimeThiefSkillComponent::AddOrUpdateEnhanceScreenPostProcessBlendable(UCam
 void UTimeThiefSkillComponent::StartRewindVFX(ATimeThiefCharacterBase& OwnerCharacter)
 {
 	StopRewindVFX();
+	PlaySkillSoundAtLocation(RewindStartSound, GetMeshCenterWorldLocation(OwnerCharacter));
 
 	if (USkeletalMeshComponent* MeshComponent = OwnerCharacter.GetMesh())
 	{
@@ -950,6 +1089,22 @@ void UTimeThiefSkillComponent::StopSkillNiagaraComponent(TObjectPtr<UNiagaraComp
 	NiagaraComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 	NiagaraComponent->Deactivate();
 	NiagaraComponent = nullptr;
+}
+
+void UTimeThiefSkillComponent::PlaySkillSoundAtLocation(USoundBase* Sound, const FVector& Location) const
+{
+	if (!Sound)
+	{
+		return;
+	}
+
+	const UWorld* World = GetWorld();
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
+	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
 }
 
 bool UTimeThiefSkillComponent::CanSpawnSkillNiagara() const

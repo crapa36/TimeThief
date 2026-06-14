@@ -1870,6 +1870,17 @@ void UNetworkGameInstanceSubsystem::HandleUseSkillRes(const se::game::S_UseSkill
 	const uint64 CooldownEndMs = Pkt.cooldown_end_ms();					// 스킬 쿨다운이 끝나는 절대 시간 (ms) <- 서버 시간 기준 (신뢰하여 사용하면 곤란함)
 	const uint32 RemainingCooldownMs = Pkt.remaining_cooldown_ms();		// 스킬이 다시 사용 가능해질 때까지 남은 시간 (ms)
 
+	if (RemainingCooldownMs > 0 || Pkt.success())
+	{
+		if (ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn())
+		{
+			if (UTimeThiefSkillComponent* SkillComponent = LocalPlayer->FindComponentByClass<UTimeThiefSkillComponent>())
+			{
+				SkillComponent->ApplySkillCooldown(SlotIndex, SkillId, RemainingCooldownMs);
+			}
+		}
+	}
+
 	if (!Pkt.success())
 	{
 		const auto& Result = Pkt.result();
