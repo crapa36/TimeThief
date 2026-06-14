@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
@@ -75,6 +75,7 @@ private:
 	void Input_ToggleInventory(const FInputActionValue& Value);
 	void Input_WheelMenu(const FInputActionValue& Value);
 	void Input_SavePoint(const FInputActionValue& Value);
+	void Input_UseItem();
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|Hero")

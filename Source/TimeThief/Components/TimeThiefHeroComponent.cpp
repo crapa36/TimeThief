@@ -1,4 +1,4 @@
-﻿#include "Components/TimeThiefHeroComponent.h"
+#include "Components/TimeThiefHeroComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "Input/TimeThiefInputComponent.h"
 #include "Input/TimeThiefInputConfig.h"
@@ -19,6 +19,7 @@
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Skill/SavePointSkillComponent.h"
 #include "Skill/TimeThiefSkillComponent.h"
+#include "Components/System/InventorySystemComponent.h"
 #include "InputCoreTypes.h"
 
 UTimeThiefHeroComponent::UTimeThiefHeroComponent(const FObjectInitializer& ObjectInitializer)
@@ -137,6 +138,8 @@ void UTimeThiefHeroComponent::InitializePlayerInput(UInputComponent* PlayerInput
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_WheelMenu, ETriggerEvent::Completed, this, &ThisClass::Input_WheelMenu);
 	TimeThiefIC->BindNativeAction(InputConfig, Tags.InputTag_Action_SavePoint, ETriggerEvent::Started, this, &ThisClass::Input_SavePoint);
 	
+	PlayerInputComponent->BindKey(EKeys::Four, IE_Pressed, this, &ThisClass::Input_UseItem);
+
 	TArray<uint32> BindHandles;
 	TimeThiefIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
 	
@@ -297,6 +300,28 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 				{
 					NGIS->SendSavePointSet(Player->GetActorLocation());
 				}
+			}
+		}
+	}
+}
+
+void UTimeThiefHeroComponent::Input_UseItem()
+{
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn) return;
+
+	UInventorySystemComponent* InventoryComp = Pawn->GetComponentByClass<UInventorySystemComponent>();
+	if (!InventoryComp) return;
+
+	const EItemID ConsumableItem = InventoryComp->GetConsumableEquipment();
+	
+	if (ConsumableItem != EItemID::SIZE)
+	{
+		if (InventoryComp->GetItemQuantity(ConsumableItem) > 0)
+		{
+			if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
+			{
+				NGIS->SendUseItem(static_cast<uint32>(ConsumableItem));
 			}
 		}
 	}
