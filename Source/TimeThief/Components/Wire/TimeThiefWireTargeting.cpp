@@ -1,4 +1,4 @@
-﻿#include "Components/Wire/TimeThiefWireTargeting.h"
+#include "Components/Wire/TimeThiefWireTargeting.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
@@ -69,23 +69,31 @@ void UTimeThiefWireTargeting::Initialize(ACharacter* InCharacter)
 
 bool UTimeThiefWireTargeting::ShouldRefreshTarget(float DeltaTime, const FVector& AimDirection)
 {
-	const FVector SafeAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
-
 	TargetRefreshTimer = FMath::Max(TargetRefreshTimer - DeltaTime, 0.0f);
 
-	const float RetargetDotThreshold = FMath::Cos(FMath::DegreesToRadians(FMath::Max(RetargetAngleDegrees, 0.0f)));
+	if (TargetRefreshTimer > 0.0f)
+	{
+		return false;
+	}
+
+	const FVector SafeAimDirection = UTimeThiefAimStatics::NormalizeAimDirection(AimDirection);
+	const float CustomRetargetAngle = 5.0f;
+	const float RetargetDotThreshold = FMath::Cos(FMath::DegreesToRadians(CustomRetargetAngle));
+
 	const bool bHasAimDirectionChanged = !bHasCachedTargetAimDirection
 		|| FVector::DotProduct(CachedTargetAimDirection, SafeAimDirection) < RetargetDotThreshold;
-	const bool bShouldRefreshTarget = bHasAimDirectionChanged || TargetRefreshTimer <= 0.0f;
 
-	if (bShouldRefreshTarget)
+	// 타이머 재설정 (주기 0.2초 보장)
+	TargetRefreshTimer = FMath::Max(TargetRefreshInterval, 0.0f);
+
+	if (bHasAimDirectionChanged)
 	{
 		CachedTargetAimDirection = SafeAimDirection;
 		bHasCachedTargetAimDirection = true;
-		TargetRefreshTimer = FMath::Max(TargetRefreshInterval, 0.0f);
+		return true;
 	}
 
-	return bShouldRefreshTarget;
+	return false;
 }
 
 void UTimeThiefWireTargeting::ResetTargetRefresh()
