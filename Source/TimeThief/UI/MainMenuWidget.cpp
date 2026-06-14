@@ -3,6 +3,11 @@
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+UWidget* UMainMenuWidget::GetInitialFocusWidget() const
+{
+	return MatchAction_Button && MatchAction_Button->GetIsFocusable() ? MatchAction_Button : nullptr;
+}
+
 void UMainMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();

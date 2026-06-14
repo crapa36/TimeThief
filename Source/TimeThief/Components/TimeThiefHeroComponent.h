@@ -14,6 +14,7 @@ class UInputMappingContext;
 class UTimeThiefWireComponent;
 class UTimeThiefPawnCombatComponent;
 class UTimeThiefThrowableComponent;
+class UTimeThiefSkillComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTimeThiefHero_ReadyDelegate, UTimeThiefHeroComponent*, HeroComponent);
 
@@ -92,6 +93,9 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTimeThiefThrowableComponent> CachedThrowableComponent;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTimeThiefSkillComponent> CachedSkillComponent;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> FallbackThrowInputAction;

@@ -2,15 +2,14 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/TimeThiefCharacterBase.h"
-#include "Components/Combat/TimeThiefPawnCombatComponent.h"
+#include "Character/TimeThiefSkillDummyCharacter.h"
 #include "Network/MovableNetworkEntityInterface.h"
 #include "CharacterTrajectoryComponent.h"
 #include "Character/TimeThiefNetworkCharacterBase.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
-#include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -22,6 +21,30 @@ UTimeThiefAnimInstance::UTimeThiefAnimInstance(const FObjectInitializer& ObjectI
 void UTimeThiefAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
+	CacheCharacterReferences();
+}
+
+void UTimeThiefAnimInstance::CacheCharacterReferences()
+{
+	CharacterOwner = Cast<ACharacter>(TryGetPawnOwner());
+	MovableNetworkInterface.SetObject(nullptr);
+	MovableNetworkInterface.SetInterface(nullptr);
+	CharacterMovement = nullptr;
+	TrajectoryComponent = nullptr;
+
+	if (!CharacterOwner)
+	{
+		return;
+	}
+
+	if (CharacterOwner->GetClass()->ImplementsInterface(UMovableNetworkEntityInterface::StaticClass()))
+	{
+		MovableNetworkInterface.SetObject(CharacterOwner);
+		MovableNetworkInterface.SetInterface(Cast<IMovableNetworkEntityInterface>(CharacterOwner));
+	}
+
+	CharacterMovement = CharacterOwner->GetCharacterMovement();
+	TrajectoryComponent = CharacterOwner->FindComponentByClass<UCharacterTrajectoryComponent>();
 }
 
 void UTimeThiefAnimInstance::TriggerDoubleJump()
@@ -38,19 +61,9 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	if (!CharacterOwner)
+	if (CharacterOwner.Get() != TryGetPawnOwner() || !CharacterMovement)
 	{
-		CharacterOwner = Cast<ACharacter>(TryGetPawnOwner());
-		if (CharacterOwner)
-		{
-			if (CharacterOwner->GetClass()->ImplementsInterface(UMovableNetworkEntityInterface::StaticClass()))
-			{
-				MovableNetworkInterface.SetObject(CharacterOwner);
-				MovableNetworkInterface.SetInterface(Cast<IMovableNetworkEntityInterface>(CharacterOwner));
-			}
-			CharacterMovement = CharacterOwner->GetCharacterMovement();
-			TrajectoryComponent = CharacterOwner->FindComponentByClass<UCharacterTrajectoryComponent>();
-		}
+		CacheCharacterReferences();
 	}
 
 	if (!CharacterOwner || !CharacterMovement)
@@ -75,16 +88,36 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			bIsFalling = CharacterMovement->IsFalling();
 		}
 	}
+	else
+	{
+		Velocity = CharacterOwner->GetVelocity();
+		bIsFalling = CharacterMovement->IsFalling();
+	}
+
+	const ATimeThiefSkillDummyCharacter* SkillDummyOwner = Cast<ATimeThiefSkillDummyCharacter>(CharacterOwner);
+	if (SkillDummyOwner && Velocity.IsNearlyZero())
+	{
+		Velocity = SkillDummyOwner->GetIntendedMoveVelocity();
+	}
 
 	VerticalVelocity = Velocity.Z;
 	GroundSpeed = Velocity.Size2D();
 
 	const bool bIsRemoteCharacter = MovableNetworkInterface.GetInterface() && !CharacterOwner->IsLocallyControlled();
-	const float MoveSpeedThreshold = bIsRemoteCharacter ? 0.5f : 1.0f;
+	const bool bIsSkillDummy = SkillDummyOwner != nullptr;
+	const bool bUsesVelocityOnlyMove = bIsRemoteCharacter || bIsSkillDummy;
+	const float MoveSpeedThreshold = bUsesVelocityOnlyMove ? 0.5f : 1.0f;
 	bHasVelocity = GroundSpeed > MoveSpeedThreshold;
 
-	const bool bHasAcceleration = !CharacterMovement->GetCurrentAcceleration().IsNearlyZero();
-	bShouldMove = bIsRemoteCharacter ? bHasVelocity : ((GroundSpeed > 0.01f) && bHasAcceleration);
+	if (bUsesVelocityOnlyMove)
+	{
+		bShouldMove = bHasVelocity;
+	}
+	else
+	{
+		const bool bHasAcceleration = !CharacterMovement->GetCurrentAcceleration().IsNearlyZero();
+		bShouldMove = (GroundSpeed > 0.01f) && bHasAcceleration;
+	}
 
 	bIsMoving = bHasVelocity && !bIsFalling;
 
@@ -119,5 +152,19 @@ void UTimeThiefAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		{
 			TurnDirection = Combat->TurnDirection;
 		}
+	}
+	else if (SkillDummyOwner)
+	{
+		if (UStaticMeshComponent* CopiedWeaponMesh = SkillDummyOwner->GetCopiedWeaponMesh())
+		{
+			const FName LeftHandIKSocketName = SkillDummyOwner->GetCopiedWeaponLeftHandIKSocketName();
+			if (CopiedWeaponMesh->DoesSocketExist(LeftHandIKSocketName))
+			{
+				WeaponSocket = CopiedWeaponMesh->GetSocketTransform(LeftHandIKSocketName);
+			}
+		}
+
+		MeshAlpha = SkillDummyOwner->GetCopiedMeshAlpha();
+		TurnDirection = 0;
 	}
 }

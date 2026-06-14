@@ -6,6 +6,7 @@
 
 class UButton;
 class UTextBlock;
+class UWidget;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UGameResultWidget : public UUserWidget
@@ -18,6 +19,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "TimeThief|Game Result")
 	void SetLeavePending(bool bInLeavePending);
+
+	UWidget* GetInitialFocusWidget() const;
 
 protected:
 	virtual void NativeConstruct() override;

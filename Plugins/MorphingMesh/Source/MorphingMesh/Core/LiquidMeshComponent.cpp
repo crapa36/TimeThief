@@ -226,12 +226,18 @@ TArray<FMatrix44f> ULiquidMeshComponent::GetBoneMatrices() const
 		return Out;
 	}
 	
-	auto SkinnedAsset = ParentComponent->BaseSkeletalMeshComponent->GetSkinnedAsset();
+	const USkeletalMeshComponent* BoneMatrixSource = ParentComponent->GetBoneMatrixSourceSkeletalMeshComponent();
+	if (!BoneMatrixSource)
+	{
+		return Out;
+	}
+
+	auto SkinnedAsset = BoneMatrixSource->GetSkinnedAsset();
 	if (!SkinnedAsset)
 	{
 		return Out;
 	}
-	const TArray<FTransform>& ComponentSpace = ParentComponent->BaseSkeletalMeshComponent->GetComponentSpaceTransforms();
+	const TArray<FTransform>& ComponentSpace = BoneMatrixSource->GetComponentSpaceTransforms();
 	const TArray<FMatrix44f>& RefBasesInv = SkinnedAsset->GetRefBasesInvMatrix();
 	
 	const int NumBones = FMath::Min(ComponentSpace.Num(), RefBasesInv.Num());

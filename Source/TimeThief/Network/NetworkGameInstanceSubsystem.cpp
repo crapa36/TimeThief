@@ -2,6 +2,7 @@
 #include "Network/NetworkGameInstanceSubsystem.h"
 
 #include <Components/Skill/SavePointSkillComponent.h>
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include <Generated/ClientPacketHandler.h>
 
 #include "SocketSubsystem.h"
@@ -23,7 +24,6 @@
 #include "Character/TimeThiefPlayerController.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
-#include "Components/Skill/SkillBaseComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/System/TimeStormComponent.h"
@@ -41,6 +41,7 @@
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Game/ItemPoolWorldSubsystem.h"
 #include "Game/ItemSettings.h"
+#include "ItemCommons.h"
 #include "Monster/TimeThiefMonster.h"
 #include "Utils/TimeThiefAimStatics.h"
 #include "Weapon/TimeThiefMasterWeapon.h"
@@ -84,6 +85,11 @@ namespace
 		OutVector->set_x(InVector.X);
 		OutVector->set_y(InVector.Y);
 		OutVector->set_z(InVector.Z);
+	}
+
+	static uint32 ResolveSkillIdFromStoreItem(uint32 StoreItemId)
+	{
+		return StoreItemId - static_cast<uint32>(EItemID::Skill1) + 1;
 	}
 
 	static FRotator ToRotator(const se::common::Rotator& Rotator)
@@ -401,6 +407,14 @@ void UNetworkGameInstanceSubsystem::SendUseSkill(uint32 SlotIndex, uint32 SkillI
 
 void UNetworkGameInstanceSubsystem::SendSkillEquip(uint32 SlotIndex, uint32 SkillId)
 {
+	if (ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn())
+	{
+		if (UTimeThiefSkillComponent* SkillComponent = LocalPlayer->FindComponentByClass<UTimeThiefSkillComponent>())
+		{
+			SkillComponent->SetEquippedSkillSlot(SlotIndex, SkillId);
+		}
+	}
+
 	se::game::C_SkillEquipReq Request;
 	Request.set_slot_index(SlotIndex);
 	Request.set_skill_id(SkillId);
@@ -1851,20 +1865,25 @@ void UNetworkGameInstanceSubsystem::HandleWeaponStatSnapshot(const se::game::N_W
 
 void UNetworkGameInstanceSubsystem::HandleUseSkillRes(const se::game::S_UseSkillRes& Pkt)
 {
-	// Minsoo
-	// 우선 존재하는 SkillBaseComponent를 사용하였음
-	// 마음에 안들 경우 위 class를 갈아 엎거나 새로 만들어서 연결해도 무방
 	const uint32 SlotIndex = Pkt.slot_index();							// 사용하려 한 스킬 슬롯 인덱스
 	const uint32 SkillId = Pkt.skill_id();								// 사용하려 한 스킬 ID
 	const uint64 CooldownEndMs = Pkt.cooldown_end_ms();					// 스킬 쿨다운이 끝나는 절대 시간 (ms) <- 서버 시간 기준 (신뢰하여 사용하면 곤란함)
 	const uint32 RemainingCooldownMs = Pkt.remaining_cooldown_ms();		// 스킬이 다시 사용 가능해질 때까지 남은 시간 (ms)
 
+	if (RemainingCooldownMs > 0 || Pkt.success())
+	{
+		if (ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn())
+		{
+			if (UTimeThiefSkillComponent* SkillComponent = LocalPlayer->FindComponentByClass<UTimeThiefSkillComponent>())
+			{
+				SkillComponent->ApplySkillCooldown(SlotIndex, SkillId, RemainingCooldownMs);
+			}
+		}
+	}
+
 	if (!Pkt.success())
 	{
-		// 사용 실패 시 로그
 		const auto& Result = Pkt.result();
-		// 쿨타임도 RemainingCooldownMs로 설정해줘야 함 (아래 코드)
-		ApplyUseSkillCooldown(Pkt);
 		UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] Use skill failed. Slot=%u, SkillId=%u, RemainingCooldownMs=%u, Result=%s"),
 			SlotIndex,
 			SkillId,
@@ -1873,8 +1892,6 @@ void UNetworkGameInstanceSubsystem::HandleUseSkillRes(const se::game::S_UseSkill
 		return;
 	}
 
-	// 사용 성공 시 스킬 쿨다운 적용 및 로그
-	ApplyUseSkillCooldown(Pkt);
 	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Use skill accepted. Slot=%u, SkillId=%u, CooldownEndMs=%llu, RemainingCooldownMs=%u"),
 		SlotIndex,
 		SkillId,
@@ -1902,7 +1919,12 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 	// 이 EntityId가 LocalPlayer의 경우 직접 효과 적용
 	const bool bIsLocalPlayer = IsLocalPlayerEntity(EntityId);
 	FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId);
-	AActor* SourceActor = EntityEntry != nullptr ? EntityEntry->Actor.Get() : nullptr;
+	AActor* SourceActor = bIsLocalPlayer ? GetLocalPlayerPawn() : nullptr;
+	if (SourceActor == nullptr && EntityEntry != nullptr)
+	{
+		SourceActor = EntityEntry->Actor.Get();
+	}
+	UTimeThiefSkillComponent* SourceSkillComponent = SourceActor != nullptr ? SourceActor->FindComponentByClass<UTimeThiefSkillComponent>() : nullptr;
 
 	switch (Pkt.detail_case())
 	{
@@ -1912,9 +1934,6 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 			const uint32 FireRateBonusPercent = TimeAccel.fire_rate_bonus_percent();		// 전투 관련 가속 효과 (n% <- n은 정수) 
 			const uint32 MoveSpeedBonusPercent = TimeAccel.move_speed_bonus_percent();		// 이동 관련 가속 효과 (n% <- n은 정수)
 
-			// TODO: 우선 해당 스킬을 사용한 Entity Id에게 시각 효과가 나타나야 할 거 같음
-			//	     그리고 LocalPlayer의 경우 실제 버프가 들어가고 Duration이 지나면 버프 효과가 사라져야 함
-			//		 일단은 FireRate는 전투 관련으로 발사 속도, 재장전 속도가 % 만큼 빨라지는 효과로, MoveSpeed는 이동 관련으로 걷기/뛰기 속도가 % 만큼 빨라지는 효과로 가정하고 로그에 출력함
 			UE_LOG(LogTemp, Log, TEXT("[SkillPkt] N_UseSkill TimeAccel. Entity=%u, SkillId=%u, Slot=%u, DurationMs=%u, FireRateBonus=%u, MoveSpeedBonus=%u"),
 				EntityId,
 				SkillId,
@@ -1922,6 +1941,10 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 				DurationMs,
 				FireRateBonusPercent,
 				MoveSpeedBonusPercent);
+			if (SourceSkillComponent)
+			{
+				SourceSkillComponent->ApplyTimeAccelEffect(DurationMs, FireRateBonusPercent, MoveSpeedBonusPercent);
+			}
 			break;
 		}
 	case se::game::N_UseSkill::kAfterImage:		// 이때의 SKill Id 는 2 (KAfterImage이랑은 다른 것임)
@@ -1931,8 +1954,6 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 			const FVector Direction = ToVector(AfterImage.direction());				// 유령(더미)이 이동하는 방향 (단위 벡터)
 			const float MoveSpeed = AfterImage.move_speed();						// 유령(더미)의 이동 속도 (단위: Unreal units per second)
 
-			// TODO: 모든 Client에서 StartPos에서 Spawn 시킨 유령(더미)가 Direction으로 이동하게
-			//	     Duration 동안 지속되고 Duration이 끝나면 자연 소멸(Despawn) 되도록
 			UE_LOG(LogTemp, Log, TEXT("[SkillPkt] N_UseSkill AfterImage. Entity=%u, SkillId=%u, Slot=%u, DurationMs=%u, Start=(%.1f, %.1f, %.1f), Dir=(%.2f, %.2f, %.2f), MoveSpeed=%.2f"),
 				EntityId,
 				SkillId,
@@ -1945,6 +1966,10 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 				Direction.Y,
 				Direction.Z,
 				MoveSpeed);
+			if (SourceSkillComponent)
+			{
+				SourceSkillComponent->SpawnDummyEffect(StartPosition, Direction, MoveSpeed, DurationMs);
+			}
 			break;
 		}
 	case se::game::N_UseSkill::kRewind:		// 이때의 SKill Id 는 3 (KRewind이랑은 다른 것임)
@@ -1955,8 +1980,6 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 			const int32 TargetHealth = Rewind.target_health();							// 역행이 끝났을 때 돌아갈 체력 (HP)
 			const FVector TargetPosition = Rewind.has_target_position() ? ToVector(Rewind.target_position()) : FVector::ZeroVector;	// 역행이 끝났을 때 돌아갈 위치 (만약 패킷에 포함되어 있지 않다면 Local에서 알아서 처리)
 
-			// TODO: 체력의 경우 바로 세팅해도 되고, 위치의 경우는 Client에서 직접 Local Player의 현재 위치를 일정 주기마자 저장해 두고
-			//	     현재 패킷이 도착한 경우 RewindDurationMs의 시각으로 천천히 돌아가도록 (테이프 뒤로 감듯이)
 			UE_LOG(LogTemp, Log, TEXT("[SkillPkt] N_UseSkill Rewind. Entity=%u, SkillId=%u, Slot=%u, DurationMs=%u, RewindMs=%u, InvulnerableMs=%u, TargetHealth=%d, Target=(%.1f, %.1f, %.1f)"),
 				EntityId,
 				SkillId,
@@ -1968,6 +1991,10 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 				TargetPosition.X,
 				TargetPosition.Y,
 				TargetPosition.Z);
+			if (SourceSkillComponent)
+			{
+				SourceSkillComponent->ApplyRewindEffect(DurationMs, RewindDurationMs, TargetHealth, TargetPosition, Rewind.has_target_position());
+			}
 			break;
 		}
 	case se::game::N_UseSkill::DETAIL_NOT_SET:
@@ -1981,8 +2008,6 @@ void UNetworkGameInstanceSubsystem::HandleUseSkill(const se::game::N_UseSkill& P
 		break;
 	}
 
-	(void)bIsLocalPlayer;
-	(void)SourceActor;
 }
 
 void UNetworkGameInstanceSubsystem::HandleKillPlayer(const se::game::N_KillPlayer& Pkt)
@@ -2294,6 +2319,12 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 {
 	if (!Pkt.success())
 	{
+		const FString ResultMessage = Pkt.has_result()
+			? FString(UTF8_TO_TCHAR(Pkt.result().message().c_str()))
+			: FString();
+		UE_LOG(LogTemp, Warning, TEXT("[StorePkt] Use store failed. ItemId=%u, Result=%s"),
+			Pkt.store_item_id(),
+			*ResultMessage);
 		return;
 	}
 
@@ -2313,6 +2344,17 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 	}
 	OnStorePriceDataUpdated.Broadcast();
 	OnStorePurchaseSucceeded.Broadcast(Pkt.store_item_id(), NewPrice, Pkt.is_sold_out());
+
+	switch (static_cast<EItemID>(Pkt.store_item_id()))
+	{
+	case EItemID::Skill1:
+	case EItemID::Skill2:
+	case EItemID::Skill3:
+		TryAutoEquipPurchasedSkill(Pkt.store_item_id());
+		break;
+	default:
+		break;
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
@@ -2649,13 +2691,13 @@ void UNetworkGameInstanceSubsystem::HandleTimePointSnapshot(const se::game::N_Ti
 	TimePointComp->SetTimePoints(Pkt.time_points());
 }
 
-void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt)
+void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock&)
 {
 	// 해당 스킬은 이제 사용 가능한 스킬이 되었음 (UI에서 잠금 해제된 것으로 업데이트)
 	UE_LOG(LogTemp, Log, TEXT("Skill unlocked: SkillId=%u"), Pkt.skill_id());
 }
 
-void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt)
+void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes&)
 {
 	// 사용하지 않음
 	// UI가 있다면 사용 가능해짐
@@ -2677,9 +2719,29 @@ void UNetworkGameInstanceSubsystem::HandleSkillUnlockSnapshot(const se::game::N_
 	}
 	
 	ATimeThiefCharacterBase* LocalPlayer = GetLocalPlayerPawn();
-	// Skill System에 통지하도록
-	// Pkt의 unlocked_skill_ids에 들어있는 값들은 사용 가능한 스킬들
-	// equipped_skill_slots에 있는 값은 slot_index와 skill_id로 이루어져 있고, 현재 장착된 스킬 슬롯 정보임
+	// Client only mirrors equipped slots. Skill ownership and use validity are server-authoritative.
+	if (LocalPlayer == nullptr)
+	{
+		return;
+	}
+
+	UTimeThiefSkillComponent* SkillComponent = LocalPlayer->FindComponentByClass<UTimeThiefSkillComponent>();
+	if (SkillComponent == nullptr)
+	{
+		return;
+	}
+
+	TArray<FTimeThiefSkillSlotState> EquippedSlots;
+	EquippedSlots.Reserve(Pkt.equipped_skill_slots_size());
+	for (const se::game::SkillSlotSnapshot& SlotSnapshot : Pkt.equipped_skill_slots())
+	{
+		FTimeThiefSkillSlotState SlotState;
+		SlotState.SlotIndex = static_cast<int32>(SlotSnapshot.slot_index());
+		SlotState.SkillId = static_cast<int32>(SlotSnapshot.skill_id());
+		EquippedSlots.Add(SlotState);
+	}
+
+	SkillComponent->ApplySkillSnapshot(EquippedSlots);
 }
 
 void UNetworkGameInstanceSubsystem::HandleSkillEquip(const se::game::N_SkillEquip& Pkt)
@@ -3190,52 +3252,40 @@ ATimeThiefPlayerCharacter* UNetworkGameInstanceSubsystem::GetLocalPlayerPawn()
 	return Cast<ATimeThiefPlayerCharacter>(Actor);
 }
 
-// Minsoo
-// 실제 Skill 구현과 연결은 어떻게 될 지 몰라서 다음과 같이 작성하여 남겨두었음,
-// 본인 구현에 맞게 수정하는 것이 좋아보임
-
-USkillBaseComponent* UNetworkGameInstanceSubsystem::FindLocalSkillComponent(uint32 SkillId)
+void UNetworkGameInstanceSubsystem::TryAutoEquipPurchasedSkill(uint32 PurchasedItemId)
 {
-	if (SkillId == 0)
-	{
-		return nullptr;
-	}
+	const uint32 SkillId = ResolveSkillIdFromStoreItem(PurchasedItemId);
 
-	ATimeThiefPlayerCharacter* LocalPlayerPawn = GetLocalPlayerPawn();
-	if (LocalPlayerPawn == nullptr)
-	{
-		return nullptr;
-	}
-
-	TArray<USkillBaseComponent*> SkillComponents;
-	LocalPlayerPawn->GetComponents<USkillBaseComponent>(SkillComponents);
-	for (USkillBaseComponent* SkillComponent : SkillComponents)
-	{
-		if (SkillComponent != nullptr && SkillComponent->GetSkillId() == SkillId)
-		{
-			return SkillComponent;
-		}
-	}
-
-	return nullptr;
-}
-
-void UNetworkGameInstanceSubsystem::ApplyUseSkillCooldown(const se::game::S_UseSkillRes& Pkt)
-{
-	const uint32 RemainingCooldownMs = Pkt.remaining_cooldown_ms();
-	USkillBaseComponent* SkillComponent = FindLocalSkillComponent(Pkt.skill_id());
+	ATimeThiefPlayerCharacter* LocalPlayer = GetLocalPlayerPawn();
+	UTimeThiefSkillComponent* SkillComponent = LocalPlayer ? LocalPlayer->FindComponentByClass<UTimeThiefSkillComponent>() : nullptr;
 	if (SkillComponent == nullptr)
 	{
-		if (RemainingCooldownMs > 0)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[SkillPkt] Could not apply skill cooldown. SkillId=%u, RemainingCooldownMs=%u"),
-				Pkt.skill_id(),
-				RemainingCooldownMs);
-		}
 		return;
 	}
 
-	SkillComponent->ApplyServerCooldownMs(RemainingCooldownMs);
+	uint32 SlotIndex = 0;
+	if (SkillComponent->FindEquippedSkillSlot(SkillId, SlotIndex))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Purchased skill already equipped. ItemId=%u, SkillId=%u, Slot=%u"),
+			PurchasedItemId,
+			SkillId,
+			SlotIndex);
+		return;
+	}
+
+	if (!SkillComponent->FindFirstAvailableSkillSlot(SlotIndex))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Purchased skill not auto equipped: no empty slot. ItemId=%u, SkillId=%u"),
+			PurchasedItemId,
+			SkillId);
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[SkillPkt] Auto equip purchased skill. ItemId=%u, SkillId=%u, Slot=%u"),
+		PurchasedItemId,
+		SkillId,
+		SlotIndex);
+	SendSkillEquip(SlotIndex, SkillId);
 }
 
 void UNetworkGameInstanceSubsystem::ResetLoadingGate()

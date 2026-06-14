@@ -37,6 +37,7 @@ public:
 	ATimeThiefMasterWeapon* GetMasterWeapon() const { return MasterWeaponPtr; }
 
 	void SetMoveSpeedUpgradeBonus(float InMoveSpeedBonus);
+	void RefreshMoveSpeed();
 
 	UFUNCTION(Server, Unreliable)
 	void Server_SyncAim(float InAimYaw, float InAimPitch, float InCharacterYaw);
@@ -81,6 +82,7 @@ private:
 	FVector GetAimDirection() const;
 	
 	float DefaultMaxWalkSpeed = 0.0f;
+	float MoveSpeedUpgradeBonus = 0.0f;
 	FTimeThiefAimHelperState AimHelperState;
 
 	UPROPERTY(Transient)

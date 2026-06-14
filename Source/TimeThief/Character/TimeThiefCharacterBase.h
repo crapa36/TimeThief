@@ -9,6 +9,7 @@ class UNiagaraSystem;
 class UMorphingMeshComponent;
 class ATimeThiefMasterWeapon;
 class USavePointSkillComponent;
+class UTimeThiefSkillComponent;
 class UTimePointSystemComponent;
 class UTimeThiefPawnCombatComponent;
 class UTimeThiefHealthComponent;
@@ -112,6 +113,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Skill")
 	TObjectPtr<USavePointSkillComponent> SavePointSkillComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Skill")
+	TObjectPtr<UTimeThiefSkillComponent> SkillComponent;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UChildActorComponent> WeaponActorComponent;
 
@@ -174,6 +178,8 @@ public:
 	UMorphingMeshComponent* GetMorphingMeshComponent() const { return MorphingCharacter; }
 
 	USavePointSkillComponent* GetSavePointSkillComponent() const { return SavePointSkillComponent; }
+
+	UTimeThiefSkillComponent* GetSkillComponent() const { return SkillComponent; }
 
 	ATimeThiefMasterWeapon* GetWeaponActor() const;
 

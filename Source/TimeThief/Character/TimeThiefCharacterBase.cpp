@@ -18,6 +18,7 @@
 #include "Components/TimeThiefPawnExtensionComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Skill/SavePointSkillComponent.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Components/System/InventorySystemComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "MorphingMesh/MorphingMeshData.h"
@@ -68,6 +69,7 @@ ATimeThiefCharacterBase::ATimeThiefCharacterBase(const FObjectInitializer& Objec
 	SpawnFX->bAutoActivate = false;
 
 	SavePointSkillComponent = CreateDefaultSubobject<USavePointSkillComponent>(TEXT("SavePointSkillComponent"));
+	SkillComponent = CreateDefaultSubobject<UTimeThiefSkillComponent>(TEXT("SkillComponent"));
 
 	MorphingCharacter = CreateDefaultSubobject<UMorphingMeshComponent>(TEXT("MorphingCharacter"));
 	MorphingCharacter->SetupAttachment(GetMesh());

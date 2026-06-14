@@ -23,11 +23,7 @@ class TIMETHIEF_API USavePointSkillComponent : public USkillBaseComponent, publi
 	UPROPERTY(EditAnywhere, Category= "VFX")
 	TObjectPtr<UAnimMontage> Montage;
 public:
-	virtual void OnDeath() override;
-	
 	virtual void OnBeginRespawn() override;
-	
-	virtual void OnEndRespawn() override;
 	
 public:
 	// Sets default values for this component's properties
@@ -40,10 +36,6 @@ protected:
 	virtual void OnRegister() override;
 	
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-	
 	virtual void ActivateSkill() override;
 
 protected:

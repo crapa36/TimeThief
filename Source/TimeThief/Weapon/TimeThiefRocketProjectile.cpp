@@ -2,6 +2,7 @@
 #include "Components/AudioComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -323,8 +324,17 @@ void ATimeThiefRocketProjectile::ApplyExplosionDamage(const FVector& ExplosionLo
 		return;
 	}
 
-	const float FinalMaxDamage = MaxDamage + DamageBonus;
-	const float FinalMinDamage = MinDamage + DamageBonus;
+	float DamageMultiplier = 1.0f;
+	if (AActor* OwnerActorForSkill = CachedOwnerActor.Get())
+	{
+		if (const UTimeThiefSkillComponent* SkillComponent = OwnerActorForSkill->FindComponentByClass<UTimeThiefSkillComponent>())
+		{
+			DamageMultiplier = SkillComponent->GetDamageMultiplier();
+		}
+	}
+
+	const float FinalMaxDamage = (MaxDamage + DamageBonus) * DamageMultiplier;
+	const float FinalMinDamage = (MinDamage + DamageBonus) * DamageMultiplier;
 
 	AController* InstigatorController = nullptr;
 	if (APawn* InstigatorPawn = CachedInstigatorPawn.Get())

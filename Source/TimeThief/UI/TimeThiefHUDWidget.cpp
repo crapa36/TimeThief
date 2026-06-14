@@ -1,15 +1,41 @@
 ﻿#include "UI/TimeThiefHUDWidget.h"
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/HorizontalBox.h"
+#include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/System/TimePointSystemComponent.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
+#include "DataAssets/GameItemData.h"
+#include "Game/ItemSettings.h"
+#include "ItemCommons.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "UI/TimeThiefControlGuideWidget.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
+
+namespace
+{
+	constexpr uint32 SkillSlot1Index = 0;
+	constexpr uint32 SkillSlot2Index = 1;
+
+	EItemID ResolveSkillItemId(int32 SkillId)
+	{
+		switch (SkillId)
+		{
+		case 1:
+			return EItemID::Skill1;
+		case 2:
+			return EItemID::Skill2;
+		case 3:
+			return EItemID::Skill3;
+		default:
+			return EItemID::SIZE;
+		}
+	}
+}
 
 UTimeThiefHUDWidget::UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -28,6 +54,37 @@ void UTimeThiefHUDWidget::NativeConstruct()
 		WireCooldown_ProgressBar->SetPercent(0.0f);
 	}
 	LastWireCooldownPercent = -1.0f;
+	LastSkillSlot1CooldownPercent = -1.0f;
+	LastSkillSlot2CooldownPercent = -1.0f;
+	LastSkillSlot1CooldownSeconds = -1;
+	LastSkillSlot2CooldownSeconds = -1;
+
+	if (SkillSlot1_Icon)
+	{
+		SkillSlot1_Icon->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (SkillSlot2_Icon)
+	{
+		SkillSlot2_Icon->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (SkillSlot1_Cooldown_ProgressBar)
+	{
+		SkillSlot1_Cooldown_ProgressBar->SetVisibility(ESlateVisibility::Hidden);
+		SkillSlot1_Cooldown_ProgressBar->SetPercent(0.0f);
+	}
+	if (SkillSlot2_Cooldown_ProgressBar)
+	{
+		SkillSlot2_Cooldown_ProgressBar->SetVisibility(ESlateVisibility::Hidden);
+		SkillSlot2_Cooldown_ProgressBar->SetPercent(0.0f);
+	}
+	if (SkillSlot1_Cooldown_Text)
+	{
+		SkillSlot1_Cooldown_Text->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (SkillSlot2_Cooldown_Text)
+	{
+		SkillSlot2_Cooldown_Text->SetVisibility(ESlateVisibility::Hidden);
+	}
 
 	EnsureControlGuideWidget();
 	if (UUserWidget* GuideWidget = GetControlGuideWidget())
@@ -60,6 +117,12 @@ void UTimeThiefHUDWidget::NativeDestruct()
 		CachedCombatComponent->OnWeaponUnequipped_Delegate.RemoveAll(this);
 	}
 
+	if (CachedSkillComponent.IsValid())
+	{
+		CachedSkillComponent->OnSkillSlotsChanged.RemoveAll(this);
+		CachedSkillComponent->OnSkillCooldownChanged.RemoveAll(this);
+	}
+
 	if (CachedTimePointSystemComponent.IsValid())
 	{
 		CachedTimePointSystemComponent->OnTimePointsChanged_Delegate.RemoveAll(this);
@@ -67,6 +130,7 @@ void UTimeThiefHUDWidget::NativeDestruct()
 
 	CachedWeapon.Reset();
 	CachedWireComponent.Reset();
+	CachedSkillComponent.Reset();
 
 	if (SpawnedControlGuideWidget)
 	{
@@ -85,6 +149,7 @@ void UTimeThiefHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 	{
 		UpdateCrosshairInvalidation();
 		UpdateWireCooldownDisplay();
+		UpdateSkillCooldownDisplay();
 	}
 }
 
@@ -180,6 +245,11 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 		{
 			CachedTimePointSystemComponent->OnTimePointsChanged_Delegate.RemoveAll(this);
 		}
+		if (CachedSkillComponent.IsValid())
+		{
+			CachedSkillComponent->OnSkillSlotsChanged.RemoveAll(this);
+			CachedSkillComponent->OnSkillCooldownChanged.RemoveAll(this);
+		}
 		if (CachedWeapon.IsValid())
 		{
 			CachedWeapon->OnAmmoChanged_Delegate.RemoveAll(this);
@@ -190,6 +260,7 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	CachedHealthComponent = InCharacter->GetComponentByClass<UTimeThiefHealthComponent>();
 	CachedCombatComponent = InCharacter->GetPlayerCombatComponent();
 	CachedWireComponent = InCharacter->GetWireComponent();
+	CachedSkillComponent = InCharacter->FindComponentByClass<UTimeThiefSkillComponent>();
 	CachedTimePointSystemComponent = InCharacter->GetComponentByClass<UTimePointSystemComponent>();
 	
 	if (CachedHealthComponent.IsValid())
@@ -219,6 +290,14 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 			OnWeaponUnequipped();
 		}
 	}
+
+	if (CachedSkillComponent.IsValid())
+	{
+		CachedSkillComponent->OnSkillSlotsChanged.AddUObject(this, &UTimeThiefHUDWidget::OnSkillSlotsChanged);
+		CachedSkillComponent->OnSkillCooldownChanged.AddUObject(this, &UTimeThiefHUDWidget::OnSkillCooldownChanged);
+	}
+	UpdateSkillSlotsDisplay();
+	UpdateSkillCooldownDisplay();
 }
 
 void UTimeThiefHUDWidget::OnHealthUpdated(const UTimeThiefHealthComponent* HealthComponent, float OldHealth, float CurrHealth, AActor* Instigator)
@@ -288,6 +367,34 @@ void UTimeThiefHUDWidget::OnWeaponUnequipped()
 void UTimeThiefHUDWidget::OnTimePointUpdated(int DisplayTimePoints)
 {
 	TimePoint_Text->SetText(FText::AsNumber(DisplayTimePoints));
+}
+
+void UTimeThiefHUDWidget::OnSkillSlotsChanged()
+{
+	UpdateSkillSlotsDisplay();
+	UpdateSkillCooldownDisplay();
+}
+
+void UTimeThiefHUDWidget::OnSkillCooldownChanged(uint32 SlotIndex)
+{
+	if (SlotIndex == SkillSlot1Index)
+	{
+		UpdateSkillCooldownSlotDisplay(
+			SkillSlot1Index,
+			SkillSlot1_Cooldown_ProgressBar,
+			SkillSlot1_Cooldown_Text,
+			LastSkillSlot1CooldownPercent,
+			LastSkillSlot1CooldownSeconds);
+	}
+	else if (SlotIndex == SkillSlot2Index)
+	{
+		UpdateSkillCooldownSlotDisplay(
+			SkillSlot2Index,
+			SkillSlot2_Cooldown_ProgressBar,
+			SkillSlot2_Cooldown_Text,
+			LastSkillSlot2CooldownPercent,
+			LastSkillSlot2CooldownSeconds);
+	}
 }
 
 void UTimeThiefHUDWidget::ToggleControlGuideWidget()
@@ -403,4 +510,138 @@ void UTimeThiefHUDWidget::UpdateWireCooldownDisplay()
 	{
 		WireCooldown_ProgressBar->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
+}
+
+void UTimeThiefHUDWidget::UpdateSkillSlotsDisplay()
+{
+	UpdateSkillSlotDisplay(SkillSlot1Index, SkillSlot1_Icon);
+	UpdateSkillSlotDisplay(SkillSlot2Index, SkillSlot2_Icon);
+}
+
+void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget)
+{
+	if (!IconWidget)
+	{
+		return;
+	}
+
+	FTimeThiefSkillSlotState SlotState;
+	const bool bHasSkill = CachedSkillComponent.IsValid()
+		&& CachedSkillComponent->GetSkillSlotState(static_cast<int32>(SlotIndex), SlotState)
+		&& SlotState.SkillId > 0;
+	if (!bHasSkill)
+	{
+		IconWidget->SetVisibility(ESlateVisibility::Hidden);
+		return;
+	}
+
+	UTexture2D* SkillIcon = ResolveSkillIcon(SlotState.SkillId);
+	if (!SkillIcon)
+	{
+		IconWidget->SetVisibility(ESlateVisibility::Hidden);
+		return;
+	}
+
+	IconWidget->SetBrushFromTexture(SkillIcon);
+	IconWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+}
+
+void UTimeThiefHUDWidget::UpdateSkillCooldownDisplay()
+{
+	UpdateSkillCooldownSlotDisplay(
+		SkillSlot1Index,
+		SkillSlot1_Cooldown_ProgressBar,
+		SkillSlot1_Cooldown_Text,
+		LastSkillSlot1CooldownPercent,
+		LastSkillSlot1CooldownSeconds);
+	UpdateSkillCooldownSlotDisplay(
+		SkillSlot2Index,
+		SkillSlot2_Cooldown_ProgressBar,
+		SkillSlot2_Cooldown_Text,
+		LastSkillSlot2CooldownPercent,
+		LastSkillSlot2CooldownSeconds);
+}
+
+void UTimeThiefHUDWidget::UpdateSkillCooldownSlotDisplay(
+	uint32 SlotIndex,
+	UProgressBar* CooldownProgressBar,
+	UTextBlock* CooldownText,
+	float& LastCooldownPercent,
+	int32& LastCooldownSeconds)
+{
+	const FTimeThiefSkillCooldownState CooldownState = CachedSkillComponent.IsValid()
+		? CachedSkillComponent->GetSkillCooldownState(static_cast<int32>(SlotIndex))
+		: FTimeThiefSkillCooldownState();
+	const bool bCoolingDown = CooldownState.bCoolingDown && CooldownState.RemainingSeconds > 0.0f;
+	if (!bCoolingDown)
+	{
+		if (CooldownProgressBar)
+		{
+			if (!FMath::IsNearlyZero(LastCooldownPercent))
+			{
+				CooldownProgressBar->SetPercent(0.0f);
+				LastCooldownPercent = 0.0f;
+			}
+			// if (CooldownProgressBar->GetVisibility() != ESlateVisibility::Hidden)
+			// {
+			// 	CooldownProgressBar->SetVisibility(ESlateVisibility::Hidden);
+			// }
+		}
+		if (CooldownText)
+		{
+			if (CooldownText->GetVisibility() != ESlateVisibility::Hidden)
+			{
+				CooldownText->SetVisibility(ESlateVisibility::Hidden);
+			}
+		}
+		LastCooldownSeconds = 0;
+		return;
+	}
+
+	const float CooldownPercent = CachedSkillComponent->GetSkillCooldownPercent(static_cast<int32>(SlotIndex));
+	if (CooldownProgressBar)
+	{
+		if (!FMath::IsNearlyEqual(LastCooldownPercent, CooldownPercent, KINDA_SMALL_NUMBER))
+		{
+			CooldownProgressBar->SetPercent(CooldownPercent);
+			LastCooldownPercent = CooldownPercent;
+		}
+		if (CooldownProgressBar->GetVisibility() != ESlateVisibility::HitTestInvisible)
+		{
+			CooldownProgressBar->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+
+	const int32 DisplaySeconds = FMath::CeilToInt(CooldownState.RemainingSeconds);
+	if (CooldownText)
+	{
+		if (LastCooldownSeconds != DisplaySeconds)
+		{
+			CooldownText->SetText(FText::AsNumber(DisplaySeconds));
+			LastCooldownSeconds = DisplaySeconds;
+		}
+		if (CooldownText->GetVisibility() != ESlateVisibility::HitTestInvisible)
+		{
+			CooldownText->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+}
+
+UTexture2D* UTimeThiefHUDWidget::ResolveSkillIcon(int32 SkillId) const
+{
+	const EItemID SkillItemId = ResolveSkillItemId(SkillId);
+	if (SkillItemId == EItemID::SIZE)
+	{
+		return nullptr;
+	}
+
+	const UItemSettings* ItemSettings = GetDefault<UItemSettings>();
+	UGameItemData* LoadedData = ItemSettings ? ItemSettings->ItemData.LoadSynchronous() : nullptr;
+	if (!LoadedData)
+	{
+		return nullptr;
+	}
+
+	const FItemData* ItemData = LoadedData->Items.Find(SkillItemId);
+	return ItemData ? ItemData->Icon : nullptr;
 }

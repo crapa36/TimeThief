@@ -27,6 +27,8 @@ public:
 	void OnEnterDoubleJumpStart(const FAnimUpdateContext& Context, const FAnimNodeReference& Node);
 	
 protected:
+	void CacheCharacterReferences();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References")
 	TObjectPtr<ACharacter> CharacterOwner;
 	

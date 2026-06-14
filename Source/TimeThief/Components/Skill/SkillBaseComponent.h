@@ -19,25 +19,20 @@ public:
 	USkillBaseComponent();
 
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-	
 	virtual void OnRegister() override;
 	
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
-	
 	UFUNCTION()
 	virtual void ActivateSkill(){}
 	
 	bool CanActivate() const;
 	uint32 GetSkillId() const { return SkillId; }
-	float GetRemainingCoolTime() const { return LeftCoolTime; }
+	float GetRemainingCoolTime() const;
 	void ApplyServerCooldownMs(uint32 RemainingCooldownMs);
 
 protected:
+	void StartCooldown(float DurationSeconds);
+
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	uint32 SkillId = 0;
 
@@ -46,7 +41,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Skill")
 	float CoolTime = 0;
 
-	float LeftCoolTime = 0;
+	float CooldownEndTimeSeconds = 0.0f;
 
 	UPROPERTY()
 	TObjectPtr<ATimeThiefCharacterBase> OwnerCharacter;

@@ -10,14 +10,7 @@
 #include "Components/System/InventorySystemComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 
-
-void USavePointSkillComponent::OnDeath()
-{
-	ILifeObserver::OnDeath();
-	
-}
 
 void USavePointSkillComponent::OnBeginRespawn()
 {
@@ -36,18 +29,9 @@ void USavePointSkillComponent::OnBeginRespawn()
 	}
 }
 
-void USavePointSkillComponent::OnEndRespawn()
-{
-	ILifeObserver::OnEndRespawn();
-}
-
 // Sets default values for this component's properties
 USavePointSkillComponent::USavePointSkillComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
 	SavePointEffect = CreateDefaultSubobject<UNiagaraComponent>("SavePointEffect");
 	SavePointEffect->bAutoActivate = false;
 	
@@ -72,15 +56,6 @@ void USavePointSkillComponent::OnRegister()
 	{
 		SavePointEffect->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, NAME_None);
 	}
-}
-
-// Called every frame
-void USavePointSkillComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                             FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 void USavePointSkillComponent::ActivateSkill()
@@ -111,12 +86,11 @@ void USavePointSkillComponent::ActivateSkill()
 		OwnerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	}
 	
-	LeftCoolTime = CoolTime;
+	StartCooldown(CoolTime);
 }
 
 void USavePointSkillComponent::OnFinished(UNiagaraComponent* FinishedComponent)
 {
-	// UKismetSystemLibrary::PrintString(this, TEXT("Save Skill Finished"));
 	if (OwnerCharacter)
 	{
 		if (auto PC = Cast<APlayerController>(OwnerCharacter->GetController()))

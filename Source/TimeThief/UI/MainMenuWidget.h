@@ -7,11 +7,15 @@
 
 class UButton;
 class UTexture2D;
+class UWidget;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UMainMenuWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+public:
+	UWidget* GetInitialFocusWidget() const;
 
 protected:
 	UPROPERTY(meta = (BindWidget))

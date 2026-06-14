@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Character/TimeThiefCharacterBase.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Network/State/CombatNotifyType.h"
@@ -137,8 +138,8 @@ void UTimeThiefPawnCombatComponent::EquipWeapon(FGameplayTag WeaponTag)
 
 					if (auto MorphingComp = BaseChar->GetMorphingMeshComponent())
 					{
-						MorphingComp->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(WeaponTag));
 						MorphingComp->MaxMorphingTime = MontageLength;
+						MorphingComp->SetType(FTimeThiefGameplayTags::GetMorphTargetTypeByTag(WeaponTag));
 					}
 				}
 			}
@@ -244,8 +245,14 @@ float UTimeThiefPawnCombatComponent::PlayEquipMontage(UTimeThiefWeaponComponentB
 
 	if (ATimeThiefCharacterBase* BaseChar = Cast<ATimeThiefCharacterBase>(GetPawn<ACharacter>()))
 	{
-		BaseChar->PlayMontageOnAllMeshes(EquipMontage);
-		return EquipMontage->GetPlayLength();
+		float PlayRate = 1.0f;
+		if (const UTimeThiefSkillComponent* SkillComponent = BaseChar->FindComponentByClass<UTimeThiefSkillComponent>())
+		{
+			PlayRate = SkillComponent->GetEquipSpeedMultiplier();
+		}
+
+		BaseChar->PlayMontageOnAllMeshes(EquipMontage, PlayRate);
+		return EquipMontage->GetPlayLength() / FMath::Max(PlayRate, 0.01f);
 	}
 
 	return 0.0f;

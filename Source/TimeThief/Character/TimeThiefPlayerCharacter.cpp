@@ -3,18 +3,19 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimeThiefHeroComponent.h"
+#include "Components/TimeThiefPhysicalHitReactionComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
 #include "Components/Combat/TimeThiefThrowableComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Character/TimeThiefPawnData.h"
 #include "Components/Wire/TimeThiefWireComponent.h"
 #include "Components/System/InventorySystemComponent.h"
-#include "Components/TimeThiefTrajectoryComponent.h"
 #include "Actors/InteractionActorBase.h"
 #include "Character/TimeThiefPlayerController.h"
 #include "ChannelCommons.h"
 #include "TimeThiefPlayerState.h"
 #include "Components/System/TimePointSystemComponent.h"
+#include "Components/Skill/TimeThiefSkillComponent.h"
 #include "UI/TimeThiefHUDWidget.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 #include "Network/NetworkWireComponent.h"
@@ -26,6 +27,14 @@
 #include "Weapon/TimeThiefMasterWeapon.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 #include "Utils/TimeThiefAimStatics.h"
+
+namespace
+{
+	uint32 ResolveSkillIdFromStoreItem(EItemID ItemID)
+	{
+		return static_cast<uint32>(ItemID) - static_cast<uint32>(EItemID::Skill1) + 1;
+	}
+}
 
 ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -43,16 +52,11 @@ ATimeThiefPlayerCharacter::ATimeThiefPlayerCharacter(const FObjectInitializer& O
 
 	HeroComponent = CreateDefaultSubobject<UTimeThiefHeroComponent>(TEXT("HeroComponent"));
 	PlayerCombatComponent = CreateDefaultSubobject<UTimeThiefPlayerCombatComponent>(TEXT("PlayerCombatComponent"));
+	PhysicalHitReactionComponent = CreateDefaultSubobject<UTimeThiefPhysicalHitReactionComponent>(TEXT("PhysicalHitReactionComponent"));
 	WireComponent = CreateDefaultSubobject<UTimeThiefWireComponent>(TEXT("WireComponent"));
 	NetworkWireComponent = CreateDefaultSubobject<UNetworkWireComponent>(TEXT("NetworkWireComponent"));
 	InventoryComponent = CreateDefaultSubobject<UInventorySystemComponent>(TEXT("InventoryComponent"));
 	ThrowableComponent = CreateDefaultSubobject<UTimeThiefThrowableComponent>(TEXT("ThrowableComponent"));
-
-	CharacterTrajectoryComponent = CreateDefaultSubobject<UTimeThiefTrajectoryComponent>(
-		TEXT("CharacterTrajectoryComponent"));
-	CharacterTrajectoryComponent->SetAutoActivate(true);
-	CharacterTrajectoryComponent->PrimaryComponentTick.bCanEverTick = true;
-	CharacterTrajectoryComponent->PrimaryComponentTick.bStartWithTickEnabled = true;
 
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
@@ -103,11 +107,9 @@ bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
 			return false;
 		}
 		break;
-	default:
-		if (!InventoryComponent)
-		{
-			return false;
-		}
+	case EItemID::Skill1:
+	case EItemID::Skill2:
+	case EItemID::Skill3:
 		break;
 	}
 
@@ -287,6 +289,20 @@ bool ATimeThiefPlayerCharacter::PurchaseItem(const FStoreOrder& Order)
 #endif
 		}
 		break;
+	case EItemID::Skill1:
+	case EItemID::Skill2:
+	case EItemID::Skill3:
+		{
+			const uint32 SkillId = ResolveSkillIdFromStoreItem(Order.ItemID);
+			uint32 SlotIndex = 0;
+			UTimeThiefSkillComponent* SkillComp = GetSkillComponent();
+			if (!SkillComp->FindEquippedSkillSlot(SkillId, SlotIndex)
+				&& SkillComp->FindFirstAvailableSkillSlot(SlotIndex))
+			{
+				SkillComp->SetEquippedSkillSlot(SlotIndex, SkillId);
+			}
+			break;
+		}
 	default:
 		InventoryComponent->AddItem(Order.ItemID);
 		break;

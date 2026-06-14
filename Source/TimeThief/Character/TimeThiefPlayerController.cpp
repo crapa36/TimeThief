@@ -11,6 +11,7 @@
 #include "UI/TimeThiefHUDWidget.h"
 #include "UI/Inventory/InventoryWidget.h"
 #include "Components/GameFrameworkComponentManager.h"
+#include "Components/Widget.h"
 #include "Game/TimeThiefGameMode.h"
 #include "TimeThiefGameplayTags.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
@@ -199,7 +200,10 @@ void ATimeThiefPlayerController::ShowMainMenu()
 
 	bShowMouseCursor = true;
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(MainMenuWidget->TakeWidget());
+	if (UWidget* FocusWidget = MainMenuWidget->GetInitialFocusWidget())
+	{
+		InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
+	}
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
 }
@@ -245,7 +249,10 @@ void ATimeThiefPlayerController::ShowGameResult(int32 Rank, int32 Score, const F
 
 	bShowMouseCursor = true;
 	FInputModeUIOnly InputMode;
-	InputMode.SetWidgetToFocus(GameResultWidget->TakeWidget());
+	if (UWidget* FocusWidget = GameResultWidget->GetInitialFocusWidget())
+	{
+		InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
+	}
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
 }

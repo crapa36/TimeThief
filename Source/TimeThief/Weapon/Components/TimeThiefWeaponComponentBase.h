@@ -69,6 +69,11 @@ public:
 	float GetDamageBonus() const { return DamageBonus; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon|Stats")
+	float GetDamageMultiplier() const;
+
+	float GetEffectiveDamage(float BaseDamage) const;
+
+	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon|Stats")
 	float GetRecoilReduction() const { return RecoilReduction; }
 
 	UFUNCTION(BlueprintPure, Category = "TimeThief|Weapon|Ammo")
@@ -138,6 +143,7 @@ public:
 
 	void NotifyAmmoChanged();
 	FVector GetMuzzleLocation() const;
+	void SetAmmoFromSkillRewind(int32 NewAmmo);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TimeThief|Weapon|Stats")
 	float FireRate = 600.0f;
@@ -245,8 +251,12 @@ public:
 	void HandleReloadResult(uint32 DeltaAmmo, uint32 NewAmmo);
 
 private:
+	float GetBaseFireInterval() const;
 	float GetFireInterval() const;
+	float GetReloadSpeedMultiplier() const;
+	bool IsOwnerSkillRewinding() const;
 	void StopFiringLoop();
+	void CancelReload();
 	void HandleAutoFireShot();
 	void FinishReload();
 	void FinishReloadWithAmmo(int32 NewAmmo);

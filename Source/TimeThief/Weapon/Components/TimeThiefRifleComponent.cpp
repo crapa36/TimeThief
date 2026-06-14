@@ -167,7 +167,7 @@ void UTimeThiefRifleComponent::ApplyDamage(const FRifleHitResult& HitResult)
 
 	UGameplayStatics::ApplyPointDamage(
 		HitResult.HitActor.Get(),
-		BaseDamage + GetDamageBonus(),
+		GetEffectiveDamage(BaseDamage),
 		HitResult.FireDirection,
 		HitResult.OriginalHitResult,
 		InstigatorController,
@@ -176,7 +176,7 @@ void UTimeThiefRifleComponent::ApplyDamage(const FRifleHitResult& HitResult)
 	);
 
 #if !UE_BUILD_SHIPPING
-	UE_LOG(LogTemp, Log, TEXT("[Rifle][Damage] Base=%.2f Bonus=%.2f Final=%.2f"), BaseDamage, GetDamageBonus(), BaseDamage + GetDamageBonus());
+	UE_LOG(LogTemp, Log, TEXT("[Rifle][Damage] Base=%.2f Bonus=%.2f Multiplier=%.2f Final=%.2f"), BaseDamage, GetDamageBonus(), GetDamageMultiplier(), GetEffectiveDamage(BaseDamage));
 #endif
 }
 
