@@ -2691,13 +2691,13 @@ void UNetworkGameInstanceSubsystem::HandleTimePointSnapshot(const se::game::N_Ti
 	TimePointComp->SetTimePoints(Pkt.time_points());
 }
 
-void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock&)
+void UNetworkGameInstanceSubsystem::HandleSkillUnlock(const se::game::N_SkillUnlock& Pkt)
 {
 	// 해당 스킬은 이제 사용 가능한 스킬이 되었음 (UI에서 잠금 해제된 것으로 업데이트)
 	UE_LOG(LogTemp, Log, TEXT("Skill unlocked: SkillId=%u"), Pkt.skill_id());
 }
 
-void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes&)
+void UNetworkGameInstanceSubsystem::HandleSkillEquipRes(const se::game::S_SkillEquipRes& Pkt)
 {
 	// 사용하지 않음
 	// UI가 있다면 사용 가능해짐
