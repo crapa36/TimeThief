@@ -305,31 +305,23 @@ void UTimeThiefHeroComponent::Input_SavePoint(const FInputActionValue& Value)
 
 void UTimeThiefHeroComponent::Input_UseItem()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Input_UseItem starting..."));
-	
 	APawn* Pawn = GetPawn<APawn>();
 	if (!Pawn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Fail: Pawn is null"));
 		return;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Pawn name: %s, LocallyControlled: %s"), 
-		*Pawn->GetName(), Pawn->IsLocallyControlled() ? TEXT("True") : TEXT("False"));
 
 	UInventorySystemComponent* InventoryComp = Pawn->GetComponentByClass<UInventorySystemComponent>();
 	if (!InventoryComp)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Fail: UInventorySystemComponent not found on pawn"));
 		return;
 	}
 
 	const EItemID ConsumableItem = InventoryComp->GetConsumableEquipment();
-	UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Equipped ConsumableItem ID: %d"), static_cast<int32>(ConsumableItem));
 	
 	if (ConsumableItem != EItemID::SIZE)
 	{
 		const int32 Quantity = InventoryComp->GetItemQuantity(ConsumableItem);
-		UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Equipped item quantity: %d"), Quantity);
 		
 		if (Quantity > 0)
 		{
@@ -338,7 +330,6 @@ void UTimeThiefHeroComponent::Input_UseItem()
 			{
 				if (NGIS->IsConnected())
 				{
-					UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Sending SendUseItem pack for item: %d"), static_cast<uint32>(ConsumableItem));
 					NGIS->SendUseItem(static_cast<uint32>(ConsumableItem));
 					bSentPacket = true;
 				}
@@ -347,17 +338,8 @@ void UTimeThiefHeroComponent::Input_UseItem()
 			if (!bSentPacket)
 			{
 				InventoryComp->RemoveItem(ConsumableItem, 1);
-				UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Offline use: removed item %d from inventory."), static_cast<int32>(ConsumableItem));
 			}
 		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Fail: Quantity is 0 or negative"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[UseItemDebug] Fail: Equipped item is EItemID::SIZE (None)"));
 	}
 }
 

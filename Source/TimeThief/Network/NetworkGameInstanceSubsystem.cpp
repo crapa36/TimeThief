@@ -353,7 +353,6 @@ void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
 	se::game::C_UseItemReq Request;
 	Request.set_item_id(Itemid);
 	
-	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Use Item Id=%u"), Itemid);
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -2263,9 +2262,6 @@ void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt
 	
 	const bool bIsLocalPlayer = IsLocalPlayerEntity(EntityId);
 	
-	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] N_UseItem received. EntityId=%u, ItemId=%u, IsLocalPlayer=%s"),
-		EntityId, ItemId, bIsLocalPlayer ? TEXT("True") : TEXT("False"));
-		
 	AActor* TargetActor = bIsLocalPlayer ? GetLocalPlayerPawn() : nullptr;
 	if (TargetActor == nullptr)
 	{
@@ -2277,7 +2273,6 @@ void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt
 	
 	if (TargetActor == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[ItemPkt] HandleUseItem: TargetActor not found for EntityId=%u"), EntityId);
 		return;
 	}
 
@@ -2530,20 +2525,6 @@ void UNetworkGameInstanceSubsystem::HandleEquipItemRes(const se::game::S_EquipIt
 void UNetworkGameInstanceSubsystem::HandleUseItemRes(const se::game::S_UseItemRes& Pkt)
 {
 	check(IsInGameThread());
-	
-	const uint32 ItemId = Pkt.item_id();
-	const bool bSuccess = Pkt.success();
-	
-	if (bSuccess)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[ItemPkt] S_UseItemRes success. ItemId=%u"), ItemId);
-	}
-	else
-	{
-		const auto& Result = Pkt.result();
-		UE_LOG(LogTemp, Warning, TEXT("[ItemPkt] S_UseItemRes failed. ItemId=%u, Error=%s"),
-			ItemId, UTF8_TO_TCHAR(Result.message().c_str()));
-	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleHealthChanged(const se::game::N_HealthChanged& Pkt)
