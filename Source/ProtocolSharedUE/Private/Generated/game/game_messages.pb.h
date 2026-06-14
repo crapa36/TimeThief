@@ -235,6 +235,9 @@ PROTOCOLSHAREDUE_API extern N_ProjectileExplosionDefaultTypeInternal _N_Projecti
 class N_Reload;
 struct N_ReloadDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_ReloadDefaultTypeInternal _N_Reload_default_instance_;
+class N_SkillEquip;
+struct N_SkillEquipDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_SkillEquipDefaultTypeInternal _N_SkillEquip_default_instance_;
 class N_SkillUnlock;
 struct N_SkillUnlockDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_SkillUnlockDefaultTypeInternal _N_SkillUnlock_default_instance_;
@@ -365,6 +368,7 @@ template<> PROTOCOLSHAREDUE_API ::se::game::N_PlayerGameResult* Arena::CreateMay
 template<> PROTOCOLSHAREDUE_API ::se::game::N_PlayerInitSetup* Arena::CreateMaybeMessage<::se::game::N_PlayerInitSetup>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_ProjectileExplosion* Arena::CreateMaybeMessage<::se::game::N_ProjectileExplosion>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_Reload* Arena::CreateMaybeMessage<::se::game::N_Reload>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillEquip* Arena::CreateMaybeMessage<::se::game::N_SkillEquip>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillUnlock* Arena::CreateMaybeMessage<::se::game::N_SkillUnlock>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillUnlockSnapshot* Arena::CreateMaybeMessage<::se::game::N_SkillUnlockSnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SpeedChanged* Arena::CreateMaybeMessage<::se::game::N_SpeedChanged>(Arena*);
@@ -13443,6 +13447,165 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API N_SkillEquip final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_SkillEquip) */ {
+ public:
+  inline N_SkillEquip() : N_SkillEquip(nullptr) {}
+  ~N_SkillEquip() override;
+  explicit PROTOBUF_CONSTEXPR N_SkillEquip(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_SkillEquip(const N_SkillEquip& from);
+  N_SkillEquip(N_SkillEquip&& from) noexcept
+    : N_SkillEquip() {
+    *this = ::std::move(from);
+  }
+
+  inline N_SkillEquip& operator=(const N_SkillEquip& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_SkillEquip& operator=(N_SkillEquip&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_SkillEquip& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_SkillEquip* internal_default_instance() {
+    return reinterpret_cast<const N_SkillEquip*>(
+               &_N_SkillEquip_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    76;
+
+  friend void swap(N_SkillEquip& a, N_SkillEquip& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_SkillEquip* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_SkillEquip* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_SkillEquip* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_SkillEquip>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_SkillEquip& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_SkillEquip& from) {
+    N_SkillEquip::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_SkillEquip* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_SkillEquip";
+  }
+  protected:
+  explicit N_SkillEquip(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kSkillIdFieldNumber = 1,
+    kSlotIndexFieldNumber = 2,
+  };
+  // uint32 skill_id = 1;
+  void clear_skill_id();
+  uint32_t skill_id() const;
+  void set_skill_id(uint32_t value);
+  private:
+  uint32_t _internal_skill_id() const;
+  void _internal_set_skill_id(uint32_t value);
+  public:
+
+  // uint32 slot_index = 2;
+  void clear_slot_index();
+  uint32_t slot_index() const;
+  void set_slot_index(uint32_t value);
+  private:
+  uint32_t _internal_slot_index() const;
+  void _internal_set_slot_index(uint32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.N_SkillEquip)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint32_t skill_id_;
+    uint32_t slot_index_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API N_EntityDied final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_EntityDied) */ {
  public:
@@ -13491,7 +13654,7 @@ class PROTOCOLSHAREDUE_API N_EntityDied final :
                &_N_EntityDied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    76;
+    77;
 
   friend void swap(N_EntityDied& a, N_EntityDied& b) {
     a.Swap(&b);
@@ -13648,7 +13811,7 @@ class PROTOCOLSHAREDUE_API N_EntityRespawned final :
                &_N_EntityRespawned_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    77;
+    78;
 
   friend void swap(N_EntityRespawned& a, N_EntityRespawned& b) {
     a.Swap(&b);
@@ -13825,7 +13988,7 @@ class PROTOCOLSHAREDUE_API N_EntityDestroyed final :
                &_N_EntityDestroyed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    78;
+    79;
 
   friend void swap(N_EntityDestroyed& a, N_EntityDestroyed& b) {
     a.Swap(&b);
@@ -13982,7 +14145,7 @@ class PROTOCOLSHAREDUE_API N_TimeStormChange final :
                &_N_TimeStormChange_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    79;
+    80;
 
   friend void swap(N_TimeStormChange& a, N_TimeStormChange& b) {
     a.Swap(&b);
@@ -14172,7 +14335,7 @@ class PROTOCOLSHAREDUE_API DebugDrawSphere final :
                &_DebugDrawSphere_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    80;
+    81;
 
   friend void swap(DebugDrawSphere& a, DebugDrawSphere& b) {
     a.Swap(&b);
@@ -14340,7 +14503,7 @@ class PROTOCOLSHAREDUE_API DebugDrawOBB final :
                &_DebugDrawOBB_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    81;
+    82;
 
   friend void swap(DebugDrawOBB& a, DebugDrawOBB& b) {
     a.Swap(&b);
@@ -14543,7 +14706,7 @@ class PROTOCOLSHAREDUE_API N_DebugDraw final :
                &_N_DebugDraw_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    82;
+    83;
 
   friend void swap(N_DebugDraw& a, N_DebugDraw& b) {
     a.Swap(&b);
@@ -23943,6 +24106,50 @@ N_SkillUnlockSnapshot::equipped_skill_slots() const {
 
 // -------------------------------------------------------------------
 
+// N_SkillEquip
+
+// uint32 skill_id = 1;
+inline void N_SkillEquip::clear_skill_id() {
+  _impl_.skill_id_ = 0u;
+}
+inline uint32_t N_SkillEquip::_internal_skill_id() const {
+  return _impl_.skill_id_;
+}
+inline uint32_t N_SkillEquip::skill_id() const {
+  // @@protoc_insertion_point(field_get:se.game.N_SkillEquip.skill_id)
+  return _internal_skill_id();
+}
+inline void N_SkillEquip::_internal_set_skill_id(uint32_t value) {
+  
+  _impl_.skill_id_ = value;
+}
+inline void N_SkillEquip::set_skill_id(uint32_t value) {
+  _internal_set_skill_id(value);
+  // @@protoc_insertion_point(field_set:se.game.N_SkillEquip.skill_id)
+}
+
+// uint32 slot_index = 2;
+inline void N_SkillEquip::clear_slot_index() {
+  _impl_.slot_index_ = 0u;
+}
+inline uint32_t N_SkillEquip::_internal_slot_index() const {
+  return _impl_.slot_index_;
+}
+inline uint32_t N_SkillEquip::slot_index() const {
+  // @@protoc_insertion_point(field_get:se.game.N_SkillEquip.slot_index)
+  return _internal_slot_index();
+}
+inline void N_SkillEquip::_internal_set_slot_index(uint32_t value) {
+  
+  _impl_.slot_index_ = value;
+}
+inline void N_SkillEquip::set_slot_index(uint32_t value) {
+  _internal_set_slot_index(value);
+  // @@protoc_insertion_point(field_set:se.game.N_SkillEquip.slot_index)
+}
+
+// -------------------------------------------------------------------
+
 // N_EntityDied
 
 // .se.common.ObjectId entity_id = 1;
@@ -25034,6 +25241,8 @@ inline N_DebugDraw::ShapeCase N_DebugDraw::shape_case() const {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

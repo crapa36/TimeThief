@@ -23,6 +23,7 @@ public:
 	static bool ExportActorsWithTagToFile(UWorld* World, const FName& RequiredTag, const FString& OutputPath);
 	static bool ExportSpawnLocationsToJsonFile(UWorld* World, const FName& StoreTag, const FName& ChestTag, const FString& OutputPath, bool bDisableExportedActors);
 	static bool ExportMonsterSpawnLocationsToJsonFile(UWorld* World, const FString& OutputPath, bool bDisableExportedActors);
+	static bool ExportPawnCollisionProfilesToJsonFile(UWorld* World, const FString& OutputPath);
 	static bool ExportPresetToFile(AActor* Actor, UServerCollisionPresetDataAsset* PresetAsset, const FString& OutputPath);
 	static bool ExportSelectedActorResolvedToFile(const FString& OutputPath);
 
@@ -106,6 +107,8 @@ private:
 	static bool BuildColliderDataFromSphereComponent(const USphereComponent* SphereComponent, se::map::ColliderData& OutColliderData);
 	static bool BuildColliderDataFromCapsuleComponent(const UCapsuleComponent* CapsuleComponent, se::map::ColliderData& OutColliderData);
 	static uint32 BuildColliderFlagsFromShapeComponent(const UShapeComponent* ShapeComponent);
+	static FName FindPawnTypeTag(const AActor* Actor);
+	static FName FindPawnPartTag(const UShapeComponent* ShapeComponent);
 	
 	static void AppendDebugRecord(const AActor* Actor, const UActorComponent* Component, const se::map::ColliderData& ColliderData, TArray<FServerMapColliderDebugRecord>& OutDebugRecords);
 	static void AccumulateSummary(const se::map::ColliderData& ColliderData, FServerMapExportStats& Summary);

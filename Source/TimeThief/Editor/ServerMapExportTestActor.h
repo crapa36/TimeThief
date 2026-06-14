@@ -122,6 +122,9 @@ public:
 	UFUNCTION(CallInEditor, Category = "ServerMap|Spawn Export")
 	void ExportMonsterSpawnLocations();
 
+	UFUNCTION(CallInEditor, Category = "ServerMap|Pawn Collision Export")
+	void ExportPawnCollisionProfiles();
+
 public:
 	// =============================
 	// Utility

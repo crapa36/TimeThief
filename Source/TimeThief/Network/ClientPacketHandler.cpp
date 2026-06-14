@@ -1633,6 +1633,24 @@ bool Handle_N_SkillUnlockSnapshot(PacketSessionRef& session, const se::game::N_S
 	return false;
 }
 
+bool Handle_N_SkillEquip(PacketSessionRef& session, const se::game::N_SkillEquip& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleSkillEquip(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_SkillEquip: Failed to get NGIS"));
+	return false;	
+}
+
 bool Handle_N_TimeStormChange(PacketSessionRef& session, const se::game::N_TimeStormChange& pkt)
 {
 	if (!session)
