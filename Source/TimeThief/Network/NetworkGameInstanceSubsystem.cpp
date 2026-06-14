@@ -2251,7 +2251,37 @@ void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_We
 
 void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt)
 {
-	// TODO: 효과를 적용 하는 게 아닌 이펙트 연출을 위해서 (ex. 붕대 감는 모션 등)
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	const uint32 EntityId = Pkt.has_entity_id() ? Pkt.entity_id().value() : 0;
+	const uint32 ItemId = Pkt.item_id();
+	
+	const bool bIsLocalPlayer = IsLocalPlayerEntity(EntityId);
+	
+	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] N_UseItem received. EntityId=%u, ItemId=%u, IsLocalPlayer=%s"),
+		EntityId, ItemId, bIsLocalPlayer ? TEXT("True") : TEXT("False"));
+		
+	AActor* TargetActor = bIsLocalPlayer ? GetLocalPlayerPawn() : nullptr;
+	if (TargetActor == nullptr)
+	{
+		if (FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId))
+		{
+			TargetActor = EntityEntry->Actor.Get();
+		}
+	}
+	
+	if (TargetActor == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ItemPkt] HandleUseItem: TargetActor not found for EntityId=%u"), EntityId);
+		return;
+	}
+
+	// TODO: Play visual/audio representation if any.
 }
 
 void UNetworkGameInstanceSubsystem::HandleSetSavePointRes(const se::game::S_SetSavePointRes& Pkt)
@@ -2499,6 +2529,21 @@ void UNetworkGameInstanceSubsystem::HandleEquipItemRes(const se::game::S_EquipIt
 
 void UNetworkGameInstanceSubsystem::HandleUseItemRes(const se::game::S_UseItemRes& Pkt)
 {
+	check(IsInGameThread());
+	
+	const uint32 ItemId = Pkt.item_id();
+	const bool bSuccess = Pkt.success();
+	
+	if (bSuccess)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ItemPkt] S_UseItemRes success. ItemId=%u"), ItemId);
+	}
+	else
+	{
+		const auto& Result = Pkt.result();
+		UE_LOG(LogTemp, Warning, TEXT("[ItemPkt] S_UseItemRes failed. ItemId=%u, Error=%s"),
+			ItemId, UTF8_TO_TCHAR(Result.message().c_str()));
+	}
 }
 
 void UNetworkGameInstanceSubsystem::HandleHealthChanged(const se::game::N_HealthChanged& Pkt)
