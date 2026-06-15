@@ -35,24 +35,59 @@ Texture2D<float> SceneDepthTexture;
 Texture3D<float> DensityTexture0;
 Texture3D<float> DensityTexture1;
 Texture3D<float> DensityTexture2;
+Texture3D<float> DensityTexture3;
+Texture3D<float> DensityTexture4;
+Texture3D<float> DensityTexture5;
+Texture3D<float> DensityTexture6;
+Texture3D<float> DensityTexture7;
 Texture3D<float> DisplacedDensityTexture0;
 Texture3D<float> DisplacedDensityTexture1;
 Texture3D<float> DisplacedDensityTexture2;
+Texture3D<float> DisplacedDensityTexture3;
+Texture3D<float> DisplacedDensityTexture4;
+Texture3D<float> DisplacedDensityTexture5;
+Texture3D<float> DisplacedDensityTexture6;
+Texture3D<float> DisplacedDensityTexture7;
 Texture3D<float> ObstacleTexture0;
 Texture3D<float> ObstacleTexture1;
 Texture3D<float> ObstacleTexture2;
+Texture3D<float> ObstacleTexture3;
+Texture3D<float> ObstacleTexture4;
+Texture3D<float> ObstacleTexture5;
+Texture3D<float> ObstacleTexture6;
+Texture3D<float> ObstacleTexture7;
 Texture3D<float> BulletCutoutTexture0;
 Texture3D<float> BulletCutoutTexture1;
 Texture3D<float> BulletCutoutTexture2;
+Texture3D<float> BulletCutoutTexture3;
+Texture3D<float> BulletCutoutTexture4;
+Texture3D<float> BulletCutoutTexture5;
+Texture3D<float> BulletCutoutTexture6;
+Texture3D<float> BulletCutoutTexture7;
 Texture3D<float> BulletSinkTexture0;
 Texture3D<float> BulletSinkTexture1;
 Texture3D<float> BulletSinkTexture2;
+Texture3D<float> BulletSinkTexture3;
+Texture3D<float> BulletSinkTexture4;
+Texture3D<float> BulletSinkTexture5;
+Texture3D<float> BulletSinkTexture6;
+Texture3D<float> BulletSinkTexture7;
 Texture3D<uint> BrickOccupancyTexture0;
 Texture3D<uint> BrickOccupancyTexture1;
 Texture3D<uint> BrickOccupancyTexture2;
+Texture3D<uint> BrickOccupancyTexture3;
+Texture3D<uint> BrickOccupancyTexture4;
+Texture3D<uint> BrickOccupancyTexture5;
+Texture3D<uint> BrickOccupancyTexture6;
+Texture3D<uint> BrickOccupancyTexture7;
 Texture3D<float4> SparseFieldAtlasTexture0;
 Texture3D<float4> SparseFieldAtlasTexture1;
 Texture3D<float4> SparseFieldAtlasTexture2;
+Texture3D<float4> SparseFieldAtlasTexture3;
+Texture3D<float4> SparseFieldAtlasTexture4;
+Texture3D<float4> SparseFieldAtlasTexture5;
+Texture3D<float4> SparseFieldAtlasTexture6;
+Texture3D<float4> SparseFieldAtlasTexture7;
 SamplerState SceneColorSampler;
 SamplerState VolumeSampler;
 StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData> CompositeSmokeDescriptors;
@@ -165,6 +200,11 @@ float SampleDensityTexture(int Slot, float3 UVW)
 	case 0: return DensityTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 1: return DensityTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 2: return DensityTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return DensityTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return DensityTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return DensityTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return DensityTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return DensityTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
 	}
 	return 0.0;
 }
@@ -176,6 +216,11 @@ float SampleDisplacedDensityTexture(int Slot, float3 UVW)
 	case 0: return DisplacedDensityTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 1: return DisplacedDensityTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 2: return DisplacedDensityTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return DisplacedDensityTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return DisplacedDensityTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return DisplacedDensityTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return DisplacedDensityTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return DisplacedDensityTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
 	}
 	return 0.0;
 }
@@ -187,6 +232,11 @@ float SampleObstacleTexture(int Slot, float3 UVW)
 	case 0: return ObstacleTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 1: return ObstacleTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 2: return ObstacleTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return ObstacleTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return ObstacleTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return ObstacleTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return ObstacleTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return ObstacleTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
 	}
 	return 0.0;
 }
@@ -198,6 +248,11 @@ float SampleBulletCutoutTexture(int Slot, float3 UVW)
 	case 0: return BulletCutoutTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 1: return BulletCutoutTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 2: return BulletCutoutTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return BulletCutoutTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return BulletCutoutTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return BulletCutoutTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return BulletCutoutTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return BulletCutoutTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
 	}
 	return 0.0;
 }
@@ -209,6 +264,11 @@ float SampleBulletSinkTexture(int Slot, float3 UVW)
 	case 0: return BulletSinkTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 1: return BulletSinkTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
 	case 2: return BulletSinkTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return BulletSinkTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return BulletSinkTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return BulletSinkTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return BulletSinkTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return BulletSinkTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
 	}
 	return 0.0;
 }
@@ -220,6 +280,11 @@ float LoadDensityTexture(int Slot, int3 Coord)
 	case 0: return DensityTexture0.Load(int4(Coord, 0));
 	case 1: return DensityTexture1.Load(int4(Coord, 0));
 	case 2: return DensityTexture2.Load(int4(Coord, 0));
+	case 3: return DensityTexture3.Load(int4(Coord, 0));
+	case 4: return DensityTexture4.Load(int4(Coord, 0));
+	case 5: return DensityTexture5.Load(int4(Coord, 0));
+	case 6: return DensityTexture6.Load(int4(Coord, 0));
+	case 7: return DensityTexture7.Load(int4(Coord, 0));
 	}
 	return 0.0;
 }
@@ -231,6 +296,11 @@ float LoadDisplacedDensityTexture(int Slot, int3 Coord)
 	case 0: return DisplacedDensityTexture0.Load(int4(Coord, 0));
 	case 1: return DisplacedDensityTexture1.Load(int4(Coord, 0));
 	case 2: return DisplacedDensityTexture2.Load(int4(Coord, 0));
+	case 3: return DisplacedDensityTexture3.Load(int4(Coord, 0));
+	case 4: return DisplacedDensityTexture4.Load(int4(Coord, 0));
+	case 5: return DisplacedDensityTexture5.Load(int4(Coord, 0));
+	case 6: return DisplacedDensityTexture6.Load(int4(Coord, 0));
+	case 7: return DisplacedDensityTexture7.Load(int4(Coord, 0));
 	}
 	return 0.0;
 }
@@ -242,6 +312,11 @@ float LoadBulletCutoutTexture(int Slot, int3 Coord)
 	case 0: return BulletCutoutTexture0.Load(int4(Coord, 0));
 	case 1: return BulletCutoutTexture1.Load(int4(Coord, 0));
 	case 2: return BulletCutoutTexture2.Load(int4(Coord, 0));
+	case 3: return BulletCutoutTexture3.Load(int4(Coord, 0));
+	case 4: return BulletCutoutTexture4.Load(int4(Coord, 0));
+	case 5: return BulletCutoutTexture5.Load(int4(Coord, 0));
+	case 6: return BulletCutoutTexture6.Load(int4(Coord, 0));
+	case 7: return BulletCutoutTexture7.Load(int4(Coord, 0));
 	}
 	return 0.0;
 }
@@ -253,6 +328,11 @@ float LoadBulletSinkTexture(int Slot, int3 Coord)
 	case 0: return BulletSinkTexture0.Load(int4(Coord, 0));
 	case 1: return BulletSinkTexture1.Load(int4(Coord, 0));
 	case 2: return BulletSinkTexture2.Load(int4(Coord, 0));
+	case 3: return BulletSinkTexture3.Load(int4(Coord, 0));
+	case 4: return BulletSinkTexture4.Load(int4(Coord, 0));
+	case 5: return BulletSinkTexture5.Load(int4(Coord, 0));
+	case 6: return BulletSinkTexture6.Load(int4(Coord, 0));
+	case 7: return BulletSinkTexture7.Load(int4(Coord, 0));
 	}
 	return 0.0;
 }
@@ -264,6 +344,11 @@ uint LoadBrickOccupancyTexture(int Slot, int3 Coord)
 	case 0: return BrickOccupancyTexture0.Load(int4(Coord, 0));
 	case 1: return BrickOccupancyTexture1.Load(int4(Coord, 0));
 	case 2: return BrickOccupancyTexture2.Load(int4(Coord, 0));
+	case 3: return BrickOccupancyTexture3.Load(int4(Coord, 0));
+	case 4: return BrickOccupancyTexture4.Load(int4(Coord, 0));
+	case 5: return BrickOccupancyTexture5.Load(int4(Coord, 0));
+	case 6: return BrickOccupancyTexture6.Load(int4(Coord, 0));
+	case 7: return BrickOccupancyTexture7.Load(int4(Coord, 0));
 	}
 	return 0u;
 }
@@ -275,6 +360,11 @@ float4 LoadSparseFieldAtlasTexture(int Slot, int3 Coord)
 	case 0: return SparseFieldAtlasTexture0.Load(int4(Coord, 0));
 	case 1: return SparseFieldAtlasTexture1.Load(int4(Coord, 0));
 	case 2: return SparseFieldAtlasTexture2.Load(int4(Coord, 0));
+	case 3: return SparseFieldAtlasTexture3.Load(int4(Coord, 0));
+	case 4: return SparseFieldAtlasTexture4.Load(int4(Coord, 0));
+	case 5: return SparseFieldAtlasTexture5.Load(int4(Coord, 0));
+	case 6: return SparseFieldAtlasTexture6.Load(int4(Coord, 0));
+	case 7: return SparseFieldAtlasTexture7.Load(int4(Coord, 0));
 	}
 	return float4(0.0, 0.0, 0.0, 0.0);
 }
@@ -747,20 +837,20 @@ void MainPS(
 	const float3 WorldRayDirection = normalize(FarWorld - NearWorld);
 	const float SceneT = max(dot(SceneWorld - NearWorld, WorldRayDirection), 0.0);
 
-	float SmokeTMin[3];
-	float SmokeTMax[3];
-	float3 SmokeColors[3];
-	float3 SmokeLocalOrigins[3];
-	float3 SmokeLocalRayDirections[3];
-	float3 SmokeBoundsExtents[3];
-	float3 SmokeRayUVWDirections[3];
-	float SmokeSimulationStepScales[3];
-	float SmokeMaxGridCellSizes[3];
-	float SmokeBoundaryFadeStarts[3];
-	float SmokeLifetimeAlphas[3];
-	float3 SmokeLightUVWSteps[3];
-	float SmokeLightSimulationStepSizes[3];
-	int SmokeSlots[3];
+	float SmokeTMin[8];
+	float SmokeTMax[8];
+	float3 SmokeColors[8];
+	float3 SmokeLocalOrigins[8];
+	float3 SmokeLocalRayDirections[8];
+	float3 SmokeBoundsExtents[8];
+	float3 SmokeRayUVWDirections[8];
+	float SmokeSimulationStepScales[8];
+	float SmokeMaxGridCellSizes[8];
+	float SmokeBoundaryFadeStarts[8];
+	float SmokeLifetimeAlphas[8];
+	float3 SmokeLightUVWSteps[8];
+	float SmokeLightSimulationStepSizes[8];
+	int SmokeSlots[8];
 	int ActiveSmokeCount = 0;
 	float RayStart = SceneT;
 	float RayEnd = 0.0;
@@ -775,7 +865,7 @@ void MainPS(
 	for (int TileSmokeIndex = 0; TileSmokeIndex < TileSmokeCount; ++TileSmokeIndex)
 	{
 		const int Slot = (int)TileSmokeIndices[TileOffset + TileSmokeIndex];
-		if (Slot < 0 || Slot >= SmokeSlotCount || ActiveSmokeCount >= 3)
+		if (Slot < 0 || Slot >= SmokeSlotCount || ActiveSmokeCount >= 8)
 		{
 			continue;
 		}
@@ -842,7 +932,7 @@ void MainPS(
 		return;
 	}
 
-	float SegmentBoundaries[8];
+	float SegmentBoundaries[16];
 	int SegmentBoundaryCount = 0;
 	SegmentBoundaries[SegmentBoundaryCount++] = RayStart;
 	SegmentBoundaries[SegmentBoundaryCount++] = RayEnd;
@@ -887,12 +977,12 @@ void MainPS(
 			continue;
 		}
 
-		int SegmentSmokeIndices[3];
+		int SegmentSmokeIndices[8];
 		int SegmentSmokeCount = 0;
 		[loop]
 		for (int SmokeIndex = 0; SmokeIndex < ActiveSmokeCount; ++SmokeIndex)
 		{
-			if (SegmentStart < SmokeTMax[SmokeIndex] && SegmentEnd > SmokeTMin[SmokeIndex] && SegmentSmokeCount < 3)
+			if (SegmentStart < SmokeTMax[SmokeIndex] && SegmentEnd > SmokeTMin[SmokeIndex] && SegmentSmokeCount < 8)
 			{
 				SegmentSmokeIndices[SegmentSmokeCount++] = SmokeIndex;
 			}

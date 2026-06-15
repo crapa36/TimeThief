@@ -1513,14 +1513,26 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	{
 		const FRenderSmokeState& State = *RenderStates[SmokeSlot];
 		const int32 SelfShadowStepCount = FMath::Max(TimeThiefSmokeParameterDefaults::SelfShadowStepCount, 0);
+
+		const float MaxBounds = FMath::Max3(State.Volume.BoundsExtent.X, State.Volume.BoundsExtent.Y, State.Volume.BoundsExtent.Z);
+		const float MinGrid = FMath::Min3(State.AllocatedGridSize.X, State.AllocatedGridSize.Y, State.AllocatedGridSize.Z);
+		const float VoxelWorldSize = (MaxBounds * 2.0f) / FMath::Max(1.0f, MinGrid);
+
+		const float BaseVoxelSize = TimeThiefSmokeParameterDefaults::AdaptiveRaymarchingBaseVoxelSize;
+		const float DetailScale = FMath::Clamp(
+			VoxelWorldSize / BaseVoxelSize, 
+			TimeThiefSmokeParameterDefaults::AdaptiveRaymarchingMinScale, 
+			TimeThiefSmokeParameterDefaults::AdaptiveRaymarchingMaxScale);
+
 		const int32 RenderStepCount = FMath::Clamp(
-			TimeThiefSmokeParameterDefaults::RenderStepCount,
+			FMath::RoundToInt(TimeThiefSmokeParameterDefaults::RenderStepCount * DetailScale),
 			TimeThiefSmokeParameterDefaults::RenderStepCountMin,
 			TimeThiefSmokeParameterDefaults::RenderStepCountMax);
 		const int32 RenderMaxStepCount = FMath::Clamp(
-			TimeThiefSmokeParameterDefaults::RenderMaxStepCount,
+			FMath::RoundToInt(TimeThiefSmokeParameterDefaults::RenderMaxStepCount * DetailScale),
 			TimeThiefSmokeParameterDefaults::RenderMaxStepCountMin,
 			TimeThiefSmokeParameterDefaults::RenderMaxStepCountMax);
+
 		const FMatrix44f WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 		const int32 SparseAtlasBrickCapacity = FMath::Max(State.AllocatedSparseAtlasBrickCapacity, 1);
 		const bool bUseSparseComposite = GetDefaultSimulationBackend() == ETimeThiefSmokeSimulationBackend::SparseMac &&
@@ -1532,7 +1544,17 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		Descriptor.WorldToLocal2 = MakeMatrixRow(WorldToLocal, 2);
 		Descriptor.WorldToLocal3 = MakeMatrixRow(WorldToLocal, 3);
 		const FVector3f SelfShadowLightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
-		Descriptor.BoundsExtent_RenderStepVoxelScale = FVector4f(State.Volume.BoundsExtent.X, State.Volume.BoundsExtent.Y, State.Volume.BoundsExtent.Z, FMath::Clamp(TimeThiefSmokeParameterDefaults::RenderStepVoxelScale, TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMin, TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMax));
+
+		const float DynamicVoxelScale = FMath::Clamp(
+			TimeThiefSmokeParameterDefaults::RenderStepVoxelScale / DetailScale,
+			TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMin,
+			TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMax);
+
+		Descriptor.BoundsExtent_RenderStepVoxelScale = FVector4f(
+			State.Volume.BoundsExtent.X, 
+			State.Volume.BoundsExtent.Y, 
+			State.Volume.BoundsExtent.Z, 
+			DynamicVoxelScale);
 		Descriptor.RenderBoundsExtent_Extinction = FVector4f(State.Volume.RenderBoundsExtent.X, State.Volume.RenderBoundsExtent.Y, State.Volume.RenderBoundsExtent.Z, FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::Extinction));
 		Descriptor.ScatterNoise = FVector4f(FMath::Clamp(TimeThiefSmokeParameterDefaults::ScatteringAlbedo, 0.0f, 1.0f), FMath::Clamp(TimeThiefSmokeParameterDefaults::ScatteringAnisotropy, -1.0f, 1.0f), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderNoiseScale), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderNoiseStrength));
 		Descriptor.SelfShadowLightDirection_StepCount = FVector4f(SelfShadowLightDirection.X, SelfShadowLightDirection.Y, SelfShadowLightDirection.Z, static_cast<float>(SelfShadowStepCount));
@@ -1642,13 +1664,13 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		TextureRefs.SparseFieldAtlasTexture = GraphBuilder.RegisterExternalTexture(State.SparseFieldAtlasTexture);
 	}
 
-	FRDGTextureRef* DensityTargets[] = { &PassParameters->DensityTexture0, &PassParameters->DensityTexture1, &PassParameters->DensityTexture2 };
-	FRDGTextureRef* DisplacedDensityTargets[] = { &PassParameters->DisplacedDensityTexture0, &PassParameters->DisplacedDensityTexture1, &PassParameters->DisplacedDensityTexture2 };
-	FRDGTextureRef* ObstacleTargets[] = { &PassParameters->ObstacleTexture0, &PassParameters->ObstacleTexture1, &PassParameters->ObstacleTexture2 };
-	FRDGTextureRef* BulletCutoutTargets[] = { &PassParameters->BulletCutoutTexture0, &PassParameters->BulletCutoutTexture1, &PassParameters->BulletCutoutTexture2 };
-	FRDGTextureRef* BulletSinkTargets[] = { &PassParameters->BulletSinkTexture0, &PassParameters->BulletSinkTexture1, &PassParameters->BulletSinkTexture2 };
-	FRDGTextureRef* BrickOccupancyTargets[] = { &PassParameters->BrickOccupancyTexture0, &PassParameters->BrickOccupancyTexture1, &PassParameters->BrickOccupancyTexture2 };
-	FRDGTextureRef* SparseFieldAtlasTargets[] = { &PassParameters->SparseFieldAtlasTexture0, &PassParameters->SparseFieldAtlasTexture1, &PassParameters->SparseFieldAtlasTexture2 };
+	FRDGTextureRef* DensityTargets[] = { &PassParameters->DensityTexture0, &PassParameters->DensityTexture1, &PassParameters->DensityTexture2, &PassParameters->DensityTexture3, &PassParameters->DensityTexture4, &PassParameters->DensityTexture5, &PassParameters->DensityTexture6, &PassParameters->DensityTexture7 };
+	FRDGTextureRef* DisplacedDensityTargets[] = { &PassParameters->DisplacedDensityTexture0, &PassParameters->DisplacedDensityTexture1, &PassParameters->DisplacedDensityTexture2, &PassParameters->DisplacedDensityTexture3, &PassParameters->DisplacedDensityTexture4, &PassParameters->DisplacedDensityTexture5, &PassParameters->DisplacedDensityTexture6, &PassParameters->DisplacedDensityTexture7 };
+	FRDGTextureRef* ObstacleTargets[] = { &PassParameters->ObstacleTexture0, &PassParameters->ObstacleTexture1, &PassParameters->ObstacleTexture2, &PassParameters->ObstacleTexture3, &PassParameters->ObstacleTexture4, &PassParameters->ObstacleTexture5, &PassParameters->ObstacleTexture6, &PassParameters->ObstacleTexture7 };
+	FRDGTextureRef* BulletCutoutTargets[] = { &PassParameters->BulletCutoutTexture0, &PassParameters->BulletCutoutTexture1, &PassParameters->BulletCutoutTexture2, &PassParameters->BulletCutoutTexture3, &PassParameters->BulletCutoutTexture4, &PassParameters->BulletCutoutTexture5, &PassParameters->BulletCutoutTexture6, &PassParameters->BulletCutoutTexture7 };
+	FRDGTextureRef* BulletSinkTargets[] = { &PassParameters->BulletSinkTexture0, &PassParameters->BulletSinkTexture1, &PassParameters->BulletSinkTexture2, &PassParameters->BulletSinkTexture3, &PassParameters->BulletSinkTexture4, &PassParameters->BulletSinkTexture5, &PassParameters->BulletSinkTexture6, &PassParameters->BulletSinkTexture7 };
+	FRDGTextureRef* BrickOccupancyTargets[] = { &PassParameters->BrickOccupancyTexture0, &PassParameters->BrickOccupancyTexture1, &PassParameters->BrickOccupancyTexture2, &PassParameters->BrickOccupancyTexture3, &PassParameters->BrickOccupancyTexture4, &PassParameters->BrickOccupancyTexture5, &PassParameters->BrickOccupancyTexture6, &PassParameters->BrickOccupancyTexture7 };
+	FRDGTextureRef* SparseFieldAtlasTargets[] = { &PassParameters->SparseFieldAtlasTexture0, &PassParameters->SparseFieldAtlasTexture1, &PassParameters->SparseFieldAtlasTexture2, &PassParameters->SparseFieldAtlasTexture3, &PassParameters->SparseFieldAtlasTexture4, &PassParameters->SparseFieldAtlasTexture5, &PassParameters->SparseFieldAtlasTexture6, &PassParameters->SparseFieldAtlasTexture7 };
 
 	for (int32 Slot = 0; Slot < TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots; ++Slot)
 	{

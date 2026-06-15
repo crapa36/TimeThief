@@ -121,7 +121,7 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::BulletWakeHoldCoreOuterRadiusScale > TimeThiefSmokeParameterDefaults::BulletWakeHoldCoreInnerRadiusScale);
 	TestTrue(
 		TEXT("Fixed multi composite shader slot count matches static shader bindings"),
-		TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots == 3);
+		TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots == 8);
 	TestTrue(
 		TEXT("Renderer descriptor stays float4 aligned for HLSL structured buffer"),
 		sizeof(FTimeThiefSmokeCompositeDescriptorShaderData) % sizeof(FVector4f) == 0);

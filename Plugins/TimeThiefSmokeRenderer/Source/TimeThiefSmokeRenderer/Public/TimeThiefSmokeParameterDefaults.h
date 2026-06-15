@@ -50,7 +50,7 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float ObstacleSourceClearRadiusScale = 1.5f;
 	// 장애물 마스크 변경 블렌딩 시간(초). 높을수록 변화가 부드럽고 반응이 느림.
 	constexpr float ObstacleMaskBlendDuration = 0.25f;
-	constexpr int32 MaxObstaclePrimitives = 128;
+	constexpr int32 MaxObstaclePrimitives = 32;
 	constexpr float ObstacleFieldFarDistanceCm = 100000.0f;
 	constexpr float ObstacleSdfSurfaceFeatherCm = 32.0f;
 	// 동적 장애물 후보를 다시 찾는 최소 간격(초). 높을수록 CPU 비용 감소, 신규 장애물 반응 지연.
@@ -75,7 +75,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 압력 반복 최소 횟수. 낮을수록 비용 감소, 발산 제거 품질 감소.
 	constexpr int32 PressureIterationsMin = 1;
 	// 압력 반복 최대 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterationsMax = 64;
+	constexpr int32 PressureIterationsMax = 32;
 	// 희소 브릭 한 변의 복셀 수. 높을수록 관리 비용 감소, 빈 공간 낭비 증가.
 	constexpr int32 SmokeBrickSize = 16;
 	// sparse brick 최소 크기(voxel). 낮을수록 culling 정밀도와 비용 증가.
@@ -112,9 +112,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 멀티 연막 composite tile 한 변 크기(px). 높을수록 타일 관리 비용 감소, culling 정밀도 감소.
 	constexpr int32 CompositeTileSize = 32;
 	// 멀티 연막 렌더링 활성화 여부 기본값. 0=개별 합성, 1=다중 합성.
-	constexpr int32 bUseMultiCompositeByDefault = 0;
+	constexpr int32 bUseMultiCompositeByDefault = 1;
 	// 한 번에 합성할 연막 슬롯 최대 개수. 높을수록 겹친 연막 처리량과 비용 증가.
-	constexpr int32 MaxCompositeSmokeSlots = 3;
+	constexpr int32 MaxCompositeSmokeSlots = 8;
 	// fullscreen composite 전환 화면 면적 비율. 낮을수록 fullscreen 경로를 더 빨리 사용.
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
 	// 연막 screen rect 여유 픽셀(px). 높을수록 가장자리 누락 감소, 합성 면적 증가.
@@ -451,4 +451,13 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr int32 bUseBilateralUpsampleByDefault = 1;
 	// 양방향 필터 깊이 감도. 높을수록 깊이 차이에 민감(경계 보존↑, 노이즈 위험↑).
 	constexpr float BilateralDepthSensitivity = 10000.0f;
+
+	// 적응형 레이마칭 (Adaptive Raymarching)
+
+	// 기준 복셀 크기(cm)
+	constexpr float AdaptiveRaymarchingBaseVoxelSize = 10.0f;
+	// 화질 가중치 최소 스케일
+	constexpr float AdaptiveRaymarchingMinScale = 0.5f;
+	// 화질 가중치 최대 스케일
+	constexpr float AdaptiveRaymarchingMaxScale = 3.0f;
 }
