@@ -884,6 +884,33 @@ struct S_UseStoreResDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 S_UseStoreResDefaultTypeInternal _S_UseStoreRes_default_instance_;
+PROTOBUF_CONSTEXPR N_StoreEntryBlock::N_StoreEntryBlock(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.store_item_id_)*/0u
+  , /*decltype(_impl_.is_blocked_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_StoreEntryBlockDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_StoreEntryBlockDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_StoreEntryBlockDefaultTypeInternal() {}
+  union {
+    N_StoreEntryBlock _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_StoreEntryBlockDefaultTypeInternal _N_StoreEntryBlock_default_instance_;
+PROTOBUF_CONSTEXPR N_StoreEntrySnapshot::N_StoreEntrySnapshot(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.store_entries_)*/{}
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_StoreEntrySnapshotDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_StoreEntrySnapshotDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_StoreEntrySnapshotDefaultTypeInternal() {}
+  union {
+    N_StoreEntrySnapshot _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_StoreEntrySnapshotDefaultTypeInternal _N_StoreEntrySnapshot_default_instance_;
 PROTOBUF_CONSTEXPR N_ItemGained::N_ItemGained(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.item_id_)*/0u
@@ -1215,7 +1242,7 @@ struct N_DebugDrawDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_DebugDrawDefaultTypeInternal _N_DebugDraw_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[84];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5fmessages_2eproto[86];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5fmessages_2eproto = nullptr;
 
@@ -1729,6 +1756,21 @@ const uint32_t TableStruct_game_2fgame_5fmessages_2eproto::offsets[] PROTOBUF_SE
   PROTOBUF_FIELD_OFFSET(::se::game::S_UseStoreRes, _impl_.new_price_),
   PROTOBUF_FIELD_OFFSET(::se::game::S_UseStoreRes, _impl_.is_sold_out_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_StoreEntryBlock, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_StoreEntryBlock, _impl_.store_item_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::N_StoreEntryBlock, _impl_.is_blocked_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_StoreEntrySnapshot, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::N_StoreEntrySnapshot, _impl_.store_entries_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::N_ItemGained, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -1982,29 +2024,31 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 481, -1, -1, sizeof(::se::game::N_EquipItem)},
   { 489, -1, -1, sizeof(::se::game::C_UseStoreReq)},
   { 497, -1, -1, sizeof(::se::game::S_UseStoreRes)},
-  { 508, -1, -1, sizeof(::se::game::N_ItemGained)},
-  { 517, -1, -1, sizeof(::se::game::N_ItemLost)},
-  { 526, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
-  { 533, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
-  { 540, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
-  { 549, -1, -1, sizeof(::se::game::N_HealthChanged)},
-  { 558, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
-  { 567, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
-  { 575, -1, -1, sizeof(::se::game::N_SpeedChanged)},
-  { 582, -1, -1, sizeof(::se::game::N_TimePointChanged)},
-  { 590, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
-  { 597, -1, -1, sizeof(::se::game::N_SkillUnlock)},
-  { 604, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
-  { 612, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
-  { 622, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
-  { 630, -1, -1, sizeof(::se::game::N_SkillEquip)},
-  { 638, -1, -1, sizeof(::se::game::N_EntityDied)},
-  { 645, -1, -1, sizeof(::se::game::N_EntityRespawned)},
-  { 653, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
-  { 660, -1, -1, sizeof(::se::game::N_TimeStormChange)},
-  { 670, -1, -1, sizeof(::se::game::DebugDrawSphere)},
-  { 678, -1, -1, sizeof(::se::game::DebugDrawOBB)},
-  { 687, -1, -1, sizeof(::se::game::N_DebugDraw)},
+  { 508, -1, -1, sizeof(::se::game::N_StoreEntryBlock)},
+  { 516, -1, -1, sizeof(::se::game::N_StoreEntrySnapshot)},
+  { 523, -1, -1, sizeof(::se::game::N_ItemGained)},
+  { 532, -1, -1, sizeof(::se::game::N_ItemLost)},
+  { 541, -1, -1, sizeof(::se::game::N_ItemSnapshot)},
+  { 548, -1, -1, sizeof(::se::game::C_SetSavePointReq)},
+  { 555, -1, -1, sizeof(::se::game::S_SetSavePointRes)},
+  { 564, -1, -1, sizeof(::se::game::N_HealthChanged)},
+  { 573, -1, -1, sizeof(::se::game::N_MaxHealthChanged)},
+  { 582, -1, -1, sizeof(::se::game::N_HealthSnapshot)},
+  { 590, -1, -1, sizeof(::se::game::N_SpeedChanged)},
+  { 597, -1, -1, sizeof(::se::game::N_TimePointChanged)},
+  { 605, -1, -1, sizeof(::se::game::N_TimePointSnapshot)},
+  { 612, -1, -1, sizeof(::se::game::N_SkillUnlock)},
+  { 619, -1, -1, sizeof(::se::game::C_SkillEquipReq)},
+  { 627, -1, -1, sizeof(::se::game::S_SkillEquipRes)},
+  { 637, -1, -1, sizeof(::se::game::N_SkillUnlockSnapshot)},
+  { 645, -1, -1, sizeof(::se::game::N_SkillEquip)},
+  { 653, -1, -1, sizeof(::se::game::N_EntityDied)},
+  { 660, -1, -1, sizeof(::se::game::N_EntityRespawned)},
+  { 668, -1, -1, sizeof(::se::game::N_EntityDestroyed)},
+  { 675, -1, -1, sizeof(::se::game::N_TimeStormChange)},
+  { 685, -1, -1, sizeof(::se::game::DebugDrawSphere)},
+  { 693, -1, -1, sizeof(::se::game::DebugDrawOBB)},
+  { 702, -1, -1, sizeof(::se::game::N_DebugDraw)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -2069,6 +2113,8 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_N_EquipItem_default_instance_._instance,
   &::se::game::_C_UseStoreReq_default_instance_._instance,
   &::se::game::_S_UseStoreRes_default_instance_._instance,
+  &::se::game::_N_StoreEntryBlock_default_instance_._instance,
+  &::se::game::_N_StoreEntrySnapshot_default_instance_._instance,
   &::se::game::_N_ItemGained_default_instance_._instance,
   &::se::game::_N_ItemLost_default_instance_._instance,
   &::se::game::_N_ItemSnapshot_default_instance_._instance,
@@ -2263,61 +2309,65 @@ const char descriptor_table_protodef_game_2fgame_5fmessages_2eproto[] PROTOBUF_S
   "ccess\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common."
   "Result\022\025\n\rstore_item_id\030\003 \001(\r\022\021\n\tnew_pri"
   "ce\030\004 \001(\005\022\023\n\013is_sold_out\030\005 \001(\010:\r\210\265\030\221!\220\265\030\002"
-  "\230\265\030\004\"V\n\014N_ItemGained\022\017\n\007item_id\030\001 \001(\r\022\024\n"
-  "\014new_quantity\030\002 \001(\r\022\020\n\010quantity\030\003 \001(\r:\r\210"
-  "\265\030\232!\220\265\030\002\230\265\030\004\"T\n\nN_ItemLost\022\017\n\007item_id\030\001 "
-  "\001(\r\022\024\n\014new_quantity\030\002 \001(\r\022\020\n\010quantity\030\003 "
-  "\001(\r:\r\210\265\030\233!\220\265\030\002\230\265\030\004\"B\n\016N_ItemSnapshot\022!\n\005"
-  "items\030\001 \003(\0132\022.se.game.ItemStack:\r\210\265\030\234!\220\265"
-  "\030\002\230\265\030\004\"H\n\021C_SetSavePointReq\022$\n\010position\030"
-  "\001 \001(\0132\022.se.common.Vector3:\r\210\265\030\302!\220\265\030\001\230\265\030\004"
-  "\"|\n\021S_SetSavePointRes\022\017\n\007success\030\001 \001(\010\022!"
-  "\n\006result\030\002 \001(\0132\021.se.common.Result\022$\n\010pos"
-  "ition\030\003 \001(\0132\022.se.common.Vector3:\r\210\265\030\303!\220\265"
-  "\030\002\230\265\030\004\"k\n\017N_HealthChanged\022&\n\tentity_id\030\001"
-  " \001(\0132\023.se.common.ObjectId\022\022\n\nnew_health\030"
-  "\002 \001(\005\022\r\n\005delta\030\003 \001(\005:\r\210\265\030\314!\220\265\030\002\230\265\030\004\"\177\n\022N"
-  "_MaxHealthChanged\022&\n\tentity_id\030\001 \001(\0132\023.s"
-  "e.common.ObjectId\022\026\n\016new_max_health\030\002 \001("
-  "\005\022\032\n\022new_current_health\030\003 \001(\005:\r\210\265\030\315!\220\265\030\002"
-  "\230\265\030\004\"M\n\020N_HealthSnapshot\022\026\n\016current_heal"
-  "th\030\001 \001(\005\022\022\n\nmax_health\030\002 \001(\005:\r\210\265\030\316!\220\265\030\002\230"
-  "\265\030\004\"2\n\016N_SpeedChanged\022\021\n\tnew_speed\030\001 \001(\002"
-  ":\r\210\265\030\321!\220\265\030\002\230\265\030\004\"K\n\022N_TimePointChanged\022\027\n"
-  "\017new_time_points\030\001 \001(\005\022\r\n\005delta\030\002 \001(\005:\r\210"
-  "\265\030\326!\220\265\030\002\230\265\030\004\"9\n\023N_TimePointSnapshot\022\023\n\013t"
-  "ime_points\030\001 \001(\005:\r\210\265\030\327!\220\265\030\002\230\265\030\004\"0\n\rN_Ski"
-  "llUnlock\022\020\n\010skill_id\030\001 \001(\r:\r\210\265\030\340!\220\265\030\002\230\265\030"
-  "\004\"F\n\017C_SkillEquipReq\022\020\n\010skill_id\030\001 \001(\r\022\022"
-  "\n\nslot_index\030\002 \001(\r:\r\210\265\030\341!\220\265\030\001\230\265\030\004\"z\n\017S_S"
-  "killEquipRes\022\017\n\007success\030\001 \001(\010\022!\n\006result\030"
-  "\002 \001(\0132\021.se.common.Result\022\020\n\010skill_id\030\003 \001"
-  "(\r\022\022\n\nslot_index\030\004 \001(\r:\r\210\265\030\342!\220\265\030\002\230\265\030\004\"|\n"
-  "\025N_SkillUnlockSnapshot\022\032\n\022unlocked_skill"
-  "_ids\030\001 \003(\r\0228\n\024equipped_skill_slots\030\002 \003(\013"
-  "2\032.se.game.SkillSlotSnapshot:\r\210\265\030\343!\220\265\030\002\230"
-  "\265\030\004\"C\n\014N_SkillEquip\022\020\n\010skill_id\030\001 \001(\r\022\022\n"
-  "\nslot_index\030\002 \001(\r:\r\210\265\030\344!\220\265\030\002\230\265\030\004\"E\n\014N_En"
-  "tityDied\022&\n\tentity_id\030\001 \001(\0132\023.se.common."
-  "ObjectId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N_EntityRespa"
-  "wned\022&\n\tentity_id\030\001 \001(\0132\023.se.common.Obje"
-  "ctId\022\'\n\ttransform\030\002 \001(\0132\024.se.common.Tran"
-  "sform:\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_EntityDestroye"
-  "d\022&\n\tentity_id\030\001 \001(\0132\023.se.common.ObjectI"
-  "d:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeStormChange\022\""
-  "\n\006center\030\001 \001(\0132\022.se.common.Vector3\022\016\n\006ra"
-  "dius\030\002 \001(\002\022\024\n\014waiting_time\030\003 \001(\002\022\026\n\016shri"
-  "nking_time\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230\265\030\004\"G\n\017Debug"
-  "DrawSphere\022$\n\010position\030\001 \001(\0132\022.se.common"
-  ".Vector3\022\016\n\006radius\030\002 \001(\002\"\202\001\n\014DebugDrawOB"
-  "B\022\"\n\006center\030\001 \001(\0132\022.se.common.Vector3\022(\n"
-  "\014half_extents\030\002 \001(\0132\022.se.common.Vector3\022"
-  "$\n\010rotation\030\003 \001(\0132\022.se.common.Rotator\"\260\001"
-  "\n\013N_DebugDraw\022*\n\006sphere\030\001 \001(\0132\030.se.game."
-  "DebugDrawSphereH\000\022$\n\003obb\030\002 \001(\0132\025.se.game"
-  ".DebugDrawOBBH\000\022\022\n\ncolor_rgba\030\n \001(\r\022\020\n\010d"
-  "uration\030\013 \001(\002\022\021\n\tthickness\030\014 \001(\002:\r\210\265\030\272\"\220"
-  "\265\030\002\230\265\030\004B\007\n\005shapeb\006proto3"
+  "\230\265\030\004\"M\n\021N_StoreEntryBlock\022\025\n\rstore_item_"
+  "id\030\001 \001(\r\022\022\n\nis_blocked\030\002 \001(\010:\r\210\265\030\222!\220\265\030\002\230"
+  "\265\030\004\"[\n\024N_StoreEntrySnapshot\0224\n\rstore_ent"
+  "ries\030\001 \003(\0132\035.se.game.StoreEntryUpdateDat"
+  "a:\r\210\265\030\223!\220\265\030\002\230\265\030\004\"V\n\014N_ItemGained\022\017\n\007item"
+  "_id\030\001 \001(\r\022\024\n\014new_quantity\030\002 \001(\r\022\020\n\010quant"
+  "ity\030\003 \001(\r:\r\210\265\030\232!\220\265\030\002\230\265\030\004\"T\n\nN_ItemLost\022\017"
+  "\n\007item_id\030\001 \001(\r\022\024\n\014new_quantity\030\002 \001(\r\022\020\n"
+  "\010quantity\030\003 \001(\r:\r\210\265\030\233!\220\265\030\002\230\265\030\004\"B\n\016N_Item"
+  "Snapshot\022!\n\005items\030\001 \003(\0132\022.se.game.ItemSt"
+  "ack:\r\210\265\030\234!\220\265\030\002\230\265\030\004\"H\n\021C_SetSavePointReq\022"
+  "$\n\010position\030\001 \001(\0132\022.se.common.Vector3:\r\210"
+  "\265\030\302!\220\265\030\001\230\265\030\004\"|\n\021S_SetSavePointRes\022\017\n\007suc"
+  "cess\030\001 \001(\010\022!\n\006result\030\002 \001(\0132\021.se.common.R"
+  "esult\022$\n\010position\030\003 \001(\0132\022.se.common.Vect"
+  "or3:\r\210\265\030\303!\220\265\030\002\230\265\030\004\"k\n\017N_HealthChanged\022&\n"
+  "\tentity_id\030\001 \001(\0132\023.se.common.ObjectId\022\022\n"
+  "\nnew_health\030\002 \001(\005\022\r\n\005delta\030\003 \001(\005:\r\210\265\030\314!\220"
+  "\265\030\002\230\265\030\004\"\177\n\022N_MaxHealthChanged\022&\n\tentity_"
+  "id\030\001 \001(\0132\023.se.common.ObjectId\022\026\n\016new_max"
+  "_health\030\002 \001(\005\022\032\n\022new_current_health\030\003 \001("
+  "\005:\r\210\265\030\315!\220\265\030\002\230\265\030\004\"M\n\020N_HealthSnapshot\022\026\n\016"
+  "current_health\030\001 \001(\005\022\022\n\nmax_health\030\002 \001(\005"
+  ":\r\210\265\030\316!\220\265\030\002\230\265\030\004\"2\n\016N_SpeedChanged\022\021\n\tnew"
+  "_speed\030\001 \001(\002:\r\210\265\030\321!\220\265\030\002\230\265\030\004\"K\n\022N_TimePoi"
+  "ntChanged\022\027\n\017new_time_points\030\001 \001(\005\022\r\n\005de"
+  "lta\030\002 \001(\005:\r\210\265\030\326!\220\265\030\002\230\265\030\004\"9\n\023N_TimePointS"
+  "napshot\022\023\n\013time_points\030\001 \001(\005:\r\210\265\030\327!\220\265\030\002\230"
+  "\265\030\004\"0\n\rN_SkillUnlock\022\020\n\010skill_id\030\001 \001(\r:\r"
+  "\210\265\030\340!\220\265\030\002\230\265\030\004\"F\n\017C_SkillEquipReq\022\020\n\010skil"
+  "l_id\030\001 \001(\r\022\022\n\nslot_index\030\002 \001(\r:\r\210\265\030\341!\220\265\030"
+  "\001\230\265\030\004\"z\n\017S_SkillEquipRes\022\017\n\007success\030\001 \001("
+  "\010\022!\n\006result\030\002 \001(\0132\021.se.common.Result\022\020\n\010"
+  "skill_id\030\003 \001(\r\022\022\n\nslot_index\030\004 \001(\r:\r\210\265\030\342"
+  "!\220\265\030\002\230\265\030\004\"|\n\025N_SkillUnlockSnapshot\022\032\n\022un"
+  "locked_skill_ids\030\001 \003(\r\0228\n\024equipped_skill"
+  "_slots\030\002 \003(\0132\032.se.game.SkillSlotSnapshot"
+  ":\r\210\265\030\343!\220\265\030\002\230\265\030\004\"C\n\014N_SkillEquip\022\020\n\010skill"
+  "_id\030\001 \001(\r\022\022\n\nslot_index\030\002 \001(\r:\r\210\265\030\344!\220\265\030\002"
+  "\230\265\030\004\"E\n\014N_EntityDied\022&\n\tentity_id\030\001 \001(\0132"
+  "\023.se.common.ObjectId:\r\210\265\030\246\"\220\265\030\002\230\265\030\004\"s\n\021N"
+  "_EntityRespawned\022&\n\tentity_id\030\001 \001(\0132\023.se"
+  ".common.ObjectId\022\'\n\ttransform\030\002 \001(\0132\024.se"
+  ".common.Transform:\r\210\265\030\247\"\220\265\030\002\230\265\030\004\"J\n\021N_En"
+  "tityDestroyed\022&\n\tentity_id\030\001 \001(\0132\023.se.co"
+  "mmon.ObjectId:\r\210\265\030\250\"\220\265\030\002\230\265\030\004\"\204\001\n\021N_TimeS"
+  "tormChange\022\"\n\006center\030\001 \001(\0132\022.se.common.V"
+  "ector3\022\016\n\006radius\030\002 \001(\002\022\024\n\014waiting_time\030\003"
+  " \001(\002\022\026\n\016shrinking_time\030\004 \001(\002:\r\210\265\030\260\"\220\265\030\002\230"
+  "\265\030\004\"G\n\017DebugDrawSphere\022$\n\010position\030\001 \001(\013"
+  "2\022.se.common.Vector3\022\016\n\006radius\030\002 \001(\002\"\202\001\n"
+  "\014DebugDrawOBB\022\"\n\006center\030\001 \001(\0132\022.se.commo"
+  "n.Vector3\022(\n\014half_extents\030\002 \001(\0132\022.se.com"
+  "mon.Vector3\022$\n\010rotation\030\003 \001(\0132\022.se.commo"
+  "n.Rotator\"\260\001\n\013N_DebugDraw\022*\n\006sphere\030\001 \001("
+  "\0132\030.se.game.DebugDrawSphereH\000\022$\n\003obb\030\002 \001"
+  "(\0132\025.se.game.DebugDrawOBBH\000\022\022\n\ncolor_rgb"
+  "a\030\n \001(\r\022\020\n\010duration\030\013 \001(\002\022\021\n\tthickness\030\014"
+  " \001(\002:\r\210\265\030\272\"\220\265\030\002\230\265\030\004B\007\n\005shapeb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessages_2eproto_deps[5] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -2328,9 +2378,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5fmessages_2eproto = {
-    false, false, 8904, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
+    false, false, 9076, descriptor_table_protodef_game_2fgame_5fmessages_2eproto,
     "game/game_messages.proto",
-    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 84,
+    &descriptor_table_game_2fgame_5fmessages_2eproto_once, descriptor_table_game_2fgame_5fmessages_2eproto_deps, 5, 86,
     schemas, file_default_instances, TableStruct_game_2fgame_5fmessages_2eproto::offsets,
     file_level_metadata_game_2fgame_5fmessages_2eproto, file_level_enum_descriptors_game_2fgame_5fmessages_2eproto,
     file_level_service_descriptors_game_2fgame_5fmessages_2eproto,
@@ -16654,6 +16704,405 @@ void S_UseStoreRes::InternalSwap(S_UseStoreRes* other) {
 
 // ===================================================================
 
+class N_StoreEntryBlock::_Internal {
+ public:
+};
+
+N_StoreEntryBlock::N_StoreEntryBlock(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_StoreEntryBlock)
+}
+N_StoreEntryBlock::N_StoreEntryBlock(const N_StoreEntryBlock& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_StoreEntryBlock* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.store_item_id_){}
+    , decltype(_impl_.is_blocked_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.store_item_id_, &from._impl_.store_item_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.is_blocked_) -
+    reinterpret_cast<char*>(&_impl_.store_item_id_)) + sizeof(_impl_.is_blocked_));
+  // @@protoc_insertion_point(copy_constructor:se.game.N_StoreEntryBlock)
+}
+
+inline void N_StoreEntryBlock::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.store_item_id_){0u}
+    , decltype(_impl_.is_blocked_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_StoreEntryBlock::~N_StoreEntryBlock() {
+  // @@protoc_insertion_point(destructor:se.game.N_StoreEntryBlock)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_StoreEntryBlock::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void N_StoreEntryBlock::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_StoreEntryBlock::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_StoreEntryBlock)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.store_item_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.is_blocked_) -
+      reinterpret_cast<char*>(&_impl_.store_item_id_)) + sizeof(_impl_.is_blocked_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_StoreEntryBlock::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 store_item_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.store_item_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool is_blocked = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.is_blocked_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_StoreEntryBlock::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_StoreEntryBlock)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 store_item_id = 1;
+  if (this->_internal_store_item_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_store_item_id(), target);
+  }
+
+  // bool is_blocked = 2;
+  if (this->_internal_is_blocked() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(2, this->_internal_is_blocked(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_StoreEntryBlock)
+  return target;
+}
+
+size_t N_StoreEntryBlock::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_StoreEntryBlock)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 store_item_id = 1;
+  if (this->_internal_store_item_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_store_item_id());
+  }
+
+  // bool is_blocked = 2;
+  if (this->_internal_is_blocked() != 0) {
+    total_size += 1 + 1;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_StoreEntryBlock::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_StoreEntryBlock::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_StoreEntryBlock::GetClassData() const { return &_class_data_; }
+
+
+void N_StoreEntryBlock::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_StoreEntryBlock*>(&to_msg);
+  auto& from = static_cast<const N_StoreEntryBlock&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_StoreEntryBlock)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_store_item_id() != 0) {
+    _this->_internal_set_store_item_id(from._internal_store_item_id());
+  }
+  if (from._internal_is_blocked() != 0) {
+    _this->_internal_set_is_blocked(from._internal_is_blocked());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_StoreEntryBlock::CopyFrom(const N_StoreEntryBlock& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_StoreEntryBlock)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_StoreEntryBlock::IsInitialized() const {
+  return true;
+}
+
+void N_StoreEntryBlock::InternalSwap(N_StoreEntryBlock* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(N_StoreEntryBlock, _impl_.is_blocked_)
+      + sizeof(N_StoreEntryBlock::_impl_.is_blocked_)
+      - PROTOBUF_FIELD_OFFSET(N_StoreEntryBlock, _impl_.store_item_id_)>(
+          reinterpret_cast<char*>(&_impl_.store_item_id_),
+          reinterpret_cast<char*>(&other->_impl_.store_item_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_StoreEntryBlock::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[61]);
+}
+
+// ===================================================================
+
+class N_StoreEntrySnapshot::_Internal {
+ public:
+};
+
+void N_StoreEntrySnapshot::clear_store_entries() {
+  _impl_.store_entries_.Clear();
+}
+N_StoreEntrySnapshot::N_StoreEntrySnapshot(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.N_StoreEntrySnapshot)
+}
+N_StoreEntrySnapshot::N_StoreEntrySnapshot(const N_StoreEntrySnapshot& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_StoreEntrySnapshot* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.store_entries_){from._impl_.store_entries_}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:se.game.N_StoreEntrySnapshot)
+}
+
+inline void N_StoreEntrySnapshot::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.store_entries_){arena}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_StoreEntrySnapshot::~N_StoreEntrySnapshot() {
+  // @@protoc_insertion_point(destructor:se.game.N_StoreEntrySnapshot)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_StoreEntrySnapshot::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  _impl_.store_entries_.~RepeatedPtrField();
+}
+
+void N_StoreEntrySnapshot::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_StoreEntrySnapshot::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.N_StoreEntrySnapshot)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.store_entries_.Clear();
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_StoreEntrySnapshot::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // repeated .se.game.StoreEntryUpdateData store_entries = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_store_entries(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_StoreEntrySnapshot::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.N_StoreEntrySnapshot)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .se.game.StoreEntryUpdateData store_entries = 1;
+  for (unsigned i = 0,
+      n = static_cast<unsigned>(this->_internal_store_entries_size()); i < n; i++) {
+    const auto& repfield = this->_internal_store_entries(i);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+        InternalWriteMessage(1, repfield, repfield.GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.N_StoreEntrySnapshot)
+  return target;
+}
+
+size_t N_StoreEntrySnapshot::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.N_StoreEntrySnapshot)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .se.game.StoreEntryUpdateData store_entries = 1;
+  total_size += 1UL * this->_internal_store_entries_size();
+  for (const auto& msg : this->_impl_.store_entries_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_StoreEntrySnapshot::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_StoreEntrySnapshot::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_StoreEntrySnapshot::GetClassData() const { return &_class_data_; }
+
+
+void N_StoreEntrySnapshot::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_StoreEntrySnapshot*>(&to_msg);
+  auto& from = static_cast<const N_StoreEntrySnapshot&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.N_StoreEntrySnapshot)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_impl_.store_entries_.MergeFrom(from._impl_.store_entries_);
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_StoreEntrySnapshot::CopyFrom(const N_StoreEntrySnapshot& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.N_StoreEntrySnapshot)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_StoreEntrySnapshot::IsInitialized() const {
+  return true;
+}
+
+void N_StoreEntrySnapshot::InternalSwap(N_StoreEntrySnapshot* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.store_entries_.InternalSwap(&other->_impl_.store_entries_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_StoreEntrySnapshot::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
+      file_level_metadata_game_2fgame_5fmessages_2eproto[62]);
+}
+
+// ===================================================================
+
 class N_ItemGained::_Internal {
  public:
 };
@@ -16884,7 +17333,7 @@ void N_ItemGained::InternalSwap(N_ItemGained* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemGained::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[61]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[63]);
 }
 
 // ===================================================================
@@ -17119,7 +17568,7 @@ void N_ItemLost::InternalSwap(N_ItemLost* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemLost::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[62]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[64]);
 }
 
 // ===================================================================
@@ -17307,7 +17756,7 @@ void N_ItemSnapshot::InternalSwap(N_ItemSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ItemSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[63]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[65]);
 }
 
 // ===================================================================
@@ -17506,7 +17955,7 @@ void C_SetSavePointReq::InternalSwap(C_SetSavePointReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_SetSavePointReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[64]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[66]);
 }
 
 // ===================================================================
@@ -17783,7 +18232,7 @@ void S_SetSavePointRes::InternalSwap(S_SetSavePointRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_SetSavePointRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[65]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[67]);
 }
 
 // ===================================================================
@@ -18041,7 +18490,7 @@ void N_HealthChanged::InternalSwap(N_HealthChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_HealthChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[66]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[68]);
 }
 
 // ===================================================================
@@ -18299,7 +18748,7 @@ void N_MaxHealthChanged::InternalSwap(N_MaxHealthChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_MaxHealthChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[67]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[69]);
 }
 
 // ===================================================================
@@ -18510,7 +18959,7 @@ void N_HealthSnapshot::InternalSwap(N_HealthSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_HealthSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[68]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[70]);
 }
 
 // ===================================================================
@@ -18700,7 +19149,7 @@ void N_SpeedChanged::InternalSwap(N_SpeedChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SpeedChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[69]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[71]);
 }
 
 // ===================================================================
@@ -18911,7 +19360,7 @@ void N_TimePointChanged::InternalSwap(N_TimePointChanged* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimePointChanged::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[70]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[72]);
 }
 
 // ===================================================================
@@ -19089,7 +19538,7 @@ void N_TimePointSnapshot::InternalSwap(N_TimePointSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimePointSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[71]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[73]);
 }
 
 // ===================================================================
@@ -19267,7 +19716,7 @@ void N_SkillUnlock::InternalSwap(N_SkillUnlock* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SkillUnlock::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[72]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[74]);
 }
 
 // ===================================================================
@@ -19478,7 +19927,7 @@ void C_SkillEquipReq::InternalSwap(C_SkillEquipReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_SkillEquipReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[73]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[75]);
 }
 
 // ===================================================================
@@ -19760,7 +20209,7 @@ void S_SkillEquipRes::InternalSwap(S_SkillEquipRes* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata S_SkillEquipRes::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[74]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[76]);
 }
 
 // ===================================================================
@@ -19990,7 +20439,7 @@ void N_SkillUnlockSnapshot::InternalSwap(N_SkillUnlockSnapshot* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SkillUnlockSnapshot::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[75]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[77]);
 }
 
 // ===================================================================
@@ -20201,7 +20650,7 @@ void N_SkillEquip::InternalSwap(N_SkillEquip* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_SkillEquip::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[76]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[78]);
 }
 
 // ===================================================================
@@ -20400,7 +20849,7 @@ void N_EntityDied::InternalSwap(N_EntityDied* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDied::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[77]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[79]);
 }
 
 // ===================================================================
@@ -20651,7 +21100,7 @@ void N_EntityRespawned::InternalSwap(N_EntityRespawned* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityRespawned::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[78]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[80]);
 }
 
 // ===================================================================
@@ -20850,7 +21299,7 @@ void N_EntityDestroyed::InternalSwap(N_EntityDestroyed* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_EntityDestroyed::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[79]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[81]);
 }
 
 // ===================================================================
@@ -21168,7 +21617,7 @@ void N_TimeStormChange::InternalSwap(N_TimeStormChange* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TimeStormChange::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[80]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[82]);
 }
 
 // ===================================================================
@@ -21410,7 +21859,7 @@ void DebugDrawSphere::InternalSwap(DebugDrawSphere* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DebugDrawSphere::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[81]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[83]);
 }
 
 // ===================================================================
@@ -21708,7 +22157,7 @@ void DebugDrawOBB::InternalSwap(DebugDrawOBB* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata DebugDrawOBB::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[82]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[84]);
 }
 
 // ===================================================================
@@ -22121,7 +22570,7 @@ void N_DebugDraw::InternalSwap(N_DebugDraw* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_DebugDraw::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5fmessages_2eproto_getter, &descriptor_table_game_2fgame_5fmessages_2eproto_once,
-      file_level_metadata_game_2fgame_5fmessages_2eproto[83]);
+      file_level_metadata_game_2fgame_5fmessages_2eproto[85]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -22371,6 +22820,14 @@ Arena::CreateMaybeMessage< ::se::game::C_UseStoreReq >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::S_UseStoreRes*
 Arena::CreateMaybeMessage< ::se::game::S_UseStoreRes >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::S_UseStoreRes >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_StoreEntryBlock*
+Arena::CreateMaybeMessage< ::se::game::N_StoreEntryBlock >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_StoreEntryBlock >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::N_StoreEntrySnapshot*
+Arena::CreateMaybeMessage< ::se::game::N_StoreEntrySnapshot >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::N_StoreEntrySnapshot >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::game::N_ItemGained*
 Arena::CreateMaybeMessage< ::se::game::N_ItemGained >(Arena* arena) {

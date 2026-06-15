@@ -1200,6 +1200,42 @@ bool Handle_S_UseStoreRes(PacketSessionRef& session, const se::game::S_UseStoreR
 	UE_LOG(LogTemp, Warning, TEXT("Handle_S_UseStoreRes: Failed to get NGIS"));
 	return false;	
 }
+
+bool Handle_N_StoreEntryBlock(PacketSessionRef& session, const se::game::N_StoreEntryBlock& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>()) 
+		{
+			NGIS->HandleStoreEntryBlock(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_StoreEntryBlock: Failed to get NGIS"));
+	return false;	
+}
+
+bool Handle_N_StoreEntrySnapshot(PacketSessionRef& session, const se::game::N_StoreEntrySnapshot& pkt)
+{
+	if (!session)
+		return false;
+	
+	if (auto GI = GWorld ? GWorld->GetGameInstance() : nullptr)
+	{
+		if (auto NGIS = GI->GetSubsystem<UNetworkGameInstanceSubsystem>())
+		{
+			NGIS->HandleStoreEntrySnapshot(pkt);
+			return true;
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("Handle_N_StoreEntrySnapshot: Failed to get NGIS"));
+	return false;
+}
 	
 bool Handle_N_ItemGained(PacketSessionRef& session, const se::game::N_ItemGained& pkt)
 {

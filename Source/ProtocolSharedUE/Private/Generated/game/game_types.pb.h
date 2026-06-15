@@ -68,6 +68,9 @@ PROTOCOLSHAREDUE_API extern SkillSlotSnapshotDefaultTypeInternal _SkillSlotSnaps
 class StoreEntryInitData;
 struct StoreEntryInitDataDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern StoreEntryInitDataDefaultTypeInternal _StoreEntryInitData_default_instance_;
+class StoreEntryUpdateData;
+struct StoreEntryUpdateDataDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern StoreEntryUpdateDataDefaultTypeInternal _StoreEntryUpdateData_default_instance_;
 class TimeAccelEffect;
 struct TimeAccelEffectDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern TimeAccelEffectDefaultTypeInternal _TimeAccelEffect_default_instance_;
@@ -101,6 +104,7 @@ template<> PROTOCOLSHAREDUE_API ::se::game::PlayerMovement* Arena::CreateMaybeMe
 template<> PROTOCOLSHAREDUE_API ::se::game::ProjectileMovement* Arena::CreateMaybeMessage<::se::game::ProjectileMovement>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::SkillSlotSnapshot* Arena::CreateMaybeMessage<::se::game::SkillSlotSnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::StoreEntryInitData* Arena::CreateMaybeMessage<::se::game::StoreEntryInitData>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::StoreEntryUpdateData* Arena::CreateMaybeMessage<::se::game::StoreEntryUpdateData>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::TimeAccelEffect* Arena::CreateMaybeMessage<::se::game::TimeAccelEffect>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::TimeAfterImageEffect* Arena::CreateMaybeMessage<::se::game::TimeAfterImageEffect>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::TimeAfterImageReq* Arena::CreateMaybeMessage<::se::game::TimeAfterImageReq>(Arena*);
@@ -1636,6 +1640,176 @@ class PROTOCOLSHAREDUE_API StoreEntryInitData final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API StoreEntryUpdateData final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.StoreEntryUpdateData) */ {
+ public:
+  inline StoreEntryUpdateData() : StoreEntryUpdateData(nullptr) {}
+  ~StoreEntryUpdateData() override;
+  explicit PROTOBUF_CONSTEXPR StoreEntryUpdateData(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  StoreEntryUpdateData(const StoreEntryUpdateData& from);
+  StoreEntryUpdateData(StoreEntryUpdateData&& from) noexcept
+    : StoreEntryUpdateData() {
+    *this = ::std::move(from);
+  }
+
+  inline StoreEntryUpdateData& operator=(const StoreEntryUpdateData& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline StoreEntryUpdateData& operator=(StoreEntryUpdateData&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const StoreEntryUpdateData& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const StoreEntryUpdateData* internal_default_instance() {
+    return reinterpret_cast<const StoreEntryUpdateData*>(
+               &_StoreEntryUpdateData_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    9;
+
+  friend void swap(StoreEntryUpdateData& a, StoreEntryUpdateData& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(StoreEntryUpdateData* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(StoreEntryUpdateData* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  StoreEntryUpdateData* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<StoreEntryUpdateData>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const StoreEntryUpdateData& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const StoreEntryUpdateData& from) {
+    StoreEntryUpdateData::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(StoreEntryUpdateData* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.StoreEntryUpdateData";
+  }
+  protected:
+  explicit StoreEntryUpdateData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStoreItemIdFieldNumber = 1,
+    kPriceFieldNumber = 2,
+    kIsAvailableFieldNumber = 3,
+  };
+  // uint32 store_item_id = 1;
+  void clear_store_item_id();
+  uint32_t store_item_id() const;
+  void set_store_item_id(uint32_t value);
+  private:
+  uint32_t _internal_store_item_id() const;
+  void _internal_set_store_item_id(uint32_t value);
+  public:
+
+  // int32 price = 2;
+  void clear_price();
+  int32_t price() const;
+  void set_price(int32_t value);
+  private:
+  int32_t _internal_price() const;
+  void _internal_set_price(int32_t value);
+  public:
+
+  // bool is_available = 3;
+  void clear_is_available();
+  bool is_available() const;
+  void set_is_available(bool value);
+  private:
+  bool _internal_is_available() const;
+  void _internal_set_is_available(bool value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.StoreEntryUpdateData)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint32_t store_item_id_;
+    int32_t price_;
+    bool is_available_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5ftypes_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API TimeAccelEffect final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.TimeAccelEffect) */ {
  public:
@@ -1684,7 +1858,7 @@ class PROTOCOLSHAREDUE_API TimeAccelEffect final :
                &_TimeAccelEffect_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    10;
 
   friend void swap(TimeAccelEffect& a, TimeAccelEffect& b) {
     a.Swap(&b);
@@ -1843,7 +2017,7 @@ class PROTOCOLSHAREDUE_API TimeAfterImageReq final :
                &_TimeAfterImageReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    11;
 
   friend void swap(TimeAfterImageReq& a, TimeAfterImageReq& b) {
     a.Swap(&b);
@@ -2020,7 +2194,7 @@ class PROTOCOLSHAREDUE_API TimeRewindReq final :
                &_TimeRewindReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    12;
 
   friend void swap(TimeRewindReq& a, TimeRewindReq& b) {
     a.Swap(&b);
@@ -2188,7 +2362,7 @@ class PROTOCOLSHAREDUE_API TimeAfterImageEffect final :
                &_TimeAfterImageEffect_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    13;
 
   friend void swap(TimeAfterImageEffect& a, TimeAfterImageEffect& b) {
     a.Swap(&b);
@@ -2376,7 +2550,7 @@ class PROTOCOLSHAREDUE_API TimeRewindEffect final :
                &_TimeRewindEffect_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    14;
 
   friend void swap(TimeRewindEffect& a, TimeRewindEffect& b) {
     a.Swap(&b);
@@ -3266,6 +3440,70 @@ inline void StoreEntryInitData::set_price(int32_t value) {
 
 // -------------------------------------------------------------------
 
+// StoreEntryUpdateData
+
+// uint32 store_item_id = 1;
+inline void StoreEntryUpdateData::clear_store_item_id() {
+  _impl_.store_item_id_ = 0u;
+}
+inline uint32_t StoreEntryUpdateData::_internal_store_item_id() const {
+  return _impl_.store_item_id_;
+}
+inline uint32_t StoreEntryUpdateData::store_item_id() const {
+  // @@protoc_insertion_point(field_get:se.game.StoreEntryUpdateData.store_item_id)
+  return _internal_store_item_id();
+}
+inline void StoreEntryUpdateData::_internal_set_store_item_id(uint32_t value) {
+  
+  _impl_.store_item_id_ = value;
+}
+inline void StoreEntryUpdateData::set_store_item_id(uint32_t value) {
+  _internal_set_store_item_id(value);
+  // @@protoc_insertion_point(field_set:se.game.StoreEntryUpdateData.store_item_id)
+}
+
+// int32 price = 2;
+inline void StoreEntryUpdateData::clear_price() {
+  _impl_.price_ = 0;
+}
+inline int32_t StoreEntryUpdateData::_internal_price() const {
+  return _impl_.price_;
+}
+inline int32_t StoreEntryUpdateData::price() const {
+  // @@protoc_insertion_point(field_get:se.game.StoreEntryUpdateData.price)
+  return _internal_price();
+}
+inline void StoreEntryUpdateData::_internal_set_price(int32_t value) {
+  
+  _impl_.price_ = value;
+}
+inline void StoreEntryUpdateData::set_price(int32_t value) {
+  _internal_set_price(value);
+  // @@protoc_insertion_point(field_set:se.game.StoreEntryUpdateData.price)
+}
+
+// bool is_available = 3;
+inline void StoreEntryUpdateData::clear_is_available() {
+  _impl_.is_available_ = false;
+}
+inline bool StoreEntryUpdateData::_internal_is_available() const {
+  return _impl_.is_available_;
+}
+inline bool StoreEntryUpdateData::is_available() const {
+  // @@protoc_insertion_point(field_get:se.game.StoreEntryUpdateData.is_available)
+  return _internal_is_available();
+}
+inline void StoreEntryUpdateData::_internal_set_is_available(bool value) {
+  
+  _impl_.is_available_ = value;
+}
+inline void StoreEntryUpdateData::set_is_available(bool value) {
+  _internal_set_is_available(value);
+  // @@protoc_insertion_point(field_set:se.game.StoreEntryUpdateData.is_available)
+}
+
+// -------------------------------------------------------------------
+
 // TimeAccelEffect
 
 // uint32 fire_rate_bonus_percent = 1;
@@ -3937,6 +4175,8 @@ inline void TimeRewindEffect::set_allocated_target_position(::se::common::Vector
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

@@ -2357,6 +2357,43 @@ void UNetworkGameInstanceSubsystem::HandleUseStoreRes(const se::game::S_UseStore
 	}
 }
 
+void UNetworkGameInstanceSubsystem::HandleStoreEntryBlock(const se::game::N_StoreEntryBlock& Pkt)
+{
+	if (Pkt.is_blocked())
+	{
+		SoldOutStoreItems.Add(Pkt.store_item_id());
+	}
+	else
+	{
+		SoldOutStoreItems.Remove(Pkt.store_item_id());
+	}
+
+	OnStorePriceDataUpdated.Broadcast();
+
+	// UE_LOG(LogTemp, Log, TEXT("[StorePkt] N_StoreEntryBlock ItemId=%u, IsBlocked=%s"),
+	// 	Pkt.store_item_id(),
+	// 	Pkt.is_blocked() ? TEXT("true") : TEXT("false"));
+}
+
+void UNetworkGameInstanceSubsystem::HandleStoreEntrySnapshot(const se::game::N_StoreEntrySnapshot& Pkt)
+{
+	StoreItemPrices.Reset();
+	SoldOutStoreItems.Reset();
+
+	for (const se::game::StoreEntryUpdateData& Entry : Pkt.store_entries())
+	{
+		StoreItemPrices.Add(Entry.store_item_id(), Entry.price());
+		if (!Entry.is_available())
+		{
+			SoldOutStoreItems.Add(Entry.store_item_id());
+		}
+	}
+
+	OnStorePriceDataUpdated.Broadcast();
+
+	// UE_LOG(LogTemp, Log, TEXT("[StorePkt] N_StoreEntrySnapshot StoreEntries=%d"), Pkt.store_entries_size());
+}
+
 void UNetworkGameInstanceSubsystem::HandleItemGained(const se::game::N_ItemGained& Pkt)
 {
 	check(IsInGameThread());

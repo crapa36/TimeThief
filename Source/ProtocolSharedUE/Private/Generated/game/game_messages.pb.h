@@ -247,6 +247,12 @@ PROTOCOLSHAREDUE_API extern N_SkillUnlockSnapshotDefaultTypeInternal _N_SkillUnl
 class N_SpeedChanged;
 struct N_SpeedChangedDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_SpeedChangedDefaultTypeInternal _N_SpeedChanged_default_instance_;
+class N_StoreEntryBlock;
+struct N_StoreEntryBlockDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_StoreEntryBlockDefaultTypeInternal _N_StoreEntryBlock_default_instance_;
+class N_StoreEntrySnapshot;
+struct N_StoreEntrySnapshotDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern N_StoreEntrySnapshotDefaultTypeInternal _N_StoreEntrySnapshot_default_instance_;
 class N_ThrowGrenade;
 struct N_ThrowGrenadeDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern N_ThrowGrenadeDefaultTypeInternal _N_ThrowGrenade_default_instance_;
@@ -372,6 +378,8 @@ template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillEquip* Arena::CreateMaybeMess
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillUnlock* Arena::CreateMaybeMessage<::se::game::N_SkillUnlock>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SkillUnlockSnapshot* Arena::CreateMaybeMessage<::se::game::N_SkillUnlockSnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_SpeedChanged* Arena::CreateMaybeMessage<::se::game::N_SpeedChanged>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_StoreEntryBlock* Arena::CreateMaybeMessage<::se::game::N_StoreEntryBlock>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::game::N_StoreEntrySnapshot* Arena::CreateMaybeMessage<::se::game::N_StoreEntrySnapshot>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_ThrowGrenade* Arena::CreateMaybeMessage<::se::game::N_ThrowGrenade>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimePointChanged* Arena::CreateMaybeMessage<::se::game::N_TimePointChanged>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::game::N_TimePointSnapshot* Arena::CreateMaybeMessage<::se::game::N_TimePointSnapshot>(Arena*);
@@ -10954,6 +10962,322 @@ class PROTOCOLSHAREDUE_API S_UseStoreRes final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API N_StoreEntryBlock final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_StoreEntryBlock) */ {
+ public:
+  inline N_StoreEntryBlock() : N_StoreEntryBlock(nullptr) {}
+  ~N_StoreEntryBlock() override;
+  explicit PROTOBUF_CONSTEXPR N_StoreEntryBlock(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_StoreEntryBlock(const N_StoreEntryBlock& from);
+  N_StoreEntryBlock(N_StoreEntryBlock&& from) noexcept
+    : N_StoreEntryBlock() {
+    *this = ::std::move(from);
+  }
+
+  inline N_StoreEntryBlock& operator=(const N_StoreEntryBlock& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_StoreEntryBlock& operator=(N_StoreEntryBlock&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_StoreEntryBlock& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_StoreEntryBlock* internal_default_instance() {
+    return reinterpret_cast<const N_StoreEntryBlock*>(
+               &_N_StoreEntryBlock_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    61;
+
+  friend void swap(N_StoreEntryBlock& a, N_StoreEntryBlock& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_StoreEntryBlock* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_StoreEntryBlock* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_StoreEntryBlock* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_StoreEntryBlock>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_StoreEntryBlock& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_StoreEntryBlock& from) {
+    N_StoreEntryBlock::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_StoreEntryBlock* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_StoreEntryBlock";
+  }
+  protected:
+  explicit N_StoreEntryBlock(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStoreItemIdFieldNumber = 1,
+    kIsBlockedFieldNumber = 2,
+  };
+  // uint32 store_item_id = 1;
+  void clear_store_item_id();
+  uint32_t store_item_id() const;
+  void set_store_item_id(uint32_t value);
+  private:
+  uint32_t _internal_store_item_id() const;
+  void _internal_set_store_item_id(uint32_t value);
+  public:
+
+  // bool is_blocked = 2;
+  void clear_is_blocked();
+  bool is_blocked() const;
+  void set_is_blocked(bool value);
+  private:
+  bool _internal_is_blocked() const;
+  void _internal_set_is_blocked(bool value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.game.N_StoreEntryBlock)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    uint32_t store_item_id_;
+    bool is_blocked_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API N_StoreEntrySnapshot final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_StoreEntrySnapshot) */ {
+ public:
+  inline N_StoreEntrySnapshot() : N_StoreEntrySnapshot(nullptr) {}
+  ~N_StoreEntrySnapshot() override;
+  explicit PROTOBUF_CONSTEXPR N_StoreEntrySnapshot(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  N_StoreEntrySnapshot(const N_StoreEntrySnapshot& from);
+  N_StoreEntrySnapshot(N_StoreEntrySnapshot&& from) noexcept
+    : N_StoreEntrySnapshot() {
+    *this = ::std::move(from);
+  }
+
+  inline N_StoreEntrySnapshot& operator=(const N_StoreEntrySnapshot& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline N_StoreEntrySnapshot& operator=(N_StoreEntrySnapshot&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const N_StoreEntrySnapshot& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const N_StoreEntrySnapshot* internal_default_instance() {
+    return reinterpret_cast<const N_StoreEntrySnapshot*>(
+               &_N_StoreEntrySnapshot_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    62;
+
+  friend void swap(N_StoreEntrySnapshot& a, N_StoreEntrySnapshot& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(N_StoreEntrySnapshot* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(N_StoreEntrySnapshot* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  N_StoreEntrySnapshot* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<N_StoreEntrySnapshot>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const N_StoreEntrySnapshot& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const N_StoreEntrySnapshot& from) {
+    N_StoreEntrySnapshot::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(N_StoreEntrySnapshot* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.game.N_StoreEntrySnapshot";
+  }
+  protected:
+  explicit N_StoreEntrySnapshot(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kStoreEntriesFieldNumber = 1,
+  };
+  // repeated .se.game.StoreEntryUpdateData store_entries = 1;
+  int store_entries_size() const;
+  private:
+  int _internal_store_entries_size() const;
+  public:
+  void clear_store_entries();
+  ::se::game::StoreEntryUpdateData* mutable_store_entries(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryUpdateData >*
+      mutable_store_entries();
+  private:
+  const ::se::game::StoreEntryUpdateData& _internal_store_entries(int index) const;
+  ::se::game::StoreEntryUpdateData* _internal_add_store_entries();
+  public:
+  const ::se::game::StoreEntryUpdateData& store_entries(int index) const;
+  ::se::game::StoreEntryUpdateData* add_store_entries();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryUpdateData >&
+      store_entries() const;
+
+  // @@protoc_insertion_point(class_scope:se.game.N_StoreEntrySnapshot)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryUpdateData > store_entries_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_game_2fgame_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API N_ItemGained final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.game.N_ItemGained) */ {
  public:
@@ -11002,7 +11326,7 @@ class PROTOCOLSHAREDUE_API N_ItemGained final :
                &_N_ItemGained_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    61;
+    63;
 
   friend void swap(N_ItemGained& a, N_ItemGained& b) {
     a.Swap(&b);
@@ -11172,7 +11496,7 @@ class PROTOCOLSHAREDUE_API N_ItemLost final :
                &_N_ItemLost_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    62;
+    64;
 
   friend void swap(N_ItemLost& a, N_ItemLost& b) {
     a.Swap(&b);
@@ -11342,7 +11666,7 @@ class PROTOCOLSHAREDUE_API N_ItemSnapshot final :
                &_N_ItemSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    63;
+    65;
 
   friend void swap(N_ItemSnapshot& a, N_ItemSnapshot& b) {
     a.Swap(&b);
@@ -11499,7 +11823,7 @@ class PROTOCOLSHAREDUE_API C_SetSavePointReq final :
                &_C_SetSavePointReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    64;
+    66;
 
   friend void swap(C_SetSavePointReq& a, C_SetSavePointReq& b) {
     a.Swap(&b);
@@ -11656,7 +11980,7 @@ class PROTOCOLSHAREDUE_API S_SetSavePointRes final :
                &_S_SetSavePointRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    65;
+    67;
 
   friend void swap(S_SetSavePointRes& a, S_SetSavePointRes& b) {
     a.Swap(&b);
@@ -11844,7 +12168,7 @@ class PROTOCOLSHAREDUE_API N_HealthChanged final :
                &_N_HealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    66;
+    68;
 
   friend void swap(N_HealthChanged& a, N_HealthChanged& b) {
     a.Swap(&b);
@@ -12023,7 +12347,7 @@ class PROTOCOLSHAREDUE_API N_MaxHealthChanged final :
                &_N_MaxHealthChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    67;
+    69;
 
   friend void swap(N_MaxHealthChanged& a, N_MaxHealthChanged& b) {
     a.Swap(&b);
@@ -12202,7 +12526,7 @@ class PROTOCOLSHAREDUE_API N_HealthSnapshot final :
                &_N_HealthSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    68;
+    70;
 
   friend void swap(N_HealthSnapshot& a, N_HealthSnapshot& b) {
     a.Swap(&b);
@@ -12361,7 +12685,7 @@ class PROTOCOLSHAREDUE_API N_SpeedChanged final :
                &_N_SpeedChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    69;
+    71;
 
   friend void swap(N_SpeedChanged& a, N_SpeedChanged& b) {
     a.Swap(&b);
@@ -12509,7 +12833,7 @@ class PROTOCOLSHAREDUE_API N_TimePointChanged final :
                &_N_TimePointChanged_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    70;
+    72;
 
   friend void swap(N_TimePointChanged& a, N_TimePointChanged& b) {
     a.Swap(&b);
@@ -12668,7 +12992,7 @@ class PROTOCOLSHAREDUE_API N_TimePointSnapshot final :
                &_N_TimePointSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    71;
+    73;
 
   friend void swap(N_TimePointSnapshot& a, N_TimePointSnapshot& b) {
     a.Swap(&b);
@@ -12816,7 +13140,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlock final :
                &_N_SkillUnlock_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    72;
+    74;
 
   friend void swap(N_SkillUnlock& a, N_SkillUnlock& b) {
     a.Swap(&b);
@@ -12964,7 +13288,7 @@ class PROTOCOLSHAREDUE_API C_SkillEquipReq final :
                &_C_SkillEquipReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    73;
+    75;
 
   friend void swap(C_SkillEquipReq& a, C_SkillEquipReq& b) {
     a.Swap(&b);
@@ -13123,7 +13447,7 @@ class PROTOCOLSHAREDUE_API S_SkillEquipRes final :
                &_S_SkillEquipRes_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    74;
+    76;
 
   friend void swap(S_SkillEquipRes& a, S_SkillEquipRes& b) {
     a.Swap(&b);
@@ -13313,7 +13637,7 @@ class PROTOCOLSHAREDUE_API N_SkillUnlockSnapshot final :
                &_N_SkillUnlockSnapshot_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    75;
+    77;
 
   friend void swap(N_SkillUnlockSnapshot& a, N_SkillUnlockSnapshot& b) {
     a.Swap(&b);
@@ -13495,7 +13819,7 @@ class PROTOCOLSHAREDUE_API N_SkillEquip final :
                &_N_SkillEquip_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    76;
+    78;
 
   friend void swap(N_SkillEquip& a, N_SkillEquip& b) {
     a.Swap(&b);
@@ -13654,7 +13978,7 @@ class PROTOCOLSHAREDUE_API N_EntityDied final :
                &_N_EntityDied_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    77;
+    79;
 
   friend void swap(N_EntityDied& a, N_EntityDied& b) {
     a.Swap(&b);
@@ -13811,7 +14135,7 @@ class PROTOCOLSHAREDUE_API N_EntityRespawned final :
                &_N_EntityRespawned_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    78;
+    80;
 
   friend void swap(N_EntityRespawned& a, N_EntityRespawned& b) {
     a.Swap(&b);
@@ -13988,7 +14312,7 @@ class PROTOCOLSHAREDUE_API N_EntityDestroyed final :
                &_N_EntityDestroyed_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    79;
+    81;
 
   friend void swap(N_EntityDestroyed& a, N_EntityDestroyed& b) {
     a.Swap(&b);
@@ -14145,7 +14469,7 @@ class PROTOCOLSHAREDUE_API N_TimeStormChange final :
                &_N_TimeStormChange_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    80;
+    82;
 
   friend void swap(N_TimeStormChange& a, N_TimeStormChange& b) {
     a.Swap(&b);
@@ -14335,7 +14659,7 @@ class PROTOCOLSHAREDUE_API DebugDrawSphere final :
                &_DebugDrawSphere_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    81;
+    83;
 
   friend void swap(DebugDrawSphere& a, DebugDrawSphere& b) {
     a.Swap(&b);
@@ -14503,7 +14827,7 @@ class PROTOCOLSHAREDUE_API DebugDrawOBB final :
                &_DebugDrawOBB_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    82;
+    84;
 
   friend void swap(DebugDrawOBB& a, DebugDrawOBB& b) {
     a.Swap(&b);
@@ -14706,7 +15030,7 @@ class PROTOCOLSHAREDUE_API N_DebugDraw final :
                &_N_DebugDraw_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    83;
+    85;
 
   friend void swap(N_DebugDraw& a, N_DebugDraw& b) {
     a.Swap(&b);
@@ -22955,6 +23279,91 @@ inline void S_UseStoreRes::set_is_sold_out(bool value) {
 
 // -------------------------------------------------------------------
 
+// N_StoreEntryBlock
+
+// uint32 store_item_id = 1;
+inline void N_StoreEntryBlock::clear_store_item_id() {
+  _impl_.store_item_id_ = 0u;
+}
+inline uint32_t N_StoreEntryBlock::_internal_store_item_id() const {
+  return _impl_.store_item_id_;
+}
+inline uint32_t N_StoreEntryBlock::store_item_id() const {
+  // @@protoc_insertion_point(field_get:se.game.N_StoreEntryBlock.store_item_id)
+  return _internal_store_item_id();
+}
+inline void N_StoreEntryBlock::_internal_set_store_item_id(uint32_t value) {
+  
+  _impl_.store_item_id_ = value;
+}
+inline void N_StoreEntryBlock::set_store_item_id(uint32_t value) {
+  _internal_set_store_item_id(value);
+  // @@protoc_insertion_point(field_set:se.game.N_StoreEntryBlock.store_item_id)
+}
+
+// bool is_blocked = 2;
+inline void N_StoreEntryBlock::clear_is_blocked() {
+  _impl_.is_blocked_ = false;
+}
+inline bool N_StoreEntryBlock::_internal_is_blocked() const {
+  return _impl_.is_blocked_;
+}
+inline bool N_StoreEntryBlock::is_blocked() const {
+  // @@protoc_insertion_point(field_get:se.game.N_StoreEntryBlock.is_blocked)
+  return _internal_is_blocked();
+}
+inline void N_StoreEntryBlock::_internal_set_is_blocked(bool value) {
+  
+  _impl_.is_blocked_ = value;
+}
+inline void N_StoreEntryBlock::set_is_blocked(bool value) {
+  _internal_set_is_blocked(value);
+  // @@protoc_insertion_point(field_set:se.game.N_StoreEntryBlock.is_blocked)
+}
+
+// -------------------------------------------------------------------
+
+// N_StoreEntrySnapshot
+
+// repeated .se.game.StoreEntryUpdateData store_entries = 1;
+inline int N_StoreEntrySnapshot::_internal_store_entries_size() const {
+  return _impl_.store_entries_.size();
+}
+inline int N_StoreEntrySnapshot::store_entries_size() const {
+  return _internal_store_entries_size();
+}
+inline ::se::game::StoreEntryUpdateData* N_StoreEntrySnapshot::mutable_store_entries(int index) {
+  // @@protoc_insertion_point(field_mutable:se.game.N_StoreEntrySnapshot.store_entries)
+  return _impl_.store_entries_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryUpdateData >*
+N_StoreEntrySnapshot::mutable_store_entries() {
+  // @@protoc_insertion_point(field_mutable_list:se.game.N_StoreEntrySnapshot.store_entries)
+  return &_impl_.store_entries_;
+}
+inline const ::se::game::StoreEntryUpdateData& N_StoreEntrySnapshot::_internal_store_entries(int index) const {
+  return _impl_.store_entries_.Get(index);
+}
+inline const ::se::game::StoreEntryUpdateData& N_StoreEntrySnapshot::store_entries(int index) const {
+  // @@protoc_insertion_point(field_get:se.game.N_StoreEntrySnapshot.store_entries)
+  return _internal_store_entries(index);
+}
+inline ::se::game::StoreEntryUpdateData* N_StoreEntrySnapshot::_internal_add_store_entries() {
+  return _impl_.store_entries_.Add();
+}
+inline ::se::game::StoreEntryUpdateData* N_StoreEntrySnapshot::add_store_entries() {
+  ::se::game::StoreEntryUpdateData* _add = _internal_add_store_entries();
+  // @@protoc_insertion_point(field_add:se.game.N_StoreEntrySnapshot.store_entries)
+  return _add;
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::se::game::StoreEntryUpdateData >&
+N_StoreEntrySnapshot::store_entries() const {
+  // @@protoc_insertion_point(field_list:se.game.N_StoreEntrySnapshot.store_entries)
+  return _impl_.store_entries_;
+}
+
+// -------------------------------------------------------------------
+
 // N_ItemGained
 
 // uint32 item_id = 1;
@@ -25241,6 +25650,10 @@ inline N_DebugDraw::ShapeCase N_DebugDraw::shape_case() const {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

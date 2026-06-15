@@ -197,6 +197,8 @@ public:
 	void HandleSetSavePointRes(const se::game::S_SetSavePointRes& pkt);
 	void HandlePickupItem(const se::game::N_PickupItem& Pkt);
 	void HandleUseStoreRes(const se::game::S_UseStoreRes& Pkt);
+	void HandleStoreEntryBlock(const se::game::N_StoreEntryBlock& Pkt);
+	void HandleStoreEntrySnapshot(const se::game::N_StoreEntrySnapshot& Pkt);
 	void HandleItemGained(const se::game::N_ItemGained& Pkt);
 	void HandleChestInteracted(const se::game::N_ChestInteracted& Pkt);
 	void HandleItemLost(const se::game::N_ItemLost& Pkt);

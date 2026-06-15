@@ -152,6 +152,21 @@ struct StoreEntryInitDataDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StoreEntryInitDataDefaultTypeInternal _StoreEntryInitData_default_instance_;
+PROTOBUF_CONSTEXPR StoreEntryUpdateData::StoreEntryUpdateData(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.store_item_id_)*/0u
+  , /*decltype(_impl_.price_)*/0
+  , /*decltype(_impl_.is_available_)*/false
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct StoreEntryUpdateDataDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR StoreEntryUpdateDataDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~StoreEntryUpdateDataDefaultTypeInternal() {}
+  union {
+    StoreEntryUpdateData _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 StoreEntryUpdateDataDefaultTypeInternal _StoreEntryUpdateData_default_instance_;
 PROTOBUF_CONSTEXPR TimeAccelEffect::TimeAccelEffect(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.fire_rate_bonus_percent_)*/0u
@@ -227,7 +242,7 @@ struct TimeRewindEffectDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TimeRewindEffectDefaultTypeInternal _TimeRewindEffect_default_instance_;
 }  // namespace game
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_game_2fgame_5ftypes_2eproto[14];
+static ::_pb::Metadata file_level_metadata_game_2fgame_5ftypes_2eproto[15];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_game_2fgame_5ftypes_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_game_2fgame_5ftypes_2eproto = nullptr;
 
@@ -311,6 +326,15 @@ const uint32_t TableStruct_game_2fgame_5ftypes_2eproto::offsets[] PROTOBUF_SECTI
   PROTOBUF_FIELD_OFFSET(::se::game::StoreEntryInitData, _impl_.store_item_id_),
   PROTOBUF_FIELD_OFFSET(::se::game::StoreEntryInitData, _impl_.price_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::game::StoreEntryUpdateData, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::game::StoreEntryUpdateData, _impl_.store_item_id_),
+  PROTOBUF_FIELD_OFFSET(::se::game::StoreEntryUpdateData, _impl_.price_),
+  PROTOBUF_FIELD_OFFSET(::se::game::StoreEntryUpdateData, _impl_.is_available_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::game::TimeAccelEffect, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -364,11 +388,12 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 54, -1, -1, sizeof(::se::game::ItemStack)},
   { 62, -1, -1, sizeof(::se::game::SkillSlotSnapshot)},
   { 70, -1, -1, sizeof(::se::game::StoreEntryInitData)},
-  { 78, -1, -1, sizeof(::se::game::TimeAccelEffect)},
-  { 86, -1, -1, sizeof(::se::game::TimeAfterImageReq)},
-  { 94, -1, -1, sizeof(::se::game::TimeRewindReq)},
-  { 102, -1, -1, sizeof(::se::game::TimeAfterImageEffect)},
-  { 111, -1, -1, sizeof(::se::game::TimeRewindEffect)},
+  { 78, -1, -1, sizeof(::se::game::StoreEntryUpdateData)},
+  { 87, -1, -1, sizeof(::se::game::TimeAccelEffect)},
+  { 95, -1, -1, sizeof(::se::game::TimeAfterImageReq)},
+  { 103, -1, -1, sizeof(::se::game::TimeRewindReq)},
+  { 111, -1, -1, sizeof(::se::game::TimeAfterImageEffect)},
+  { 120, -1, -1, sizeof(::se::game::TimeRewindEffect)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -381,6 +406,7 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::game::_ItemStack_default_instance_._instance,
   &::se::game::_SkillSlotSnapshot_default_instance_._instance,
   &::se::game::_StoreEntryInitData_default_instance_._instance,
+  &::se::game::_StoreEntryUpdateData_default_instance_._instance,
   &::se::game::_TimeAccelEffect_default_instance_._instance,
   &::se::game::_TimeAfterImageReq_default_instance_._instance,
   &::se::game::_TimeRewindReq_default_instance_._instance,
@@ -410,21 +436,23 @@ const char descriptor_table_protodef_game_2fgame_5ftypes_2eproto[] PROTOBUF_SECT
   "nt\030\002 \001(\r\"9\n\021SkillSlotSnapshot\022\022\n\nslot_in"
   "dex\030\001 \001(\r\022\020\n\010skill_id\030\002 \001(\r\":\n\022StoreEntr"
   "yInitData\022\025\n\rstore_item_id\030\001 \001(\r\022\r\n\005pric"
-  "e\030\002 \001(\005\"T\n\017TimeAccelEffect\022\037\n\027fire_rate_"
-  "bonus_percent\030\001 \001(\r\022 \n\030move_speed_bonus_"
-  "percent\030\002 \001(\r\"f\n\021TimeAfterImageReq\022*\n\016st"
-  "art_position\030\001 \001(\0132\022.se.common.Vector3\022%"
-  "\n\tdirection\030\002 \001(\0132\022.se.common.Vector3\"b\n"
-  "\rTimeRewindReq\022\032\n\022rewind_duration_ms\030\001 \001"
-  "(\r\0225\n\031predicted_target_position\030\002 \001(\0132\022."
-  "se.common.Vector3\"}\n\024TimeAfterImageEffec"
-  "t\022*\n\016start_position\030\001 \001(\0132\022.se.common.Ve"
-  "ctor3\022%\n\tdirection\030\002 \001(\0132\022.se.common.Vec"
-  "tor3\022\022\n\nmove_speed\030\003 \001(\002\"\224\001\n\020TimeRewindE"
-  "ffect\022\032\n\022rewind_duration_ms\030\001 \001(\r\022 \n\030inv"
-  "ulnerable_duration_ms\030\002 \001(\r\022\025\n\rtarget_he"
-  "alth\030\003 \001(\005\022+\n\017target_position\030\004 \001(\0132\022.se"
-  ".common.Vector3b\006proto3"
+  "e\030\002 \001(\005\"R\n\024StoreEntryUpdateData\022\025\n\rstore"
+  "_item_id\030\001 \001(\r\022\r\n\005price\030\002 \001(\005\022\024\n\014is_avai"
+  "lable\030\003 \001(\010\"T\n\017TimeAccelEffect\022\037\n\027fire_r"
+  "ate_bonus_percent\030\001 \001(\r\022 \n\030move_speed_bo"
+  "nus_percent\030\002 \001(\r\"f\n\021TimeAfterImageReq\022*"
+  "\n\016start_position\030\001 \001(\0132\022.se.common.Vecto"
+  "r3\022%\n\tdirection\030\002 \001(\0132\022.se.common.Vector"
+  "3\"b\n\rTimeRewindReq\022\032\n\022rewind_duration_ms"
+  "\030\001 \001(\r\0225\n\031predicted_target_position\030\002 \001("
+  "\0132\022.se.common.Vector3\"}\n\024TimeAfterImageE"
+  "ffect\022*\n\016start_position\030\001 \001(\0132\022.se.commo"
+  "n.Vector3\022%\n\tdirection\030\002 \001(\0132\022.se.common"
+  ".Vector3\022\022\n\nmove_speed\030\003 \001(\002\"\224\001\n\020TimeRew"
+  "indEffect\022\032\n\022rewind_duration_ms\030\001 \001(\r\022 \n"
+  "\030invulnerable_duration_ms\030\002 \001(\r\022\025\n\rtarge"
+  "t_health\030\003 \001(\005\022+\n\017target_position\030\004 \001(\0132"
+  "\022.se.common.Vector3b\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5ftypes_2eproto_deps[3] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -433,9 +461,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_game_2fgame_5ftypes
 };
 static ::_pbi::once_flag descriptor_table_game_2fgame_5ftypes_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_game_2fgame_5ftypes_2eproto = {
-    false, false, 1423, descriptor_table_protodef_game_2fgame_5ftypes_2eproto,
+    false, false, 1507, descriptor_table_protodef_game_2fgame_5ftypes_2eproto,
     "game/game_types.proto",
-    &descriptor_table_game_2fgame_5ftypes_2eproto_once, descriptor_table_game_2fgame_5ftypes_2eproto_deps, 3, 14,
+    &descriptor_table_game_2fgame_5ftypes_2eproto_once, descriptor_table_game_2fgame_5ftypes_2eproto_deps, 3, 15,
     schemas, file_default_instances, TableStruct_game_2fgame_5ftypes_2eproto::offsets,
     file_level_metadata_game_2fgame_5ftypes_2eproto, file_level_enum_descriptors_game_2fgame_5ftypes_2eproto,
     file_level_service_descriptors_game_2fgame_5ftypes_2eproto,
@@ -2525,6 +2553,241 @@ void StoreEntryInitData::InternalSwap(StoreEntryInitData* other) {
 
 // ===================================================================
 
+class StoreEntryUpdateData::_Internal {
+ public:
+};
+
+StoreEntryUpdateData::StoreEntryUpdateData(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.game.StoreEntryUpdateData)
+}
+StoreEntryUpdateData::StoreEntryUpdateData(const StoreEntryUpdateData& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  StoreEntryUpdateData* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.store_item_id_){}
+    , decltype(_impl_.price_){}
+    , decltype(_impl_.is_available_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::memcpy(&_impl_.store_item_id_, &from._impl_.store_item_id_,
+    static_cast<size_t>(reinterpret_cast<char*>(&_impl_.is_available_) -
+    reinterpret_cast<char*>(&_impl_.store_item_id_)) + sizeof(_impl_.is_available_));
+  // @@protoc_insertion_point(copy_constructor:se.game.StoreEntryUpdateData)
+}
+
+inline void StoreEntryUpdateData::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.store_item_id_){0u}
+    , decltype(_impl_.price_){0}
+    , decltype(_impl_.is_available_){false}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+StoreEntryUpdateData::~StoreEntryUpdateData() {
+  // @@protoc_insertion_point(destructor:se.game.StoreEntryUpdateData)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void StoreEntryUpdateData::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void StoreEntryUpdateData::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void StoreEntryUpdateData::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.game.StoreEntryUpdateData)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.store_item_id_, 0, static_cast<size_t>(
+      reinterpret_cast<char*>(&_impl_.is_available_) -
+      reinterpret_cast<char*>(&_impl_.store_item_id_)) + sizeof(_impl_.is_available_));
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* StoreEntryUpdateData::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // uint32 store_item_id = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.store_item_id_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // int32 price = 2;
+      case 2:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 16)) {
+          _impl_.price_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      // bool is_available = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
+          _impl_.is_available_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* StoreEntryUpdateData::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.game.StoreEntryUpdateData)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // uint32 store_item_id = 1;
+  if (this->_internal_store_item_id() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteUInt32ToArray(1, this->_internal_store_item_id(), target);
+  }
+
+  // int32 price = 2;
+  if (this->_internal_price() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(2, this->_internal_price(), target);
+  }
+
+  // bool is_available = 3;
+  if (this->_internal_is_available() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteBoolToArray(3, this->_internal_is_available(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.game.StoreEntryUpdateData)
+  return target;
+}
+
+size_t StoreEntryUpdateData::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.game.StoreEntryUpdateData)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // uint32 store_item_id = 1;
+  if (this->_internal_store_item_id() != 0) {
+    total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(this->_internal_store_item_id());
+  }
+
+  // int32 price = 2;
+  if (this->_internal_price() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_price());
+  }
+
+  // bool is_available = 3;
+  if (this->_internal_is_available() != 0) {
+    total_size += 1 + 1;
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData StoreEntryUpdateData::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    StoreEntryUpdateData::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*StoreEntryUpdateData::GetClassData() const { return &_class_data_; }
+
+
+void StoreEntryUpdateData::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<StoreEntryUpdateData*>(&to_msg);
+  auto& from = static_cast<const StoreEntryUpdateData&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.game.StoreEntryUpdateData)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_store_item_id() != 0) {
+    _this->_internal_set_store_item_id(from._internal_store_item_id());
+  }
+  if (from._internal_price() != 0) {
+    _this->_internal_set_price(from._internal_price());
+  }
+  if (from._internal_is_available() != 0) {
+    _this->_internal_set_is_available(from._internal_is_available());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void StoreEntryUpdateData::CopyFrom(const StoreEntryUpdateData& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.game.StoreEntryUpdateData)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool StoreEntryUpdateData::IsInitialized() const {
+  return true;
+}
+
+void StoreEntryUpdateData::InternalSwap(StoreEntryUpdateData* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(StoreEntryUpdateData, _impl_.is_available_)
+      + sizeof(StoreEntryUpdateData::_impl_.is_available_)
+      - PROTOBUF_FIELD_OFFSET(StoreEntryUpdateData, _impl_.store_item_id_)>(
+          reinterpret_cast<char*>(&_impl_.store_item_id_),
+          reinterpret_cast<char*>(&other->_impl_.store_item_id_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata StoreEntryUpdateData::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
+      file_level_metadata_game_2fgame_5ftypes_2eproto[9]);
+}
+
+// ===================================================================
+
 class TimeAccelEffect::_Internal {
  public:
 };
@@ -2731,7 +2994,7 @@ void TimeAccelEffect::InternalSwap(TimeAccelEffect* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TimeAccelEffect::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
-      file_level_metadata_game_2fgame_5ftypes_2eproto[9]);
+      file_level_metadata_game_2fgame_5ftypes_2eproto[10]);
 }
 
 // ===================================================================
@@ -2982,7 +3245,7 @@ void TimeAfterImageReq::InternalSwap(TimeAfterImageReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TimeAfterImageReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
-      file_level_metadata_game_2fgame_5ftypes_2eproto[10]);
+      file_level_metadata_game_2fgame_5ftypes_2eproto[11]);
 }
 
 // ===================================================================
@@ -3212,7 +3475,7 @@ void TimeRewindReq::InternalSwap(TimeRewindReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TimeRewindReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
-      file_level_metadata_game_2fgame_5ftypes_2eproto[11]);
+      file_level_metadata_game_2fgame_5ftypes_2eproto[12]);
 }
 
 // ===================================================================
@@ -3501,7 +3764,7 @@ void TimeAfterImageEffect::InternalSwap(TimeAfterImageEffect* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TimeAfterImageEffect::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
-      file_level_metadata_game_2fgame_5ftypes_2eproto[12]);
+      file_level_metadata_game_2fgame_5ftypes_2eproto[13]);
 }
 
 // ===================================================================
@@ -3783,7 +4046,7 @@ void TimeRewindEffect::InternalSwap(TimeRewindEffect* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata TimeRewindEffect::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_game_2fgame_5ftypes_2eproto_getter, &descriptor_table_game_2fgame_5ftypes_2eproto_once,
-      file_level_metadata_game_2fgame_5ftypes_2eproto[13]);
+      file_level_metadata_game_2fgame_5ftypes_2eproto[14]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -3825,6 +4088,10 @@ Arena::CreateMaybeMessage< ::se::game::SkillSlotSnapshot >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::game::StoreEntryInitData*
 Arena::CreateMaybeMessage< ::se::game::StoreEntryInitData >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::game::StoreEntryInitData >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::game::StoreEntryUpdateData*
+Arena::CreateMaybeMessage< ::se::game::StoreEntryUpdateData >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::game::StoreEntryUpdateData >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::game::TimeAccelEffect*
 Arena::CreateMaybeMessage< ::se::game::TimeAccelEffect >(Arena* arena) {
