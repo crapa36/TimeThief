@@ -32,7 +32,7 @@ void UEquipmentWidget::Init(ATimeThiefPlayerCharacter* InPlayer)
 		{
 			Inventory->OnThrowableEquipmentUpdatedEvent.AddUObject(this, &ThisClass::OnChangedEquipment);
 			OnChangedEquipment(Inventory->GetThrowableEquipment());
-			PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("5")));
+			PromptWidget->ActionKey_Text->SetText(FText::FromString(TEXT("X")));
 		}
 		else if (EquipmentCategory == EItemCategory::Consumable)
 		{
