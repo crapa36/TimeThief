@@ -15,6 +15,7 @@
 #include "Game/TimeThiefGameMode.h"
 #include "TimeThiefGameplayTags.h"
 #include "Components/TimeThiefPawnExtensionComponent.h"
+#include "Framework/Application/NavigationConfig.h"
 #include "HAL/IConsoleManager.h"
 #include "UI/GameResultWidget.h"
 
@@ -93,7 +94,7 @@ void ATimeThiefPlayerController::BeginPlay()
 		ApplyDLSSSuperResolutionSetting();
 		ApplyNVIDIAReflexSetting();
 		ApplyDLSSFrameGenerationSetting();
-
+		FSlateApplication::Get().SetNavigationConfig(MakeShared<FNullNavigationConfig>());
 		if (UNetworkGameInstanceSubsystem* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 		{
 			NGIS->OnPlayStateChanged.AddUniqueDynamic(this, &ATimeThiefPlayerController::HandleNetworkPlayStateChanged);
