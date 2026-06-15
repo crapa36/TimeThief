@@ -429,10 +429,6 @@ void ATimeThiefCharacterBase::UpdateMask()
 	{
 		DisappearFX->SetVariableFloat(TEXT("User.Mask"), Mask);
 	}
-
-	LastAppliedMask = Mask;
-	LastMaskWeaponMesh = WeaponMesh;
-	LastMaskWeaponStaticMesh = WeaponStaticMesh;
 }
 
 void ATimeThiefCharacterBase::PlayMontageOnAllMeshes(UAnimMontage* Montage, float PlayRate)
