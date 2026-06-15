@@ -111,8 +111,10 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float RenderStepVoxelScaleMax = 4.0f;
 	// 멀티 연막 composite tile 한 변 크기(px). 높을수록 타일 관리 비용 감소, culling 정밀도 감소.
 	constexpr int32 CompositeTileSize = 32;
+	// 멀티 연막 렌더링 활성화 여부 기본값. 0=개별 합성, 1=다중 합성.
+	constexpr int32 bUseMultiCompositeByDefault = 0;
 	// 한 번에 합성할 연막 슬롯 최대 개수. 높을수록 겹친 연막 처리량과 비용 증가.
-	constexpr int32 MaxCompositeSmokeSlots = 7;
+	constexpr int32 MaxCompositeSmokeSlots = 3;
 	// fullscreen composite 전환 화면 면적 비율. 낮을수록 fullscreen 경로를 더 빨리 사용.
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
 	// 연막 screen rect 여유 픽셀(px). 높을수록 가장자리 누락 감소, 합성 면적 증가.
@@ -440,4 +442,13 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float BulletEventPriorityWeight = 1.15f;
 	// 지속 상호작용 이벤트 최소 유지 시간(초).
 	constexpr float ActiveImpulseMinDurationSeconds = 0.01f;
+
+	// 반해상도 렌더링 및 양방향 업샘플링
+
+	// 연막 레이마칭을 반해상도로 실행할지 여부. 켜면 합성 비용이 약 1/4로 감소.
+	constexpr int32 bUseHalfResRenderingByDefault = 1;
+	// 양방향(bilateral) 깊이 인식 업샘플링 사용 여부. 켜면 깊이 경계의 번짐(halo)을 억제.
+	constexpr int32 bUseBilateralUpsampleByDefault = 1;
+	// 양방향 필터 깊이 감도. 높을수록 깊이 차이에 민감(경계 보존↑, 노이즈 위험↑).
+	constexpr float BilateralDepthSensitivity = 10000.0f;
 }

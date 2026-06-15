@@ -17,9 +17,17 @@ int ObstaclePrimitiveCount;
 float FarDistanceCm;
 float SurfaceFeatherCm;
 StructuredBuffer<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
+Texture3D<float> PrevObstacleSdfTexture;
+Texture3D<float4> PrevObstacleVelocityTexture;
+Texture3D<float4> PrevObstacleFaceOpenTexture;
+float4 DirtyBoundsMin[32];
+float4 DirtyBoundsMax[32];
+int DirtyObstacleCount;
+int bIsFirstFrame;
 RWTexture3D<float> OutObstacleSdfTexture;
 RWTexture3D<float4> OutObstacleVelocityTexture;
 RWTexture3D<float4> OutObstacleFaceOpenTexture;
+
 
 float ObstaclePrimitiveSdf(FTimeThiefSmokeObstaclePrimitive Primitive, float3 LocalPosition)
 {
@@ -101,6 +109,31 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+
+	// Temporal Caching: Check if the voxel is inside any dirty bounds
+	bool bIsDirty = bIsFirstFrame != 0;
+	if (!bIsDirty)
+	{
+		[loop]
+		for (int i = 0; i < DirtyObstacleCount; ++i)
+		{
+			if (LocalPosition.x >= DirtyBoundsMin[i].x && LocalPosition.x <= DirtyBoundsMax[i].x &&
+				LocalPosition.y >= DirtyBoundsMin[i].y && LocalPosition.y <= DirtyBoundsMax[i].y &&
+				LocalPosition.z >= DirtyBoundsMin[i].z && LocalPosition.z <= DirtyBoundsMax[i].z)
+			{
+				bIsDirty = true;
+				break;
+			}
+		}
+	}
+
+	if (!bIsDirty)
+	{
+		OutObstacleSdfTexture[DispatchThreadId] = PrevObstacleSdfTexture.Load(int4(DispatchThreadId, 0));
+		OutObstacleVelocityTexture[DispatchThreadId] = PrevObstacleVelocityTexture.Load(int4(DispatchThreadId, 0));
+		OutObstacleFaceOpenTexture[DispatchThreadId] = PrevObstacleFaceOpenTexture.Load(int4(DispatchThreadId, 0));
+		return;
+	}
 	const float3 CellSize = (BoundsExtent * 2.0) / max(float3(GridResolution), 1.0);
 	float3 ObstacleVelocity = 0.0;
 	const float Phi = ObstacleFieldSdf(LocalPosition, ObstacleVelocity);

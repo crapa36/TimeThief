@@ -52,6 +52,9 @@ private:
 		TRefCountPtr<IPooledRenderTarget> ObstacleSdfTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleVelocityTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleFaceOpenTexture;
+		TRefCountPtr<IPooledRenderTarget> PrevObstacleSdfTexture;
+		TRefCountPtr<IPooledRenderTarget> PrevObstacleVelocityTexture;
+		TRefCountPtr<IPooledRenderTarget> PrevObstacleFaceOpenTexture;
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
 		TRefCountPtr<IPooledRenderTarget> SparseFieldAtlasTexture;
 		TRefCountPtr<FRDGPooledBuffer> VortexParticleBuffers[2];
@@ -104,6 +107,16 @@ private:
 		const TArray<FIntRect>& RenderRects,
 		FScreenPassTexture CurrentSceneColor,
 		const FMatrix44f& InvViewProjection,
+		bool bAllowOverrideOutput,
+		FRDGTextureRef HalfResTarget = nullptr);
+
+	FScreenPassTexture BilateralUpsampleSmoke_RenderThread(
+		FRDGBuilder& GraphBuilder,
+		const FSceneView& View,
+		const FPostProcessMaterialInputs& Inputs,
+		FScreenPassTexture CurrentSceneColor,
+		FRDGTextureRef HalfResSmokeTexture,
+		FIntPoint HalfResExtent,
 		bool bAllowOverrideOutput);
 
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
