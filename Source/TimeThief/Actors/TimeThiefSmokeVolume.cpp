@@ -939,8 +939,7 @@ void ATimeThiefSmokeVolume::FlushPendingObstacleFieldRebuild(float DeltaTime)
 		ObstacleDynamicRefreshAccumulator += FMath::Max(0.0f, DeltaTime);
 		const bool bRefreshDynamicCandidates =
 			!bHasBuiltObstacleField ||
-			ObstacleDynamicRefreshAccumulator >= TimeThiefSmokeParameterDefaults::ObstacleDynamicRefreshIntervalSeconds ||
-			HasTrackedDynamicObstacleChanged();
+			ObstacleDynamicRefreshAccumulator >= TimeThiefSmokeParameterDefaults::ObstacleDynamicRefreshIntervalSeconds;
 		if (bRefreshDynamicCandidates)
 		{
 			MarkObstacleFieldDirty();
