@@ -6,13 +6,13 @@
 #include "Character/TimeThiefPlayerCharacter.h"
 #include "Components/TextBlock.h"
 #include "Components/System/InventorySystemComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
+#include "Game/ItemSettings.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 
 void UInventoryItemEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
 	Super::NativeOnListItemObjectSet(ListItemObject);
-	
+
 	if (auto ItemObject = Cast<UInventoryObject>(ListItemObject))
 	{
 		BindItem(ItemObject);
@@ -22,7 +22,7 @@ void UInventoryItemEntryWidget::NativeOnListItemObjectSet(UObject* ListItemObjec
 void UInventoryItemEntryWidget::UpdateUI()
 {
 	Super::UpdateUI();
-	
+
 	if (Item.IsValid())
 	{
 		ItemQuantity_Text->SetText(FText::AsNumber(Item->Quantity));
@@ -32,18 +32,27 @@ void UInventoryItemEntryWidget::UpdateUI()
 void UInventoryItemEntryWidget::OnSlotClicked()
 {
 	Super::OnSlotClicked();
-	
+
 	if (Item.IsValid())
 	{
+		if (UGameItemData* LoadedData = GetDefault<UItemSettings>()->GetItemData())
+		{
+			const FItemData* ItemData = LoadedData->Items.Find(ItemID);
+			if (ItemData->Category != EItemCategory::Consumable)
+			{
+				return;
+			}
+		}
+		
 		if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(this))
 		{
 			if (NGIS->IsConnected())
 			{
 				NGIS->SendUseItem(static_cast<uint32>(ItemID));
-				return;;
+				return;
 			}
 		}
-		
+
 		if (auto Player = Cast<ATimeThiefPlayerCharacter>(GetOwningPlayerPawn()))
 		{
 			Player->GetInventoryComponent()->RemoveItem(ItemID, 1);
@@ -52,7 +61,7 @@ void UInventoryItemEntryWidget::OnSlotClicked()
 }
 
 FReply UInventoryItemEntryWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry,
-	const FPointerEvent& InMouseEvent)
+                                                          const FPointerEvent& InMouseEvent)
 {
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
@@ -62,7 +71,7 @@ FReply UInventoryItemEntryWidget::NativeOnMouseButtonDown(const FGeometry& InGeo
 			return FReply::Handled();
 		}
 	}
-	
+
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
@@ -80,10 +89,10 @@ void UInventoryItemEntryWidget::BindItem(UInventoryObject* InItem)
 	{
 		Item->OnInventoryObjectUpdatedEvent.RemoveAll(this);
 	}
-	
+
 	Item = InItem;
 	Item->OnInventoryObjectUpdatedEvent.AddUObject(this, &ThisClass::OnInventoryObjectUpdated);
 	ItemID = InItem->ItemID;
-	
+
 	UpdateUI();
 }

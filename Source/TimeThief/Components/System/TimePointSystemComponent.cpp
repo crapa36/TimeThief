@@ -56,8 +56,8 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 					RecoveredElapsedTime = 0;
 					if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 					{
-						float Mask = 1 - DamagedElapsedTime / 50;
-						Character->SetMask(std::clamp(Mask, 0.2f, 1.f));
+						float Mask = 1 - DamagedElapsedTime / 50 * (TimeStormComponent->NumShrinks + 1);
+						Character->SetMask(Mask);
 					}
 				}
 				else
@@ -65,14 +65,11 @@ void UTimePointSystemComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 					DamagedElapsedTime = 0;
 					if (auto Character = Cast<ATimeThiefCharacterBase>(GetOwner()))
 					{
-						Character->AddMask(
-							DeltaTime * std::clamp(TimePoints, 0.f, DangerThreshold) / DangerThreshold / 5);
+						Character->AddMask(DeltaTime / 5);
 					}
 				}
 			}
 		}
-
-		// TimePoints += DeltaTime * TimePointsGainPerSecond;
 
 		if (LastDisplayTimePoints != GetTimePoints())
 		{
