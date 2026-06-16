@@ -281,6 +281,11 @@ FVector UTimeThiefPawnCombatComponent::GetEffectiveShotOrigin() const
 void UTimeThiefPawnCombatComponent::OnEquipFinished()
 {
 	bIsEquippingWeapon = false;
+	
+	if (MasterWeaponPtr->GetActiveWeaponComponent()->CurrentAmmo == 0)
+	{
+		MasterWeaponPtr->Reload();
+	}
 }
 
 UTimeThiefWeaponComponentBase* UTimeThiefPawnCombatComponent::GetCharacterCurrentEquippedWeapon() const

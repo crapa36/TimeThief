@@ -186,30 +186,30 @@ void UTimeThiefWeaponComponentBase::Reload()
 
 	if (!CanReload()) return;
 	
-	if (CurrentAmmo == 0)
-	{
-		if (auto AnimInstance = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor())->GetMesh()->GetAnimInstance())
-		{
-			if (AnimInstance->Montage_IsPlaying(FireAnimation))
-			{
-				FOnMontageSectionChanged SectionChangedDelegate;
-				SectionChangedDelegate.BindWeakLambda(this, [this]
-					(UAnimMontage* EndedMontage, FName SectionName, bool bLooped)
-				{
-					if (EndedMontage == this->FireAnimation && SectionName == FName("Recover_Start"))
-					{
-						this->bIsReloading = true;
-						this->StopFiringLoop();
-						this->OnReloadStarted();
-						this->BroadcastCombatAttackRequest(ECombatNotifyType::Reload);
-					}
-				});
-			
-				AnimInstance->Montage_SetSectionChangedDelegate(SectionChangedDelegate, FireAnimation);
-			}
-			return;
-		}
-	}
+	// if (CurrentAmmo == 0)
+	// {
+	// 	if (auto AnimInstance = Cast<ATimeThiefCharacterBase>(GetOwner()->GetParentActor())->GetMesh()->GetAnimInstance())
+	// 	{
+	// 		if (AnimInstance->Montage_IsPlaying(FireAnimation))
+	// 		{
+	// 			FOnMontageSectionChanged SectionChangedDelegate;
+	// 			SectionChangedDelegate.BindWeakLambda(this, [this]
+	// 				(UAnimMontage* EndedMontage, FName SectionName, bool bLooped)
+	// 			{
+	// 				if (EndedMontage == this->FireAnimation && SectionName == FName("Recover_Start"))
+	// 				{
+	// 					this->bIsReloading = true;
+	// 					this->StopFiringLoop();
+	// 					this->OnReloadStarted();
+	// 					this->BroadcastCombatAttackRequest(ECombatNotifyType::Reload);
+	// 				}
+	// 			});
+	// 		
+	// 			AnimInstance->Montage_SetSectionChangedDelegate(SectionChangedDelegate, FireAnimation);
+	// 		}
+	// 		return;
+	// 	}
+	// }
 	
 	bIsReloading = true;
 	StopFiringLoop();
