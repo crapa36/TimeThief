@@ -353,7 +353,6 @@ void UNetworkGameInstanceSubsystem::SendUseItem(uint32 Itemid)
 	se::game::C_UseItemReq Request;
 	Request.set_item_id(Itemid);
 	
-	UE_LOG(LogTemp, Log, TEXT("[ItemPkt] Use Item Id=%u"), Itemid);
 	auto Buffer = ClientPacketHandler::MakeSendBuffer(Request);
 	SendPacket(Buffer);
 }
@@ -2251,7 +2250,33 @@ void UNetworkGameInstanceSubsystem::HandleWeaponStatChanged(const se::game::N_We
 
 void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt)
 {
-	// TODO: 효과를 적용 하는 게 아닌 이펙트 연출을 위해서 (ex. 붕대 감는 모션 등)
+	check(IsInGameThread());
+
+	if (!IsRoomPlayableState(PlayState))
+	{
+		return;
+	}
+
+	const uint32 EntityId = Pkt.has_entity_id() ? Pkt.entity_id().value() : 0;
+	const uint32 ItemId = Pkt.item_id();
+	
+	const bool bIsLocalPlayer = IsLocalPlayerEntity(EntityId);
+	
+	AActor* TargetActor = bIsLocalPlayer ? GetLocalPlayerPawn() : nullptr;
+	if (TargetActor == nullptr)
+	{
+		if (FEntityRuntimeEntry* EntityEntry = EntityEntries.Find(EntityId))
+		{
+			TargetActor = EntityEntry->Actor.Get();
+		}
+	}
+	
+	if (TargetActor == nullptr)
+	{
+		return;
+	}
+
+	// TODO: Play visual/audio representation if any.
 }
 
 void UNetworkGameInstanceSubsystem::HandleSetSavePointRes(const se::game::S_SetSavePointRes& Pkt)
@@ -2536,6 +2561,7 @@ void UNetworkGameInstanceSubsystem::HandleEquipItemRes(const se::game::S_EquipIt
 
 void UNetworkGameInstanceSubsystem::HandleUseItemRes(const se::game::S_UseItemRes& Pkt)
 {
+	check(IsInGameThread());
 }
 
 void UNetworkGameInstanceSubsystem::HandleHealthChanged(const se::game::N_HealthChanged& Pkt)

@@ -22,3 +22,4 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePressureJacobiCS, "/TimeThiefSmokeShaders
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeProjectVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectMacToCollocatedVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeProjectMacToCollocatedVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeCompositeMultiPS, "/TimeThiefSmokeShaders/TimeThiefSmokeCompositeMulti.usf", "MainPS", SF_Pixel);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBilateralUpsamplePS, "/TimeThiefSmokeShaders/TimeThiefSmokeCompositeMulti.usf", "BilateralUpsampleMainPS", SF_Pixel);

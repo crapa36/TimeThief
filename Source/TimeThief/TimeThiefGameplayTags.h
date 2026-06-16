@@ -35,6 +35,7 @@ public:
 	FGameplayTag InputTag_Action_WheelMenu;
 	FGameplayTag InputTag_Action_SavePoint;
 	FGameplayTag InputTag_Action_Throw;
+	FGameplayTag InputTag_Action_UseItem;
 	FGameplayTag InputTag_Skill_Slot1;
 	FGameplayTag InputTag_Skill_Slot2;
 	

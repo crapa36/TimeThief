@@ -50,7 +50,7 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float ObstacleSourceClearRadiusScale = 1.5f;
 	// 장애물 마스크 변경 블렌딩 시간(초). 높을수록 변화가 부드럽고 반응이 느림.
 	constexpr float ObstacleMaskBlendDuration = 0.25f;
-	constexpr int32 MaxObstaclePrimitives = 128;
+	constexpr int32 MaxObstaclePrimitives = 32;
 	constexpr float ObstacleFieldFarDistanceCm = 100000.0f;
 	constexpr float ObstacleSdfSurfaceFeatherCm = 32.0f;
 	// 동적 장애물 후보를 다시 찾는 최소 간격(초). 높을수록 CPU 비용 감소, 신규 장애물 반응 지연.
@@ -61,11 +61,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
 	constexpr bool bUseSparseMacSimulationByDefault = true;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 64;
+	constexpr int32 SmokeGridResolution = 32;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
-	constexpr int32 SmokeGridMaxAxisResolution = 64;
+	constexpr int32 SmokeGridMaxAxisResolution = 32;
 	// 컴퓨트 셰이더 스레드 그룹 한 변 크기. 셰이더 numthreads와 맞아야 함.
 	constexpr int32 SmokeThreadGroupSize = 4;
 	// 격자 재할당 축 정렬 단위. 높을수록 재할당 감소, 메모리 여유 증가.
@@ -75,7 +75,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 압력 반복 최소 횟수. 낮을수록 비용 감소, 발산 제거 품질 감소.
 	constexpr int32 PressureIterationsMin = 1;
 	// 압력 반복 최대 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterationsMax = 64;
+	constexpr int32 PressureIterationsMax = 32;
 	// 희소 브릭 한 변의 복셀 수. 높을수록 관리 비용 감소, 빈 공간 낭비 증가.
 	constexpr int32 SmokeBrickSize = 16;
 	// sparse brick 최소 크기(voxel). 낮을수록 culling 정밀도와 비용 증가.
@@ -98,7 +98,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
 	constexpr int32 RenderStepCountMax = 256;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCount = 32;
+	constexpr int32 RenderMaxStepCount = 24;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
@@ -111,8 +111,10 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float RenderStepVoxelScaleMax = 4.0f;
 	// 멀티 연막 composite tile 한 변 크기(px). 높을수록 타일 관리 비용 감소, culling 정밀도 감소.
 	constexpr int32 CompositeTileSize = 32;
+	// 멀티 연막 렌더링 활성화 여부 기본값. 0=개별 합성, 1=다중 합성.
+	constexpr int32 bUseMultiCompositeByDefault = 1;
 	// 한 번에 합성할 연막 슬롯 최대 개수. 높을수록 겹친 연막 처리량과 비용 증가.
-	constexpr int32 MaxCompositeSmokeSlots = 7;
+	constexpr int32 MaxCompositeSmokeSlots = 8;
 	// fullscreen composite 전환 화면 면적 비율. 낮을수록 fullscreen 경로를 더 빨리 사용.
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
 	// 연막 screen rect 여유 픽셀(px). 높을수록 가장자리 누락 감소, 합성 면적 증가.
@@ -131,7 +133,7 @@ namespace TimeThiefSmokeParameterDefaults
 		return FVector3f(-0.45f, -0.25f, 0.86f).GetSafeNormal();
 	}
 	// 자체 그림자 적용 강도(0~1). 높을수록 연막 내부 그림자 증가.
-	constexpr float SelfShadowStrength = 0.5f;
+	constexpr float SelfShadowStrength = 0.8f;
 	// 자체 그림자 흡수 계수. 높을수록 그림자가 진해짐.
 	constexpr float SelfShadowExtinction = 1.0f;
 	// 자체 그림자 샘플 수. 높을수록 그림자 품질과 비용 증가.
@@ -154,28 +156,28 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더 노이즈 공간 스케일. 높을수록 패턴이 촘촘해짐.
 	constexpr float RenderNoiseScale = 0.1f;
 	// 렌더 노이즈 강도. 높을수록 밀도 디테일 증가.
-	constexpr float RenderNoiseStrength = 1.1f;
+	constexpr float RenderNoiseStrength = 1.5f;
 	// 렌더 노이즈 시간 스케일. 높을수록 노이즈 움직임 증가.
 	constexpr float RenderNoiseTimeScale = 0.05f;
 	// 렌더 경계 노이즈 공간 스케일(1/cm). 높을수록 경계 무늬가 촘촘해짐.
 	constexpr float RenderBoundaryNoiseScale = 0.005f;
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
-	constexpr float RenderBoundaryNoiseStrength = 0.035f;
+	constexpr float RenderBoundaryNoiseStrength = 0.07f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
 	constexpr float RenderFilamentScale = 1.0f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 2.5f;
+	constexpr float RenderFilamentStrength = 4.5f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
-	constexpr float RenderFilamentContrast = 6.4f;
+	constexpr float RenderFilamentContrast = 8.5f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
-	constexpr float RenderFilamentWarpStrength = 5.6f;
+	constexpr float RenderFilamentWarpStrength = 7.5f;
 
 	// 이류와 감쇠
 
 	// 초당 밀도 자연 감소율. 높을수록 연막이 빨리 옅어짐.
 	constexpr float DensityDissipation = 0.06f;
 	// 초당 속도 감쇠율. 높을수록 움직임이 빨리 안정됨.
-	constexpr float VelocityDamping = 0.55f;
+	constexpr float VelocityDamping = 0.4f;
 	// MacCormack 이류 사용 여부. 켜면 이류 품질과 비용 증가.
 	constexpr bool bUseMacCormackAdvection = true;
 	// 약한 영역에서 MacCormack 보정을 줄일지 여부. 켜면 비용 감소, 약한 디테일 감소.
@@ -184,11 +186,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 와류와 흔들림
 
 	// 기본 와류 강도. 높을수록 소용돌이 움직임 증가.
-	constexpr float VorticityStrength = 0.48f;
+	constexpr float VorticityStrength = 0.8f;
 	// 와류 보존 강도. 높을수록 회전 구조 유지와 비용 증가.
 	constexpr float VorticityConfinementStrength = 1.6f;
 	// 난류 힘 강도. 높을수록 불규칙 움직임 증가.
-	constexpr float TurbulenceStrength = 0.55f;
+	constexpr float TurbulenceStrength = 0.9f;
 	// 주변 공기 흐름 반응 강도. 높을수록 외부 힘 반응 증가.
 	constexpr float AirInteractionStrength = 0.58f;
 	// 자체 흔들림 시간 스케일. 높을수록 흔들림 변화 속도 증가.
@@ -200,7 +202,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 와류 입자 자체 흔들림 배율. 높을수록 와류 입자 움직임 증가.
 	constexpr float SelfWobbleParticleScale = 0.25f;
 	// 이벤트가 만드는 국소 와류 강도. 높을수록 총알/폭발/액터 반응 증가.
-	constexpr float EventVortexStrength = 0.72f;
+	constexpr float EventVortexStrength = 1.2f;
 	// 와류 입자 수. 높을수록 디테일과 비용 증가.
 	constexpr int32 VortexParticleCount = 32;
 	// 와류 입자 최대 수. 높을수록 설정 허용 범위와 버퍼 비용 증가.
@@ -363,7 +365,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 상호작용
 
 	// 액터와 연막 상호작용 샘플 빈도(Hz). 높을수록 반응 품질과 비용 증가.
-	constexpr float ActorInteractionHz = 20.0f;
+	constexpr float ActorInteractionHz = 10.0f;
 	// 액터 밀기 이벤트 최소 속도(cm/s). 높을수록 약한 반응 감소.
 	constexpr float ActorPushVelocityThreshold = 10.0f;
 	// 액터 밀기 반응 시작 속도 배율. 높을수록 반응 시작이 늦어짐.
@@ -440,4 +442,22 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float BulletEventPriorityWeight = 1.15f;
 	// 지속 상호작용 이벤트 최소 유지 시간(초).
 	constexpr float ActiveImpulseMinDurationSeconds = 0.01f;
+
+	// 반해상도 렌더링 및 양방향 업샘플링
+
+	// 연막 레이마칭을 반해상도로 실행할지 여부. 켜면 합성 비용이 약 1/4로 감소.
+	constexpr int32 bUseHalfResRenderingByDefault = 1;
+	// 양방향(bilateral) 깊이 인식 업샘플링 사용 여부. 켜면 깊이 경계의 번짐(halo)을 억제.
+	constexpr int32 bUseBilateralUpsampleByDefault = 1;
+	// 양방향 필터 깊이 감도. 높을수록 깊이 차이에 민감(경계 보존↑, 노이즈 위험↑).
+	constexpr float BilateralDepthSensitivity = 10000.0f;
+
+	// 적응형 레이마칭 (Adaptive Raymarching)
+
+	// 기준 복셀 크기(cm)
+	constexpr float AdaptiveRaymarchingBaseVoxelSize = 10.0f;
+	// 화질 가중치 최소 스케일
+	constexpr float AdaptiveRaymarchingMinScale = 0.5f;
+	// 화질 가중치 최대 스케일
+	constexpr float AdaptiveRaymarchingMaxScale = 3.0f;
 }

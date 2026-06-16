@@ -814,7 +814,7 @@ void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
 	}
 
 	ActorInteractionAccumulator += FMath::Max(0.0f, DeltaTime);
-	const float ActorInteractionHz = FMath::Max(TimeThiefSmokeParameterDefaults::ActorInteractionHz, UE_SMALL_NUMBER);
+	const float ActorInteractionHz = 10.0f;
 	if (ActorInteractionAccumulator < (1.0f / ActorInteractionHz))
 	{
 		return;
