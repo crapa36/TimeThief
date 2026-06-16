@@ -14,6 +14,9 @@ class TIMETHIEF_API ATimeStormVisualActor : public AActor
 	UPROPERTY(VisibleAnywhere)
 	TObjectPtr<UStaticMeshComponent> ZoneMesh;
 	
+	UPROPERTY(EditAnywhere, Category = "PostProcess")
+	TObjectPtr<UMaterialInterface> BasePostProcessMaterial;
+	
 public:
 	// Sets default values for this actor's properties
 	ATimeStormVisualActor();
@@ -25,4 +28,11 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	
+private:
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> DynamicPostProcessMaterial;
+	
+	UPROPERTY()
+	TSoftObjectPtr<APostProcessVolume> TargetPPVolume;
 };

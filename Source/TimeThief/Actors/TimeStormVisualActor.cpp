@@ -5,6 +5,7 @@
 
 #include "Components/System/TimeStormComponent.h"
 #include "Game/TimeThiefGameState.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -26,12 +27,28 @@ void ATimeStormVisualActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	DynamicPostProcessMaterial = UMaterialInstanceDynamic::Create(BasePostProcessMaterial, this);
+	
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APostProcessVolume::StaticClass(), FoundActors);
+
+	if (FoundActors.Num() > 0)
+	{
+		TargetPPVolume = Cast<APostProcessVolume>(FoundActors[0]);
+        
+		if (TargetPPVolume && DynamicPostProcessMaterial)
+		{
+			TargetPPVolume->AddOrUpdateBlendable(DynamicPostProcessMaterial, 1.0f);
+			TargetPPVolume->bUnbound = true;
+		}
+	}
 }
 
 // Called every frame
 void ATimeStormVisualActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
 	if (const ATimeThiefGameState* GameState = GetWorld()->GetGameState<ATimeThiefGameState>())
 	{
 		if (const UTimeStormComponent* TimeStormComponent = GameState->TimeStormComponent)
@@ -43,6 +60,22 @@ void ATimeStormVisualActor::Tick(float DeltaTime)
 			SetActorLocation(FVector{CurrCenter, -100.f});
 		
 			SetActorScale3D(FVector{CurrRadius, CurrRadius, 1.f});
+			
+			if (auto PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+			{
+				if (auto Player = PC->GetPawn())
+				{
+					FVector PlayerLocation = Player->GetActorLocation();
+					FVector2D PlayerXY = FVector2D(PlayerLocation.X, PlayerLocation.Y);
+					
+					float Distance = FVector2D::Distance(PlayerXY, CurrCenter);
+					
+					float Weight = Distance < CurrRadius ? 0.f : 1.f;
+					
+					TargetPPVolume->AddOrUpdateBlendable(DynamicPostProcessMaterial, Weight);
+				}
+			}
+			
 		}
 	}
 }
