@@ -1266,6 +1266,97 @@ void FTimeThiefSmokeViewExtension::Clear_RenderThread()
 	RetiredSparseActiveBrickCountReadbacks.Reset();
 }
 
+void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICommandListImmediate& RHICmdList)
+{
+	check(IsInRenderingThread());
+
+	// Warmup texture configurations
+	const FIntVector Grid3D(32, 32, 32);
+	const FIntVector OccupancyGrid(2, 2, 2);
+	const FIntVector AtlasGrid(64, 64, 48);
+
+	const FRDGTextureDesc DensityDesc = FRDGTextureDesc::Create3D(
+		Grid3D,
+		PF_R16F,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+
+	const FRDGTextureDesc VelocityDesc = FRDGTextureDesc::Create3D(
+		Grid3D,
+		PF_FloatRGBA,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+
+	const FRDGTextureDesc BrickOccupancyDesc = FRDGTextureDesc::Create3D(
+		OccupancyGrid,
+		PF_R32_UINT,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+
+	const FRDGTextureDesc SparseAtlasDesc = FRDGTextureDesc::Create3D(
+		AtlasGrid,
+		PF_FloatRGBA,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+
+	const FRDGTextureDesc ObstacleSdfDesc = FRDGTextureDesc::Create3D(
+		Grid3D,
+		PF_R16F,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+
+	const FRDGTextureDesc ObstacleVectorDesc = FRDGTextureDesc::Create3D(
+		Grid3D,
+		PF_FloatRGBA,
+		FClearValueBinding::Black,
+		TexCreate_ShaderResource | TexCreate_UAV);
+
+	const int32 DesiredVortexCount = 32;
+	FRDGBufferDesc VortexBufferDesc = FRDGBufferDesc::CreateStructuredDesc(
+		sizeof(FTimeThiefSmokeVortexParticleShaderData),
+		DesiredVortexCount);
+
+	VortexBufferDesc.Usage |=
+		EBufferUsageFlags::ShaderResource |
+		EBufferUsageFlags::UnorderedAccess |
+		EBufferUsageFlags::SourceCopy;
+
+	TArray<TRefCountPtr<IPooledRenderTarget>> TempTextures;
+	TArray<TRefCountPtr<FRDGPooledBuffer>> TempBuffers;
+
+	// Pre-allocate to populate the global RenderTargetPool/BufferPool
+	for (int32 i = 0; i < 4; ++i)
+	{
+		TRefCountPtr<IPooledRenderTarget>& SdfTarget = TempTextures.AddDefaulted_GetRef();
+		AllocatePooledTexture(ObstacleSdfDesc, SdfTarget, TEXT("TimeThiefSmoke.Warmup.ObstacleSdf"));
+		
+		TRefCountPtr<IPooledRenderTarget>& DensityTarget = TempTextures.AddDefaulted_GetRef();
+		AllocatePooledTexture(DensityDesc, DensityTarget, TEXT("TimeThiefSmoke.Warmup.Density"));
+	}
+
+	for (int32 i = 0; i < 6; ++i)
+	{
+		TRefCountPtr<IPooledRenderTarget>& VectorTarget = TempTextures.AddDefaulted_GetRef();
+		AllocatePooledTexture(ObstacleVectorDesc, VectorTarget, TEXT("TimeThiefSmoke.Warmup.ObstacleVector"));
+	}
+
+	for (int32 i = 0; i < 2; ++i)
+	{
+		TRefCountPtr<IPooledRenderTarget>& VelTarget = TempTextures.AddDefaulted_GetRef();
+		AllocatePooledTexture(VelocityDesc, VelTarget, TEXT("TimeThiefSmoke.Warmup.Velocity"));
+
+		TRefCountPtr<FRDGPooledBuffer>& BufferTarget = TempBuffers.AddDefaulted_GetRef();
+		AllocatePooledBuffer(VortexBufferDesc, BufferTarget, TEXT("TimeThiefSmoke.Warmup.Vortex"));
+	}
+
+	TRefCountPtr<IPooledRenderTarget>& OccTarget = TempTextures.AddDefaulted_GetRef();
+	AllocatePooledTexture(BrickOccupancyDesc, OccTarget, TEXT("TimeThiefSmoke.Warmup.BrickOccupancy"));
+
+	TRefCountPtr<IPooledRenderTarget>& AtlasTarget = TempTextures.AddDefaulted_GetRef();
+	AllocatePooledTexture(SparseAtlasDesc, AtlasTarget, TEXT("TimeThiefSmoke.Warmup.SparseFieldAtlas"));
+}
+
+
 void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 	FRDGBuilder& GraphBuilder,
 	FSceneViewFamily& ViewFamily)

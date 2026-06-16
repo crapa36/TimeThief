@@ -48,7 +48,6 @@ protected:
 
 private:
 	void MarkObstacleFieldDirty();
-	bool HasTrackedDynamicObstacleChanged() const;
 	void RebuildStaticObstacleField(float DeltaTime = 0.0f);
 	void UpdateSmokeBounds();
 	void NotifySpatialBoundsIfChanged();
@@ -56,13 +55,11 @@ private:
 	UPROPERTY(VisibleInstanceOnly, Category = "TimeThief|Smoke|Runtime")
 	int32 SmokeId = INDEX_NONE;
 
-	TMap<TWeakObjectPtr<UPrimitiveComponent>, FTransform> PreviousObstacleComponentTransforms;
 	float SmokeAgeSeconds = 0.0f;
 	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
 	uint64 ObstacleFieldSignature = 0;
 	int32 ObstacleFieldResolution = 0;
 	uint32 ObstacleFieldRevision = 0;
-	float ObstacleDynamicRefreshAccumulator = 0.0f;
 	bool bHasBuiltObstacleField = false;
 	bool bHasSolidObstacleField = false;
 	bool bObstacleFieldRebuildPending = false;

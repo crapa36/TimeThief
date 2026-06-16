@@ -7,6 +7,16 @@ void UTimeThiefSmokeRendererSubsystem::Initialize(FSubsystemCollectionBase& Coll
 {
 	Super::Initialize(Collection);
 	ViewExtension = FSceneViewExtensions::NewExtension<FTimeThiefSmokeViewExtension>();
+
+	TSharedPtr<FTimeThiefSmokeViewExtension, ESPMode::ThreadSafe> Extension = ViewExtension;
+	if (Extension.IsValid())
+	{
+		ENQUEUE_RENDER_COMMAND(TimeThiefSmokeWarmupCommand)(
+			[Extension](FRHICommandListImmediate& RHICmdList)
+			{
+				Extension->PreAllocateWarmupTextures_RenderThread(RHICmdList);
+			});
+	}
 }
 
 void UTimeThiefSmokeRendererSubsystem::Deinitialize()

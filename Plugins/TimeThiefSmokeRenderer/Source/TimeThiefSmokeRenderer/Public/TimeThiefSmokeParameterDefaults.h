@@ -9,7 +9,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 실제 시뮬레이션 연막 박스 반경(cm).
 	inline FVector GetSmokeBoundsExtent()
 	{
-		return FVector(800.0, 800.0, 500.0);
+		return FVector(700.0, 700.0, 400.0);
 	}
 
 	// 렌더링 박스에 더하는 여유 반경(cm). 높을수록 가장자리 잘림 감소, raymarch 범위 증가.
@@ -23,7 +23,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 연막 페이드아웃 시간(초).
 	constexpr float SmokeFadeOutDuration = 5.0f;
 	// 초기 연막 밀도.
-	constexpr float InitialDensity = 2.0f;
+	constexpr float InitialDensity = 5.0f;
 
 	// 생성 플룸
 
@@ -41,7 +41,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 정적 월드 장애물 마스크 사용 여부. 끄면 비용 감소, 벽 차단 품질 감소.
 	constexpr bool bUseStaticObstacleMask = true;
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
-	constexpr int32 ObstacleMaskResolution = 32;
+	constexpr int32 ObstacleMaskResolution = 16;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
 	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
@@ -54,14 +54,14 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float ObstacleFieldFarDistanceCm = 100000.0f;
 	constexpr float ObstacleSdfSurfaceFeatherCm = 32.0f;
 	// 동적 장애물 후보를 다시 찾는 최소 간격(초). 높을수록 CPU 비용 감소, 신규 장애물 반응 지연.
-	constexpr float ObstacleDynamicRefreshIntervalSeconds = 0.25f;
+	constexpr float ObstacleDynamicRefreshIntervalSeconds = 0.5f;
 
 	// 시뮬레이션 격자
 
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
 	constexpr bool bUseSparseMacSimulationByDefault = true;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 32;
+	constexpr int32 SmokeGridResolution = 24;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
@@ -71,11 +71,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 격자 재할당 축 정렬 단위. 높을수록 재할당 감소, 메모리 여유 증가.
 	constexpr int32 SmokeGridAllocationQuantum = 16;
 	// Jacobi 압력 반복 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterations = 2;
+	constexpr int32 PressureIterations = 1;
 	// 압력 반복 최소 횟수. 낮을수록 비용 감소, 발산 제거 품질 감소.
 	constexpr int32 PressureIterationsMin = 1;
 	// 압력 반복 최대 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterationsMax = 32;
+	constexpr int32 PressureIterationsMax = 2;
 	// 희소 브릭 한 변의 복셀 수. 높을수록 관리 비용 감소, 빈 공간 낭비 증가.
 	constexpr int32 SmokeBrickSize = 16;
 	// sparse brick 최소 크기(voxel). 낮을수록 culling 정밀도와 비용 증가.
@@ -83,11 +83,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// sparse brick 최대 크기(voxel). 높을수록 비용 감소, culling 정밀도 감소.
 	constexpr int32 SmokeBrickMaxSize = 32;
 	// 희소 아틀라스 활성 브릭 최대 개수. 높을수록 넓은 연막 지원과 VRAM 비용 증가.
-	constexpr int32 MaxActiveSmokeBricks = 48;
+	constexpr int32 MaxActiveSmokeBricks = 32;
 	// sparse composite를 유지할 최대 활성 브릭 비율. 높을수록 sparse 경로 유지, 과밀 때 비용 증가.
-	constexpr float SparseCompositeMaxActiveRatio = 0.35f;
+	constexpr float SparseCompositeMaxActiveRatio = 0.25f;
 	// 희소 브릭 활성화 최소 속도(cm/s). 높을수록 비용 감소, 약한 움직임 손실 증가.
-	constexpr float SparseVelocityActiveThreshold = 125.0f;
+	constexpr float SparseVelocityActiveThreshold = 150.0f;
 
 	// 렌더링 raymarch
 
@@ -96,13 +96,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// raymarch 최소 샘플 수. 낮을수록 비용 감소, 얇은 연기 손실 증가.
 	constexpr int32 RenderStepCountMin = 16;
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
-	constexpr int32 RenderStepCountMax = 256;
+	constexpr int32 RenderStepCountMax = 128;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCount = 24;
+	constexpr int32 RenderMaxStepCount = 16;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCountMax = 512;
+	constexpr int32 RenderMaxStepCountMax = 128;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	// raymarch 스텝 voxel 배율 최소값. 낮을수록 디테일과 비용 증가.
@@ -137,13 +137,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// 자체 그림자 흡수 계수. 높을수록 그림자가 진해짐.
 	constexpr float SelfShadowExtinction = 1.0f;
 	// 자체 그림자 샘플 수. 높을수록 그림자 품질과 비용 증가.
-	constexpr int32 SelfShadowStepCount = 2;
+	constexpr int32 SelfShadowStepCount = 1;
 	// 자체 그림자 샘플 간격(cm). 높을수록 넓은 그림자, 낮을수록 세밀한 그림자.
 	constexpr float SelfShadowStepLength = 100.0f;
 	// 비활성 브릭 내부 자체 그림자 샘플 건너뛰기 수. 높을수록 비용 감소.
 	constexpr int32 SelfShadowInactiveBrickMaxSkipSteps = 8;
 	// 자체 그림자를 계산할 최소 샘플 기여도. 높을수록 그림자 비용 감소.
-	constexpr float SelfShadowMinSampleWeight = 0.001f;
+	constexpr float SelfShadowMinSampleWeight = 0.01f;
 	// 빈 raymarch 구간 최대 건너뛰기 배율. 높을수록 비용 감소, 빈 공간 culling이 거칠어짐.
 	constexpr float InactiveBrickRaymarchMaxSkipScale = 8.0f;
 	// raymarch 투과율 종료 기준. 높을수록 비용 감소, 진한 연막 누적 손실 증가.
@@ -175,11 +175,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 이류와 감쇠
 
 	// 초당 밀도 자연 감소율. 높을수록 연막이 빨리 옅어짐.
-	constexpr float DensityDissipation = 0.06f;
+	constexpr float DensityDissipation = 0.02f;
 	// 초당 속도 감쇠율. 높을수록 움직임이 빨리 안정됨.
 	constexpr float VelocityDamping = 0.4f;
 	// MacCormack 이류 사용 여부. 켜면 이류 품질과 비용 증가.
-	constexpr bool bUseMacCormackAdvection = true;
+	constexpr bool bUseMacCormackAdvection = false;
 	// 약한 영역에서 MacCormack 보정을 줄일지 여부. 켜면 비용 감소, 약한 디테일 감소.
 	constexpr bool bUseAdaptiveMacCormack = true;
 
@@ -204,9 +204,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 이벤트가 만드는 국소 와류 강도. 높을수록 총알/폭발/액터 반응 증가.
 	constexpr float EventVortexStrength = 1.2f;
 	// 와류 입자 수. 높을수록 디테일과 비용 증가.
-	constexpr int32 VortexParticleCount = 32;
+	constexpr int32 VortexParticleCount = 24;
 	// 와류 입자 최대 수. 높을수록 설정 허용 범위와 버퍼 비용 증가.
-	constexpr int32 MaxVortexParticleCount = 128;
+	constexpr int32 MaxVortexParticleCount = 32;
 	// 와류 입자 수명(초). 높을수록 와류 디테일 지속 시간 증가.
 	constexpr float VortexParticleLifeSeconds = 2.0f;
 	// 와류 입자 최소 수명(초).
@@ -292,7 +292,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 상호작용 이벤트 한도
 
 	// 연막 하나가 한 프레임에 받을 GPU 이벤트 최대 개수. 높을수록 반응 품질과 비용 증가.
-	constexpr int32 MaxGPUEventsPerSmokePerFrame = 40;
+	constexpr int32 MaxGPUEventsPerSmokePerFrame = 32;
 	// 셰이더 이벤트 버퍼 최대 개수. 높을수록 많은 이벤트 처리와 버퍼 비용 증가.
 	constexpr int32 MaxShaderEventCount = 48;
 	// 시뮬레이션에 넘길 총알 이벤트 최대 개수. 높을수록 총알 반응 품질과 비용 증가.
@@ -310,13 +310,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// 이벤트 반응 델타 상한(초). 높을수록 저프레임 충격이 강해짐.
 	constexpr float SimulationEventDeltaSecondsMax = 1.0f / 15.0f;
 	// 시뮬레이션 밀도 상한. 높을수록 진한 연막 보존, 과포화 위험 증가.
-	constexpr float SmokeDensityMax = 3.4f;
+	constexpr float SmokeDensityMax = 5.0f;
 	// 연막 하나가 틱당 처리할 총알 트레이스 최대 개수. 높을수록 정확도와 CPU 비용 증가.
 	constexpr int32 MaxBulletTracesPerSmokePerTick = 12;
 	// 연막 하나가 유지할 폭발 충격 최대 개수. 높을수록 중첩 충격 품질과 비용 증가.
 	constexpr int32 MaxActiveExplosionImpulsesPerSmoke = 8;
 	// 액터 상호작용 이벤트 최대 생성 개수. 높을수록 액터 반응 품질과 비용 증가.
-	constexpr int32 MaxActorInteractionEventsPerTick = 32;
+	constexpr int32 MaxActorInteractionEventsPerTick = 16;
 
 	// 총알 후류
 
@@ -365,36 +365,36 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 상호작용
 
 	// 액터와 연막 상호작용 샘플 빈도(Hz). 높을수록 반응 품질과 비용 증가.
-	constexpr float ActorInteractionHz = 10.0f;
+	constexpr float ActorInteractionHz = 5.0f;
 	// 액터 밀기 이벤트 최소 속도(cm/s). 높을수록 약한 반응 감소.
 	constexpr float ActorPushVelocityThreshold = 10.0f;
 	// 액터 밀기 반응 시작 속도 배율. 높을수록 반응 시작이 늦어짐.
-	constexpr float ActorPushResponseStartSpeedScale = 0.35f;
+	constexpr float ActorPushResponseStartSpeedScale = 0.15f;
 	// 액터 속도 반응 최대 기준 속도(cm/s). 낮을수록 최대 반응에 빨리 도달.
-	constexpr float ActorPushFullResponseSpeed = 560.0f;
+	constexpr float ActorPushFullResponseSpeed = 500.0f;
 	// 액터 경로 밀도에서 최대 샘플을 섞는 비율. 높을수록 진한 영역 반응 증가.
-	constexpr float ActorPushMaxDensityWeight = 0.65f;
+	constexpr float ActorPushMaxDensityWeight = 0.85f;
 	// 액터 점유 반응 최소 밀도. 높을수록 약한 연막 반응 감소.
-	constexpr float ActorPushOccupancyMinDensity = 0.015f;
+	constexpr float ActorPushOccupancyMinDensity = 0.02f;
 	// 액터 점유 반응 최소 강도. 높을수록 느린 액터 반응 증가.
-	constexpr float ActorPushOccupancyMinStrength = 0.15f;
+	constexpr float ActorPushOccupancyMinStrength = 0.25f;
 	// 액터 점유 반응 최대 강도. 높을수록 밀도 기반 반응 증가.
-	constexpr float ActorPushOccupancyMaxStrength = 0.35f;
+	constexpr float ActorPushOccupancyMaxStrength = 0.5f;
 	// 액터 이동 거리 게이트 반경 배율. 높을수록 약한 이동 반응 감소.
-	constexpr float ActorPushTravelGateRadiusScale = 0.65f;
+	constexpr float ActorPushTravelGateRadiusScale = 0.5f;
 	// 액터 이동 거리 게이트 최소 거리(cm).
 	constexpr float ActorPushTravelGateMinDistance = 8.0f;
 	// 프리미티브 크기 대비 액터 반응 반경 배율. 높을수록 영향 반경 증가.
-	constexpr float ActorPrimitiveRadiusScale = 0.35f;
+	constexpr float ActorPrimitiveRadiusScale = 0.45f;
 
 	// 액터 밀도 샘플
 
 	// 자연 연막 거리 세로 압축 비율. 낮을수록 위아래 밀도 샘플 범위 감소.
 	constexpr float ActorDensityNaturalVerticalScale = 0.85f;
 	// 자연 연막 밀도 감쇠 시작 거리. 높을수록 내부 밀도 샘플 범위 증가.
-	constexpr float ActorDensityNaturalFadeStart = 0.18f;
+	constexpr float ActorDensityNaturalFadeStart = 0.2f;
 	// 자연 연막 밀도 감쇠 폭. 높을수록 경계 밀도 변화가 부드러움.
-	constexpr float ActorDensityNaturalFadeWidth = 0.78f;
+	constexpr float ActorDensityNaturalFadeWidth = 0.7f;
 	// 렌더 박스 거리 세로 압축 비율. 낮을수록 위아래 경계 페이드가 강해짐.
 	constexpr float ActorDensityRenderVerticalScale = 0.9f;
 	// 렌더 박스 밀도 감쇠 시작 거리. 높을수록 렌더 경계까지 반응 유지.
@@ -404,7 +404,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 생성 직후 밀도 샘플 상승 시간(초). 높을수록 초기 액터 반응이 천천히 켜짐.
 	constexpr float ActorDensityEmissionWarmupSeconds = 0.35f;
 	// 초기 밀도를 샘플 스케일로 바꾸는 나눗값. 높을수록 액터 밀도 샘플링 강도 감소.
-	constexpr float ActorDensityScaleDivisor = 3.2f;
+	constexpr float ActorDensityScaleDivisor = 3.5f;
 	// 액터 밀도 샘플 최종 보정 배율. 높을수록 액터 반응 증가.
 	constexpr float ActorDensitySampleBoost = 1.35f;
 

@@ -17,6 +17,7 @@ public:
 
 	void SubmitFrame_RenderThread(FTimeThiefSmokeRendererFrame&& Frame);
 	void Clear_RenderThread();
+	void PreAllocateWarmupTextures_RenderThread(FRHICommandListImmediate& RHICmdList);
 
 	virtual void PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& InViewFamily) override;
 	virtual void SubscribeToPostProcessingPass(EPostProcessingPass Pass, const FSceneView& InView, FPostProcessingPassDelegateArray& InOutPassCallbacks, bool bIsPassEnabled) override;

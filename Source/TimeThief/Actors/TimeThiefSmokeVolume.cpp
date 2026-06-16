@@ -310,6 +310,7 @@ namespace TimeThiefSmokeVolume
 		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 		ObjectQueryParams.AddObjectTypesToQuery(ECC_PhysicsBody);
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 
 		const FCollisionShape BoundsShape = FCollisionShape::MakeBox(BoundsExtent + QueryExtent);
 		World->OverlapMultiByObjectType(
@@ -872,12 +873,10 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(AActor* InOwnerActor, APawn* I
 		}
 	}
 	SmokeAgeSeconds = 0.0f;
-	PreviousObstacleComponentTransforms.Reset();
 	ObstaclePrimitives.Reset();
 	ObstacleFieldSignature = 0;
 	ObstacleFieldResolution = 0;
 	ObstacleFieldRevision = 0;
-	ObstacleDynamicRefreshAccumulator = 0.0f;
 	bHasBuiltObstacleField = false;
 	LastSmokeSpatialBounds = FBox(EForceInit::ForceInit);
 
@@ -890,7 +889,7 @@ void ATimeThiefSmokeVolume::InitializeSmokeVolume(AActor* InOwnerActor, APawn* I
 	SetLifeSpan(TimeThiefSmokeParameterDefaults::SmokeDuration + TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration);
 
 	UpdateSmokeBounds();
-	RebuildStaticObstacleField();
+	MarkObstacleFieldDirty();
 	LastSmokeSpatialBounds = GetCurrentSmokeWorldBounds();
 }
 
@@ -931,22 +930,18 @@ void ATimeThiefSmokeVolume::FlushPendingObstacleFieldRebuild(float DeltaTime)
 	{
 		if (bHasBuiltObstacleField || ObstacleFieldSignature != 0 || !ObstaclePrimitives.IsEmpty())
 		{
-			MarkObstacleFieldDirty();
+			bHasBuiltObstacleField = true;
+			ObstaclePrimitives.Reset();
+			ObstacleFieldResolution = 0;
+			bHasSolidObstacleField = false;
+			ObstacleFieldSignature = 0;
+			++ObstacleFieldRevision;
 		}
-	}
-	else
-	{
-		const bool bDynamicChanged = HasTrackedDynamicObstacleChanged();
-		const bool bRefreshDynamicCandidates = !bHasBuiltObstacleField || bDynamicChanged;
-		if (bRefreshDynamicCandidates)
-		{
-			MarkObstacleFieldDirty();
-		}
+		return;
 	}
 
-	if (bObstacleFieldRebuildPending)
+	if (bObstacleFieldRebuildPending && !bHasBuiltObstacleField)
 	{
-		ObstacleDynamicRefreshAccumulator = 0.0f;
 		RebuildStaticObstacleField(DeltaTime);
 	}
 }
@@ -1225,25 +1220,6 @@ void ATimeThiefSmokeVolume::MarkObstacleFieldDirty()
 	bObstacleFieldRebuildPending = true;
 }
 
-bool ATimeThiefSmokeVolume::HasTrackedDynamicObstacleChanged() const
-{
-	for (const TPair<TWeakObjectPtr<UPrimitiveComponent>, FTransform>& Pair : PreviousObstacleComponentTransforms)
-	{
-		const UPrimitiveComponent* PrimitiveComponent = Pair.Key.Get();
-		if (!PrimitiveComponent || !PrimitiveComponent->IsRegistered())
-		{
-			return true;
-		}
-
-		if (!TimeThiefSmokeVolume::AreObstacleTransformsNearlyEqual(PrimitiveComponent->GetComponentTransform(), Pair.Value))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 {
 	bObstacleFieldRebuildPending = false;
@@ -1284,16 +1260,38 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 		QueryParams.AddIgnoredActor(InstigatorPawn);
 	}
 
-	TArray<TWeakObjectPtr<UPrimitiveComponent>> ObstacleCandidates;
-	TimeThiefSmokeVolume::QuerySmokeObstacleCandidates(
-		World,
-		this,
-		SmokeTransform,
-		BoundsExtent,
-		ObstacleQueryExtent,
-		QueryParams,
-		ObstacleCandidates);
-	ObstacleCandidates.Sort([](const TWeakObjectPtr<UPrimitiveComponent>& Left, const TWeakObjectPtr<UPrimitiveComponent>& Right)
+	TArray<FOverlapResult> Overlaps;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+
+	const FCollisionShape BoundsShape = FCollisionShape::MakeBox(BoundsExtent + ObstacleQueryExtent);
+	World->OverlapMultiByObjectType(
+		Overlaps,
+		SmokeTransform.GetLocation(),
+		SmokeTransform.GetRotation(),
+		ObjectQueryParams,
+		BoundsShape,
+		QueryParams);
+
+	TSet<UPrimitiveComponent*> AddedCandidates;
+	TArray<TWeakObjectPtr<UPrimitiveComponent>> StaticObstacleCandidates;
+	StaticObstacleCandidates.Reserve(Overlaps.Num());
+	TimeThiefSmokeVolume::AddSmokeObstacleCandidates(Overlaps, AddedCandidates, StaticObstacleCandidates);
+
+	TArray<TWeakObjectPtr<UPrimitiveComponent>> HardStaticCandidates;
+	HardStaticCandidates.Reserve(StaticObstacleCandidates.Num());
+	for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : StaticObstacleCandidates)
+	{
+		UPrimitiveComponent* CandidateComponent = Candidate.Get();
+		if (CandidateComponent &&
+			TimeThiefSmokeVolume::IsHardSmokeObstacleComponent(CandidateComponent, this) &&
+			TimeThiefSmokeVolume::HasSupportedSmokeObstacleGeometry(CandidateComponent))
+		{
+			HardStaticCandidates.Add(Candidate);
+		}
+	}
+
+	HardStaticCandidates.Sort([](const TWeakObjectPtr<UPrimitiveComponent>& Left, const TWeakObjectPtr<UPrimitiveComponent>& Right)
 	{
 		const UPrimitiveComponent* LeftComponent = Left.Get();
 		const UPrimitiveComponent* RightComponent = Right.Get();
@@ -1302,77 +1300,23 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 		return LeftId < RightId;
 	});
 
-	TArray<TWeakObjectPtr<UPrimitiveComponent>> StaticObstacleCandidates;
-	TArray<TWeakObjectPtr<UPrimitiveComponent>> DynamicObstacleCandidates;
-	StaticObstacleCandidates.Reserve(ObstacleCandidates.Num());
-	DynamicObstacleCandidates.Reserve(ObstacleCandidates.Num());
-	for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : ObstacleCandidates)
-	{
-		UPrimitiveComponent* CandidateComponent = Candidate.Get();
-		if (!TimeThiefSmokeVolume::IsHardSmokeObstacleComponent(CandidateComponent, this) ||
-			!TimeThiefSmokeVolume::HasSupportedSmokeObstacleGeometry(CandidateComponent))
-		{
-			continue;
-		}
-
-		if (TimeThiefSmokeVolume::IsStaticSmokeObstacleComponent(CandidateComponent))
-		{
-			StaticObstacleCandidates.Add(Candidate);
-		}
-		else
-		{
-			DynamicObstacleCandidates.Add(Candidate);
-		}
-	}
-
 	const uint64 StaticObstacleCacheKey = TimeThiefSmokeVolume::MakeObstacleMaskCacheKey(
 		World,
 		SmokeTransform,
 		NaturalBoundsExtent,
 		BoundsExtent,
 		Resolution,
-		StaticObstacleCandidates);
-	const uint64 DynamicObstacleSignature = TimeThiefSmokeVolume::MakeObstacleMaskCacheKey(
-		World,
-		SmokeTransform,
-		NaturalBoundsExtent,
-		BoundsExtent,
-		Resolution,
-		DynamicObstacleCandidates);
+		HardStaticCandidates);
+
 	uint64 CurrentObstacleFieldSignature = 0xcbf29ce484222325ull;
 	TimeThiefSmokeVolume::MixObstacleMaskHash(CurrentObstacleFieldSignature, StaticObstacleCacheKey);
-	TimeThiefSmokeVolume::MixObstacleMaskHash(CurrentObstacleFieldSignature, DynamicObstacleSignature);
-	if (bHasBuiltObstacleField && CurrentObstacleFieldSignature == ObstacleFieldSignature)
-	{
-		return;
-	}
 
 	ObstacleFieldSignature = CurrentObstacleFieldSignature;
 	ObstaclePrimitives.Reset();
 	ObstacleFieldResolution = Resolution;
 	bHasSolidObstacleField = false;
-	TSet<TWeakObjectPtr<UPrimitiveComponent>> CurrentDynamicObstacleComponents;
-	CurrentDynamicObstacleComponents.Reserve(DynamicObstacleCandidates.Num());
-	auto ComputeDynamicObstacleMotion = [this, &SmokeTransform, DeltaTime, &CurrentDynamicObstacleComponents](UPrimitiveComponent* PrimitiveComponent)
-	{
-		if (!PrimitiveComponent)
-		{
-			return TimeThiefSmokeVolume::FSmokeObstacleMotion();
-		}
 
-		const TWeakObjectPtr<UPrimitiveComponent> ComponentKey(PrimitiveComponent);
-		CurrentDynamicObstacleComponents.Add(ComponentKey);
-		const FTransform CurrentWorldTransform = PrimitiveComponent->GetComponentTransform();
-		TimeThiefSmokeVolume::FSmokeObstacleMotion Motion;
-		if (const FTransform* PreviousWorldTransform = PreviousObstacleComponentTransforms.Find(ComponentKey))
-		{
-			Motion = TimeThiefSmokeVolume::MakeSmokeLocalObstacleMotion(*PreviousWorldTransform, CurrentWorldTransform, SmokeTransform, DeltaTime);
-		}
-		PreviousObstacleComponentTransforms.FindOrAdd(ComponentKey) = CurrentWorldTransform;
-		return Motion;
-	};
-
-	auto AddCandidatePrimitives = [&SmokeTransform, &ComputeDynamicObstacleMotion](const TArray<TWeakObjectPtr<UPrimitiveComponent>>& Candidates, TArray<FTimeThiefSmokeObstaclePrimitive>& OutPrimitives, bool bUseDynamicMotion)
+	auto AddCandidatePrimitives = [&SmokeTransform](const TArray<TWeakObjectPtr<UPrimitiveComponent>>& Candidates, TArray<FTimeThiefSmokeObstaclePrimitive>& OutPrimitives)
 	{
 		for (const TWeakObjectPtr<UPrimitiveComponent>& Candidate : Candidates)
 		{
@@ -1382,7 +1326,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 			}
 
 			UPrimitiveComponent* CandidateComponent = Candidate.Get();
-			const TimeThiefSmokeVolume::FSmokeObstacleMotion Motion = bUseDynamicMotion ? ComputeDynamicObstacleMotion(CandidateComponent) : TimeThiefSmokeVolume::FSmokeObstacleMotion();
+			const TimeThiefSmokeVolume::FSmokeObstacleMotion Motion;
 			if (TimeThiefSmokeVolume::AddBodySetupObstaclePrimitives(
 				CandidateComponent,
 				SmokeTransform,
@@ -1402,48 +1346,11 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 	};
 
 	ObstaclePrimitives.Reserve(TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives);
-	if (const TimeThiefSmokeVolume::FSmokeObstacleFieldCacheEntry* CacheEntry = TimeThiefSmokeVolume::FindObstacleFieldCacheEntry(StaticObstacleCacheKey))
-	{
-		if (CacheEntry->ObstacleFieldResolution == Resolution)
-		{
-			ObstaclePrimitives = CacheEntry->ObstaclePrimitives;
-			ObstacleFieldResolution = CacheEntry->ObstacleFieldResolution;
-			AddCandidatePrimitives(DynamicObstacleCandidates, ObstaclePrimitives, true);
-			bHasSolidObstacleField = !ObstaclePrimitives.IsEmpty();
-			for (auto It = PreviousObstacleComponentTransforms.CreateIterator(); It; ++It)
-			{
-				if (!It.Key().IsValid() || !CurrentDynamicObstacleComponents.Contains(It.Key()))
-				{
-					It.RemoveCurrent();
-				}
-			}
-			++ObstacleFieldRevision;
-			bHasBuiltObstacleField = true;
-			return;
-		}
-	}
-
-	TArray<FTimeThiefSmokeObstaclePrimitive> StaticObstaclePrimitives;
-	StaticObstaclePrimitives.Reserve(StaticObstacleCandidates.Num());
-	AddCandidatePrimitives(StaticObstacleCandidates, StaticObstaclePrimitives, false);
-	ObstaclePrimitives = StaticObstaclePrimitives;
-	AddCandidatePrimitives(DynamicObstacleCandidates, ObstaclePrimitives, true);
+	AddCandidatePrimitives(HardStaticCandidates, ObstaclePrimitives);
 	bHasSolidObstacleField = !ObstaclePrimitives.IsEmpty();
-	for (auto It = PreviousObstacleComponentTransforms.CreateIterator(); It; ++It)
-	{
-		if (!It.Key().IsValid() || !CurrentDynamicObstacleComponents.Contains(It.Key()))
-		{
-			It.RemoveCurrent();
-		}
-	}
 
-	++ObstacleFieldRevision;
 	bHasBuiltObstacleField = true;
-	TimeThiefSmokeVolume::StoreObstacleFieldCacheEntry(
-		StaticObstacleCacheKey,
-		StaticObstaclePrimitives,
-		ObstacleFieldResolution,
-		!StaticObstaclePrimitives.IsEmpty());
+	++ObstacleFieldRevision;
 }
 
 void ATimeThiefSmokeVolume::UpdateSmokeBounds()
