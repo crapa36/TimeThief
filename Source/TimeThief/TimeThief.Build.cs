@@ -57,9 +57,41 @@ public class TimeThief : ModuleRules
 			});
 		}
 
-		PublicDefinitions.Add((bHasNvidiaDLSSModules || HasNvidiaDLSSRuntimeDlls())
+		bool bEnableDLSS = bHasNvidiaDLSSModules || HasNvidiaDLSSRuntimeDlls();
+		PublicDefinitions.Add(bEnableDLSS
 			? "TIMETHIEF_WITH_NVIDIA_DLSS=1"
 			: "TIMETHIEF_WITH_NVIDIA_DLSS=0");
+
+		if (bEnableDLSS && Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			string ProjectRoot = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
+			string StreamlineBinariesPath = Path.Combine(ProjectRoot, "Plugins", "Marketplace", "StreamlineCore", "Binaries", "ThirdParty", "Win64");
+			if (!Directory.Exists(StreamlineBinariesPath))
+			{
+				StreamlineBinariesPath = Path.Combine(ProjectRoot, "Plugins", "NVIDIA", "StreamlineCore", "Binaries", "ThirdParty", "Win64");
+			}
+
+			string[] StreamlineDlls = new string[]
+			{
+				"sl.interposer.dll",
+				"sl.common.dll",
+				"sl.dlss_g.dll",
+				"sl.reflex.dll",
+				"nvngx_dlssg.dll",
+				"nvngx_deepdvc.dll",
+				"sl.deepdvc.dll",
+				"sl.pcl.dll"
+			};
+
+			foreach (string DllName in StreamlineDlls)
+			{
+				string SourceDllPath = Path.Combine(StreamlineBinariesPath, DllName);
+				if (File.Exists(SourceDllPath))
+				{
+					RuntimeDependencies.Add("$(TargetOutputDir)/" + DllName, SourceDllPath);
+				}
+			}
+		}
 
 		PublicIncludePaths.AddRange(new string[] {
 			"TimeThief"
@@ -88,7 +120,11 @@ public class TimeThief : ModuleRules
 	private bool HasNvidiaDLSSRuntimeDlls()
 	{
 		string ProjectRoot = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
-		string NvidiaRoot = Path.Combine(ProjectRoot, "Plugins", "NVIDIA");
+		string NvidiaRoot = Path.Combine(ProjectRoot, "Plugins", "Marketplace");
+		if (!Directory.Exists(Path.Combine(NvidiaRoot, "DLSS")))
+		{
+			NvidiaRoot = Path.Combine(ProjectRoot, "Plugins", "NVIDIA");
+		}
 
 		return File.Exists(Path.Combine(NvidiaRoot, "DLSS", "Binaries", "ThirdParty", "Win64", "nvngx_dlss.dll"))
 			&& File.Exists(Path.Combine(NvidiaRoot, "StreamlineCore", "Binaries", "ThirdParty", "Win64", "nvngx_dlssg.dll"))

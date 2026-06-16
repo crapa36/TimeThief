@@ -143,3 +143,4 @@ Content/Assets/
 **/*.DotSettings.user
 **/*.sln.DotSettings.user
 /Plugins/NVIDIA
+/Plugins/Marketplace

@@ -57,8 +57,8 @@ bool SetDLSSGEnabledByCode(bool bEnabled)
 
 bool SetNVIDIAReflexByCode(bool bEnabled)
 {
-	bool bApplied = SetIntCVarByCode(TEXT("r.Streamline.Reflex.Enable"), bEnabled ? 1 : 0);
-	bApplied |= SetIntCVarByCode(TEXT("r.Streamline.Reflex.Mode"), bEnabled ? 1 : 0);
+	bool bApplied = SetIntCVarByCode(TEXT("t.Streamline.Reflex.Enable"), bEnabled ? 1 : 0);
+	bApplied |= SetIntCVarByCode(TEXT("t.Streamline.Reflex.Mode"), bEnabled ? 1 : 0);
 	return bApplied;
 }
 
