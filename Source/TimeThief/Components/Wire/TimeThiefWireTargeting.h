@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "TimeThiefWireTargeting.generated.h"
@@ -52,15 +52,15 @@ public:
 
 	// 렛지 프로브 거리의 최대 클램프 값
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
-	float ProbeDistanceMax = 12.0f;
+	float ProbeDistanceMax = 10.0f;
 
 	// 화면 중심 기준 샘플 픽셀 간격
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting")
-	float ScreenSamplePixelStep = 4.0f;
+	float ScreenSamplePixelStep = 5.0f;
 
 	// 타겟 재검사 주기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float TargetRefreshInterval = 0.2f;
+	float TargetRefreshInterval = 0.25f;
 
 	// 에임 변화로 즉시 재검사할 각도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
@@ -92,4 +92,7 @@ protected:
 	float TargetRefreshTimer = 0.0f;
 	FVector CachedTargetAimDirection = FVector::ForwardVector;
 	bool bHasCachedTargetAimDirection = false;
+
+	FVector CachedCharacterLocation = FVector::ZeroVector;
+	bool bHasCachedCharacterLocation = false;
 };

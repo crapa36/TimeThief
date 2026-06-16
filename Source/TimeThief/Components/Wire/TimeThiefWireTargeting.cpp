@@ -83,13 +83,29 @@ bool UTimeThiefWireTargeting::ShouldRefreshTarget(float DeltaTime, const FVector
 	const bool bHasAimDirectionChanged = !bHasCachedTargetAimDirection
 		|| FVector::DotProduct(CachedTargetAimDirection, SafeAimDirection) < RetargetDotThreshold;
 
+	bool bHasCharacterMoved = false;
+	if (IsValid(CachedCharacter))
+	{
+		const FVector CurrentLocation = CachedCharacter->GetActorLocation();
+		const float MoveThresholdSq = FMath::Square(10.0f); // 10cm threshold
+		bHasCharacterMoved = !bHasCachedCharacterLocation
+			|| FVector::DistSquared(CachedCharacterLocation, CurrentLocation) > MoveThresholdSq;
+	}
+
 	// 타이머 재설정 (주기 0.2초 보장)
 	TargetRefreshTimer = FMath::Max(TargetRefreshInterval, 0.0f);
 
-	if (bHasAimDirectionChanged)
+	if (bHasAimDirectionChanged || bHasCharacterMoved)
 	{
 		CachedTargetAimDirection = SafeAimDirection;
 		bHasCachedTargetAimDirection = true;
+
+		if (IsValid(CachedCharacter))
+		{
+			CachedCharacterLocation = CachedCharacter->GetActorLocation();
+			bHasCachedCharacterLocation = true;
+		}
+
 		return true;
 	}
 
@@ -101,6 +117,8 @@ void UTimeThiefWireTargeting::ResetTargetRefresh()
 	TargetRefreshTimer = 0.0f;
 	CachedTargetAimDirection = FVector::ForwardVector;
 	bHasCachedTargetAimDirection = false;
+	CachedCharacterLocation = FVector::ZeroVector;
+	bHasCachedCharacterLocation = false;
 }
 
 bool UTimeThiefWireTargeting::FindBestAnchorTarget(FVector& OutTargetLocation, const FVector& StartLocation, const FVector& AimDirection, float MaxLength)
