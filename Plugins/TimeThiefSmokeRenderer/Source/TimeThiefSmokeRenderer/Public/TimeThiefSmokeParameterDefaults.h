@@ -23,25 +23,25 @@ namespace TimeThiefSmokeParameterDefaults
 	// 연막 페이드아웃 시간(초).
 	constexpr float SmokeFadeOutDuration = 5.0f;
 	// 초기 연막 밀도.
-	constexpr float InitialDensity = 5.0f;
+	constexpr float InitialDensity = 2.0f;
 
 	// 생성 플룸
 
 	// 생성 직후 밀도와 속도 소스를 넣는 시간(초).
-	constexpr float PlumeEmissionDuration = 5.0f;
+	constexpr float PlumeEmissionDuration = 2.5f;
 	// 생성 소스 반경(cm). 높을수록 초기 연막 덩어리가 커짐.
 	constexpr float PlumeSourceRadius = 100.0f;
 	// 초기 연막 수평 확산 속도(cm/s).
-	constexpr float PlumeExpansionVelocity = 1000.0f;
+	constexpr float PlumeExpansionVelocity = 500.0f;
 	// 초기 연막 상승 속도(cm/s).
-	constexpr float PlumeRiseVelocity = 100.0f;
+	constexpr float PlumeRiseVelocity = 50.0f;
 
 	// 장애물 마스크
 
 	// 정적 월드 장애물 마스크 사용 여부. 끄면 비용 감소, 벽 차단 품질 감소.
 	constexpr bool bUseStaticObstacleMask = true;
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
-	constexpr int32 ObstacleMaskResolution = 16;
+	constexpr int32 ObstacleMaskResolution = 32;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
 	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
@@ -49,9 +49,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 생성 지점이 표면에 살짝 묻을 때 여는 반경 배율. 높을수록 spawn 접촉 보정 증가.
 	constexpr float ObstacleSourceClearRadiusScale = 1.5f;
 	// 장애물 마스크 변경 블렌딩 시간(초). 높을수록 변화가 부드럽고 반응이 느림.
-	constexpr float ObstacleMaskBlendDuration = 0.10f;
-	constexpr int32 MaxObstaclePrimitives = 16;
-	constexpr float ObstacleFieldFarDistanceCm = 10000.0f;
+	constexpr float ObstacleMaskBlendDuration = 0.25f;
+	constexpr int32 MaxObstaclePrimitives = 32;
+	constexpr float ObstacleFieldFarDistanceCm = 100000.0f;
 	constexpr float ObstacleSdfSurfaceFeatherCm = 32.0f;
 	// 동적 장애물 후보를 다시 찾는 최소 간격(초). 높을수록 CPU 비용 감소, 신규 장애물 반응 지연.
 	constexpr float ObstacleDynamicRefreshIntervalSeconds = 0.25f;
@@ -61,7 +61,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
 	constexpr bool bUseSparseMacSimulationByDefault = true;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 16;
+	constexpr int32 SmokeGridResolution = 32;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
@@ -75,7 +75,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 압력 반복 최소 횟수. 낮을수록 비용 감소, 발산 제거 품질 감소.
 	constexpr int32 PressureIterationsMin = 1;
 	// 압력 반복 최대 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterationsMax = 16;
+	constexpr int32 PressureIterationsMax = 32;
 	// 희소 브릭 한 변의 복셀 수. 높을수록 관리 비용 감소, 빈 공간 낭비 증가.
 	constexpr int32 SmokeBrickSize = 16;
 	// sparse brick 최소 크기(voxel). 낮을수록 culling 정밀도와 비용 증가.
@@ -96,13 +96,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// raymarch 최소 샘플 수. 낮을수록 비용 감소, 얇은 연기 손실 증가.
 	constexpr int32 RenderStepCountMin = 16;
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
-	constexpr int32 RenderStepCountMax = 128;
+	constexpr int32 RenderStepCountMax = 256;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCount = 24;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCountMax = 256;
+	constexpr int32 RenderMaxStepCountMax = 512;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	// raymarch 스텝 voxel 배율 최소값. 낮을수록 디테일과 비용 증가.
@@ -459,5 +459,5 @@ namespace TimeThiefSmokeParameterDefaults
 	// 화질 가중치 최소 스케일
 	constexpr float AdaptiveRaymarchingMinScale = 0.5f;
 	// 화질 가중치 최대 스케일
-	constexpr float AdaptiveRaymarchingMaxScale = 4.0f;
+	constexpr float AdaptiveRaymarchingMaxScale = 3.0f;
 }
