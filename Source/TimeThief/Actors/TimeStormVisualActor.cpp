@@ -57,7 +57,7 @@ void ATimeStormVisualActor::Tick(float DeltaTime)
 			float CurrRadius;
 			TimeStormComponent->GetCurrStormZone(CurrCenter, CurrRadius);
 		
-			SetActorLocation(FVector{CurrCenter, -100.f});
+			SetActorLocation(FVector{CurrCenter, -1000.f});
 		
 			SetActorScale3D(FVector{CurrRadius, CurrRadius, 1.f});
 			
