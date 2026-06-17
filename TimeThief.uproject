@@ -300,21 +300,25 @@
 		{
 			"Name": "StreamlineReflex",
 			"Enabled": true,
+			"Optional": true,
 			"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/product/nvidia-dlss"
 		},
 		{
 			"Name": "Streamline",
 			"Enabled": true,
+			"Optional": true,
 			"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/product/nvidia-dlss"
 		},
 		{
 			"Name": "StreamlineCore",
 			"Enabled": true,
+			"Optional": true,
 			"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/product/nvidia-dlss"
 		},
 		{
 			"Name": "StreamlineNGXCommon",
 			"Enabled": true,
+			"Optional": true,
 			"MarketplaceURL": "https://www.unrealengine.com/marketplace/en-US/product/nvidia-dlss"
 		}
 	],
