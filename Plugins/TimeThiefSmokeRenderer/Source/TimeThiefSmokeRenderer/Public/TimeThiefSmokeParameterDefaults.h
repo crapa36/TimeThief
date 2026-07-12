@@ -15,7 +15,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더링 박스에 더하는 여유 반경(cm). 높을수록 가장자리 잘림 감소, raymarch 범위 증가.
 	inline FVector GetRenderBoundsPadding()
 	{
-		return FVector(200.0, 200.0, 200.0);
+		return FVector(100.0, 100.0, 100.0);
 	}
 
 	// 연막 지속 시간(초).
