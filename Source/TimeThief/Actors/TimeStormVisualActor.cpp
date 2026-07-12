@@ -72,7 +72,10 @@ void ATimeStormVisualActor::Tick(float DeltaTime)
 					
 					float Weight = Distance < CurrRadius ? 0.f : 1.f;
 					
-					TargetPPVolume->AddOrUpdateBlendable(DynamicPostProcessMaterial, Weight);
+					if (TargetPPVolume)
+					{
+						TargetPPVolume->AddOrUpdateBlendable(DynamicPostProcessMaterial, Weight);
+					}
 				}
 			}
 			
