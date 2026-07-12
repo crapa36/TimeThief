@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+using System;
 using System.IO;
 using UnrealBuildTool;
 
@@ -45,7 +46,7 @@ public class TimeThief : ModuleRules
 			"MorphingMesh",
 		});
 
-		bool bHasNvidiaDLSSModules = IsPluginAvailable("DLSS") && IsPluginAvailable("StreamlineDLSSG");
+		bool bHasNvidiaDLSSModules = IsPluginAvailable(Target, "DLSS") && IsPluginAvailable(Target, "StreamlineDLSSG");
 		if (bHasNvidiaDLSSModules)
 		{
 			PrivateDependencyModuleNames.AddRange(new string[]
@@ -108,8 +109,41 @@ public class TimeThief : ModuleRules
 		}
     }
 
-	private bool IsPluginAvailable(string PluginName)
+	private bool IsPluginAvailable(ReadOnlyTargetRules Target, string PluginName)
 	{
+		if (Target.ProjectFile != null)
+		{
+			try
+			{
+				ProjectDescriptor Project = ProjectDescriptor.FromFile(Target.ProjectFile);
+				if (Project != null && Project.Plugins != null)
+				{
+					bool bFound = false;
+					bool bEnabled = false;
+					foreach (PluginReferenceDescriptor PluginRef in Project.Plugins)
+					{
+						if (string.Equals(PluginRef.Name, PluginName, StringComparison.OrdinalIgnoreCase))
+						{
+							bFound = true;
+							bEnabled = PluginRef.bEnabled 
+								&& PluginRef.IsEnabledForPlatform(Target.Platform) 
+								&& PluginRef.IsEnabledForTargetConfiguration(Target.Configuration) 
+								&& PluginRef.IsEnabledForTarget(Target.Type);
+							break;
+						}
+					}
+					if (bFound && !bEnabled)
+					{
+						return false;
+					}
+				}
+			}
+			catch
+			{
+				// Ignore errors reading uproject descriptor
+			}
+		}
+
 		string ProjectRoot = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));
 		string PluginFileName = PluginName + ".uplugin";
 
