@@ -252,10 +252,10 @@ void UMorphingMeshComponent::Check()
 			BaseMeshComponent->SetVisibility(false);
 			
 			bIsDifferentSkeletal = false;
-			auto Skeletal = MorphingMeshData->SkeletalMeshes[Index]->Skeleton;
+			auto Skeletal = MorphingMeshData->SkeletalMeshes[Index]->GetSkeleton();
 			for (auto SkeletalMesh : MorphingMeshData->SkeletalMeshes)
 			{
-				if (Skeletal != SkeletalMesh->Skeleton)
+				if (Skeletal != SkeletalMesh->GetSkeleton())
 				{
 					bIsDifferentSkeletal = true;
 					break;

@@ -48,5 +48,6 @@ public:
 	TArray<TObjectPtr<UVolumeTexture>> GetDensityTextures() const;
 	TArray<TObjectPtr<UVolumeTexture>> GetUVMaps() const;
 	TObjectPtr<UVolumeTexture> GetBoneIndicesTexture() const;
+	TObjectPtr<UVolumeTexture> GetBoneWeightsTexture() const;
 	TArray<FMatrix44f> GetBoneMatrices() const;
 };

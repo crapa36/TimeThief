@@ -38,6 +38,7 @@ public:
 	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
 	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps,
 	TObjectPtr<UVolumeTexture> BoneIndicesTexture,
+	TObjectPtr<UVolumeTexture> BoneWeightsTexture,
 	const TArray<FMatrix44f>& SkinMatrices);
 	
 	virtual void InitRHI(FRHICommandListBase& RHICmdList) override;

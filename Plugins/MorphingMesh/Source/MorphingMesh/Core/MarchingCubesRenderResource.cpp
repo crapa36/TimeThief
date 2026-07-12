@@ -42,6 +42,7 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	const TArray<TObjectPtr<UVolumeTexture>>& VolumeTextures,
 	const TArray<TObjectPtr<UVolumeTexture>>& UVMaps,
 	TObjectPtr<UVolumeTexture> BoneIndicesTexture,
+	TObjectPtr<UVolumeTexture> BoneWeightsTexture,
 	const TArray<FMatrix44f>& SkinMatrices)
 {
 	using namespace UE::HLSL;
@@ -152,10 +153,18 @@ void FMarchingCubesRenderResource::RunComputeShader(
 	EmitParams->UVBuffer = GraphBuilder.CreateUAV(UVRDG);
 	EmitParams->BoneIndicesSampler = TStaticSamplerState<>::GetRHI();
 	EmitParams->BoneIndicesTexture = BoneIndicesTexture ? BoneIndicesTexture->GetResource()->GetTexture3DRHI() : VolumeTextures[0]->GetResource()->GetTexture3DRHI();
+	EmitParams->BoneWeightsSampler = TStaticSamplerState<>::GetRHI();
+	EmitParams->BoneWeightsTexture = BoneWeightsTexture ? BoneWeightsTexture->GetResource()->GetTexture3DRHI() : VolumeTextures[0]->GetResource()->GetTexture3DRHI();
+	
 	FRDGBufferRef BoneIndicesBuffer = GraphBuilder.CreateBuffer(
-	FRDGBufferDesc::CreateStructuredDesc(sizeof(uint), NumVertex),
+	FRDGBufferDesc::CreateStructuredDesc(sizeof(float4), NumVertex),
 	TEXT("BoneIndicesBuffer"));
 	EmitParams->BoneIndicesBuffer = GraphBuilder.CreateUAV(BoneIndicesBuffer);
+	
+	FRDGBufferRef BoneWeightsBuffer = GraphBuilder.CreateBuffer(
+		FRDGBufferDesc::CreateStructuredDesc(sizeof(float4), NumVertex),	
+		TEXT("BoneWeightsBuffer"));
+	EmitParams->BoneWeightsBuffer = GraphBuilder.CreateUAV(BoneWeightsBuffer);
 	
 	FComputeShaderUtils::AddPass(
 		GraphBuilder,
@@ -184,6 +193,7 @@ void FMarchingCubesRenderResource::RunComputeShader(
 		SkinParams->TangentsBuffer = GraphBuilder.CreateUAV(TangentsRDG);
 		SkinParams->BoneMatrices = GraphBuilder.CreateSRV(BoneMatrixRDG);
 		SkinParams->BoneIndicesBuffer = GraphBuilder.CreateSRV(BoneIndicesBuffer);
+		SkinParams->BoneWeightsBuffer = GraphBuilder.CreateSRV(BoneWeightsBuffer);
 		SkinParams->IndirectArgsBuffer = GraphBuilder.CreateSRV(IndirectArgsRDG);
 		SkinParams->NumMatrix = SkinMatrices.Num();
 		const int32 SkinGroupCount = FMath::DivideAndRoundUp(NumVertex, 256);

@@ -63,6 +63,7 @@ void FLiquidMeshProxy::CachingData()
 	CachedUVMaps = RenderComponent->GetUVMaps();
 	bRenderingEnable = RenderComponent->bRenderingEnable;
 	CachedBoneIndicesTexture = RenderComponent->GetBoneIndicesTexture();
+	CachedBoneWeightsTexture = RenderComponent->GetBoneWeightsTexture();
 	CachedBoneMatrices = RenderComponent->GetBoneMatrices();
 }
 
@@ -79,6 +80,7 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 		TArray<TObjectPtr<UVolumeTexture>> ParamDensityTextures;
 		TArray<TObjectPtr<UVolumeTexture>> ParamUVMaps;
 		TObjectPtr<UVolumeTexture> ParamBoneIndicesTexture;
+		TObjectPtr<UVolumeTexture> ParamBoneWeightsTexture;
 		TArray<FMatrix44f> ParamBoneMatrices;
 		{
 			std::lock_guard Lock(CachingMutex);
@@ -87,6 +89,7 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 			ParamDensityTextures = CachedDensityTextures;
 			ParamUVMaps = CachedUVMaps;
 			ParamBoneIndicesTexture = CachedBoneIndicesTexture;
+			ParamBoneWeightsTexture = CachedBoneWeightsTexture;
 			ParamBoneMatrices = CachedBoneMatrices;
 		}
 		RenderResource->RunComputeShader(
@@ -96,6 +99,7 @@ void FLiquidMeshProxy::UpdateRenderResource(FRDGBuilder& GraphicBuilder)
 			ParamDensityTextures, 
 			ParamUVMaps, 
 			ParamBoneIndicesTexture, 
+			ParamBoneWeightsTexture,
 			ParamBoneMatrices);
 	}
 }

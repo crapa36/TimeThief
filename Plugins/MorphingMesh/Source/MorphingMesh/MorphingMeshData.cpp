@@ -23,6 +23,7 @@ UMorphingMeshData::UMorphingMeshData()
 	UVVolumeTextures.SetNum(3);
 	SkeletalMeshes.SetNum(3);
 	BoneIndexTextures.SetNum(3);
+	BoneWeightTextures.SetNum(3);
 }
 
 void UMorphingMeshData::UpdateBox()

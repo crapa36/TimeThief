@@ -34,6 +34,238 @@ void ADataSetActor::BeginPlay()
 	Super::BeginPlay();
 }
 
+// void ADataSetActor::CreateBoneIndexTexture() const
+// {
+//     const TArray<TObjectPtr<UStaticMesh>>& BaseMeshes = MorphingMeshData->GetBaseMeshes();
+//
+//     for (int32 i = 0; i < MorphingMeshData->BoneIndexTextures.Num(); ++i)
+//     {
+//         UVolumeTexture* VolumeTex = MorphingMeshData->BoneIndexTextures[i];
+//         USkeletalMesh* SkelMesh = MorphingMeshData->SkeletalMeshes.IsValidIndex(i)
+//             ? MorphingMeshData->SkeletalMeshes[i]
+//             : nullptr;
+//         UStaticMesh* BaseMesh = BaseMeshes.IsValidIndex(i) ? BaseMeshes[i] : nullptr;
+//
+//         if (!VolumeTex || !SkelMesh || !BaseMesh)
+//         {
+//             continue;
+//         }
+//     	
+//
+//         // --- 1. 스켈레탈 메쉬의 렌더 데이터(표면 및 웨이트) 가져오기 ---
+//         FSkeletalMeshRenderData* RenderData = SkelMesh->GetResourceForRendering();
+//         if (!RenderData || RenderData->LODRenderData.IsEmpty())
+//         {
+//             UE_LOG(LogTemp, Warning, TEXT("SkeletalMesh %s has no render data!"), *SkelMesh->GetName());
+//             continue;
+//         }
+//
+//         const FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[0];
+//         const FPositionVertexBuffer& PositionBuffer = LODData.StaticVertexBuffers.PositionVertexBuffer;
+//         const FSkinWeightVertexBuffer& SkinWeightBuffer = LODData.SkinWeightVertexBuffer;
+//         const FReferenceSkeleton& RefSkeleton = SkelMesh->GetRefSkeleton();
+//
+//         auto IsExcludedBone = [&](int32 GlobalBoneIndex) -> bool
+//         {
+//             if (!RefSkeleton.IsValidIndex(GlobalBoneIndex))
+//             {
+//                 return false;
+//             }
+//
+//             const FString BoneName = RefSkeleton.GetBoneName(GlobalBoneIndex).ToString();
+//
+//             for (const FString& Keyword : ExcludedBoneKeywords)
+//             {
+//                 if (!Keyword.IsEmpty() &&
+//                     BoneName.Contains(Keyword, ESearchCase::IgnoreCase))
+//                 {
+//                     return true;
+//                 }
+//             }
+//
+//             return false;
+//         };
+//
+//         struct FSurfacePoint
+//         {
+//             FVector Position;
+//             uint8 DominantBoneIndex;
+//         };
+//
+//         TArray<FSurfacePoint> SurfacePoints;
+//         SurfacePoints.Reserve(PositionBuffer.GetNumVertices());
+//
+//         // --- 2. 모든 버텍스를 순회하며 제외 대상이 아닌 본 중 가장 높은 웨이트의 본 인덱스 추출 ---
+//         for (int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); ++SecIdx)
+//         {
+//             const FSkelMeshRenderSection& Section = LODData.RenderSections[SecIdx];
+//
+//             for (int32 VertIdx = 0; VertIdx < Section.GetNumVertices(); ++VertIdx)
+//             {
+//                 const uint32 GlobalVertIdx = Section.BaseVertexIndex + VertIdx;
+//
+//                 // 버텍스의 로컬 위치
+//                 const FVector Pos = (FVector)PositionBuffer.VertexPosition(GlobalVertIdx);
+//
+//                 int32 MaxWeight = -1;
+//                 int32 BestBoneIndex = INDEX_NONE;
+//
+//                 for (uint32 InfIdx = 0; InfIdx < SkinWeightBuffer.GetMaxBoneInfluences(); ++InfIdx)
+//                 {
+//                     const int32 BoneWeight = SkinWeightBuffer.GetBoneWeight(GlobalVertIdx, InfIdx);
+//                     if (BoneWeight <= 0)
+//                     {
+//                         continue;
+//                     }
+//
+//                     const uint32 SectionBoneIdx = SkinWeightBuffer.GetBoneIndex(GlobalVertIdx, InfIdx);
+//                     if (!Section.BoneMap.IsValidIndex((int32)SectionBoneIdx))
+//                     {
+//                         continue;
+//                     }
+//
+//                     const int32 GlobalBoneIndex = Section.BoneMap[SectionBoneIdx];
+//
+//                     // 본 이름에 제외 키워드가 들어가면 무시
+//                     if (IsExcludedBone(GlobalBoneIndex))
+//                     {
+//                         continue;
+//                     }
+//
+//                     if (BoneWeight > MaxWeight)
+//                     {
+//                         MaxWeight = BoneWeight;
+//                         BestBoneIndex = GlobalBoneIndex;
+//                     }
+//                 }
+//
+//                 // 모든 influence가 제외 대상이었다면 이 버텍스는 건너뜀
+//                 if (BestBoneIndex == INDEX_NONE)
+//                 {
+//                     continue;
+//                 }
+//
+//                 SurfacePoints.Add({ Pos, static_cast<uint8>(BestBoneIndex) });
+//             }
+//         }
+//
+//         if (SurfacePoints.IsEmpty())
+//         {
+//             UE_LOG(LogTemp, Warning, TEXT("No valid surface points after bone exclusion: %s"), *SkelMesh->GetName());
+//             continue;
+//         }
+//     	int32 ExtraBoneIndex = INDEX_NONE;
+//     	if (ExtraBoneName != NAME_None)
+//     	{
+//     		ExtraBoneIndex = RefSkeleton.FindBoneIndex(ExtraBoneName);
+//     		if (ExtraBoneIndex == INDEX_NONE)
+//     		{
+//     			UE_LOG(LogTemp, Warning, TEXT("ExtraBoneName '%s'을(를) %s 스켈레톤에서 찾을 수 없습니다."), *ExtraBoneName.ToString(), *SkelMesh->GetName());
+//     		}
+//     	}
+//
+//     	// 본을 찾았고, 스태틱 메쉬 렌더 데이터가 유효한 경우 수행
+//     	if (ExtraBoneIndex != INDEX_NONE && BaseMesh->GetRenderData() && BaseMesh->GetRenderData()->LODResources.IsValidIndex(0))
+//     	{
+//     		const FStaticMeshLODResources& StaticLOD = BaseMesh->GetRenderData()->LODResources[0];
+//     		const FPositionVertexBuffer& StaticPositions = StaticLOD.VertexBuffers.PositionVertexBuffer;
+//     		const int32 NumStaticVerts = StaticPositions.GetNumVertices();
+//
+//     		FCriticalSection Mutex;
+//     		TArray<FSurfacePoint> ExtraPoints;
+//     		const float ThresholdSq = FMath::Square(ExtraVertexDistanceThreshold);
+//
+//     		// 정점 개수가 많을 수 있으므로 ParallelFor로 병렬 처리
+//     		ParallelFor(NumStaticVerts, [&](int32 VertIdx)
+// 			{
+// 				FVector StaticPos = (FVector)StaticPositions.VertexPosition(VertIdx);
+// 				float MinDistSq = MAX_FLT;
+//
+// 				// 기존 스켈레탈 메쉬 정점들과의 최소 거리 계산
+// 				for (const FSurfacePoint& SkelPt : SurfacePoints)
+// 				{
+// 					float DistSq = FVector::DistSquared(StaticPos, SkelPt.Position);
+// 					if (DistSq < MinDistSq)
+// 					{
+// 						MinDistSq = DistSq;
+// 					}
+// 				}
+//
+// 				// 거리가 Threshold보다 멀다면 스태틱 메쉬에만 있는 "독립적인 정점"으로 판단
+// 				if (MinDistSq > ThresholdSq)
+// 				{
+// 					FScopeLock Lock(&Mutex);
+// 					ExtraPoints.Add({ StaticPos, static_cast<uint8>(ExtraBoneIndex) });
+// 				}
+// 			});
+//
+//     		// 스태틱 메쉬에서 찾은 추가 정점들을 SurfacePoints 배열에 병합
+//     		SurfacePoints.Append(ExtraPoints);
+//     	}
+//     	
+//         // --- 3. 바운딩 박스 설정 ---
+//         const FBox Bounds = BaseMesh->GetBoundingBox();
+//         const FVector Min = Bounds.Min;
+//         const FVector Size = Bounds.GetSize();
+//
+//         const int32 BoneResolution = Resolution;
+//         const int32 TotalVoxels = BoneResolution * BoneResolution * BoneResolution;
+//
+//         TArray<uint8> VoxelBoneIndices;
+//         VoxelBoneIndices.SetNumZeroed(TotalVoxels);
+//
+//         const float InvResMinus1 = 1.0f / float(BoneResolution - 1);
+//
+//         // --- 4. 복셀 그리드 채우기 ---
+//         ParallelFor(TotalVoxels, [&](int32 FlatIndex)
+//         {
+//             const int32 X = FlatIndex % BoneResolution;
+//             const int32 Y = (FlatIndex / BoneResolution) % BoneResolution;
+//             const int32 Z = FlatIndex / (BoneResolution * BoneResolution);
+//
+//             const float AlphaX = X * InvResMinus1;
+//             const float AlphaY = Y * InvResMinus1;
+//             const float AlphaZ = Z * InvResMinus1;
+//
+//             const FVector VoxelPos = Min + FVector(AlphaX, AlphaY, AlphaZ) * Size;
+//
+//             float MinDistanceSq = MAX_FLT;
+//             uint8 ClosestBoneIndex = 0;
+//
+//             for (const FSurfacePoint& Pt : SurfacePoints)
+//             {
+//                 const float DistSq = FVector::DistSquared(VoxelPos, Pt.Position);
+//                 if (DistSq < MinDistanceSq)
+//                 {
+//                     MinDistanceSq = DistSq;
+//                     ClosestBoneIndex = Pt.DominantBoneIndex;
+//                 }
+//             }
+//
+//             VoxelBoneIndices[FlatIndex] = ClosestBoneIndex;
+//         });
+//
+// #if WITH_EDITORONLY_DATA
+//         VolumeTex->Source.Init(
+//             BoneResolution,
+//             BoneResolution,
+//             BoneResolution,
+//             1,
+//             TSF_G8,
+//             VoxelBoneIndices.GetData());
+//
+//         VolumeTex->SRGB = false;
+//         VolumeTex->MipGenSettings = TMGS_NoMipmaps;
+//         VolumeTex->CompressionNone = true;
+//         VolumeTex->Filter = TF_Nearest;
+//         VolumeTex->NeverStream = true;
+//         VolumeTex->CompressionSettings = TC_Grayscale;
+//         VolumeTex->PostEditChange();
+// #endif
+//         VolumeTex->UpdateResource();
+//     }
+// }
+
 void ADataSetActor::CreateBoneIndexTexture() const
 {
     const TArray<TObjectPtr<UStaticMesh>>& BaseMeshes = MorphingMeshData->GetBaseMeshes();
@@ -41,18 +273,23 @@ void ADataSetActor::CreateBoneIndexTexture() const
     for (int32 i = 0; i < MorphingMeshData->BoneIndexTextures.Num(); ++i)
     {
         UVolumeTexture* VolumeTex = MorphingMeshData->BoneIndexTextures[i];
+        // 가중치를 저장할 텍스처 배열이 매칭되어 있다고 가정
+        UVolumeTexture* WeightTex = MorphingMeshData->BoneWeightTextures.IsValidIndex(i)
+            ? MorphingMeshData->BoneWeightTextures[i]
+            : nullptr;
+
         USkeletalMesh* SkelMesh = MorphingMeshData->SkeletalMeshes.IsValidIndex(i)
             ? MorphingMeshData->SkeletalMeshes[i]
             : nullptr;
         UStaticMesh* BaseMesh = BaseMeshes.IsValidIndex(i) ? BaseMeshes[i] : nullptr;
 
-        if (!VolumeTex || !SkelMesh || !BaseMesh)
+        // 가중치 텍스처까지 모두 유효한지 확인
+        if (!VolumeTex || !WeightTex || !SkelMesh || !BaseMesh)
         {
             continue;
         }
-    	
 
-        // --- 1. 스켈레탈 메쉬의 렌더 데이터(표면 및 웨이트) 가져오기 ---
+        // --- 1. 스켈레탈 메쉬의 렌더 데이터 가져오기 ---
         FSkeletalMeshRenderData* RenderData = SkelMesh->GetResourceForRendering();
         if (!RenderData || RenderData->LODRenderData.IsEmpty())
         {
@@ -71,31 +308,36 @@ void ADataSetActor::CreateBoneIndexTexture() const
             {
                 return false;
             }
-
             const FString BoneName = RefSkeleton.GetBoneName(GlobalBoneIndex).ToString();
-
             for (const FString& Keyword : ExcludedBoneKeywords)
             {
-                if (!Keyword.IsEmpty() &&
-                    BoneName.Contains(Keyword, ESearchCase::IgnoreCase))
+                if (!Keyword.IsEmpty() && BoneName.Contains(Keyword, ESearchCase::IgnoreCase))
                 {
                     return true;
                 }
             }
-
             return false;
         };
 
+        // 표면 정점 구조체: 위치 정보와 함께 상위 4개 본 정보 및 가중치 저장
         struct FSurfacePoint
         {
             FVector Position;
-            uint8 DominantBoneIndex;
+            uint8 BoneIndices[4];
+            uint8 BoneWeights[4];
         };
 
         TArray<FSurfacePoint> SurfacePoints;
         SurfacePoints.Reserve(PositionBuffer.GetNumVertices());
 
-        // --- 2. 모든 버텍스를 순회하며 제외 대상이 아닌 본 중 가장 높은 웨이트의 본 인덱스 추출 ---
+        // 임시 영향도 저장용 구조체
+        struct FInfluence
+        {
+            uint8 BoneIndex;
+            uint8 Weight;
+        };
+
+        // --- 2. 모든 버텍스를 순회하며 상위 4개 본 인덱스 및 가중치 추출 ---
         for (int32 SecIdx = 0; SecIdx < LODData.RenderSections.Num(); ++SecIdx)
         {
             const FSkelMeshRenderSection& Section = LODData.RenderSections[SecIdx];
@@ -103,13 +345,11 @@ void ADataSetActor::CreateBoneIndexTexture() const
             for (int32 VertIdx = 0; VertIdx < Section.GetNumVertices(); ++VertIdx)
             {
                 const uint32 GlobalVertIdx = Section.BaseVertexIndex + VertIdx;
-
-                // 버텍스의 로컬 위치
                 const FVector Pos = (FVector)PositionBuffer.VertexPosition(GlobalVertIdx);
 
-                int32 MaxWeight = -1;
-                int32 BestBoneIndex = INDEX_NONE;
+                TArray<FInfluence, TInlineAllocator<8>> ValidInfluences;
 
+                // 해당 정점에 영향 주는 모든 본 검사
                 for (uint32 InfIdx = 0; InfIdx < SkinWeightBuffer.GetMaxBoneInfluences(); ++InfIdx)
                 {
                     const int32 BoneWeight = SkinWeightBuffer.GetBoneWeight(GlobalVertIdx, InfIdx);
@@ -126,84 +366,117 @@ void ADataSetActor::CreateBoneIndexTexture() const
 
                     const int32 GlobalBoneIndex = Section.BoneMap[SectionBoneIdx];
 
-                    // 본 이름에 제외 키워드가 들어가면 무시
+                    // 제외 키워드가 있으면 스킵
                     if (IsExcludedBone(GlobalBoneIndex))
                     {
                         continue;
                     }
 
-                    if (BoneWeight > MaxWeight)
-                    {
-                        MaxWeight = BoneWeight;
-                        BestBoneIndex = GlobalBoneIndex;
-                    }
+                    ValidInfluences.Add({ static_cast<uint8>(GlobalBoneIndex), static_cast<uint8>(BoneWeight) });
                 }
 
-                // 모든 influence가 제외 대상이었다면 이 버텍스는 건너뜀
-                if (BestBoneIndex == INDEX_NONE)
+                if (ValidInfluences.IsEmpty())
                 {
                     continue;
                 }
 
-                SurfacePoints.Add({ Pos, static_cast<uint8>(BestBoneIndex) });
+                // 가중치 기준 내림차순(높은 순) 정렬
+                ValidInfluences.Sort([](const FInfluence& A, const FInfluence& B) {
+                    return A.Weight > B.Weight;
+                });
+
+                FSurfacePoint Pt;
+                Pt.Position = Pos;
+                FMemory::Memzero(Pt.BoneIndices, 4);
+                FMemory::Memzero(Pt.BoneWeights, 4);
+
+                // 상위 최대 4개 복사 및 제외된 본 때문에 비어버린 가중치 재정규화(Re-normalize)
+                int32 WeightSum = 0;
+                int32 CopyCount = FMath::Min(ValidInfluences.Num(), 4);
+                for (int32 k = 0; k < CopyCount; ++k)
+                {
+                    Pt.BoneIndices[k] = ValidInfluences[k].BoneIndex;
+                    Pt.BoneWeights[k] = ValidInfluences[k].Weight;
+                    WeightSum += Pt.BoneWeights[k];
+                }
+
+                // 제외된 본이 있어 총합이 255가 안 된다면, 남은 본들끼리 255 비율에 맞춰 재분배
+                if (WeightSum > 0 && WeightSum < 255)
+                {
+                    int32 RunningSum = 0;
+                    for (int32 k = 0; k < CopyCount; ++k)
+                    {
+                        if (k == CopyCount - 1)
+                        {
+                            Pt.BoneWeights[k] = 255 - RunningSum;
+                        }
+                        else
+                        {
+                            Pt.BoneWeights[k] = FMath::RoundToInt((float)Pt.BoneWeights[k] / WeightSum * 255.0f);
+                            RunningSum += Pt.BoneWeights[k];
+                        }
+                    }
+                }
+
+                SurfacePoints.Add(Pt);
             }
         }
 
         if (SurfacePoints.IsEmpty())
         {
-            UE_LOG(LogTemp, Warning, TEXT("No valid surface points after bone exclusion: %s"), *SkelMesh->GetName());
+            UE_LOG(LogTemp, Warning, TEXT("No valid surface points: %s"), *SkelMesh->GetName());
             continue;
         }
-    	int32 ExtraBoneIndex = INDEX_NONE;
-    	if (ExtraBoneName != NAME_None)
-    	{
-    		ExtraBoneIndex = RefSkeleton.FindBoneIndex(ExtraBoneName);
-    		if (ExtraBoneIndex == INDEX_NONE)
-    		{
-    			UE_LOG(LogTemp, Warning, TEXT("ExtraBoneName '%s'을(를) %s 스켈레톤에서 찾을 수 없습니다."), *ExtraBoneName.ToString(), *SkelMesh->GetName());
-    		}
-    	}
 
-    	// 본을 찾았고, 스태틱 메쉬 렌더 데이터가 유효한 경우 수행
-    	if (ExtraBoneIndex != INDEX_NONE && BaseMesh->GetRenderData() && BaseMesh->GetRenderData()->LODResources.IsValidIndex(0))
-    	{
-    		const FStaticMeshLODResources& StaticLOD = BaseMesh->GetRenderData()->LODResources[0];
-    		const FPositionVertexBuffer& StaticPositions = StaticLOD.VertexBuffers.PositionVertexBuffer;
-    		const int32 NumStaticVerts = StaticPositions.GetNumVertices();
+        // 추가 독립 정점(Static Mesh전용) 처리
+        int32 ExtraBoneIndex = INDEX_NONE;
+        if (ExtraBoneName != NAME_None)
+        {
+           ExtraBoneIndex = RefSkeleton.FindBoneIndex(ExtraBoneName);
+        }
 
-    		FCriticalSection Mutex;
-    		TArray<FSurfacePoint> ExtraPoints;
-    		const float ThresholdSq = FMath::Square(ExtraVertexDistanceThreshold);
+        if (ExtraBoneIndex != INDEX_NONE && BaseMesh->GetRenderData() && BaseMesh->GetRenderData()->LODResources.IsValidIndex(0))
+        {
+           const FStaticMeshLODResources& StaticLOD = BaseMesh->GetRenderData()->LODResources[0];
+           const FPositionVertexBuffer& StaticPositions = StaticLOD.VertexBuffers.PositionVertexBuffer;
+           const int32 NumStaticVerts = StaticPositions.GetNumVertices();
 
-    		// 정점 개수가 많을 수 있으므로 ParallelFor로 병렬 처리
-    		ParallelFor(NumStaticVerts, [&](int32 VertIdx)
-			{
-				FVector StaticPos = (FVector)StaticPositions.VertexPosition(VertIdx);
-				float MinDistSq = MAX_FLT;
+           FCriticalSection Mutex;
+           TArray<FSurfacePoint> ExtraPoints;
+           const float ThresholdSq = FMath::Square(ExtraVertexDistanceThreshold);
 
-				// 기존 스켈레탈 메쉬 정점들과의 최소 거리 계산
-				for (const FSurfacePoint& SkelPt : SurfacePoints)
-				{
-					float DistSq = FVector::DistSquared(StaticPos, SkelPt.Position);
-					if (DistSq < MinDistSq)
-					{
-						MinDistSq = DistSq;
-					}
-				}
+           ParallelFor(NumStaticVerts, [&](int32 VertIdx)
+           {
+              FVector StaticPos = (FVector)StaticPositions.VertexPosition(VertIdx);
+              float MinDistSq = MAX_FLT;
 
-				// 거리가 Threshold보다 멀다면 스태틱 메쉬에만 있는 "독립적인 정점"으로 판단
-				if (MinDistSq > ThresholdSq)
-				{
-					FScopeLock Lock(&Mutex);
-					ExtraPoints.Add({ StaticPos, static_cast<uint8>(ExtraBoneIndex) });
-				}
-			});
+              for (const FSurfacePoint& SkelPt : SurfacePoints)
+              {
+                 float DistSq = FVector::DistSquared(StaticPos, SkelPt.Position);
+                 if (DistSq < MinDistSq)
+                 {
+                    MinDistSq = DistSq;
+                 }
+              }
 
-    		// 스태틱 메쉬에서 찾은 추가 정점들을 SurfacePoints 배열에 병합
-    		SurfacePoints.Append(ExtraPoints);
-    	}
-    	
-        // --- 3. 바운딩 박스 설정 ---
+              // 독립 정점인 경우, 가중치 100%(255)를 해당 ExtraBone에 몰아줌
+              if (MinDistSq > ThresholdSq)
+              {
+                 FScopeLock Lock(&Mutex);
+                 FSurfacePoint ExtraPt;
+                 ExtraPt.Position = StaticPos;
+                 FMemory::Memzero(ExtraPt.BoneIndices, 4);
+                 FMemory::Memzero(ExtraPt.BoneWeights, 4);
+                 ExtraPt.BoneIndices[0] = static_cast<uint8>(ExtraBoneIndex);
+                 ExtraPt.BoneWeights[0] = 255; 
+                 ExtraPoints.Add(ExtraPt);
+              }
+           });
+
+           SurfacePoints.Append(ExtraPoints);
+        }
+        
+        // --- 3. 바운딩 박스 설정 및 4채널 데이터 배열 준비 ---
         const FBox Bounds = BaseMesh->GetBoundingBox();
         const FVector Min = Bounds.Min;
         const FVector Size = Bounds.GetSize();
@@ -211,12 +484,15 @@ void ADataSetActor::CreateBoneIndexTexture() const
         const int32 BoneResolution = Resolution;
         const int32 TotalVoxels = BoneResolution * BoneResolution * BoneResolution;
 
-        TArray<uint8> VoxelBoneIndices;
+        // 인덱스용 BGRA 텍스처 데이터와 가중치용 BGRA 텍스처 데이터 분리
+        TArray<FColor> VoxelBoneIndices;
+        TArray<FColor> VoxelBoneWeights;
         VoxelBoneIndices.SetNumZeroed(TotalVoxels);
+        VoxelBoneWeights.SetNumZeroed(TotalVoxels);
 
         const float InvResMinus1 = 1.0f / float(BoneResolution - 1);
 
-        // --- 4. 복셀 그리드 채우기 ---
+        // --- 4. 복셀 그리드 채우기 (가장 가까운 정점의 본/웨이트 통째로 복사) ---
         ParallelFor(TotalVoxels, [&](int32 FlatIndex)
         {
             const int32 X = FlatIndex % BoneResolution;
@@ -230,41 +506,59 @@ void ADataSetActor::CreateBoneIndexTexture() const
             const FVector VoxelPos = Min + FVector(AlphaX, AlphaY, AlphaZ) * Size;
 
             float MinDistanceSq = MAX_FLT;
-            uint8 ClosestBoneIndex = 0;
+            const FSurfacePoint* ClosestPoint = nullptr;
 
+            // 공간에서 가장 가까운 "정점" 하나를 탐색
             for (const FSurfacePoint& Pt : SurfacePoints)
             {
                 const float DistSq = FVector::DistSquared(VoxelPos, Pt.Position);
                 if (DistSq < MinDistanceSq)
                 {
                     MinDistanceSq = DistSq;
-                    ClosestBoneIndex = Pt.DominantBoneIndex;
+                    ClosestPoint = &Pt;
                 }
             }
 
-            VoxelBoneIndices[FlatIndex] = ClosestBoneIndex;
+            if (ClosestPoint)
+            {
+                // 가장 가까운 정점이 가진 4개의 본 인덱스와 가중치를 각각의 채널에 대입
+                VoxelBoneIndices[FlatIndex] = FColor(ClosestPoint->BoneIndices[0], ClosestPoint->BoneIndices[1], ClosestPoint->BoneIndices[2], ClosestPoint->BoneIndices[3]);
+                VoxelBoneWeights[FlatIndex] = FColor(ClosestPoint->BoneWeights[0], ClosestPoint->BoneWeights[1], ClosestPoint->BoneWeights[2], ClosestPoint->BoneWeights[3]);
+            }
         });
 
 #if WITH_EDITORONLY_DATA
+        // 1) 인덱스 텍스처 생성 (TSF_BGRA8)
         VolumeTex->Source.Init(
-            BoneResolution,
-            BoneResolution,
-            BoneResolution,
-            1,
-            TSF_G8,
-            VoxelBoneIndices.GetData());
-
+            BoneResolution, BoneResolution, BoneResolution,
+            1, TSF_BGRA8, reinterpret_cast<const uint8*>(VoxelBoneIndices.GetData()));
+        
         VolumeTex->SRGB = false;
         VolumeTex->MipGenSettings = TMGS_NoMipmaps;
         VolumeTex->CompressionNone = true;
         VolumeTex->Filter = TF_Nearest;
         VolumeTex->NeverStream = true;
-        VolumeTex->CompressionSettings = TC_Grayscale;
+        VolumeTex->CompressionSettings = TC_Default;
         VolumeTex->PostEditChange();
+
+        // 2) 가중치 텍스처 생성 (TSF_BGRA8)
+        WeightTex->Source.Init(
+            BoneResolution, BoneResolution, BoneResolution,
+            1, TSF_BGRA8, reinterpret_cast<const uint8*>(VoxelBoneWeights.GetData()));
+        
+        WeightTex->SRGB = false;
+        WeightTex->MipGenSettings = TMGS_NoMipmaps;
+        WeightTex->CompressionNone = true;
+        WeightTex->Filter = TF_Nearest; // 리니어 보간을 원하시면 TF_Bilinear 등으로 변경 가능합니다.
+        WeightTex->NeverStream = true;
+        WeightTex->CompressionSettings = TC_Default;
+        WeightTex->PostEditChange();
 #endif
         VolumeTex->UpdateResource();
+        WeightTex->UpdateResource();
     }
 }
+
 // Called every frame
 void ADataSetActor::Tick(float DeltaTime)
 {

@@ -4,7 +4,8 @@ RWStructuredBuffer<float3> PositionBuffer;
 RWStructuredBuffer<float3> TangentsBuffer;
 
 StructuredBuffer<float4x4> BoneMatrices;
-StructuredBuffer<uint> BoneIndicesBuffer;
+StructuredBuffer<float4> BoneIndicesBuffer;
+StructuredBuffer<float4> BoneWeightsBuffer;
 StructuredBuffer<uint> IndirectArgsBuffer;
 
 int NumMatrix;
@@ -17,16 +18,23 @@ void MainCS(uint3 DTid : SV_DispatchThreadID)
     {
 	    return;
     }
-	uint bone = BoneIndicesBuffer[vid];
-
-	float4x4 M = BoneMatrices[bone];
-    PositionBuffer[vid] = mul(float4(PositionBuffer[vid], 1), M).xyz;
+	
+	uint4 boneIndices = (uint4)(BoneIndicesBuffer[vid] * 255.5f);
+	float4 boneWeights = BoneWeightsBuffer[vid];
 	
 	uint TBase = vid * 2;
-
-	float3 T = TangentsBuffer[TBase + 0];
-	float3 N = TangentsBuffer[TBase + 1];
-
-	TangentsBuffer[TBase + 0] = normalize(mul(float4(T, 0), M).xyz);
-	TangentsBuffer[TBase + 1] = normalize(mul(float4(N, 0), M).xyz);
+	
+	float3 position = float3(0,0,0);
+	float3 tangent = float3(0,0,0);
+	float3 normal = float3(0,0,0);
+	for (int i =0; i<4;++i)
+	{
+		float4x4 M = BoneMatrices[boneIndices[i]];
+		position += mul(float4(PositionBuffer[vid], 1), M).xyz * boneWeights[i];
+		tangent += mul(float4(TangentsBuffer[TBase + 0], 0), M).xyz * boneWeights[i];
+		normal += mul(float4(TangentsBuffer[TBase + 1], 0), M).xyz * boneWeights[i];
+	}
+    PositionBuffer[vid] = position;
+    TangentsBuffer[TBase + 0] = tangent;
+    TangentsBuffer[TBase + 1] = normal;
 }

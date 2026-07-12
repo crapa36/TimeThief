@@ -60,6 +60,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
 	TArray<TObjectPtr<UVolumeTexture>> BoneIndexTextures;
 	
+	UPROPERTY(EditDefaultsOnly, EditFixedSize, meta=(EditFixedOrder))
+	TArray<TObjectPtr<UVolumeTexture>> BoneWeightTextures;
+	
 	UPROPERTY(EditDefaultsOnly)
 	TObjectPtr<UMaterial> Material;
 };

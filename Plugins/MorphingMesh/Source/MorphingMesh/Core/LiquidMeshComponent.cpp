@@ -210,6 +210,24 @@ TObjectPtr<UVolumeTexture> ULiquidMeshComponent::GetBoneIndicesTexture() const
 	return ParentComponent->MorphingMeshData->BoneIndexTextures[Index];
 }
 
+TObjectPtr<UVolumeTexture> ULiquidMeshComponent::GetBoneWeightsTexture() const
+{
+	if (ParentComponent == nullptr 
+	|| !ParentComponent->bIsValid)
+	{
+		return nullptr;
+	}
+
+	int Index = ParentComponent->GetActiveSkeletalIndex();
+	
+	if (Index == -1)
+	{
+		return nullptr;
+	}
+
+	return ParentComponent->MorphingMeshData->BoneWeightTextures[Index];
+}
+
 TArray<FMatrix44f> ULiquidMeshComponent::GetBoneMatrices() const
 {
 	TArray<FMatrix44f> Out;

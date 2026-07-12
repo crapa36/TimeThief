@@ -18,9 +18,13 @@ Texture3D UVMap2;
 SamplerState UVMapSampler;
 RWStructuredBuffer<float2> UVBuffer;
 
-Texture3D<float> BoneIndicesTexture;
+Texture3D BoneIndicesTexture;
 SamplerState BoneIndicesSampler;
-RWStructuredBuffer<uint> BoneIndicesBuffer;
+RWStructuredBuffer<float4> BoneIndicesBuffer;
+
+Texture3D BoneWeightsTexture;
+SamplerState BoneWeightsSampler;
+RWStructuredBuffer<float4> BoneWeightsBuffer;
 
 // edge endpoints corner indices (0..7)
 static const uint2 EdgeCorner[12] =
@@ -88,14 +92,22 @@ void MainCS(uint3 DTid : SV_DispatchThreadID)
 	float3 p[8];
 	float d[8];
 
-	p[0] = float3(x, y, z); d[0] = SampleDensity(int4(x, y, z, 0)); 
-	p[1] = float3(x + 1, y, z); d[1] = SampleDensity(int4(x + 1, y, z, 0));
-	p[2] = float3(x + 1, y + 1, z); d[2] = SampleDensity(int4(x + 1, y + 1, z, 0));
-	p[3] = float3(x, y + 1, z); d[3] = SampleDensity(int4(x, y + 1, z, 0));
-	p[4] = float3(x, y, z + 1); d[4] = SampleDensity(int4(x, y, z + 1, 0));
-	p[5] = float3(x + 1, y, z + 1); d[5] = SampleDensity(int4(x + 1, y, z + 1, 0));
-	p[6] = float3(x + 1, y + 1, z + 1); d[6] = SampleDensity(int4(x + 1, y + 1, z + 1, 0));
-	p[7] = float3(x, y + 1, z + 1); d[7] = SampleDensity(int4(x, y + 1, z + 1, 0));
+	p[0] = float3(x, y, z);
+	d[0] = SampleDensity(int4(x, y, z, 0));
+	p[1] = float3(x + 1, y, z);
+	d[1] = SampleDensity(int4(x + 1, y, z, 0));
+	p[2] = float3(x + 1, y + 1, z);
+	d[2] = SampleDensity(int4(x + 1, y + 1, z, 0));
+	p[3] = float3(x, y + 1, z);
+	d[3] = SampleDensity(int4(x, y + 1, z, 0));
+	p[4] = float3(x, y, z + 1);
+	d[4] = SampleDensity(int4(x, y, z + 1, 0));
+	p[5] = float3(x + 1, y, z + 1);
+	d[5] = SampleDensity(int4(x + 1, y, z + 1, 0));
+	p[6] = float3(x + 1, y + 1, z + 1);
+	d[6] = SampleDensity(int4(x + 1, y + 1, z + 1, 0));
+	p[7] = float3(x, y + 1, z + 1);
+	d[7] = SampleDensity(int4(x, y + 1, z + 1, 0));
 
 	// interpolated vertices on edges (0..11)
 	float3 vertList[12];
@@ -141,7 +153,7 @@ void MainCS(uint3 DTid : SV_DispatchThreadID)
 		UVBuffer[(vbase + 0) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw0).rg;
 		UVBuffer[(vbase + 0) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw0).rg;
 		UVBuffer[(vbase + 0) * 3 + 2] = UVMap2.Sample(UVMapSampler, uvw0).rg;
-		
+
 		// vertex 1
 		UVBuffer[(vbase + 1) * 3 + 0] = UVMap0.Sample(UVMapSampler, uvw1).rg;
 		UVBuffer[(vbase + 1) * 3 + 1] = UVMap1.Sample(UVMapSampler, uvw1).rg;
@@ -161,12 +173,16 @@ void MainCS(uint3 DTid : SV_DispatchThreadID)
 			TangentsBuffer[NBase] = normalize(v1 - v0);
 			TangentsBuffer[NBase + 1] = n;
 		}
-		
+
 		if (bApplySkin == 1)
 		{
-			BoneIndicesBuffer[vbase + 0] = uint(round(BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw0, 0).r * 255.0f));
-			BoneIndicesBuffer[vbase + 1] = uint(round(BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw1, 0).r * 255.0f));
-			BoneIndicesBuffer[vbase + 2] = uint(round(BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw2, 0).r * 255.0f));
+			BoneIndicesBuffer[vbase + 0] = BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw0, 0);
+			BoneIndicesBuffer[vbase + 1] = BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw1, 0);
+			BoneIndicesBuffer[vbase + 2] = BoneIndicesTexture.SampleLevel(BoneIndicesSampler, uvw2, 0);
+			
+			BoneWeightsBuffer[vbase + 0] = BoneWeightsTexture.SampleLevel(BoneWeightsSampler, uvw0, 0);
+			BoneWeightsBuffer[vbase + 1] = BoneWeightsTexture.SampleLevel(BoneWeightsSampler, uvw1, 0);
+			BoneWeightsBuffer[vbase + 2] = BoneWeightsTexture.SampleLevel(BoneWeightsSampler, uvw2, 0);
 		}
 	}
 }
