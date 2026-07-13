@@ -1,0 +1,130 @@
+{
+  "name": "ViewDistanceVariants",
+  "seed": 9201,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 4.2,
+  "actions": [
+    {
+      "id": "FarCamera",
+      "time": 0.0,
+      "type": "move_camera",
+      "position": [-6000, 0, 100],
+      "rotation": [0, 0, 0]
+    },
+    {
+      "id": "Smoke",
+      "time": 0.1,
+      "type": "detonate_smoke",
+      "entity": "SmokeA",
+      "position": [0, 0, 100]
+    },
+    {
+      "id": "FarPhase",
+      "time": 0.5,
+      "type": "set_phase",
+      "name": "far"
+    },
+    {
+      "id": "Measure",
+      "time": 0.5,
+      "type": "start_measurement"
+    },
+    {
+      "id": "FarScreenshot",
+      "time": 1.2,
+      "type": "capture_screenshot",
+      "label": "far"
+    },
+    {
+      "id": "NearPhase",
+      "time": 1.5,
+      "type": "set_phase",
+      "name": "near"
+    },
+    {
+      "id": "NearCamera",
+      "time": 1.5,
+      "type": "move_camera",
+      "position": [-1000, 0, 100],
+      "rotation": [0, 0, 0]
+    },
+    {
+      "id": "NearScreenshot",
+      "time": 2.2,
+      "type": "capture_screenshot",
+      "label": "near"
+    },
+    {
+      "id": "InsidePhase",
+      "time": 2.5,
+      "type": "set_phase",
+      "name": "inside"
+    },
+    {
+      "id": "InsideCamera",
+      "time": 2.5,
+      "type": "move_camera",
+      "position": [0, 0, 100],
+      "rotation": [0, 0, 0]
+    },
+    {
+      "id": "InsideScreenshot",
+      "time": 3.2,
+      "type": "capture_screenshot",
+      "label": "inside"
+    },
+    {
+      "id": "InsideProbe",
+      "time": 3.3,
+      "type": "capture_probe",
+      "smokes": ["SmokeA"],
+      "label": "inside_view_field"
+    },
+    {
+      "id": "StopMeasure",
+      "time": 3.8,
+      "type": "stop_measurement"
+    }
+  ],
+  "expectations": {
+    "smokes_spawned": 1,
+    "smokes_registered": 1,
+    "missing_smoke_ids": 0,
+    "pass_executed": [
+      "Composite.Raymarch",
+      "Test.FieldProbe"
+    ],
+    "phase_pass": {
+      "far": {
+        "Composite.Raymarch": {
+          "count_min": 1,
+          "draw_fraction_median_max": 0.5,
+          "camera_inside_count_median_max": 0,
+          "surface_distance_median_min": 5000
+        }
+      },
+      "near": {
+        "Composite.Raymarch": {
+          "count_min": 1,
+          "camera_inside_count_median_max": 0,
+          "surface_distance_median_min": 100,
+          "surface_distance_median_max": 300
+        }
+      },
+      "inside": {
+        "Composite.Raymarch": {
+          "count_min": 1,
+          "draw_fraction_median_min": 0.99,
+          "camera_inside_count_median_min": 1,
+          "surface_distance_median_max": 0.001
+        }
+      }
+    },
+    "probe": {
+      "inside_view_field": {
+        "active_density_voxels_min": 1,
+        "density_clamp_violation_voxels_max": 0
+      }
+    }
+  }
+}

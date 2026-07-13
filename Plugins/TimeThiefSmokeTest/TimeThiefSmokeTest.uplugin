@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "TimeThief Smoke Test",
+	"Description": "Deterministic runtime scenario tests for the TimeThief smoke renderer.",
+	"Category": "Testing",
+	"CanContainContent": true,
+	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "TimeThiefSmokeRenderer",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "TimeThiefSmokeTest",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

@@ -1,0 +1,137 @@
+{
+  "name": "PhaseCostStudy",
+  "seed": 7301,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 5.5,
+  "actions": [
+    {
+      "id": "Camera",
+      "time": 0.0,
+      "type": "move_camera",
+      "position": [-1800, 0, 350],
+      "rotation": [0, -8, 0]
+    },
+    {
+      "id": "Wall",
+      "time": 0.0,
+      "type": "spawn_obstacle",
+      "entity": "WallA",
+      "shape": "box",
+      "position": [150, 0, 100],
+      "extent": [20, 200, 180]
+    },
+    {
+      "id": "Smoke",
+      "time": 0.1,
+      "type": "detonate_smoke",
+      "entity": "SmokeA",
+      "position": [0, 0, 100]
+    },
+    {
+      "id": "IdlePhase",
+      "time": 0.3,
+      "type": "set_phase",
+      "name": "idle"
+    },
+    {
+      "id": "Measure",
+      "time": 0.3,
+      "type": "start_measurement"
+    },
+    {
+      "id": "ActorPhase",
+      "time": 0.99,
+      "type": "set_phase",
+      "name": "actor_push"
+    },
+    {
+      "id": "Mover",
+      "time": 1.0,
+      "type": "spawn_mover",
+      "entity": "MoverA",
+      "shape": "capsule",
+      "start": [-1000, 150, 100],
+      "end": [1000, 150, 100],
+      "duration": 1.0,
+      "radius": 45,
+      "half_height": 90
+    },
+    {
+      "id": "BulletPhase",
+      "time": 2.19,
+      "type": "set_phase",
+      "name": "bullet_burst"
+    },
+    {
+      "id": "Bullets",
+      "time": 2.2,
+      "type": "fire_bullets",
+      "count": 8,
+      "pattern": "crossing",
+      "start_center": [-1200, 0, 120],
+      "end_center": [1200, 0, 120],
+      "spread": [0, 300, 100],
+      "strength": 1.0,
+      "same_frame": true,
+      "seed": 7302
+    },
+    {
+      "id": "ExplosionPhase",
+      "time": 3.39,
+      "type": "set_phase",
+      "name": "explosion"
+    },
+    {
+      "id": "Explosion",
+      "time": 3.4,
+      "type": "explode",
+      "position": [0, 0, 100],
+      "radius": 700,
+      "strength": 1.0,
+      "seed": 7303
+    },
+    {
+      "id": "RecoveryPhase",
+      "time": 4.2,
+      "type": "set_phase",
+      "name": "recovery"
+    },
+    {
+      "id": "Probe",
+      "time": 4.8,
+      "type": "capture_probe",
+      "smokes": ["SmokeA"],
+      "label": "after_recovery"
+    },
+    {
+      "id": "StopMeasure",
+      "time": 5.2,
+      "type": "stop_measurement"
+    }
+  ],
+  "expectations": {
+    "smokes_spawned": 1,
+    "smokes_registered": 1,
+    "bullets_fired": 8,
+    "bullet_intersections": 8,
+    "accepted_bullet_events": 8,
+    "rejected_bullet_events": 0,
+    "bullet_field_activations": 1,
+    "bullet_field_clears": 1,
+    "explosion_affected_smokes": 1,
+    "missing_smoke_ids": 0,
+    "pass_executed": [
+      "Simulation.Advection",
+      "Pressure.Total",
+      "Composite.Raymarch",
+      "Test.FieldProbe"
+    ],
+    "probe": {
+      "after_recovery": {
+        "active_density_voxels_min": 1,
+        "max_combined_density_max": 5.0001,
+        "density_clamp_violation_voxels_max": 0
+      }
+    }
+  }
+}

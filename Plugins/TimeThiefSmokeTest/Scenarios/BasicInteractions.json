@@ -1,0 +1,107 @@
+{
+  "name": "BasicInteractions",
+  "seed": 5102,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 4.0,
+  "actions": [
+    {
+      "id": "Camera",
+      "time": 0.0,
+      "type": "move_camera",
+      "position": [-1800, 0, 350],
+      "rotation": [-8, 0, 0]
+    },
+    {
+      "id": "Wall",
+      "time": 0.0,
+      "type": "spawn_obstacle",
+      "entity": "WallA",
+      "shape": "box",
+      "position": [150, 0, 100],
+      "extent": [20, 200, 180]
+    },
+    {
+      "id": "Smoke",
+      "time": 0.1,
+      "type": "detonate_smoke",
+      "entity": "SmokeA",
+      "position": [0, 0, 100]
+    },
+    {
+      "id": "Mover",
+      "time": 0.4,
+      "type": "spawn_mover",
+      "entity": "MoverA",
+      "shape": "capsule",
+      "start": [-1000, 200, 100],
+      "end": [1000, 200, 100],
+      "duration": 2.0,
+      "radius": 45,
+      "half_height": 90
+    },
+    {
+      "id": "Measure",
+      "time": 0.5,
+      "type": "start_measurement"
+    },
+    {
+      "id": "BulletPhase",
+      "time": 0.99,
+      "type": "set_phase",
+      "name": "bullet_burst"
+    },
+    {
+      "id": "Bullets",
+      "time": 1.0,
+      "type": "fire_bullets",
+      "count": 8,
+      "pattern": "crossing",
+      "start_center": [-1200, 0, 120],
+      "end_center": [1200, 0, 120],
+      "spread": [0, 300, 100],
+      "strength": 1.0,
+      "same_frame": true,
+      "seed": 4000
+    },
+    {
+      "id": "Explosion",
+      "time": 1.5,
+      "type": "explode",
+      "position": [0, 0, 100],
+      "radius": 700,
+      "strength": 1.0,
+      "seed": 620
+    },
+    {
+      "id": "Probe",
+      "time": 2.2,
+      "type": "capture_probe",
+      "smokes": ["SmokeA"],
+      "label": "after_interactions"
+    },
+    {
+      "id": "StopMeasure",
+      "time": 3.0,
+      "type": "stop_measurement"
+    }
+  ],
+  "expectations": {
+    "smokes_spawned": 1,
+    "smokes_registered": 1,
+    "bullets_fired": 8,
+    "bullet_intersections": 8,
+    "accepted_bullet_events": 8,
+    "rejected_bullet_events": 0,
+    "missing_smoke_ids": 0,
+    "pass_executed": [
+      "Simulation.Advection",
+      "Pressure.Jacobi",
+      "Composite.Raymarch"
+    ],
+    "probe": {
+      "after_interactions": {
+        "active_density_voxels_min": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "name": "NineSmokeComposite",
+  "seed": 7401,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 3.2,
+  "actions": [
+    {
+      "id": "Camera",
+      "time": 0.0,
+      "type": "move_camera",
+      "position": [-2600, 0, 650],
+      "rotation": [0, -8, 0]
+    },
+    { "id": "Smoke1", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke1", "position": [0, -900, 100] },
+    { "id": "Smoke2", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke2", "position": [0, 0, 100] },
+    { "id": "Smoke3", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke3", "position": [0, 900, 100] },
+    { "id": "Smoke4", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke4", "position": [300, -900, 600] },
+    { "id": "Smoke5", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke5", "position": [300, 0, 600] },
+    { "id": "Smoke6", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke6", "position": [300, 900, 600] },
+    { "id": "Smoke7", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke7", "position": [600, -900, 1100] },
+    { "id": "Smoke8", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke8", "position": [600, 0, 1100] },
+    { "id": "Smoke9", "time": 0.1, "type": "detonate_smoke", "entity": "Smoke9", "position": [600, 900, 1100] },
+    {
+      "id": "Phase",
+      "time": 0.5,
+      "type": "set_phase",
+      "name": "nine_smokes_idle"
+    },
+    {
+      "id": "Measure",
+      "time": 0.5,
+      "type": "start_measurement"
+    },
+    {
+      "id": "Probe",
+      "time": 2.2,
+      "type": "capture_probe",
+      "smokes": ["Smoke5"],
+      "label": "center_smoke"
+    },
+    {
+      "id": "StopMeasure",
+      "time": 2.8,
+      "type": "stop_measurement"
+    }
+  ],
+  "expectations": {
+    "smokes_spawned": 9,
+    "smokes_registered": 9,
+    "missing_smoke_ids": 0,
+    "rendered_unique_smokes": 9,
+    "duplicate_rendered_smoke_ids": 0,
+    "unrendered_registered_smokes": 0,
+    "pass_executed": [
+      "Simulation.Advection",
+      "Pressure.Total",
+      "Composite.Raymarch",
+      "Test.FieldProbe"
+    ],
+    "probe": {
+      "center_smoke": {
+        "active_density_voxels_min": 1,
+        "max_combined_density_max": 5.0001,
+        "density_clamp_violation_voxels_max": 0
+      }
+    }
+  }
+}

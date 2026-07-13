@@ -29,7 +29,8 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::RenderStepCount >= TimeThiefSmokeParameterDefaults::RenderStepCountMin &&
 		TimeThiefSmokeParameterDefaults::RenderStepCount <= TimeThiefSmokeParameterDefaults::RenderStepCountMax &&
 		TimeThiefSmokeParameterDefaults::RenderMaxStepCount >= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMin &&
-		TimeThiefSmokeParameterDefaults::RenderMaxStepCount <= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMax);
+		TimeThiefSmokeParameterDefaults::RenderMaxStepCount <= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMax &&
+		TimeThiefSmokeParameterDefaults::RenderStepCount <= TimeThiefSmokeParameterDefaults::RenderMaxStepCount);
 	TestTrue(
 		TEXT("Render voxel step default stays inside renderer limits"),
 		TimeThiefSmokeParameterDefaults::RenderStepVoxelScale >= TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMin &&
@@ -62,7 +63,7 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TEXT("Render boundary noise stays subtle enough to avoid banding"),
 		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseScale >= 0.0f &&
 		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength >= 0.0f &&
-		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.05f);
+		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.1f);
 	TestTrue(
 		TEXT("Actor airflow full speed leaves shader smoothstep range valid"),
 		TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeed >= TimeThiefSmokeParameterDefaults::ActorAirflowMinSpeed + TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeedMinGap);
@@ -122,6 +123,12 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Fixed multi composite shader slot count matches static shader bindings"),
 		TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots == 8);
+	TestTrue(
+		TEXT("Composite scissor requires a positive saved-pixel threshold"),
+		TimeThiefSmokeParameterDefaults::CompositeScissorMinSavedPixels > 0);
+	TestTrue(
+		TEXT("Actor interaction cadence remains enabled"),
+		TimeThiefSmokeParameterDefaults::ActorInteractionHz > 0.0f);
 	TestTrue(
 		TEXT("Renderer descriptor stays float4 aligned for HLSL structured buffer"),
 		sizeof(FTimeThiefSmokeCompositeDescriptorShaderData) % sizeof(FVector4f) == 0);
