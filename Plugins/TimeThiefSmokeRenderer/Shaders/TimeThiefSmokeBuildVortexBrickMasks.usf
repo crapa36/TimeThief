@@ -30,18 +30,87 @@ void SetParticleBit(inout uint4 Mask, int ParticleIndex)
 	}
 }
 
-[numthreads(4, 4, 4)]
+void SetParticleBitAtomic(uint BrickIndex, int ParticleIndex)
+{
+	const uint Bit = 1u << (ParticleIndex & 31);
+	uint Ignored = 0u;
+	if (ParticleIndex < 32)
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].x, Bit, Ignored);
+	}
+	else if (ParticleIndex < 64)
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].y, Bit, Ignored);
+	}
+	else if (ParticleIndex < 96)
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].z, Bit, Ignored);
+	}
+	else
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].w, Bit, Ignored);
+	}
+}
+
+uint3 UnflattenBrickCoord(uint BrickIndex)
+{
+	const uint3 BrickGrid = uint3(BrickGridResolution);
+	const uint X = BrickIndex % BrickGrid.x;
+	const uint Y = (BrickIndex / BrickGrid.x) % BrickGrid.y;
+	const uint Z = BrickIndex / max(BrickGrid.x * BrickGrid.y, 1u);
+	return uint3(X, Y, Z);
+}
+
+[numthreads(64, 1, 1)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
-	if (any(DispatchThreadId >= uint3(BrickGridResolution)))
+	const uint BrickCount = (uint)(BrickGridResolution.x * BrickGridResolution.y * BrickGridResolution.z);
+	const int SafeParticleCount = min(VortexParticleCount, MaxVortexParticleCount);
+	if (bReverseVortexBinning != 0u)
 	{
+		const int ParticleIndex = (int)DispatchThreadId.x;
+		if (ParticleIndex >= SafeParticleCount)
+		{
+			return;
+		}
+		const FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticles[ParticleIndex];
+		if (Particle.LocalPositionLife.w <= 0.0 || Particle.VelocityStrength.w <= 0.0)
+		{
+			return;
+		}
+
+		const float InfluenceRadius = max(VortexParticleSplatRadius, 1.0);
+		const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+		const float3 MinUVW = saturate((Particle.LocalPositionLife.xyz - InfluenceRadius) / SafeBoundsExtent * 0.5 + 0.5);
+		const float3 MaxUVW = saturate((Particle.LocalPositionLife.xyz + InfluenceRadius) / SafeBoundsExtent * 0.5 + 0.5);
+		const int3 MinBrick = clamp((int3)floor(MinUVW * float3(BrickGridResolution)), int3(0, 0, 0), BrickGridResolution - 1);
+		const int3 MaxBrick = clamp((int3)floor(MaxUVW * float3(BrickGridResolution)), int3(0, 0, 0), BrickGridResolution - 1);
+		[loop]
+		for (int Z = MinBrick.z; Z <= MaxBrick.z; ++Z)
+		{
+			[loop]
+			for (int Y = MinBrick.y; Y <= MaxBrick.y; ++Y)
+			{
+				[loop]
+				for (int X = MinBrick.x; X <= MaxBrick.x; ++X)
+				{
+					SetParticleBitAtomic(FlattenBrickCoord(uint3(X, Y, Z)), ParticleIndex);
+				}
+			}
+		}
 		return;
 	}
 
+	const uint BrickIndex = DispatchThreadId.x;
+	if (BrickIndex >= BrickCount)
+	{
+		return;
+	}
+	const uint3 BrickCoord = UnflattenBrickCoord(BrickIndex);
 	const int3 VoxelGridResolution = BrickGridResolution * SmokeBrickSize;
 	const float3 GridResolutionFloat = max(float3(VoxelGridResolution), 1.0);
-	const int3 BrickMinCoord = int3(DispatchThreadId) * SmokeBrickSize;
-	const int3 BrickMaxCoord = min((int3(DispatchThreadId) + int3(1, 1, 1)) * SmokeBrickSize, VoxelGridResolution);
+	const int3 BrickMinCoord = int3(BrickCoord) * SmokeBrickSize;
+	const int3 BrickMaxCoord = min((int3(BrickCoord) + int3(1, 1, 1)) * SmokeBrickSize, VoxelGridResolution);
 	const float3 MinUVW = float3(BrickMinCoord) / GridResolutionFloat;
 	const float3 MaxUVW = float3(BrickMaxCoord) / GridResolutionFloat;
 	const float3 BrickMin = (MinUVW * 2.0 - 1.0) * BoundsExtent;
@@ -51,7 +120,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float InfluenceRadius = max(VortexParticleSplatRadius, 1.0);
 	uint4 Mask = uint4(0u, 0u, 0u, 0u);
 
-	const int SafeParticleCount = min(VortexParticleCount, MaxVortexParticleCount);
 	[loop]
 	for (int ParticleIndex = 0; ParticleIndex < SafeParticleCount; ++ParticleIndex)
 	{
@@ -69,5 +137,5 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		}
 	}
 
-	OutVortexBrickMasks[FlattenBrickCoord(DispatchThreadId)] = Mask;
+	OutVortexBrickMasks[BrickIndex] = Mask;
 }

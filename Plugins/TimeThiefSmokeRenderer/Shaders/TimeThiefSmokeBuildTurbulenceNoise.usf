@@ -1,0 +1,21 @@
+#include "/Engine/Public/Platform.ush"
+
+int3 NoiseGridResolution;
+RWTexture3D<float4> OutTurbulenceNoise;
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(NoiseGridResolution)))
+	{
+		return;
+	}
+
+	const float3 P = (float3(DispatchThreadId) + 0.5) / max(float3(NoiseGridResolution), 1.0) * 6.28318530718;
+	const float3 V = float3(
+		sin(P.y * 2.0 + P.z) + cos(P.z * 3.0 - P.y),
+		sin(P.z * 2.0 + P.x) + cos(P.x * 3.0 - P.z),
+		sin(P.x * 2.0 + P.y) + cos(P.y * 3.0 - P.x));
+	const float3 Encoded = normalize(V + float3(0.0001, 0.0001, 0.0001)) * 0.5 + 0.5;
+	OutTurbulenceNoise[DispatchThreadId] = float4(Encoded, 1.0);
+}

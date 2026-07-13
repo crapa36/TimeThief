@@ -112,10 +112,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
+	uint4 RemainingEventMask = EventBrickMask;
+	const int EventCandidateCount = TimeThiefSmokeEventCandidateCount(EventBrickMask, SafeEventCount, bUseEventBrickBins);
 	[loop]
-	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	for (int EventCandidateIndex = 0; EventCandidateIndex < EventCandidateCount; ++EventCandidateIndex)
 	{
-		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		const int EventIndex = bUseEventBrickBins != 0u ? TimeThiefSmokePopEventIndex(RemainingEventMask) : EventCandidateIndex;
+		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
 			continue;
 		}
@@ -146,13 +149,22 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float EvacuatedCore = (1.0 - smoothstep(max(FrontRadius * 0.35, 1.0), max(FrontRadius * 0.92, 2.0), Distance)) *
 			(1.0 - smoothstep(0.72, 1.0, Age));
 		const float3 Radial = normalize(ToCell + float3(0.0001, 0.0001, 0.0001));
-		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
 		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
 		const float PressureWeight = saturate(ShockShell + EvacuatedCore * 0.28);
 		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
 		// Explosion is a momentum impulse. Density is preserved here and moves through advection.
 		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
-		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
+		[branch]
+		if (bEnableExplosionCurlNoise != 0u && TurbulenceNoiseMode != 0u)
+		{
+			const float3 Curl = TimeThiefSmokeTurbulenceVector(
+				TurbulenceNoiseTexture,
+				TurbulenceNoiseSampler,
+				WorldPosition * 0.014 + Seed * 0.01,
+				Age * 0.35,
+				TurbulenceNoiseMode);
+			Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
+		}
 		const float DisplacementWeight = saturate(PressureWeight * Strength * ShockFade * SafeDeltaSeconds * 2.0);
 		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
 		NaturalDensity -= ShiftedDensity;

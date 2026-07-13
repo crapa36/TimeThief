@@ -32,15 +32,28 @@ float3 LoadOpenVelocity(int3 Coord)
 	return LoadOpen(SafeCoord) > 0.01 ? VelocityIn.Load(int4(SafeCoord, 0)).xyz : float3(0.0, 0.0, 0.0);
 }
 
+float3 LoadFaceOpen(int3 Coord)
+{
+	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
+}
+
+float3 LoadStencilVelocity(int3 Coord, float FaceOpen)
+{
+	return bUseFaceOpenStencils != 0u
+		? VelocityIn.Load(int4(ClampSmokeCoord(Coord), 0)).xyz * FaceOpen
+		: LoadOpenVelocity(Coord);
+}
+
 float3 ComputeCurl(int3 Coord)
 {
 	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
-	const float3 VX0 = LoadOpenVelocity(Coord - int3(1, 0, 0));
-	const float3 VX1 = LoadOpenVelocity(Coord + int3(1, 0, 0));
-	const float3 VY0 = LoadOpenVelocity(Coord - int3(0, 1, 0));
-	const float3 VY1 = LoadOpenVelocity(Coord + int3(0, 1, 0));
-	const float3 VZ0 = LoadOpenVelocity(Coord - int3(0, 0, 1));
-	const float3 VZ1 = LoadOpenVelocity(Coord + int3(0, 0, 1));
+	const float3 NegativeFaceOpen = LoadFaceOpen(Coord);
+	const float3 VX0 = LoadStencilVelocity(Coord - int3(1, 0, 0), NegativeFaceOpen.x);
+	const float3 VX1 = LoadStencilVelocity(Coord + int3(1, 0, 0), LoadFaceOpen(Coord + int3(1, 0, 0)).x);
+	const float3 VY0 = LoadStencilVelocity(Coord - int3(0, 1, 0), NegativeFaceOpen.y);
+	const float3 VY1 = LoadStencilVelocity(Coord + int3(0, 1, 0), LoadFaceOpen(Coord + int3(0, 1, 0)).y);
+	const float3 VZ0 = LoadStencilVelocity(Coord - int3(0, 0, 1), NegativeFaceOpen.z);
+	const float3 VZ1 = LoadStencilVelocity(Coord + int3(0, 0, 1), LoadFaceOpen(Coord + int3(0, 0, 1)).z);
 	const float3 DVX = (VX1 - VX0) * 0.5 * InvCellSize.x;
 	const float3 DVY = (VY1 - VY0) * 0.5 * InvCellSize.y;
 	const float3 DVZ = (VZ1 - VZ0) * 0.5 * InvCellSize.z;

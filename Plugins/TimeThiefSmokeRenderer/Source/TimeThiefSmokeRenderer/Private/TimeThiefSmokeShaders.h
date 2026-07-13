@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GlobalShader.h"
+#include "BlueNoise.h"
 #include "ShaderPermutation.h"
 #include "ShaderParameterStruct.h"
 #include "TimeThiefSmokeShaderParameterMacros.h"
@@ -48,6 +49,18 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 struct FTimeThiefSmokeCompositeTileRangeShaderData
 {
 	FVector2f OffsetCount = FVector2f::Zero();
+};
+
+class FTimeThiefSmokeBuildTurbulenceNoiseCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildTurbulenceNoiseCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildTurbulenceNoiseCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FIntVector, NoiseGridResolution)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float4>, OutTurbulenceNoise)
+	END_SHADER_PARAMETER_STRUCT()
 };
 
 class FTimeThiefSmokeTestReduceCS : public FGlobalShader
@@ -145,6 +158,9 @@ class FTimeThiefSmokeVorticityCS : public FGlobalShader
 public:
 	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeVorticityCS);
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeVorticityCS, FGlobalShader);
+	class FFusedCurlDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_VORTICITY_FUSED_CURL");
+	class FInteractionDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_VORTICITY_INTERACTION");
+	using FPermutationDomain = TShaderPermutationDomain<FFusedCurlDim, FInteractionDim>;
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_VORTICITY_CS_PARAMETERS
@@ -371,8 +387,15 @@ public:
 		SHADER_PARAMETER(FVector3f, CombinedShadowLightDirection)
 		SHADER_PARAMETER(int32, CombinedShadowStepCount)
 		SHADER_PARAMETER(float, SelfShadowMinSampleWeight)
+		SHADER_PARAMETER(float, PowderEffectStrength)
+		SHADER_PARAMETER(float, MultipleScatteringStrength)
+		SHADER_PARAMETER(float, AmbientFillStrength)
+		SHADER_PARAMETER(float, RenderDetailGainMin)
+		SHADER_PARAMETER(float, RenderDetailGainMax)
 		SHADER_PARAMETER(int32, CompositeDebugMode)
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
+		SHADER_PARAMETER_STRUCT_REF(FBlueNoise, BlueNoise)
+		SHADER_PARAMETER(uint32, BlueNoiseFrameIndex)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData>, TileSmokeRanges)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, TileSmokeIndices)
@@ -454,9 +477,37 @@ public:
 		SHADER_PARAMETER(FIntRect, SceneDepthViewRect)
 		SHADER_PARAMETER(FVector2f, HalfResSize)
 		SHADER_PARAMETER(float, BilateralDepthSensitivity)
+		SHADER_PARAMETER(float, BilateralTransmittanceSensitivity)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneColorTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, SceneDepthTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, HalfResSmokeTexture)
+		SHADER_PARAMETER_SAMPLER(SamplerState, SceneColorSampler)
+		RENDER_TARGET_BINDING_SLOTS()
+	END_SHADER_PARAMETER_STRUCT()
+};
+
+class FTimeThiefSmokeTemporalPS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeTemporalPS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeTemporalPS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FVector4f, SceneDepthPixelScaleBias)
+		SHADER_PARAMETER(FIntRect, ViewRect)
+		SHADER_PARAMETER(FIntRect, SceneDepthViewRect)
+		SHADER_PARAMETER(FIntPoint, SmokeTextureSize)
+		SHADER_PARAMETER(float, SmokeToViewScale)
+		SHADER_PARAMETER(float, TemporalHistoryWeight)
+		SHADER_PARAMETER(float, TemporalDepthThreshold)
+		SHADER_PARAMETER(float, TemporalTransmittanceThreshold)
+		SHADER_PARAMETER(int32, TemporalHistoryValid)
+		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
+		SHADER_PARAMETER(FMatrix44f, PrevViewProjection)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, CurrentSmokeTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, HistorySmokeTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, SceneDepthTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, HistoryDepthTexture)
 		SHADER_PARAMETER_SAMPLER(SamplerState, SceneColorSampler)
 		RENDER_TARGET_BINDING_SLOTS()
 	END_SHADER_PARAMETER_STRUCT()

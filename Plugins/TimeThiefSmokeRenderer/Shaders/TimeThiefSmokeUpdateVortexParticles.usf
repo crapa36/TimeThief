@@ -135,7 +135,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Density = DenseVortexDensityAt(UVW);
 		const float3 WorldPosition = mul(float4(Particle.LocalPositionLife.xyz, 1.0), LocalToWorld).xyz;
 		float3 ActorDirection = 0.0;
-		const float ActorWake = DenseVortexActorWakeSeed(WorldPosition, ActorDirection);
+		const float ActorWake = bEnableVortexEventSeeds != 0u ? DenseVortexActorWakeSeed(WorldPosition, ActorDirection) : 0.0;
 		if (OpenMask < 0.08 || (Density < 0.015 && ActorWake < 0.02 && BulletDetail < 0.06))
 		{
 			OutVortexParticles[ParticleIndex] = DenseVortexDeadParticle();
@@ -145,7 +145,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float3 CellVelocity = VelocityIn.SampleLevel(VolumeSampler, saturate(UVW), 0.0).xyz;
 		const float3 NextWorldPosition = WorldPosition + CellVelocity * DeltaSeconds;
 		const float3 NextLocalPosition = mul(float4(NextWorldPosition, 1.0), WorldToLocal).xyz;
-		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.017 + Particle.AxisSeed.xyz * 1.7, AgeSeconds * 0.18 * SafeSelfWobbleTimeScale + Particle.AxisSeed.w);
+		const float3 Curl = TimeThiefSmokeTurbulenceVector(TurbulenceNoiseTexture, TurbulenceNoiseSampler, WorldPosition * 0.017 + Particle.AxisSeed.xyz * 1.7, AgeSeconds * 0.18 * SafeSelfWobbleTimeScale + Particle.AxisSeed.w, TurbulenceNoiseMode);
 		Particle.LocalPositionLife.xyz = NextLocalPosition;
 		Particle.LocalPositionLife.w = max(0.0, Particle.LocalPositionLife.w - DeltaSeconds);
 		Particle.VelocityStrength.xyz = lerp(Particle.VelocityStrength.xyz, CellVelocity + Curl * Particle.VelocityStrength.w * 0.18 * SafeSelfWobbleParticleScale, saturate(DeltaSeconds * 2.4 * SafeSelfWobbleParticleScale));
@@ -168,8 +168,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float OpenMask = DenseVortexOpenAt(CandidateUVW);
 	const float SurfaceShear = OpenMask * smoothstep(0.03, 0.28, CellDensity) * saturate(length(CandidateVelocity) / 420.0);
 	float3 ActorDirection = 0.0;
-	const float ActorWake = DenseVortexActorWakeSeed(CandidateWorld, ActorDirection);
-	const float ExplosionShell = DenseVortexExplosionShellSeed(CandidateWorld);
+	const float ActorWake = bEnableVortexEventSeeds != 0u ? DenseVortexActorWakeSeed(CandidateWorld, ActorDirection) : 0.0;
+	const float ExplosionShell = bEnableVortexEventSeeds != 0u ? DenseVortexExplosionShellSeed(CandidateWorld) : 0.0;
 	const float DensityEdgeSeed = EdgeWeight * smoothstep(0.04, 0.32, CellDensity);
 	const float BulletSeed = BulletDetail * smoothstep(0.015, 0.18, CellDensity);
 	const float EventSeed = max(ExplosionShell, ActorWake);
@@ -181,7 +181,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		return;
 	}
 
-	const float3 Curl = TimeThiefSmokeCurlNoise(CandidateWorld * 0.018 + Gradient * 3.1, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale + SpawnRoll);
+	const float3 Curl = TimeThiefSmokeTurbulenceVector(TurbulenceNoiseTexture, TurbulenceNoiseSampler, CandidateWorld * 0.018 + Gradient * 3.1, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale + SpawnRoll, TurbulenceNoiseMode);
 	const float3 Axis = normalize(cross(normalize(Gradient + 0.0001), Curl) + ActorDirection * ActorWake + 0.0001);
 	FTimeThiefSmokeVortexParticleShaderData OutParticle;
 	OutParticle.LocalPositionLife = float4(CandidateLocal, SafeLife * lerp(0.55, 1.0, Random.z));
