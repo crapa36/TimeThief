@@ -550,3 +550,19 @@ FTimeThiefSmokeBulletOpenMasks TimeThiefSmokeBulletOpenMasksFromValues(float Cut
 	Masks.Edge = TimeThiefSmokeBulletEdgeMaskFromValues(Cutout, Sink);
 	return Masks;
 }
+
+void TimeThiefSmokeClampDensityChannels(
+	inout float NaturalDensity,
+	inout float DisplacedDensity,
+	float MaxTotalDensity)
+{
+	NaturalDensity = max(NaturalDensity, 0.0);
+	DisplacedDensity = max(DisplacedDensity, 0.0);
+	const float TotalDensity = NaturalDensity + DisplacedDensity;
+	if (TotalDensity > MaxTotalDensity)
+	{
+		const float DensityScale = max(MaxTotalDensity, 0.0) / max(TotalDensity, 0.0001);
+		NaturalDensity *= DensityScale;
+		DisplacedDensity *= DensityScale;
+	}
+}

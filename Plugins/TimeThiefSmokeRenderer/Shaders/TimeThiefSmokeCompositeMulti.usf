@@ -1,4 +1,26 @@
 #include "/Engine/Public/Platform.ush"
+
+#ifndef TIME_THIEF_MAX_COMPOSITE_SMOKES
+#define TIME_THIEF_MAX_COMPOSITE_SMOKES 8
+#endif
+
+#ifndef TIME_THIEF_COMPOSITE_HALF_RESOLUTION
+#define TIME_THIEF_COMPOSITE_HALF_RESOLUTION 0
+#endif
+
+#ifndef TIME_THIEF_COMPOSITE_FAST_FILAMENT
+#define TIME_THIEF_COMPOSITE_FAST_FILAMENT 0
+#endif
+
+#ifndef TIME_THIEF_COMPOSITE_BOUNDARY_SHELL_GATE
+#define TIME_THIEF_COMPOSITE_BOUNDARY_SHELL_GATE 0
+#endif
+
+#ifndef TIME_THIEF_COMPOSITE_STEP_STATS
+#define TIME_THIEF_COMPOSITE_STEP_STATS 0
+#endif
+
+#define TIME_THIEF_MAX_SEGMENT_BOUNDARIES (2 + TIME_THIEF_MAX_COMPOSITE_SMOKES * 2)
 #include "/Engine/Private/ScreenPass.ush"
 #include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
 #include "/TimeThiefSmokeShaders/TimeThiefSmokeSparse.ush"
@@ -93,6 +115,9 @@ SamplerState VolumeSampler;
 StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData> CompositeSmokeDescriptors;
 StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData> TileSmokeRanges;
 StructuredBuffer<uint> TileSmokeIndices;
+#if TIME_THIEF_COMPOSITE_STEP_STATS
+RWBuffer<uint> CompositeStepStats;
+#endif
 float4 SceneColorUVScaleBias;
 float4 SceneDepthPixelScaleBias;
 int4 ViewRect;
@@ -105,7 +130,6 @@ float4x4 InvViewProjection;
 float2 HalfResSize;
 float BilateralDepthSensitivity;
 Texture2D HalfResSmokeTexture;
-int bHalfResMode;
 
 float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
 {
@@ -185,7 +209,12 @@ int GetMaxActiveSmokeBricks(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
 
 uint UsesSparseAtlas(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
 {
-	return round(Desc.GridResolution_UseSparse.w) > 0.5 ? 1u : 0u;
+	return (int)round(Desc.GridResolution_UseSparse.w) == 1 ? 1u : 0u;
+}
+
+uint UsesPackedDenseField(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
+{
+	return (int)round(Desc.GridResolution_UseSparse.w) == 2 ? 1u : 0u;
 }
 
 bool HasBulletFields(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
@@ -369,6 +398,22 @@ float4 LoadSparseFieldAtlasTexture(int Slot, int3 Coord)
 	return float4(0.0, 0.0, 0.0, 0.0);
 }
 
+float4 SamplePackedDenseFieldTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return SparseFieldAtlasTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return SparseFieldAtlasTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return SparseFieldAtlasTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return SparseFieldAtlasTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return SparseFieldAtlasTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return SparseFieldAtlasTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return SparseFieldAtlasTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return SparseFieldAtlasTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return float4(0.0, 0.0, 0.0, 0.0);
+}
+
 int3 ComputeBrickCoord(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
 {
 	const int3 GridResolution = GetGridResolution(Desc);
@@ -485,9 +530,15 @@ float4 SampleCompositeSparseFields(int Slot, FTimeThiefSmokeCompositeDescriptorS
 float4 SampleFieldSet(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
 {
 	const float3 SafeUVW = saturate(VolumeUVW);
-	return UsesSparseAtlas(Desc) != 0u
-		? SampleCompositeSparseFields(Slot, Desc, VolumeUVW)
-		: float4(
+	if (UsesSparseAtlas(Desc) != 0u)
+	{
+		return SampleCompositeSparseFields(Slot, Desc, VolumeUVW);
+	}
+	if (UsesPackedDenseField(Desc) != 0u)
+	{
+		return SamplePackedDenseFieldTexture(Slot, SafeUVW);
+	}
+	return float4(
 			SampleDensityTexture(Slot, SafeUVW) + SampleDisplacedDensityTexture(Slot, SafeUVW),
 			0.0,
 			HasBulletFields(Desc) ? SampleBulletCutoutTexture(Slot, SafeUVW) : 0.0,
@@ -499,6 +550,10 @@ float SampleDensityField(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData 
 	if (UsesSparseAtlas(Desc) != 0u)
 	{
 		return SampleCompositeSparseFields(Slot, Desc, VolumeUVW).x;
+	}
+	if (UsesPackedDenseField(Desc) != 0u)
+	{
+		return SamplePackedDenseFieldTexture(Slot, saturate(VolumeUVW)).x;
 	}
 
 	const float3 SafeUVW = saturate(VolumeUVW);
@@ -729,8 +784,17 @@ void AccumulateSmokeSample(
 	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
 	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
-	const float BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld);
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
+	float BoundaryNoise = 0.0;
+#if TIME_THIEF_COMPOSITE_BOUNDARY_SHELL_GATE
+	const float MaximumBoundaryOffset = abs(Desc.BoundaryNoiseControls.y) * 0.5;
+	if (EllipsoidDistance >= BoundaryFadeStart - MaximumBoundaryOffset - 0.02)
+	{
+		BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld);
+	}
+#else
+	BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld);
+#endif
 	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 	const float AgeSeconds = Desc.FilamentAge.y;
 	const float DensityVisibility = ObstacleOpen * BulletMasks.Hard * BoundaryMask * LifetimeAlpha;
@@ -747,7 +811,6 @@ void AccumulateSmokeSample(
 	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
 	const float RenderFilamentContrast = Desc.NoiseFilamentA.w;
 	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
-	const bool bUseFastFilament = Desc.RenderSteps_Quality.w > 0.5;
 	const float MaxResolvedBaseNoiseScale = 0.9 / MaxGridCellSize;
 	const float MaxResolvedFineNoiseScale = 1.15 / MaxGridCellSize;
 	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedBaseNoiseScale);
@@ -774,22 +837,21 @@ void AccumulateSmokeSample(
 		const float3 FilamentWarpBase = TimeThiefSmokeDomainWarp(FilamentPosition * 0.43, TimeNoise * 0.72) * RenderFilamentWarpStrength;
 		float3 FilamentWarp = FilamentWarpBase;
 		float FilamentMask = 0.0;
-		if (bUseFastFilament)
-		{
-			FilamentMask = TimeThiefSmokeFastFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
-		}
-		else
-		{
-			FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
-		}
+#if TIME_THIEF_COMPOSITE_FAST_FILAMENT
+		FilamentMask = TimeThiefSmokeFastFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
+#else
+		FilamentMask = TimeThiefSmokeFilamentMask(FilamentPosition + FilamentWarp, TimeNoise, RenderFilamentContrast);
+#endif
 		float CombinedFilamentMask = FilamentMask;
 		float AirPocket = 0.5;
-		if (!bUseFastFilament && FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
+#if !TIME_THIEF_COMPOSITE_FAST_FILAMENT
+		if (FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
 		{
 			const float FineRidge = TimeThiefSmokeRidgedFBM(FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91);
 			CombinedFilamentMask = saturate(FilamentMask * 0.78 + pow(saturate(FineRidge), max(RenderFilamentContrast * 0.92, 0.1)) * 0.28);
 			AirPocket = TimeThiefSmokeFBM(FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37);
 		}
+#endif
 		const float FilamentLow = max(0.38, 1.0 - RenderFilamentStrength * (0.18 + AirPocket * 0.28));
 		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.48;
 		FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
@@ -815,19 +877,28 @@ void MainPS(
 	float4 SvPosition : SV_POSITION,
 	out float4 OutColor : SV_Target0)
 {
-	const float2 SceneUV = SvPosition.xy * SceneColorUVScaleBias.xy + SceneColorUVScaleBias.zw;
-	const float4 SceneColor = SceneColorTexture.SampleLevel(SceneColorSampler, SceneUV, 0.0);
 	const int2 PixelCoord = int2(SvPosition.xy) - TileRectMin;
 	const int2 TileCoord = clamp(PixelCoord / max(CompositeTileSize, 1), int2(0, 0), TileGridSize - 1);
 	const int TileIndex = TileCoord.y * TileGridSize.x + TileCoord.x;
 	const FTimeThiefSmokeCompositeTileRangeShaderData TileRange = TileSmokeRanges[TileIndex];
 	const int TileOffset = (int)round(TileRange.OffsetCount.x);
-	const int TileSmokeCount = min((int)round(TileRange.OffsetCount.y), 7);
+	const int TileSmokeCount = min((int)round(TileRange.OffsetCount.y), TIME_THIEF_MAX_COMPOSITE_SMOKES);
 	if (TileSmokeCount <= 0)
 	{
-		OutColor = SceneColor;
+#if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
+		OutColor = float4(0.0, 0.0, 0.0, 1.0);
+#else
+		const float2 EmptySceneUV = SvPosition.xy * SceneColorUVScaleBias.xy + SceneColorUVScaleBias.zw;
+		OutColor = SceneColorTexture.SampleLevel(SceneColorSampler, EmptySceneUV, 0.0);
+#endif
 		return;
 	}
+#if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
+	const float4 SceneColor = float4(0.0, 0.0, 0.0, 1.0);
+#else
+	const float2 SceneUV = SvPosition.xy * SceneColorUVScaleBias.xy + SceneColorUVScaleBias.zw;
+	const float4 SceneColor = SceneColorTexture.SampleLevel(SceneColorSampler, SceneUV, 0.0);
+#endif
 
 	const float SceneDeviceZ = LoadSceneDeviceZ(SvPosition.xy);
 	const float3 NearWorld = ReconstructWorldPosition(SvPosition.xy, 1.0);
@@ -837,20 +908,20 @@ void MainPS(
 	const float3 WorldRayDirection = normalize(FarWorld - NearWorld);
 	const float SceneT = max(dot(SceneWorld - NearWorld, WorldRayDirection), 0.0);
 
-	float SmokeTMin[8];
-	float SmokeTMax[8];
-	float3 SmokeColors[8];
-	float3 SmokeLocalOrigins[8];
-	float3 SmokeLocalRayDirections[8];
-	float3 SmokeBoundsExtents[8];
-	float3 SmokeRayUVWDirections[8];
-	float SmokeSimulationStepScales[8];
-	float SmokeMaxGridCellSizes[8];
-	float SmokeBoundaryFadeStarts[8];
-	float SmokeLifetimeAlphas[8];
-	float3 SmokeLightUVWSteps[8];
-	float SmokeLightSimulationStepSizes[8];
-	int SmokeSlots[8];
+	float SmokeTMin[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeTMax[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float3 SmokeColors[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float3 SmokeLocalOrigins[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float3 SmokeLocalRayDirections[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float3 SmokeBoundsExtents[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float3 SmokeRayUVWDirections[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeSimulationStepScales[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeMaxGridCellSizes[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeBoundaryFadeStarts[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeLifetimeAlphas[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float3 SmokeLightUVWSteps[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeLightSimulationStepSizes[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	int SmokeSlots[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	int ActiveSmokeCount = 0;
 	float RayStart = SceneT;
 	float RayEnd = 0.0;
@@ -865,7 +936,7 @@ void MainPS(
 	for (int TileSmokeIndex = 0; TileSmokeIndex < TileSmokeCount; ++TileSmokeIndex)
 	{
 		const int Slot = (int)TileSmokeIndices[TileOffset + TileSmokeIndex];
-		if (Slot < 0 || Slot >= SmokeSlotCount || ActiveSmokeCount >= 8)
+		if (Slot < 0 || Slot >= SmokeSlotCount || ActiveSmokeCount >= TIME_THIEF_MAX_COMPOSITE_SMOKES)
 		{
 			continue;
 		}
@@ -928,11 +999,15 @@ void MainPS(
 
 	if (ActiveSmokeCount <= 0 || RayEnd <= RayStart)
 	{
-		OutColor = bHalfResMode ? float4(0.0, 0.0, 0.0, 1.0) : SceneColor;
+#if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
+		OutColor = float4(0.0, 0.0, 0.0, 1.0);
+#else
+		OutColor = SceneColor;
+#endif
 		return;
 	}
 
-	float SegmentBoundaries[16];
+	float SegmentBoundaries[TIME_THIEF_MAX_SEGMENT_BOUNDARIES];
 	int SegmentBoundaryCount = 0;
 	SegmentBoundaries[SegmentBoundaryCount++] = RayStart;
 	SegmentBoundaries[SegmentBoundaryCount++] = RayEnd;
@@ -977,12 +1052,12 @@ void MainPS(
 			continue;
 		}
 
-		int SegmentSmokeIndices[8];
+		int SegmentSmokeIndices[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 		int SegmentSmokeCount = 0;
 		[loop]
 		for (int SmokeIndex = 0; SmokeIndex < ActiveSmokeCount; ++SmokeIndex)
 		{
-			if (SegmentStart < SmokeTMax[SmokeIndex] && SegmentEnd > SmokeTMin[SmokeIndex] && SegmentSmokeCount < 8)
+			if (SegmentStart < SmokeTMax[SmokeIndex] && SegmentEnd > SmokeTMin[SmokeIndex] && SegmentSmokeCount < TIME_THIEF_MAX_COMPOSITE_SMOKES)
 			{
 				SegmentSmokeIndices[SegmentSmokeCount++] = SmokeIndex;
 			}
@@ -1070,18 +1145,26 @@ void MainPS(
 		}
 	}
 
+#if TIME_THIEF_COMPOSITE_STEP_STATS
+	InterlockedMax(CompositeStepStats[0], (uint)max(256 - Steps, 0));
+	InterlockedMax(CompositeStepStats[1], (uint)Steps);
+	InterlockedAdd(CompositeStepStats[2], (uint)Steps);
+	InterlockedAdd(CompositeStepStats[3], 1u);
+	InterlockedMax(CompositeStepStats[4], (uint)max(256 - StepIndex, 0));
+	InterlockedMax(CompositeStepStats[5], (uint)StepIndex);
+	InterlockedAdd(CompositeStepStats[6], (uint)StepIndex);
+	InterlockedAdd(CompositeStepStats[7], 1u);
+#endif
+
 	const float Alpha = saturate(1.0 - Transmittance);
 	const float3 AverageSmokeColor = SmokeColorAccum / max(Alpha, 0.0001);
 	const float3 SmokeContribution = AverageSmokeColor * Alpha * saturate(0.82 + Scatter * 0.85);
-	if (bHalfResMode)
-	{
-		OutColor = float4(SmokeContribution, Transmittance);
-	}
-	else
-	{
-		const float3 Composited = SceneColor.rgb * Transmittance + SmokeContribution;
-		OutColor = float4(Composited, SceneColor.a);
-	}
+#if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
+	OutColor = float4(SmokeContribution, Transmittance);
+#else
+	const float3 Composited = SceneColor.rgb * Transmittance + SmokeContribution;
+	OutColor = float4(Composited, SceneColor.a);
+#endif
 }
 
 void BilateralUpsampleMainPS(

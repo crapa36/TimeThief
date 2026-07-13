@@ -216,13 +216,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float InteractionMask = max(Outside, SurfaceBand) * SmokeInteractionMask;
 		const float3 InteriorEscape = SurfaceNormal * Inside * BoundaryStrength * max(80.0, SolidSpeed * 0.34) * SmokeInteractionMask;
 
-		DisplacedDensity = min(SmokeDensityMax, DisplacedDensity + UpdatedTotalDensity * FrontCompression * InteractionMask * EventDeltaSeconds * 0.65);
+		DisplacedDensity += UpdatedTotalDensity * FrontCompression * InteractionMask * EventDeltaSeconds * 0.65;
 		Velocity += (NormalCorrection + BoundaryDrag) * InteractionMask;
 		Velocity += InteriorEscape;
 		Velocity += (BowWave + WakePull + ShearRoll + MovingAirflow) * InteractionMask * EventDeltaSeconds;
 	}
 
-	OutDensity[CellCoord] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
-	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OpenMask, 0.0, SmokeDensityMax);
+	NaturalDensity *= OpenMask;
+	DisplacedDensity *= OpenMask;
+	TimeThiefSmokeClampDensityChannels(NaturalDensity, DisplacedDensity, SmokeDensityMax);
+	OutDensity[CellCoord] = NaturalDensity;
+	OutDisplacedDensity[CellCoord] = DisplacedDensity;
 	OutVelocity[CellCoord] = float4(Velocity * OpenMask, 0.0);
 }

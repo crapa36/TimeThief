@@ -452,8 +452,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	AdvectedVelocity = ApplySimulationBoundsNoOutflow(LocalPosition, AdvectedVelocity);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);
-	OutDensity[CellCoord] = clamp(Density * OutputOpenMask, 0.0, 2.8);
-	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OutputOpenMask, 0.0, 2.8);
+	Density *= OutputOpenMask;
+	DisplacedDensity *= OutputOpenMask;
+	TimeThiefSmokeClampDensityChannels(Density, DisplacedDensity, SmokeDensityMax);
+	OutDensity[CellCoord] = Density;
+	OutDisplacedDensity[CellCoord] = DisplacedDensity;
 	OutVelocity[CellCoord] = float4(AdvectedVelocity * OutputOpenMask, 0.0);
 	if (bHasActiveBulletFields)
 	{

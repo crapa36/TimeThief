@@ -159,7 +159,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		DisplacedDensity += ShiftedDensity;
 	}
 
-	OutDensity[CellCoord] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
-	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OpenMask, 0.0, SmokeDensityMax);
+	NaturalDensity *= OpenMask;
+	DisplacedDensity *= OpenMask;
+	TimeThiefSmokeClampDensityChannels(NaturalDensity, DisplacedDensity, SmokeDensityMax);
+	OutDensity[CellCoord] = NaturalDensity;
+	OutDisplacedDensity[CellCoord] = DisplacedDensity;
 	OutVelocity[CellCoord] = float4(Velocity * OpenMask, 0.0);
 }
