@@ -88,4 +88,6 @@ private:
 	int32 NextSmokeId = 1;
 	float ActorInteractionAccumulator = 0.0f;
 	bool bSmokeSpatialIndexDirty = true;
+	bool bRendererClearFramePending = false;
+	bool bRendererHasPublishedSmokeState = false;
 };

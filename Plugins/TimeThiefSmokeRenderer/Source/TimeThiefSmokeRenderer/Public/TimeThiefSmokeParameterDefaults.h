@@ -94,11 +94,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 기본 raymarch 샘플 수. 높을수록 렌더 품질과 비용 증가.
 	constexpr int32 RenderStepCount = 16;
 	// raymarch 최소 샘플 수. 낮을수록 비용 감소, 얇은 연기 손실 증가.
-	constexpr int32 RenderStepCountMin = 16;
+	constexpr int32 RenderStepCountMin = 8;
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
 	constexpr int32 RenderStepCountMax = 128;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCount = 16;
+	constexpr int32 RenderMaxStepCount = 32;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
@@ -117,6 +117,8 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr int32 MaxCompositeSmokeSlots = 8;
 	// fullscreen composite 전환 화면 면적 비율. 낮을수록 fullscreen 경로를 더 빨리 사용.
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
+	// Scissor setup only pays off when it avoids a meaningful number of half-res pixels.
+	constexpr int32 CompositeScissorMinSavedPixels = 200000;
 	// 연막 screen rect 여유 픽셀(px). 높을수록 가장자리 누락 감소, 합성 면적 증가.
 	constexpr int32 CompositeScreenRectPadding = 8;
 	// 빛과 그림자
@@ -365,7 +367,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 상호작용
 
 	// 액터와 연막 상호작용 샘플 빈도(Hz). 높을수록 반응 품질과 비용 증가.
-	constexpr float ActorInteractionHz = 5.0f;
+	constexpr float ActorInteractionHz = 10.0f;
 	// 액터 밀기 이벤트 최소 속도(cm/s). 높을수록 약한 반응 감소.
 	constexpr float ActorPushVelocityThreshold = 10.0f;
 	// 액터 밀기 반응 시작 속도 배율. 높을수록 반응 시작이 늦어짐.
@@ -416,7 +418,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 합성 scissor 기본 사용 여부. 켜면 합성 면적과 비용 감소.
 	constexpr int32 bUseCompositeScissorByDefault = 1;
 	// 빠른 필라멘트 렌더링 기본 사용 여부. 켜면 비용 감소, 디테일 감소.
-	constexpr int32 bUseFastFilamentByDefault = 0;
+	constexpr int32 bUseFastFilamentByDefault = 1;
 	// 렌더러 시뮬레이션 목표 빈도(Hz). 높을수록 반응 품질과 비용 증가.
 	constexpr float SimulationHz = 30.0f;
 
