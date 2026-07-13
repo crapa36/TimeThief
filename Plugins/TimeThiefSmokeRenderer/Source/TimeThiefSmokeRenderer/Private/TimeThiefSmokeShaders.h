@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GlobalShader.h"
+#include "ShaderPermutation.h"
 #include "ShaderParameterStruct.h"
 #include "TimeThiefSmokeShaderParameterMacros.h"
 #include "TimeThiefSmokeRendererTypes.h"
@@ -47,6 +48,26 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 struct FTimeThiefSmokeCompositeTileRangeShaderData
 {
 	FVector2f OffsetCount = FVector2f::Zero();
+};
+
+class FTimeThiefSmokeTestReduceCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeTestReduceCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeTestReduceCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FIntVector, GridResolution)
+		SHADER_PARAMETER(FVector3f, BoundsExtent)
+		SHADER_PARAMETER(float, SmokeDensityMax)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, VelocityTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float4>, OutResult)
+	END_SHADER_PARAMETER_STRUCT()
 };
 
 class FTimeThiefSmokeInitCS : public FGlobalShader
@@ -218,6 +239,23 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokePackDenseFieldCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokePackDenseFieldCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokePackDenseFieldCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FIntVector, GridResolution)
+		SHADER_PARAMETER(uint32, bPackBulletChannels)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float4>, OutPackedDenseField)
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeBuildActiveBrickListCS : public FGlobalShader
 {
 public:
@@ -301,6 +339,22 @@ public:
 	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeCompositeMultiPS);
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeCompositeMultiPS, FGlobalShader);
 
+	class FHalfResolutionDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_HALF_RESOLUTION");
+	class FFastFilamentDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_FAST_FILAMENT");
+	class FBoundaryShellGateDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_BOUNDARY_SHELL_GATE");
+	class FSingleSmokeDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_SINGLE_SMOKE");
+	class FStepStatsDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_STEP_STATS");
+	using FPermutationDomain = TShaderPermutationDomain<FHalfResolutionDim, FFastFilamentDim, FBoundaryShellGateDim, FSingleSmokeDim, FStepStatsDim>;
+
+	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Parameters, OutEnvironment);
+		const FPermutationDomain PermutationVector(Parameters.PermutationId);
+		OutEnvironment.SetDefine(
+			TEXT("TIME_THIEF_MAX_COMPOSITE_SMOKES"),
+			PermutationVector.Get<FSingleSmokeDim>() ? 1 : TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots);
+	}
+
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER(FVector4f, SceneColorUVScaleBias)
 		SHADER_PARAMETER(FVector4f, SceneDepthPixelScaleBias)
@@ -310,11 +364,11 @@ public:
 		SHADER_PARAMETER(FIntPoint, TileGridSize)
 		SHADER_PARAMETER(int32, CompositeTileSize)
 		SHADER_PARAMETER(int32, SmokeSlotCount)
-		SHADER_PARAMETER(int32, bHalfResMode)
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData>, TileSmokeRanges)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<uint>, TileSmokeIndices)
+		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, CompositeStepStats)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneColorTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneDepthTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture0)

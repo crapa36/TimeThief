@@ -1,5 +1,6 @@
 #include "TimeThiefSmokeShaders.h"
 
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeTestReduceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeTestReduce.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeInitCS, "/TimeThiefSmokeShaders/TimeThiefSmokeInit.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildObstacleFieldCS, "/TimeThiefSmokeShaders/TimeThiefSmokeUploadObstacleMask.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeApplyEventsCS, "/TimeThiefSmokeShaders/TimeThiefSmokeApplyEvents.usf", "MainCS", SF_Compute);
@@ -14,6 +15,7 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildBrickOccupancyCS, "/TimeThiefSmokeSh
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildEventBrickMasksCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildEventBrickMasks.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeExpandBrickOccupancyCS, "/TimeThiefSmokeShaders/TimeThiefSmokeExpandBrickOccupancy.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeScatterSparseAtlasCS, "/TimeThiefSmokeShaders/TimeThiefSmokeScatterSparseAtlas.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePackDenseFieldCS, "/TimeThiefSmokeShaders/TimeThiefSmokePackDenseField.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildActiveBrickListCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildActiveBrickList.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildSparseScatterArgsCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildSparseScatterArgs.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeDivergenceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeDivergence.usf", "MainCS", SF_Compute);

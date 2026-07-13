@@ -1,0 +1,24 @@
+#include "/Engine/Public/Platform.ush"
+
+int3 GridResolution;
+uint bPackBulletChannels;
+Texture3D<float> DensityTexture;
+Texture3D<float> DisplacedDensityTexture;
+Texture3D<float> BulletCutoutTexture;
+Texture3D<float> BulletSinkTexture;
+RWTexture3D<float4> OutPackedDenseField;
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution)))
+	{
+		return;
+	}
+
+	const int3 CellCoord = int3(DispatchThreadId);
+	const float Density = DensityTexture.Load(int4(CellCoord, 0)) + DisplacedDensityTexture.Load(int4(CellCoord, 0));
+	const float BulletCutout = bPackBulletChannels != 0u ? BulletCutoutTexture.Load(int4(CellCoord, 0)) : 0.0;
+	const float BulletSink = bPackBulletChannels != 0u ? BulletSinkTexture.Load(int4(CellCoord, 0)) : 0.0;
+	OutPackedDenseField[CellCoord] = float4(Density, 0.0, BulletCutout, BulletSink);
+}

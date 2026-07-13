@@ -4,6 +4,7 @@
 #include "RHIGPUReadback.h"
 #include "SceneViewExtension.h"
 #include "TimeThiefSmokeRendererTypes.h"
+#include "TimeThiefSmokeTestGpuProfiler.h"
 
 struct FPostProcessMaterialInputs;
 struct FScreenPassTexture;
@@ -58,6 +59,7 @@ private:
 		TRefCountPtr<IPooledRenderTarget> PrevObstacleFaceOpenTexture;
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
 		TRefCountPtr<IPooledRenderTarget> SparseFieldAtlasTexture;
+		TRefCountPtr<IPooledRenderTarget> PackedDenseFieldTexture;
 		TRefCountPtr<FRDGPooledBuffer> VortexParticleBuffers[2];
 		int32 CurrentDensityIndex = 0;
 		int32 CurrentVelocityIndex = 0;
@@ -78,6 +80,7 @@ private:
 		float AccumulatedVortexDeltaSeconds = 0.0f;
 		float VortexActivityBudgetSeconds = 0.0f;
 		float BulletFieldDecayBudgetSeconds = 0.0f;
+		bool bBulletFieldsActive = false;
 		bool bNeedsInit = true;
 		bool bVortexParticlesNeedUpload = true;
 		bool bSparseAtlasVisibleThisFrame = true;
@@ -100,6 +103,16 @@ private:
 		uint32 RetiredFrameNumber = 0;
 	};
 
+	struct FPendingSmokeTestProbeReadback
+	{
+		TUniquePtr<FRHIGPUBufferReadback> Readback;
+		uint64 RequestId = 0;
+		FString Label;
+		int32 SmokeId = INDEX_NONE;
+		FTransform3f LocalToWorld = FTransform3f::Identity;
+		uint64 QueuedFrame = 0;
+	};
+
 	FScreenPassTexture CompositeSmokeMulti_RenderThread(
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& View,
@@ -109,7 +122,9 @@ private:
 		FScreenPassTexture CurrentSceneColor,
 		const FMatrix44f& InvViewProjection,
 		bool bAllowOverrideOutput,
-		FRDGTextureRef HalfResTarget = nullptr);
+		FRDGTextureRef HalfResTarget = nullptr,
+		int32 BatchIndex = INDEX_NONE,
+		int32 BatchCount = 0);
 
 	FScreenPassTexture BilateralUpsampleSmoke_RenderThread(
 		FRDGBuilder& GraphBuilder,
@@ -127,6 +142,8 @@ private:
 	void QueueSparseActiveBrickCountReadback(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef ActiveBrickCountBuffer);
 	void RetireSparseActiveBrickCountReadback(FRenderSmokeState& State);
 	void ReleaseReadyRetiredSparseActiveBrickCountReadbacks();
+	void ProcessSmokeTestProbeRequests(FRDGBuilder& GraphBuilder, uint64 SceneKey);
+	void ConsumeSmokeTestProbeReadbacks();
 	bool HasRenderableSceneState_RenderThread(uint64 SceneKey, const FSceneViewFamily* ViewFamily = nullptr) const;
 	void UploadDeadVortexParticles(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexBuffer);
 	void AddVortexParticleUpdatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexIn, FRDGBufferRef VortexOut, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
@@ -138,6 +155,7 @@ private:
 	FActiveBrickDispatchResources AddBuildActiveBrickListPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef BrickOccupancyTexture);
 	FRDGBufferRef AddBuildSparseBrickDispatchArgsPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, const FActiveBrickDispatchResources& ActiveBrickResources, uint32 GroupsPerBrick, uint32 MaxDispatchBrickCount);
 	void AddScatterSparseAtlasPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, const FActiveBrickDispatchResources& ActiveBrickResources, bool bScatterBulletChannels);
+	void AddPackDenseFieldPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, bool bPackBulletChannels);
 	void SimulateSmoke(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, float DeltaSeconds);
 	void AddInitPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef VelocityTexture);
 	void AddApplyEventsPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef DensityOut, FRDGTextureRef DisplacedDensityOut, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, float DeltaSeconds, const FActiveBrickDispatchResources* ActiveBrickResources);
@@ -147,11 +165,13 @@ private:
 	void AddVorticityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef CurlTexture, FRDGTextureRef VelocityOut, FRDGBufferRef EventBuffer, FRDGBufferRef EventBrickMasksBuffer, int32 EventCount, float DeltaSeconds);
 	void AddDivergencePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef DivergenceOut, FRDGTextureRef PressureOut);
 	void AddBuildMacDivergencePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef FaceVelocityUOut, FRDGTextureRef FaceVelocityVOut, FRDGTextureRef FaceVelocityWOut, FRDGTextureRef DivergenceOut, FRDGTextureRef PressureOut, const FActiveBrickDispatchResources* ActiveBrickResources);
-	void AddPressureJacobiPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, const FIntVector& GridSize, const FVector3f& CellSize, FRDGTextureRef PressureIn, FRDGTextureRef DivergenceIn, FRDGTextureRef PressureOut, const FActiveBrickDispatchResources* ActiveBrickResources);
+	void AddPressureJacobiPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, const FIntVector& GridSize, const FVector3f& CellSize, FRDGTextureRef PressureIn, FRDGTextureRef DivergenceIn, FRDGTextureRef PressureOut, const FActiveBrickDispatchResources* ActiveBrickResources, int32 IterationIndex);
 	void AddProjectVelocityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef VelocityIn, FRDGTextureRef PressureIn, FRDGTextureRef VelocityOut);
 	void AddProjectMacToCollocatedVelocityPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef FaceVelocityUIn, FRDGTextureRef FaceVelocityVIn, FRDGTextureRef FaceVelocityWIn, FRDGTextureRef PressureIn, FRDGTextureRef VelocityOut, const FActiveBrickDispatchResources* ActiveBrickResources);
 
 	TMap<FRenderSmokeStateKey, FRenderSmokeState> SmokeStates;
 	TMap<uint64, float> LastFrameDeltaSecondsByScene;
 	TArray<FRetiredSparseActiveBrickCountReadback> RetiredSparseActiveBrickCountReadbacks;
+	TArray<FPendingSmokeTestProbeReadback> PendingSmokeTestProbeReadbacks;
+	FTimeThiefSmokeTestGpuProfiler SmokeTestGpuProfiler;
 };
