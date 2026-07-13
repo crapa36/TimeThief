@@ -103,6 +103,8 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCountMax = 128;
+	// Stable composite samples are anchored to a fixed world-distance lattice along each camera ray.
+	constexpr float RenderWorldStepLengthCm = 50.0f;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	// raymarch 스텝 voxel 배율 최소값. 낮을수록 디테일과 비용 증가.
@@ -142,6 +144,9 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr int32 SelfShadowStepCount = 1;
 	// 자체 그림자 샘플 간격(cm). 높을수록 넓은 그림자, 낮을수록 세밀한 그림자.
 	constexpr float SelfShadowStepLength = 100.0f;
+	// Combined-medium shadow quality selected from the stabilization A/B candidates.
+	constexpr int32 CombinedShadowStepCount = 4;
+	constexpr float CombinedShadowStepLength = 75.0f;
 	// 비활성 브릭 내부 자체 그림자 샘플 건너뛰기 수. 높을수록 비용 감소.
 	constexpr int32 SelfShadowInactiveBrickMaxSkipSteps = 8;
 	// 자체 그림자를 계산할 최소 샘플 기여도. 높을수록 그림자 비용 감소.

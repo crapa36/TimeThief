@@ -62,7 +62,27 @@ namespace
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeRenderMaxSteps(
 		TEXT("r.TimeThiefSmoke.RenderMaxSteps"),
 		TimeThiefSmokeParameterDefaults::RenderMaxStepCount,
-		TEXT("Maximum adaptive composite raymarch steps."));
+		TEXT("Legacy adaptive composite maximum. Stable world-grid rendering ignores this value."));
+
+	static TAutoConsoleVariable<float> CVarTimeThiefSmokeRenderWorldStepLength(
+		TEXT("r.TimeThiefSmoke.RenderWorldStepLength"),
+		TimeThiefSmokeParameterDefaults::RenderWorldStepLengthCm,
+		TEXT("Stable composite sample spacing along the camera ray in world centimeters."));
+
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeCombinedShadowStepCount(
+		TEXT("r.TimeThiefSmoke.CombinedShadowStepCount"),
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount,
+		TEXT("Low-frequency combined-medium shadow sample count."));
+
+	static TAutoConsoleVariable<float> CVarTimeThiefSmokeCombinedShadowStepLength(
+		TEXT("r.TimeThiefSmoke.CombinedShadowStepLength"),
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepLength,
+		TEXT("Low-frequency combined-medium shadow sample spacing in world centimeters."));
+
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeCompositeDebugMode(
+		TEXT("r.TimeThiefSmoke.CompositeDebugMode"),
+		0,
+		TEXT("Composite diagnostic output. 0=off, 1=active count, 2=sample phase, 3=extinction, 4=shadow, 5=first SmokeId."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeCompositeBackend(
 		TEXT("r.TimeThiefSmoke.CompositeBackend"),
@@ -1874,23 +1894,29 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		FMath::Max(CVarTimeThiefSmokeRenderMaxSteps.GetValueOnRenderThread(), ConfiguredRenderMinSteps),
 		TimeThiefSmokeParameterDefaults::RenderMaxStepCountMin,
 		TimeThiefSmokeParameterDefaults::RenderMaxStepCountMax);
+	const float RenderWorldStepLength = FMath::Clamp(
+		CVarTimeThiefSmokeRenderWorldStepLength.GetValueOnRenderThread(),
+		10.0f,
+		200.0f);
+	const int32 CombinedShadowStepCount = FMath::Clamp(
+		CVarTimeThiefSmokeCombinedShadowStepCount.GetValueOnRenderThread(),
+		0,
+		8);
+	const float CombinedShadowStepLength = FMath::Clamp(
+		CVarTimeThiefSmokeCombinedShadowStepLength.GetValueOnRenderThread(),
+		10.0f,
+		200.0f);
+	const int32 CompositeDebugMode = FMath::Clamp(CVarTimeThiefSmokeCompositeDebugMode.GetValueOnRenderThread(), 0, 5);
 	const int32 CompositeBackendMode = FMath::Clamp(CVarTimeThiefSmokeCompositeBackend.GetValueOnRenderThread(), 0, 2);
 	int32 SparseSmokeCount = 0;
 	int32 PackedDenseSmokeCount = 0;
 	int32 BulletFieldActiveSmokeCount = 0;
 	int32 EstimatedFullRaySteps = 0;
-	float MinimumTargetStepLength = TNumericLimits<float>::Max();
+	float MinimumTargetStepLength = RenderWorldStepLength;
 
 	for (int32 SmokeSlot = 0; SmokeSlot < SmokeCount; ++SmokeSlot)
 	{
 		const FRenderSmokeState& State = *RenderStates[SmokeSlot];
-		const float CameraDistance = FVector3f::Distance(FVector3f(View.ViewMatrices.GetViewOrigin()), FVector3f(State.Volume.LocalToWorld.GetLocation()));
-		const float DistanceAlpha = FMath::Clamp((CameraDistance - 1500.0f) / 4500.0f, 0.0f, 1.0f);
-		const int32 SelfShadowStepCount = FMath::Clamp(
-			FMath::RoundToInt(FMath::Lerp(static_cast<float>(FMath::Max(TimeThiefSmokeParameterDefaults::SelfShadowStepCount, 0)), 0.0f, DistanceAlpha)),
-			0,
-			TimeThiefSmokeParameterDefaults::SelfShadowStepCount);
-
 		const FVector3f GridCellSize = (FVector3f(State.Volume.BoundsExtent) * 2.0f) / FVector3f(
 			FMath::Max(State.AllocatedGridSize.X, 1),
 			FMath::Max(State.AllocatedGridSize.Y, 1),
@@ -1919,18 +1945,14 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		Descriptor.WorldToLocal1 = MakeMatrixRow(WorldToLocal, 1);
 		Descriptor.WorldToLocal2 = MakeMatrixRow(WorldToLocal, 2);
 		Descriptor.WorldToLocal3 = MakeMatrixRow(WorldToLocal, 3);
-		const FVector3f SelfShadowLightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
-
 		const float RenderStepVoxelScale = FMath::Clamp(
 			TimeThiefSmokeParameterDefaults::RenderStepVoxelScale,
 			TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMin,
 			TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMax);
-		const float TargetStepLength = FMath::Max(MaxGridCellSize * RenderStepVoxelScale, 1.0f);
-		MinimumTargetStepLength = FMath::Min(MinimumTargetStepLength, TargetStepLength);
 		const float MaximumRayLength = FVector3f(State.Volume.RenderBoundsExtent).Size() * 2.0f;
 		EstimatedFullRaySteps = FMath::Max(
 			EstimatedFullRaySteps,
-			FMath::Clamp(FMath::CeilToInt(MaximumRayLength / TargetStepLength), ConfiguredRenderMinSteps, ConfiguredRenderMaxSteps));
+			FMath::CeilToInt(MaximumRayLength / RenderWorldStepLength));
 
 		Descriptor.BoundsExtent_RenderStepVoxelScale = FVector4f(
 			State.Volume.BoundsExtent.X, 
@@ -1939,7 +1961,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			RenderStepVoxelScale);
 		Descriptor.RenderBoundsExtent_Extinction = FVector4f(State.Volume.RenderBoundsExtent.X, State.Volume.RenderBoundsExtent.Y, State.Volume.RenderBoundsExtent.Z, FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::Extinction));
 		Descriptor.ScatterNoise = FVector4f(FMath::Clamp(TimeThiefSmokeParameterDefaults::ScatteringAlbedo, 0.0f, 1.0f), FMath::Clamp(TimeThiefSmokeParameterDefaults::ScatteringAnisotropy, -1.0f, 1.0f), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderNoiseScale), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderNoiseStrength));
-		Descriptor.SelfShadowLightDirection_StepCount = FVector4f(SelfShadowLightDirection.X, SelfShadowLightDirection.Y, SelfShadowLightDirection.Z, static_cast<float>(SelfShadowStepCount));
+		const FVector3f SelfShadowLightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
+		Descriptor.SelfShadowLightDirection_StepCount = FVector4f(SelfShadowLightDirection.X, SelfShadowLightDirection.Y, SelfShadowLightDirection.Z, static_cast<float>(CombinedShadowStepCount));
 		Descriptor.SelfShadowControls = FVector4f(FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SelfShadowStrength), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SelfShadowExtinction), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SelfShadowStepLength), static_cast<float>(TimeThiefSmokeParameterDefaults::SelfShadowInactiveBrickMaxSkipSteps));
 		Descriptor.NoiseFilamentA = FVector4f(FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderNoiseTimeScale), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentScale), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentStrength), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentContrast));
 		Descriptor.FilamentAge = FVector4f(FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentWarpStrength), State.Volume.AgeSeconds, State.Volume.DurationSeconds, FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration));
@@ -1955,7 +1978,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		Descriptor.BoundaryNoiseControls = FVector4f(
 			FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseScale),
 			FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength),
-			0.0f,
+			static_cast<float>(State.Volume.SmokeId),
 			0.0f);
 		const bool bHasBulletFields =
 			State.bBulletFieldsActive &&
@@ -1978,7 +2001,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	if (bCollectStepStats)
 	{
 		StepStatsBuffer = GraphBuilder.CreateBuffer(
-			FRDGBufferDesc::CreateBufferDesc(sizeof(uint32), 8),
+			FRDGBufferDesc::CreateBufferDesc(sizeof(uint32), 16),
 			TEXT("TimeThiefSmoke.CompositeStepStats"));
 		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(StepStatsBuffer, PF_R32_UINT), 0u);
 	}
@@ -2037,6 +2060,14 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	PassParameters->TileGridSize = TileGridSize;
 	PassParameters->CompositeTileSize = TimeThiefSmokeParameterDefaults::CompositeTileSize;
 	PassParameters->SmokeSlotCount = SmokeCount;
+	PassParameters->RenderWorldStepLength = RenderWorldStepLength;
+	PassParameters->CombinedShadowStepLength = CombinedShadowStepLength;
+	PassParameters->CombinedShadowStrength = FMath::Clamp(TimeThiefSmokeParameterDefaults::SelfShadowStrength, 0.0f, 1.0f);
+	PassParameters->CombinedShadowExtinction = FMath::Max(TimeThiefSmokeParameterDefaults::SelfShadowExtinction, 0.0f);
+	PassParameters->CombinedShadowLightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
+	PassParameters->CombinedShadowStepCount = CombinedShadowStepCount;
+	PassParameters->SelfShadowMinSampleWeight = FMath::Clamp(TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight, 0.0f, 1.0f);
+	PassParameters->CompositeDebugMode = CompositeDebugMode;
 	PassParameters->InvViewProjection = InvViewProjection;
 	struct FMultiSmokeTextureRefs
 	{
@@ -2117,6 +2148,11 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	CompositeMetadata.RenderMaxSteps = ConfiguredRenderMaxSteps;
 	CompositeMetadata.EstimatedFullRaySteps = EstimatedFullRaySteps;
 	CompositeMetadata.TargetStepLength = MinimumTargetStepLength < TNumericLimits<float>::Max() ? MinimumTargetStepLength : 0.0f;
+	CompositeMetadata.SampleGridMode = TEXT("stable_world_ray_cm");
+	CompositeMetadata.WorldStepLength = RenderWorldStepLength;
+	CompositeMetadata.CombinedShadowStepCount = CombinedShadowStepCount;
+	CompositeMetadata.CombinedShadowStepLength = CombinedShadowStepLength;
+	CompositeMetadata.bOrderIndependentIntegrator = true;
 	CompositeMetadata.SparseSmokeCount = SparseSmokeCount;
 	CompositeMetadata.PackedDenseSmokeCount = PackedDenseSmokeCount;
 	CompositeMetadata.BulletFieldActiveSmokeCount = BulletFieldActiveSmokeCount;
@@ -2303,6 +2339,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 		{
 			int32 Index;
 			float Distance;
+			int32 SmokeId;
 		};
 		TArray<FVisibleCandidate> VisibleCandidates;
 		VisibleCandidates.Reserve(Candidates.Num());
@@ -2315,14 +2352,25 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 				FVisibleCandidate VC;
 				VC.Index = i;
 				VC.Distance = FVector3f::Distance(CameraPosition, Candidates[i].State->Volume.LocalToWorld.GetLocation());
+				VC.SmokeId = Candidates[i].State->Volume.SmokeId;
 				VisibleCandidates.Add(VC);
 			}
 		}
 
 		VisibleCandidates.Sort([](const FVisibleCandidate& A, const FVisibleCandidate& B)
 		{
-			return A.Distance > B.Distance;
+			if (A.Distance != B.Distance)
+			{
+				return A.Distance > B.Distance;
+			}
+			return A.SmokeId < B.SmokeId;
 		});
+
+		TMap<int32, int32> VisibleCandidateRanks;
+		for (int32 Rank = 0; Rank < VisibleCandidates.Num(); ++Rank)
+		{
+			VisibleCandidateRanks.Add(VisibleCandidates[Rank].Index, Rank);
+		}
 
 		const bool bUseMultiComposite = CVarTimeThiefSmokeMultiComposite.GetValueOnRenderThread() != 0;
 
@@ -2374,7 +2422,11 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 							? (static_cast<int64>(OverlapRect.Width()) * static_cast<int64>(OverlapRect.Height())) 
 							: 0;
 
-						if (OverlapArea > MaxOverlapArea)
+						const int32 CandidateRank = VisibleCandidateRanks.FindRef(CandidateIndex);
+						const int32 BestRank = BestCandidateIndex != INDEX_NONE
+							? VisibleCandidateRanks.FindRef(BestCandidateIndex)
+							: MAX_int32;
+						if (OverlapArea > MaxOverlapArea || (OverlapArea == MaxOverlapArea && CandidateRank < BestRank))
 						{
 							MaxOverlapArea = OverlapArea;
 							BestCandidateIndex = CandidateIndex;

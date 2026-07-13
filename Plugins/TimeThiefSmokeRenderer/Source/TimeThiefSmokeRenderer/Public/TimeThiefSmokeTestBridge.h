@@ -64,6 +64,17 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeTestGpuPassResult
 	int32 ActualExecutedStepMin = 0;
 	int32 ActualExecutedStepMax = 0;
 	float ActualExecutedStepAverage = 0.0f;
+	FString SampleGridMode;
+	float WorldStepLength = 0.0f;
+	uint32 SamplePhaseHash = 0;
+	uint32 SegmentCount = 0;
+	uint32 StableSampleCount = 0;
+	uint32 SparseSkipStepCount = 0;
+	uint32 CombinedMediumSampleCount = 0;
+	uint32 CombinedShadowEvaluationCount = 0;
+	int32 CombinedShadowStepCount = 0;
+	float CombinedShadowStepLength = 0.0f;
+	bool bOrderIndependentIntegrator = false;
 	int32 SparseSmokeCount = 0;
 	int32 PackedDenseSmokeCount = 0;
 	int32 BulletFieldActiveSmokeCount = 0;

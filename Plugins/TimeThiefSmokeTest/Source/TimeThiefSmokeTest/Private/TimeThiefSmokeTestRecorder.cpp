@@ -298,6 +298,17 @@ void FTimeThiefSmokeTestRecorder::WriteGpuPass(const FTimeThiefSmokeTestGpuPassR
 			Json->SetNumberField(TEXT("actual_executed_step_max"), Result.ActualExecutedStepMax);
 			Json->SetNumberField(TEXT("actual_executed_step_average"), Result.ActualExecutedStepAverage);
 		}
+		if (!Result.SampleGridMode.IsEmpty()) Json->SetStringField(TEXT("sample_grid_mode"), Result.SampleGridMode);
+		if (Result.WorldStepLength > 0.0f) Json->SetNumberField(TEXT("world_step_length"), Result.WorldStepLength);
+		Json->SetNumberField(TEXT("sample_phase_hash"), Result.SamplePhaseHash);
+		Json->SetNumberField(TEXT("segment_count"), Result.SegmentCount);
+		Json->SetNumberField(TEXT("stable_sample_count"), Result.StableSampleCount);
+		Json->SetNumberField(TEXT("sparse_skip_step_count"), Result.SparseSkipStepCount);
+		Json->SetNumberField(TEXT("combined_medium_sample_count"), Result.CombinedMediumSampleCount);
+		Json->SetNumberField(TEXT("combined_shadow_evaluation_count"), Result.CombinedShadowEvaluationCount);
+		Json->SetNumberField(TEXT("combined_shadow_step_count"), Result.CombinedShadowStepCount);
+		Json->SetNumberField(TEXT("combined_shadow_step_length"), Result.CombinedShadowStepLength);
+		Json->SetBoolField(TEXT("order_independent_integrator"), Result.bOrderIndependentIntegrator);
 		Json->SetNumberField(TEXT("sparse_smoke_count"), Result.SparseSmokeCount);
 		Json->SetNumberField(TEXT("packed_dense_smoke_count"), Result.PackedDenseSmokeCount);
 		Json->SetNumberField(TEXT("dense_smoke_count"), FMath::Max(Result.SmokeCount - Result.SparseSmokeCount, 0));

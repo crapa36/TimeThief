@@ -44,7 +44,7 @@ void FTimeThiefSmokeTestGpuProfiler::EndRasterPass(
 	if (StepStatsBuffer)
 	{
 		Query->StepStatsReadback = MakeUnique<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.CompositeStepStatsReadback"));
-		AddEnqueueCopyPass(GraphBuilder, Query->StepStatsReadback.Get(), StepStatsBuffer, 8u * sizeof(uint32));
+		AddEnqueueCopyPass(GraphBuilder, Query->StepStatsReadback.Get(), StepStatsBuffer, 16u * sizeof(uint32));
 	}
 }
 
@@ -81,7 +81,7 @@ void FTimeThiefSmokeTestGpuProfiler::PollResults_RenderThread()
 				: 0.0;
 			if (Query->StepStatsReadback)
 			{
-				const uint32* Stats = static_cast<const uint32*>(Query->StepStatsReadback->Lock(8u * sizeof(uint32)));
+				const uint32* Stats = static_cast<const uint32*>(Query->StepStatsReadback->Lock(16u * sizeof(uint32)));
 				if (Stats)
 				{
 					const uint32 ResolvedCount = Stats[3];
@@ -98,6 +98,13 @@ void FTimeThiefSmokeTestGpuProfiler::PollResults_RenderThread()
 						Query->Metadata.ActualExecutedStepMax = static_cast<int32>(Stats[5]);
 						Query->Metadata.ActualExecutedStepAverage = static_cast<float>(Stats[6]) / static_cast<float>(ExecutedCount);
 					}
+					Query->Metadata.SegmentCount = Stats[8];
+					Query->Metadata.StableSampleCount = Stats[9];
+					Query->Metadata.SparseSkipStepCount = Stats[10];
+					Query->Metadata.CombinedMediumSampleCount = Stats[11];
+					Query->Metadata.CombinedShadowEvaluationCount = Stats[12];
+					Query->Metadata.SamplePhaseHash = Stats[13];
+					Query->Metadata.bOrderIndependentIntegrator = Stats[15] != 0u;
 				}
 				Query->StepStatsReadback->Unlock();
 			}
