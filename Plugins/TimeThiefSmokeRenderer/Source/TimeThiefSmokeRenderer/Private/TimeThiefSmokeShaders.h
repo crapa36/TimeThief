@@ -505,6 +505,7 @@ public:
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
 		SHADER_PARAMETER(FMatrix44f, PrevViewProjection)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, CurrentSmokeTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float2>, CurrentSmokeDepthTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, HistorySmokeTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, SceneDepthTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D<float>, HistoryDepthTexture)

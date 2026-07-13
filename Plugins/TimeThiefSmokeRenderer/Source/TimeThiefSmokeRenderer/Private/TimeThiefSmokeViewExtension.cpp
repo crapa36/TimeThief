@@ -135,11 +135,11 @@ namespace
 		TEXT("Enables batching multiple smokes into a single composite shader pass. 0=single pass per smoke, 1=multi composite batching."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeSimulationCurlNoise(
-		TEXT("r.TimeThiefSmoke.SimulationCurlNoise"), 1,
-		TEXT("Adds the legacy per-voxel curl wobble in advection. 0=off, 1=on."));
+		TEXT("r.TimeThiefSmoke.SimulationCurlNoise"), 0,
+		TEXT("Adds the dt-scaled legacy per-voxel curl wobble in advection. 0=off (recommended), 1=on."));
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeSimulationCloudCohesion(
 		TEXT("r.TimeThiefSmoke.SimulationCloudCohesion"), 1,
-		TEXT("Applies legacy CloudBillow/ChunkNoise density cohesion every substep. 0=off, 1=on."));
+		TEXT("CloudBillow/ChunkNoise density cohesion. 0=off, 1=dt-stable subtle detail, 2=legacy high-gain multiplier."));
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeExplosionCurlNoise(
 		TEXT("r.TimeThiefSmoke.ExplosionCurlNoise"), 1,
 		TEXT("Adds curl breakup to the authoritative explosion impulse. 0=radial only, 1=with curl."));
@@ -1814,6 +1814,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	const FMatrix44f& InvViewProjection,
 	bool bAllowOverrideOutput,
 	FRDGTextureRef HalfResTarget,
+	FRDGTextureRef HalfResDepthTarget,
 	int32 BatchIndex,
 	int32 BatchCount)
 {
@@ -1825,7 +1826,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		return CurrentSceneColor;
 	}
 
-	const bool bHalfRes = HalfResTarget != nullptr;
+	const bool bHalfRes = HalfResTarget != nullptr && HalfResDepthTarget != nullptr;
 	const bool bUseOverrideOutput = !bHalfRes && bAllowOverrideOutput &&
 		Inputs.OverrideOutput.IsValid() &&
 		Inputs.OverrideOutput.Texture != CurrentSceneColor.Texture;
@@ -2223,6 +2224,10 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		*SparseFieldAtlasTargets[Slot] = TextureRefs.SparseFieldAtlasTexture;
 	}
 	PassParameters->RenderTargets[0] = Output.GetRenderTargetBinding();
+	if (bHalfRes)
+	{
+		PassParameters->RenderTargets[1] = FRenderTargetBinding(HalfResDepthTarget, ERenderTargetLoadAction::ELoad);
+	}
 	FTimeThiefSmokeTestGpuPassResult CompositeMetadata = MakeSmokeTestGpuMetadata(TEXT("Composite.Raymarch"));
 	CompositeMetadata.BatchIndex = BatchIndex;
 	CompositeMetadata.BatchCount = BatchCount;
@@ -2283,7 +2288,10 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		FRHIBlendState* HalfResBlendState = TStaticBlendState<
 			CW_RGBA,
 			BO_Add, BF_One, BF_SourceAlpha,
-			BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI();
+			BO_Add, BF_Zero, BF_SourceAlpha,
+			CW_RG,
+			BO_Add, BF_One, BF_One,
+			BO_Add, BF_One, BF_One>::GetRHI();
 
 		const FScreenPassTextureViewport OutputViewport(Output.Texture, DrawRect);
 		const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
@@ -2555,6 +2563,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 
 		const bool bUseHalfRes = CVarTimeThiefSmokeHalfRes.GetValueOnRenderThread() != 0;
 		FRDGTextureRef HalfResSmokeTexture = nullptr;
+		FRDGTextureRef HalfResSmokeDepthTexture = nullptr;
 		FIntPoint HalfResExtent(0, 0);
 		if (bUseHalfRes)
 		{
@@ -2567,8 +2576,15 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 				FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f)),
 				TexCreate_RenderTargetable | TexCreate_ShaderResource);
 			HalfResSmokeTexture = GraphBuilder.CreateTexture(HalfResDesc, TEXT("TimeThiefSmoke.HalfResSmokeAccum"));
+			const FRDGTextureDesc HalfResDepthDesc = FRDGTextureDesc::Create2D(
+				HalfResExtent,
+				PF_G32R32F,
+				FClearValueBinding::Black,
+				TexCreate_RenderTargetable | TexCreate_ShaderResource);
+			HalfResSmokeDepthTexture = GraphBuilder.CreateTexture(HalfResDepthDesc, TEXT("TimeThiefSmoke.HalfResSmokeDepthMoments"));
 
 			AddClearRenderTargetPass(GraphBuilder, HalfResSmokeTexture, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), FIntRect(0, 0, HalfResExtent.X, HalfResExtent.Y));
+			AddClearRenderTargetPass(GraphBuilder, HalfResSmokeDepthTexture, FLinearColor::Black, FIntRect(0, 0, HalfResExtent.X, HalfResExtent.Y));
 		}
 
 		for (int32 BatchIndex = 0; BatchIndex < Batches.Num(); ++BatchIndex)
@@ -2596,6 +2612,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 				InvViewProjection,
 				bLastBatch && !bUseHalfRes,
 				bUseHalfRes ? HalfResSmokeTexture : nullptr,
+				bUseHalfRes ? HalfResSmokeDepthTexture : nullptr,
 				BatchIndex,
 				Batches.Num());
 			if (!bUseHalfRes)
@@ -2636,6 +2653,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 					View,
 					Inputs,
 					HalfResSmokeTexture,
+					HalfResSmokeDepthTexture,
 					HalfResExtent,
 					CurrentSceneColor.ViewRect,
 					TemporalViewKey,
@@ -2661,13 +2679,14 @@ FRDGTextureRef FTimeThiefSmokeViewExtension::TemporalFilterHalfResSmoke_RenderTh
 	const FSceneView& View,
 	const FPostProcessMaterialInputs& Inputs,
 	FRDGTextureRef CurrentSmokeTexture,
+	FRDGTextureRef CurrentSmokeDepthTexture,
 	FIntPoint SmokeExtent,
 	FIntRect FullResViewRect,
 	uint64 TemporalViewKey,
 	uint64 SmokeSetHash,
 	bool bInvalidateHistory)
 {
-	if (!CurrentSmokeTexture || SmokeExtent.X <= 0 || SmokeExtent.Y <= 0)
+	if (!CurrentSmokeTexture || !CurrentSmokeDepthTexture || SmokeExtent.X <= 0 || SmokeExtent.Y <= 0)
 	{
 		return CurrentSmokeTexture;
 	}
@@ -2710,6 +2729,7 @@ FRDGTextureRef FTimeThiefSmokeViewExtension::TemporalFilterHalfResSmoke_RenderTh
 	TShaderMapRef<FTimeThiefSmokeTemporalPS> PixelShader(GetGlobalShaderMap(View.FeatureLevel));
 	FTimeThiefSmokeTemporalPS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeTemporalPS::FParameters>();
 	PassParameters->CurrentSmokeTexture = CurrentSmokeTexture;
+	PassParameters->CurrentSmokeDepthTexture = CurrentSmokeDepthTexture;
 	PassParameters->HistorySmokeTexture = bHistoryValid
 		? GraphBuilder.RegisterExternalTexture(History.SmokeTexture)
 		: CurrentSmokeTexture;
@@ -3298,7 +3318,8 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleSplatPass(
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
-	FRDGTextureRef VelocityOut)
+	FRDGTextureRef VelocityOut,
+	float DeltaSeconds)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
@@ -3318,6 +3339,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleSplatPass(
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
+	PassParameters->DeltaSeconds = DeltaSeconds;
 	PassParameters->VortexParticleCount = FMath::Clamp(TimeThiefSmokeParameterDefaults::VortexParticleCount, 1, TimeThiefSmokeParameterDefaults::MaxVortexParticleCount);
 	PassParameters->MaxVortexParticleCount = TimeThiefSmokeParameterDefaults::MaxVortexParticleCount;
 	PassParameters->VortexParticleSplatRadius = FMath::Max(TimeThiefSmokeParameterDefaults::VortexParticleMinRadius, TimeThiefSmokeParameterDefaults::VortexParticleSplatRadius);
@@ -3988,9 +4010,10 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	if (bRunVortexPasses)
 	{
 		const float VortexDeltaSeconds = FMath::Max(State.AccumulatedVortexDeltaSeconds, DeltaSeconds);
+		float VortexParticleDeltaSeconds = DeltaSeconds;
 		if (bRunVortexParticles)
 		{
-			const float VortexParticleDeltaSeconds = FMath::Max(State.AccumulatedVortexParticleDeltaSeconds, DeltaSeconds);
+			VortexParticleDeltaSeconds = FMath::Max(State.AccumulatedVortexParticleDeltaSeconds, DeltaSeconds);
 			const int32 VortexParticleReadIndex = State.CurrentVortexParticleIndex;
 			const int32 VortexParticleWriteIndex = 1 - State.CurrentVortexParticleIndex;
 			AddVortexParticleUpdatePass(
@@ -4045,7 +4068,8 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 				VelocityTextures[State.CurrentVelocityIndex],
 				BulletCutoutConsumerTexture,
 				BulletSinkConsumerTexture,
-				VelocityTextures[VortexSplatWriteVelocityIndex]);
+				VelocityTextures[VortexSplatWriteVelocityIndex],
+				VortexParticleDeltaSeconds);
 			State.CurrentVelocityIndex = VortexSplatWriteVelocityIndex;
 			State.AccumulatedVortexParticleDeltaSeconds = 0.0f;
 		}
@@ -4527,7 +4551,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 		PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 		PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 		PassParameters->bEnableSimulationCurlNoise = CVarTimeThiefSmokeSimulationCurlNoise.GetValueOnRenderThread() != 0 ? 1u : 0u;
-		PassParameters->bEnableSimulationCloudCohesion = CVarTimeThiefSmokeSimulationCloudCohesion.GetValueOnRenderThread() != 0 ? 1u : 0u;
+		PassParameters->bEnableSimulationCloudCohesion = static_cast<uint32>(FMath::Clamp(CVarTimeThiefSmokeSimulationCloudCohesion.GetValueOnRenderThread(), 0, 2));
 		PassParameters->bEnableExplosionBoundaryPreserve = CVarTimeThiefSmokeExplosionBoundaryPreserve.GetValueOnRenderThread() != 0 ? 1u : 0u;
 		PassParameters->bEnableBulletBreakup = CVarTimeThiefSmokeBulletBreakup.GetValueOnRenderThread() != 0 ? 1u : 0u;
 		PassParameters->bEnableBulletNeighborRefill = static_cast<uint32>(FMath::Clamp(CVarTimeThiefSmokeBulletNeighborRefill.GetValueOnRenderThread(), 0, 2));

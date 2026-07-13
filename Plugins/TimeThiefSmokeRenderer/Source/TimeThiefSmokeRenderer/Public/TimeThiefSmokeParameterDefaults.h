@@ -468,8 +468,8 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float BilateralDepthSensitivity = 10000.0f;
 	constexpr float BilateralTransmittanceSensitivity = 8.0f;
 	constexpr int32 bUseTemporalStabilizationByDefault = 1;
-	constexpr float TemporalHistoryWeight = 0.85f;
-	constexpr float TemporalDepthRejectionThreshold = 0.002f;
+	constexpr float TemporalHistoryWeight = 0.60f;
+	constexpr float TemporalDepthRejectionThreshold = 120.0f;
 	constexpr float TemporalTransmittanceRejectionThreshold = 0.12f;
 
 	// 적응형 레이마칭 (Adaptive Raymarching)
