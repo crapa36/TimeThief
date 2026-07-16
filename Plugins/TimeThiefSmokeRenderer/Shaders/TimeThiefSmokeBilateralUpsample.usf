@@ -80,6 +80,12 @@ void MainPS(
 		HalfResSmokeTexture.Load(int3(Coord10, 0)) * FinalW10 +
 		HalfResSmokeTexture.Load(int3(Coord01, 0)) * FinalW01 +
 		HalfResSmokeTexture.Load(int3(Coord11, 0)) * FinalW11;
-	const float3 Composited = SceneColor.rgb * saturate(UpsampledSmoke.a) + UpsampledSmoke.rgb;
+	const int2 CenterCoord = clamp(int2(round(HalfResTexel)), int2(0, 0), MaxHalfResCoord);
+	const float4 CenterSmoke = HalfResSmokeTexture.Load(int3(CenterCoord, 0));
+	const float DetailStrength = 0.25;
+	float4 SharpenedSmoke = UpsampledSmoke + (CenterSmoke - UpsampledSmoke) * DetailStrength;
+	SharpenedSmoke.rgb = max(SharpenedSmoke.rgb, 0.0);
+	SharpenedSmoke.a = saturate(SharpenedSmoke.a);
+	const float3 Composited = SceneColor.rgb * SharpenedSmoke.a + SharpenedSmoke.rgb;
 	OutColor = float4(Composited, SceneColor.a);
 }
