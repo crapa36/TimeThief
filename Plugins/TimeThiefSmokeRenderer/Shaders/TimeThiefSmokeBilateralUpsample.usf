@@ -28,8 +28,12 @@ void MainPS(
 {
 	const float2 SceneUV = SvPosition.xy * SceneColorUVScaleBias.xy + SceneColorUVScaleBias.zw;
 	const float4 SceneColor = SceneColorTexture.SampleLevel(SceneColorSampler, SceneUV, 0.0);
-	const float SceneDeviceZ = LoadSceneDeviceZ(SvPosition.xy);
 	const float2 ScreenUV = (SvPosition.xy - float2(ViewRect.xy)) / max(float2(ViewRect.zw - ViewRect.xy), 1.0);
+#if TIME_THIEF_SMOKE_DIRECT_RESOLVE
+	const int2 DirectCoord = clamp(int2(floor(ScreenUV * HalfResSize)), int2(0, 0), int2(HalfResSize) - 1);
+	float4 ResolvedSmoke = HalfResSmokeTexture.Load(int3(DirectCoord, 0));
+#else
+	const float SceneDeviceZ = LoadSceneDeviceZ(SvPosition.xy);
 	const float2 HalfResTexel = ScreenUV * HalfResSize - 0.5;
 	const int2 MaxHalfResCoord = int2(HalfResSize) - 1;
 	const int2 Coord00 = clamp(int2(floor(HalfResTexel)), int2(0, 0), MaxHalfResCoord);
@@ -83,9 +87,10 @@ void MainPS(
 	const int2 CenterCoord = clamp(int2(round(HalfResTexel)), int2(0, 0), MaxHalfResCoord);
 	const float4 CenterSmoke = HalfResSmokeTexture.Load(int3(CenterCoord, 0));
 	const float DetailStrength = 0.25;
-	float4 SharpenedSmoke = UpsampledSmoke + (CenterSmoke - UpsampledSmoke) * DetailStrength;
-	SharpenedSmoke.rgb = max(SharpenedSmoke.rgb, 0.0);
-	SharpenedSmoke.a = saturate(SharpenedSmoke.a);
-	const float3 Composited = SceneColor.rgb * SharpenedSmoke.a + SharpenedSmoke.rgb;
+	float4 ResolvedSmoke = UpsampledSmoke + (CenterSmoke - UpsampledSmoke) * DetailStrength;
+#endif
+	ResolvedSmoke.rgb = max(ResolvedSmoke.rgb, 0.0);
+	ResolvedSmoke.a = saturate(ResolvedSmoke.a);
+	const float3 Composited = SceneColor.rgb * ResolvedSmoke.a + ResolvedSmoke.rgb;
 	OutColor = float4(Composited, SceneColor.a);
 }

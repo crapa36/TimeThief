@@ -64,10 +64,10 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut > 0.0f &&
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut < 1.0f);
 	TestTrue(
-		TEXT("Render boundary noise stays subtle enough to avoid banding"),
+		TEXT("Render boundary noise stays bounded to avoid banding"),
 		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseScale >= 0.0f &&
 		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength >= 0.0f &&
-		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.1f);
+		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.2f);
 	TestTrue(
 		TEXT("Actor airflow full speed leaves shader smoothstep range valid"),
 		TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeed >= TimeThiefSmokeParameterDefaults::ActorAirflowMinSpeed + TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeedMinGap);

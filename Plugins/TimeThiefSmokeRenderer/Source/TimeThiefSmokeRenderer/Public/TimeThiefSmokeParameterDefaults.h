@@ -40,7 +40,7 @@ namespace TimeThiefSmokeParameterDefaults
 
 	// 정적 월드 장애물 마스크 사용 여부. 끄면 비용 감소, 벽 차단 품질 감소.
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
-	constexpr int32 ObstacleMaskResolution = 32;
+	constexpr int32 ObstacleMaskResolution = 24;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
 	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
@@ -59,7 +59,7 @@ namespace TimeThiefSmokeParameterDefaults
 
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 32;
+	constexpr int32 SmokeGridResolution = 24;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
@@ -101,7 +101,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCountMax = 64;
 	// Stable composite samples are anchored to a fixed world-distance lattice along each camera ray.
-	constexpr float RenderWorldStepLengthCm = 25.0f;
+	constexpr float RenderWorldStepLengthCm = 12.5f;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	// raymarch 스텝 voxel 배율 최소값. 낮을수록 디테일과 비용 증가.
@@ -157,23 +157,23 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더링 디테일
 
 	// 렌더 노이즈 공간 스케일. 높을수록 패턴이 촘촘해짐.
-	constexpr float RenderNoiseScale = 0.1f;
+	constexpr float RenderNoiseScale = 0.006f;
 	// 렌더 노이즈 강도. 높을수록 밀도 디테일 증가.
-	constexpr float RenderNoiseStrength = 1.5f;
+	constexpr float RenderNoiseStrength = 0.85f;
 	// 렌더 노이즈 시간 스케일. 높을수록 노이즈 움직임 증가.
-	constexpr float RenderNoiseTimeScale = 0.05f;
+	constexpr float RenderNoiseTimeScale = 0.035f;
 	// 렌더 경계 노이즈 공간 스케일(1/cm). 높을수록 경계 무늬가 촘촘해짐.
-	constexpr float RenderBoundaryNoiseScale = 0.005f;
+	constexpr float RenderBoundaryNoiseScale = 0.012f;
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
-	constexpr float RenderBoundaryNoiseStrength = 0.07f;
+	constexpr float RenderBoundaryNoiseStrength = 0.14f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
-	constexpr float RenderFilamentScale = 1.0f;
+	constexpr float RenderFilamentScale = 0.018f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 4.5f;
+	constexpr float RenderFilamentStrength = 1.8f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
-	constexpr float RenderFilamentContrast = 8.5f;
+	constexpr float RenderFilamentContrast = 1.0f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
-	constexpr float RenderFilamentWarpStrength = 7.5f;
+	constexpr float RenderFilamentWarpStrength = 1.4f;
 
 	// 이류와 감쇠
 

@@ -78,7 +78,6 @@ float CombinedShadowExtinction;
 float3 CombinedShadowLightDirection;
 int CombinedShadowStepCount;
 float SelfShadowMinSampleWeight;
-float MinimumNoiseWavelengthScale;
 int CompositeDebugMode;
 float4x4 InvViewProjection;
 
@@ -190,107 +189,72 @@ float ComputeRenderBoundaryFadeStart(float3 BoundsExtent, float3 NaturalBoundsEx
 	return clamp(max(0.90, NaturalCoverageMax + 0.04), 0.82, 0.96);
 }
 
-float CompositeFilteredFBM(float3 P, float BaseFrequency, float MaximumFrequency, inout uint EvaluatedOctaveCount)
+float CompositeFBM(float3 P, inout uint EvaluatedOctaveCount)
 {
-	if (BaseFrequency <= 0.0 || MaximumFrequency <= 0.0)
-	{
-		return 0.5;
-	}
-
 	float Sum = 0.0;
 	float Amplitude = 0.5;
 	float Normalizer = 0.0;
-	float Frequency = max(BaseFrequency, 0.0);
-	[loop]
+	[unroll]
 	for (int Octave = 0; Octave < 4; ++Octave)
 	{
-		const float FrequencyRatio = MaximumFrequency / max(Frequency, 0.000001);
-		if (FrequencyRatio <= 0.5)
-		{
-			break;
-		}
-		const float OctaveFilter = smoothstep(0.5, 1.0, FrequencyRatio);
-		Sum += TimeThiefSmokeValueNoise(P) * Amplitude * OctaveFilter;
-		Normalizer += Amplitude * OctaveFilter;
+		Sum += TimeThiefSmokeValueNoise(P) * Amplitude;
+		Normalizer += Amplitude;
 		P = P * 2.03 + float3(17.1, 31.7, 11.3);
-		Frequency *= 2.03;
 		Amplitude *= 0.5;
 		++EvaluatedOctaveCount;
 	}
-	return Normalizer > 0.0 ? Sum / Normalizer : 0.5;
+	return Sum / max(Normalizer, 0.0001);
 }
 
-float CompositeFilteredRidgedFBM(float3 P, float BaseFrequency, float MaximumFrequency, inout uint EvaluatedOctaveCount)
+float CompositeRidgedFBM(float3 P, inout uint EvaluatedOctaveCount)
 {
-	if (BaseFrequency <= 0.0 || MaximumFrequency <= 0.0)
-	{
-		return 0.5;
-	}
-
 	float Sum = 0.0;
 	float Amplitude = 0.5;
 	float Normalizer = 0.0;
-	float Frequency = max(BaseFrequency, 0.0);
-	[loop]
+	[unroll]
 	for (int Octave = 0; Octave < 4; ++Octave)
 	{
-		const float FrequencyRatio = MaximumFrequency / max(Frequency, 0.000001);
-		if (FrequencyRatio <= 0.5)
-		{
-			break;
-		}
-		const float OctaveFilter = smoothstep(0.5, 1.0, FrequencyRatio);
 		const float Ridge = 1.0 - abs(TimeThiefSmokeValueNoise(P) * 2.0 - 1.0);
-		Sum += Ridge * Ridge * Amplitude * OctaveFilter;
-		Normalizer += Amplitude * OctaveFilter;
+		Sum += Ridge * Ridge * Amplitude;
+		Normalizer += Amplitude;
 		P = P * 2.07 + float3(29.3, 5.7, 43.1);
-		Frequency *= 2.07;
 		Amplitude *= 0.5;
 		++EvaluatedOctaveCount;
 	}
-	return Normalizer > 0.0 ? Sum / Normalizer : 0.5;
+	return Sum / max(Normalizer, 0.0001);
 }
 
-float3 CompositeFilteredDomainWarp(float3 P, float Time, float BaseFrequency, float MaximumFrequency, inout uint EvaluatedOctaveCount)
+float3 CompositeDomainWarp(float3 P, float Time, inout uint EvaluatedOctaveCount)
 {
 	return (float3(
-		CompositeFilteredFBM(P + float3(13.1, 7.7, 3.3) + Time, BaseFrequency, MaximumFrequency, EvaluatedOctaveCount),
-		CompositeFilteredFBM(P + float3(2.5, 19.3, 11.9) - Time * 0.73, BaseFrequency, MaximumFrequency, EvaluatedOctaveCount),
-		CompositeFilteredFBM(P + float3(23.7, 5.1, 17.4) + Time * 0.41, BaseFrequency, MaximumFrequency, EvaluatedOctaveCount)) - 0.5) * 2.0;
+		CompositeFBM(P + float3(13.1, 7.7, 3.3) + Time, EvaluatedOctaveCount),
+		CompositeFBM(P + float3(2.5, 19.3, 11.9) - Time * 0.73, EvaluatedOctaveCount),
+		CompositeFBM(P + float3(23.7, 5.1, 17.4) + Time * 0.41, EvaluatedOctaveCount)) - 0.5) * 2.0;
 }
 
-float CompositeFilteredFilamentMask(float3 P, float Time, float Contrast, float BaseFrequency, float MaximumFrequency, inout uint EvaluatedOctaveCount)
+float CompositeFilamentMask(float3 P, float Time, inout uint EvaluatedOctaveCount)
 {
 	const float3 TimeOffsetA = float3(Time * 0.23, -Time * 0.17, Time * 0.31);
 	const float3 TimeOffsetB = float3(-Time * 0.29, Time * 0.19, -Time * 0.11);
-	const float3 Warp = CompositeFilteredDomainWarp(
+	const float3 Warp = CompositeDomainWarp(
 		P * 0.47,
 		Time * 0.59,
-		BaseFrequency * 0.47,
-		MaximumFrequency,
 		EvaluatedOctaveCount);
-	const float RidgeA = CompositeFilteredRidgedFBM(
+	const float RidgeA = CompositeRidgedFBM(
 		P + Warp * 1.43 + TimeOffsetA,
-		BaseFrequency,
-		MaximumFrequency,
 		EvaluatedOctaveCount);
-	const float RidgeB = CompositeFilteredRidgedFBM(
+	const float RidgeB = CompositeRidgedFBM(
 		P * 1.73 - Warp * 0.82 + TimeOffsetB,
-		BaseFrequency * 1.73,
-		MaximumFrequency,
 		EvaluatedOctaveCount);
-	const float Threads = saturate(RidgeA * 0.62 + RidgeB * 0.58 - 0.26);
-	return pow(Threads, max(Contrast, 0.1));
+	const float Threads = saturate(RidgeA * 0.58 + RidgeB * 0.52 - 0.12);
+	return smoothstep(0.08, 0.82, Threads);
 }
 
-float CompositeFilteredDensityNoise(
+float CompositeDensityNoise(
 	float3 P,
 	float Time,
-	float RawDensity,
 	float Strength,
 	float FineMultiplier,
-	float BaseFrequency,
-	float MaximumFrequency,
 	inout uint EvaluatedOctaveCount)
 {
 	const float S = saturate(Strength);
@@ -300,34 +264,19 @@ float CompositeFilteredDensityNoise(
 	}
 
 	const float3 Q = P;
-	const float Base = CompositeFilteredFBM(Q, BaseFrequency, MaximumFrequency, EvaluatedOctaveCount);
+	const float Base = CompositeFBM(Q, EvaluatedOctaveCount);
 	const float BaseShape = smoothstep(0.22, 0.82, Base);
-	const float ErosionGate = 1.0 - smoothstep(0.32, 1.35, RawDensity);
-	const float InteriorDetailGate = smoothstep(0.45, 1.55, RawDensity) * (1.0 - smoothstep(1.8, 2.5, RawDensity));
-	const float DetailGate = saturate(max(ErosionGate, InteriorDetailGate));
-	float Detail = 0.5;
-	[branch]
-	if (DetailGate > 0.02)
-	{
-		Detail = CompositeFilteredRidgedFBM(
-			Q * max(FineMultiplier, 1.0) + BaseShape * 0.37 - Time * 0.29,
-			BaseFrequency * max(FineMultiplier, 1.0),
-			MaximumFrequency,
-			EvaluatedOctaveCount);
-	}
-	const float InteriorDetail = Detail * InteriorDetailGate * 0.04;
-	const float Clump = lerp(0.86, 1.16, BaseShape);
-	const float Target = clamp(
-		Clump - Detail * ErosionGate * lerp(0.18, 0.34, S) + InteriorDetail,
-		0.70,
-		1.26);
-	return lerp(1.0, Target, S);
+	const float Detail = CompositeRidgedFBM(
+		Q * max(FineMultiplier, 1.0) + BaseShape * 0.37 - Time * 0.29,
+		EvaluatedOctaveCount);
+	const float MacroDetail = lerp(0.78, 1.28, BaseShape);
+	const float FiberDetail = lerp(0.62, 1.48, Detail);
+	return max(lerp(1.0, MacroDetail * FiberDetail, S), 0.05);
 }
 
 float ComputeCompositeBoundaryNoise(
 	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
 	float3 SampleWorld,
-	float MaximumFrequency,
 	inout uint EvaluatedOctaveCount)
 {
 	const float NoiseScale = max(Desc.BoundaryNoiseControls.x, 0.0);
@@ -339,7 +288,24 @@ float ComputeCompositeBoundaryNoise(
 
 	const float AgeSeconds = Desc.FilamentAge.y;
 	const float3 NoisePosition = SampleWorld * NoiseScale + float3(AgeSeconds * 0.011, -AgeSeconds * 0.007, AgeSeconds * 0.013);
-	return (CompositeFilteredFBM(NoisePosition, NoiseScale, MaximumFrequency, EvaluatedOctaveCount) - 0.5) * NoiseStrength;
+	return (CompositeFBM(NoisePosition, EvaluatedOctaveCount) - 0.5) * NoiseStrength;
+}
+
+float ComputeCompositeFineBoundaryNoise(
+	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
+	float3 SampleWorld,
+	inout uint EvaluatedOctaveCount)
+{
+	const float NoiseScale = max(Desc.BoundaryNoiseControls.x * 2.03, 0.0);
+	const float NoiseStrength = max(Desc.BoundaryNoiseControls.y * 0.5, 0.0);
+	if (NoiseScale <= 0.0 || NoiseStrength <= 0.0)
+	{
+		return 0.0;
+	}
+
+	const float AgeSeconds = Desc.FilamentAge.y;
+	const float3 NoisePosition = SampleWorld * NoiseScale + float3(-AgeSeconds * 0.017, AgeSeconds * 0.013, AgeSeconds * 0.019);
+	return (CompositeRidgedFBM(NoisePosition, EvaluatedOctaveCount) - 0.5) * NoiseStrength;
 }
 
 struct FTimeThiefSmokeMediumSample
@@ -364,8 +330,7 @@ float EvaluateLowFrequencyShadowExtinction(
 	float3 SampleWorld,
 	float3 SimulationLocal,
 	float3 VolumeUVW,
-	float LightDistanceScale,
-	float ShadowStepLength)
+	float LightDistanceScale)
 {
 	const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
 	if (!TimeThiefSmokeInsideUVW(VolumeUVW))
@@ -385,16 +350,15 @@ float EvaluateLowFrequencyShadowExtinction(
 	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
 	const float BoundaryFadeStart = ComputeRenderBoundaryFadeStart(BoundsExtent, Desc.NaturalBoundsExtent_ObstacleFeather.xyz);
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-	const float MaximumNoiseFrequency = 1.0 / max(ShadowStepLength * MinimumNoiseWavelengthScale, 1.0);
-	const float BoundaryNoiseScale = min(max(Desc.BoundaryNoiseControls.x, 0.0), MaximumNoiseFrequency);
+	uint BoundaryNoiseOctaveCount = 0u;
+	const float BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld, BoundaryNoiseOctaveCount);
+	const float FineBoundaryNoise = ComputeCompositeFineBoundaryNoise(Desc, SampleWorld, BoundaryNoiseOctaveCount);
 	const float AgeSeconds = Desc.FilamentAge.y;
-	const float3 BoundaryNoisePosition = SampleWorld * BoundaryNoiseScale + float3(AgeSeconds * 0.011, -AgeSeconds * 0.007, AgeSeconds * 0.013);
-	const float BoundaryNoise = BoundaryNoiseScale > 0.0
-		? (TimeThiefSmokeValueNoise(BoundaryNoisePosition) - 0.5) * Desc.BoundaryNoiseControls.y
-		: 0.0;
-	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
+	const float CoarseBoundary = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
+	const float FiberBoundary = 1.0 - smoothstep(0.96, 1.04, EllipsoidDistance + FineBoundaryNoise);
+	const float BoundaryMask = saturate(CoarseBoundary + FiberBoundary * 0.35);
 	const float LifetimeAlpha = 1.0 - smoothstep(Desc.FilamentAge.z, Desc.FilamentAge.z + max(Desc.FilamentAge.w, 0.001), Desc.FilamentAge.y);
-	const float NoiseScale = min(max(Desc.ScatterNoise.z, 0.0), MaximumNoiseFrequency);
+	const float NoiseScale = max(Desc.ScatterNoise.z, 0.0);
 	const float3 NoisePosition = SampleWorld * NoiseScale + float3(AgeSeconds * Desc.NoiseFilamentA.x * 0.19, -AgeSeconds * Desc.NoiseFilamentA.x * 0.11, AgeSeconds * Desc.NoiseFilamentA.x * 0.07);
 	const float BaseNoise = NoiseScale > 0.0 ? TimeThiefSmokeValueNoise(NoisePosition) : 0.5;
 	const float DensityNoise = lerp(1.0, lerp(0.74, 1.28, smoothstep(0.22, 0.82, BaseNoise)), saturate(Desc.ScatterNoise.w));
@@ -412,15 +376,11 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	float3 VolumeUVW,
 	float3 SmokeColor,
 	float SimulationDistanceScale,
-	float IntervalLength,
-	float PixelWorldFootprint,
 	float BoundaryFadeStart,
 	float LifetimeAlpha,
 	inout uint EvaluatedNoiseOctaveCount)
 {
 	FTimeThiefSmokeMediumSample Sample = MakeEmptySmokeMediumSample();
-	const float EffectiveFilterWidth = max(IntervalLength, PixelWorldFootprint);
-	const float MaximumNoiseFrequency = 1.0 / max(EffectiveFilterWidth * MinimumNoiseWavelengthScale, 0.0001);
 	const float4 RawFields = SampleFieldSet(Slot, Desc, VolumeUVW);
 	const float RawDensity = max(RawFields.x + RawFields.y, 0.0);
 	if (RawDensity <= 0.0001)
@@ -432,13 +392,11 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
 	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-	float BoundaryNoise = 0.0;
-	const float MaximumBoundaryOffset = abs(Desc.BoundaryNoiseControls.y) * 0.5;
-	if (EllipsoidDistance >= BoundaryFadeStart - MaximumBoundaryOffset - 0.02)
-	{
-		BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld, MaximumNoiseFrequency, EvaluatedNoiseOctaveCount);
-	}
-	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
+	const float BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld, EvaluatedNoiseOctaveCount);
+	const float FineBoundaryNoise = ComputeCompositeFineBoundaryNoise(Desc, SampleWorld, EvaluatedNoiseOctaveCount);
+	const float CoarseBoundary = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
+	const float FiberBoundary = 1.0 - smoothstep(0.96, 1.04, EllipsoidDistance + FineBoundaryNoise);
+	const float BoundaryMask = saturate(CoarseBoundary + FiberBoundary * 0.35);
 	const float AgeSeconds = Desc.FilamentAge.y;
 	const float DensityVisibility = ObstacleOpen * BulletMasks.Hard * BoundaryMask * LifetimeAlpha;
 	float Density = RawDensity * DensityVisibility;
@@ -452,73 +410,48 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	const float RenderNoiseTimeScale = Desc.NoiseFilamentA.x;
 	const float RenderFilamentScale = Desc.NoiseFilamentA.y;
 	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
-	const float RenderFilamentContrast = Desc.NoiseFilamentA.w;
 	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
-	const float MaxResolvedNoiseScale = MaximumNoiseFrequency * 0.48;
-	const float MaxResolvedFilamentScale = MaximumNoiseFrequency * 0.90;
-	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedNoiseScale);
-	const float StableRenderFilamentScale = min(max(RenderFilamentScale, 0.0), MaxResolvedFilamentScale);
-	const float FineNoiseMultiplier = min(1.86, MaximumNoiseFrequency / max(StableRenderNoiseScale, 0.0001));
-	const float FineFilamentMultiplier = min(1.9, MaximumNoiseFrequency / max(StableRenderFilamentScale, 0.0001));
+	const float StableRenderNoiseScale = max(RenderNoiseScale, 0.0);
+	const float StableRenderFilamentScale = max(RenderFilamentScale, 0.0);
+	const float FineNoiseMultiplier = 2.0;
+	const float FineFilamentMultiplier = 2.0;
 	const float DisplacedDominance = saturate(RawFields.y / max(RawDensity, 0.0001));
 	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
 	const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
-	const float DensityNoise = CompositeFilteredDensityNoise(
+	const float DensityNoise = CompositeDensityNoise(
 		NoisePosition,
 		TimeNoise,
-		RawDensity,
 		RenderNoiseStrength * lerp(1.0, 1.15, DisplacedDominance),
 		FineNoiseMultiplier,
-		StableRenderNoiseScale,
-		MaximumNoiseFrequency,
 		EvaluatedNoiseOctaveCount);
 
 	float FilamentGain = 1.0;
-	const float EdgeFilamentGate = smoothstep(0.18, 0.88, EllipsoidDistance);
-	const float FilamentDensityGate = smoothstep(0.015, 0.10, RawDensity) * (1.0 - smoothstep(1.35, 2.50, RawDensity));
-	const float FilamentInfluence = saturate(EdgeFilamentGate * FilamentDensityGate * lerp(1.0, 1.2, DisplacedDominance));
-	if (RenderFilamentStrength > 0.001 && FilamentInfluence > 0.015)
+	if (RenderFilamentStrength > 0.001)
 	{
 		const float3 FilamentPosition = SimulationLocal * BoundsExtent * StableRenderFilamentScale;
-		const float3 FilamentWarpBase = CompositeFilteredDomainWarp(
+		const float3 FilamentWarpBase = CompositeDomainWarp(
 			FilamentPosition * 0.43,
 			TimeNoise * 0.72,
-			StableRenderFilamentScale * 0.43,
-			MaximumNoiseFrequency,
 			EvaluatedNoiseOctaveCount) * RenderFilamentWarpStrength;
 		float3 FilamentWarp = FilamentWarpBase;
-		const float FilamentMask = CompositeFilteredFilamentMask(
+		const float FilamentMask = CompositeFilamentMask(
 			FilamentPosition + FilamentWarp,
 			TimeNoise,
-			RenderFilamentContrast,
-			StableRenderFilamentScale,
-			MaximumNoiseFrequency,
 			EvaluatedNoiseOctaveCount);
-		float CombinedFilamentMask = FilamentMask;
-		float AirPocket = 0.5;
-		if (FilamentInfluence > 0.24 && RenderFilamentStrength > 1.05)
-		{
-			const float FineRidge = CompositeFilteredRidgedFBM(
-				FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91,
-				StableRenderFilamentScale * FineFilamentMultiplier,
-				MaximumNoiseFrequency,
-				EvaluatedNoiseOctaveCount);
-			CombinedFilamentMask = saturate(
-				FilamentMask * 0.78 +
-				pow(saturate(FineRidge), max(RenderFilamentContrast * 0.92, 0.1)) * 0.28);
-			AirPocket = CompositeFilteredFBM(
-				FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37,
-				StableRenderFilamentScale * 0.37,
-				MaximumNoiseFrequency,
-				EvaluatedNoiseOctaveCount);
-		}
-		const float FilamentLow = max(0.58, 1.0 - RenderFilamentStrength * (0.14 + AirPocket * 0.20));
-		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.34;
+		const float FineRidge = CompositeRidgedFBM(
+			FilamentPosition * FineFilamentMultiplier - FilamentWarp * 0.36 + TimeNoise * 0.91,
+			EvaluatedNoiseOctaveCount);
+		const float CombinedFilamentMask = saturate(FilamentMask * 0.68 + FineRidge * 0.42);
+		const float AirPocket = CompositeFBM(
+			FilamentPosition * 0.37 - FilamentWarp * 0.42 + TimeNoise * 0.37,
+			EvaluatedNoiseOctaveCount);
+		const float FilamentLow = max(0.25, 1.0 - RenderFilamentStrength * (0.20 + AirPocket * 0.30));
+		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.55;
 		FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
 	}
 
 	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-	Density = Density * DensityNoise * lerp(1.0, FilamentGain, FilamentInfluence) * BulletEdgeDensityGain;
+	Density *= DensityNoise * FilamentGain * BulletEdgeDensityGain;
 	Sample.ExtinctionCoefficient = max(Density * Desc.RenderBoundsExtent_Extinction.w * SimulationDistanceScale, 0.0);
 	Sample.ScatteringSource = SmokeColor * saturate(0.82 + Density * 0.85);
 	Sample.Density = Density;
@@ -550,10 +483,6 @@ void MainPS(
 	const float3 NearWorld = ReconstructWorldPosition(SvPosition.xy, 1.0);
 	const float3 FarWorld = ReconstructWorldPosition(SvPosition.xy, 0.0);
 	const float3 WorldRayDirection = normalize(FarWorld - NearWorld);
-	const float3 NearWorldDx = ddx(NearWorld);
-	const float3 NearWorldDy = ddy(NearWorld);
-	const float3 WorldRayDirectionDx = ddx(WorldRayDirection);
-	const float3 WorldRayDirectionDy = ddy(WorldRayDirection);
 	if (TileSmokeCount <= 0)
 	{
 		OutColor = float4(0.0, 0.0, 0.0, 1.0);
@@ -729,9 +658,6 @@ void MainPS(
 
 			const float IntegrationSampleT = IntervalMidT;
 				const float3 SampleWorld = NearWorld + WorldRayDirection * IntegrationSampleT;
-				const float3 SampleWorldDx = NearWorldDx + WorldRayDirectionDx * IntegrationSampleT;
-				const float3 SampleWorldDy = NearWorldDy + WorldRayDirectionDy * IntegrationSampleT;
-				const float PixelWorldFootprint = sqrt(max(dot(SampleWorldDx, SampleWorldDx), dot(SampleWorldDy, SampleWorldDy)));
 
 				[loop]
 				for (int SegmentSmokeIndex = 0; SegmentSmokeIndex < SegmentSmokeCount; ++SegmentSmokeIndex)
@@ -762,8 +688,6 @@ void MainPS(
 						VolumeUVW,
 						SmokeColors[SmokeIndex],
 						SmokeSimulationStepScales[SmokeIndex],
-						IntervalLength,
-						PixelWorldFootprint,
 						SmokeBoundaryFadeStarts[SmokeIndex],
 						SmokeLifetimeAlphas[SmokeIndex],
 						FilteredNoiseOctaveCount);
@@ -832,8 +756,7 @@ void MainPS(
 									ShadowSampleWorld,
 									ShadowSimulationLocal,
 									ShadowSimulationLocal * 0.5 + 0.5,
-									SmokeLightDistanceScales[ShadowSmokeIndex],
-									ShadowIntervalLength);
+									SmokeLightDistanceScales[ShadowSmokeIndex]);
 							}
 							ShadowOpticalDepth += ShadowStepExtinction * ShadowIntervalLength;
 						}

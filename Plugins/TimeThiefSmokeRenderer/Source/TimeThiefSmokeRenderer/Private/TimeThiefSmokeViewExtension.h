@@ -113,7 +113,8 @@ private:
 		const TArray<FIntRect>& RenderRects,
 		FScreenPassTexture CurrentSceneColor,
 		const FMatrix44f& InvViewProjection,
-		FRDGTextureRef HalfResTarget,
+		FRDGTextureRef CompositeTarget,
+		int32 ResolutionDivisor,
 		int32 BatchIndex = INDEX_NONE,
 		int32 BatchCount = 0);
 
@@ -124,6 +125,7 @@ private:
 		FScreenPassTexture CurrentSceneColor,
 		FRDGTextureRef HalfResSmokeTexture,
 		FIntPoint HalfResExtent,
+		bool bUseBilateralFilter,
 		bool bAllowOverrideOutput);
 
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);

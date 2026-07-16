@@ -327,7 +327,6 @@ public:
 		SHADER_PARAMETER(FVector3f, CombinedShadowLightDirection)
 		SHADER_PARAMETER(int32, CombinedShadowStepCount)
 		SHADER_PARAMETER(float, SelfShadowMinSampleWeight)
-		SHADER_PARAMETER(float, MinimumNoiseWavelengthScale)
 		SHADER_PARAMETER(int32, CompositeDebugMode)
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
@@ -363,6 +362,8 @@ class FTimeThiefSmokeBilateralUpsamplePS : public FGlobalShader
 public:
 	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBilateralUpsamplePS);
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBilateralUpsamplePS, FGlobalShader);
+	class FDirectResolveDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_SMOKE_DIRECT_RESOLVE");
+	using FPermutationDomain = TShaderPermutationDomain<FDirectResolveDim>;
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER(FVector4f, SceneColorUVScaleBias)
