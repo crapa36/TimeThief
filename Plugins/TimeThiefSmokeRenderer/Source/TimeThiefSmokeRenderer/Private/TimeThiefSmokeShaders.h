@@ -36,7 +36,6 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f SelfShadowControls = FVector4f::Zero();
 	FVector4f NoiseFilamentA = FVector4f::Zero();
 	FVector4f FilamentAge = FVector4f::Zero();
-	FVector4f GridResolution = FVector4f::Zero();
 	FVector4f RenderSteps_Quality = FVector4f::Zero();
 	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
 	FVector4f RaymarchControls = FVector4f::Zero();

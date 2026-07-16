@@ -101,7 +101,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCountMax = 64;
 	// Stable composite samples are anchored to a fixed world-distance lattice along each camera ray.
-	constexpr float RenderWorldStepLengthCm = 50.0f;
+	constexpr float RenderWorldStepLengthCm = 25.0f;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
 	constexpr float RenderStepVoxelScale = 1.0f;
 	// raymarch 스텝 voxel 배율 최소값. 낮을수록 디테일과 비용 증가.
@@ -141,8 +141,8 @@ namespace TimeThiefSmokeParameterDefaults
 	// 자체 그림자 샘플 간격(cm). 높을수록 넓은 그림자, 낮을수록 세밀한 그림자.
 	constexpr float SelfShadowStepLength = 100.0f;
 	// Combined-medium shadow quality selected from the stabilization A/B candidates.
-	constexpr int32 CombinedShadowStepCount = 4;
-	constexpr float CombinedShadowStepLength = 75.0f;
+	constexpr int32 CombinedShadowStepCount = 64;
+	constexpr float CombinedShadowStepLength = 40.0f;
 	// 비활성 브릭 내부 자체 그림자 샘플 건너뛰기 수. 높을수록 비용 감소.
 	constexpr int32 SelfShadowInactiveBrickMaxSkipSteps = 8;
 	// 자체 그림자를 계산할 최소 샘플 기여도. 높을수록 그림자 비용 감소.
@@ -440,10 +440,6 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float ActiveImpulseMinDurationSeconds = 0.01f;
 
 	// 반해상도 렌더링 및 양방향 업샘플링
-
-	// 연막 레이마칭을 반해상도로 실행할지 여부. 켜면 합성 비용이 약 1/4로 감소.
-	// 양방향(bilateral) 깊이 인식 업샘플링 사용 여부. 켜면 깊이 경계의 번짐(halo)을 억제.
-	// 양방향 필터 깊이 감도. 높을수록 깊이 차이에 민감(경계 보존↑, 노이즈 위험↑).
 	constexpr float BilateralDepthSensitivity = 10000.0f;
 
 	// 적응형 레이마칭 (Adaptive Raymarching)

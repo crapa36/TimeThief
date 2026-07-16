@@ -65,6 +65,42 @@ uint4 GetEventBrickMask(uint3 CellCoord)
 	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
 }
 
+void ComputeAdvectionDensityLimiterBounds(
+	float3 UVW,
+	out float DensityMin,
+	out float DensityMax,
+	out float DisplacedDensityMin,
+	out float DisplacedDensityMax)
+{
+	const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
+	const int3 BaseCoord = (int3)floor(UVW * float3(GridResolution) - 0.5);
+	DensityMin = 999999.0;
+	DensityMax = -999999.0;
+	DisplacedDensityMin = 999999.0;
+	DisplacedDensityMax = -999999.0;
+
+	[unroll]
+	for (int Z = 0; Z <= 1; ++Z)
+	{
+		[unroll]
+		for (int Y = 0; Y <= 1; ++Y)
+		{
+			[unroll]
+			for (int X = 0; X <= 1; ++X)
+			{
+				const int3 SampleCoord = clamp(BaseCoord + int3(X, Y, Z), int3(0, 0, 0), GridResolution - 1);
+				const float3 SampleUVW = (float3(SampleCoord) + 0.5) * Texel;
+				const float SampleDensity = DensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
+				const float SampleDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
+				DensityMin = min(DensityMin, SampleDensity);
+				DensityMax = max(DensityMax, SampleDensity);
+				DisplacedDensityMin = min(DisplacedDensityMin, SampleDisplacedDensity);
+				DisplacedDensityMax = max(DisplacedDensityMax, SampleDisplacedDensity);
+			}
+		}
+	}
+}
+
 float3 ApplySimulationBoundsNoOutflow(float3 LocalPosition, float3 WorldVelocity)
 {
 	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
@@ -272,6 +308,37 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		Density = DensityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0);
 		DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0);
 		AdvectedVelocity = ApplySimulationBoundsNoOutflow(PreviousSampleLocal, VelocityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0).xyz);
+	}
+	if (bPreviousInsideVolume && PreviousOpenMask > 0.01)
+	{
+		const float3 ForwardWorld = PreviousWorld + AdvectedVelocity * DeltaSeconds;
+		const float3 ForwardLocal = mul(float4(ForwardWorld, 1.0), WorldToLocal).xyz;
+		const float3 ForwardUVW = ForwardLocal / max(BoundsExtent, 1.0) * 0.5 + 0.5;
+		if (TimeThiefSmokeInsideUVW(ForwardUVW) && TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, ForwardUVW, ObstacleSdfSurfaceFeatherCm) > 0.01)
+		{
+			const float CurrentDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+			const float CurrentDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
+			const float ForwardDensity = DensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
+			const float ForwardDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
+			float DensityMin = 0.0;
+			float DensityMax = 0.0;
+			float DisplacedDensityMin = 0.0;
+			float DisplacedDensityMax = 0.0;
+			ComputeAdvectionDensityLimiterBounds(
+				PreviousSampleUVW,
+				DensityMin,
+				DensityMax,
+				DisplacedDensityMin,
+				DisplacedDensityMax);
+			Density = clamp(
+				Density + 0.5 * (CurrentDensity - ForwardDensity),
+				max(DensityMin, 0.0),
+				min(DensityMax, SmokeDensityMax));
+			DisplacedDensity = clamp(
+				DisplacedDensity + 0.5 * (CurrentDisplacedDensity - ForwardDisplacedDensity),
+				max(DisplacedDensityMin, 0.0),
+				min(DisplacedDensityMax, SmokeDensityMax));
+		}
 	}
 
 	float NeighborDensity = 0.0;

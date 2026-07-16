@@ -51,6 +51,14 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TEXT("Self-shadow sample threshold skips only tiny contributions"),
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight > 0.0f &&
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight < TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
+	const FVector RenderBoundsExtent =
+		TimeThiefSmokeParameterDefaults::GetSmokeBoundsExtent() +
+		TimeThiefSmokeParameterDefaults::GetRenderBoundsPadding();
+	TestTrue(
+		TEXT("Combined shadow defaults preserve target spacing across the full volume diagonal"),
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount > 0 &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount * TimeThiefSmokeParameterDefaults::CombinedShadowStepLength >=
+			RenderBoundsExtent.Size() * 2.0);
 	TestTrue(
 		TEXT("Render transmittance early-out stays in normalized range"),
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut > 0.0f &&

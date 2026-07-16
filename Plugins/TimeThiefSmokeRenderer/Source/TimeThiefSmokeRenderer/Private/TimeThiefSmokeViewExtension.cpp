@@ -82,7 +82,7 @@ namespace
 	static TAutoConsoleVariable<float> CVarTimeThiefSmokeBilateralDepthSensitivity(
 		TEXT("r.TimeThiefSmoke.BilateralDepthSensitivity"),
 		TimeThiefSmokeParameterDefaults::BilateralDepthSensitivity,
-		TEXT("Bilateral filter depth sensitivity. Higher = sharper edges near depth discontinuities."));
+		TEXT("Bilateral upsample depth sensitivity. Higher values preserve opaque depth edges more strongly."));
 
 	uint64 GetSceneKey(const FSceneViewFamily& ViewFamily)
 	{
@@ -1601,10 +1601,10 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	const int32 SmokeCount = RenderStates.Num();
 	const FIntRect ViewRect(0, 0, FMath::Max(1, HalfResTarget->Desc.Extent.X), FMath::Max(1, HalfResTarget->Desc.Extent.Y));
 	FIntRect CompositeRect(
-			FMath::Max(0, RenderRects[0].Min.X / 2),
-			FMath::Max(0, RenderRects[0].Min.Y / 2),
-			FMath::Min(ViewRect.Max.X, FMath::DivideAndRoundUp(RenderRects[0].Max.X, 2)),
-			FMath::Min(ViewRect.Max.Y, FMath::DivideAndRoundUp(RenderRects[0].Max.Y, 2)));
+		FMath::Max(0, RenderRects[0].Min.X / 2),
+		FMath::Max(0, RenderRects[0].Min.Y / 2),
+		FMath::Min(ViewRect.Max.X, FMath::DivideAndRoundUp(RenderRects[0].Max.X, 2)),
+		FMath::Min(ViewRect.Max.Y, FMath::DivideAndRoundUp(RenderRects[0].Max.Y, 2)));
 	for (int32 SmokeIndex = 1; SmokeIndex < SmokeCount; ++SmokeIndex)
 	{
 		const FIntRect& SmokeRect = RenderRects[SmokeIndex];
@@ -1635,11 +1635,12 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	SmokeTileRects.SetNum(SmokeCount);
 	for (int32 SmokeSlot = 0; SmokeSlot < SmokeCount; ++SmokeSlot)
 	{
-		FIntRect SmokeRect = RenderRects[SmokeSlot];
-		SmokeRect.Min.X = FMath::Max(0, SmokeRect.Min.X / 2);
-		SmokeRect.Min.Y = FMath::Max(0, SmokeRect.Min.Y / 2);
-		SmokeRect.Max.X = FMath::DivideAndRoundUp(SmokeRect.Max.X, 2);
-		SmokeRect.Max.Y = FMath::DivideAndRoundUp(SmokeRect.Max.Y, 2);
+		const FIntRect& FullResSmokeRect = RenderRects[SmokeSlot];
+		const FIntRect SmokeRect(
+			FMath::Max(0, FullResSmokeRect.Min.X / 2),
+			FMath::Max(0, FullResSmokeRect.Min.Y / 2),
+			FMath::Min(ViewRect.Max.X, FMath::DivideAndRoundUp(FullResSmokeRect.Max.X, 2)),
+			FMath::Min(ViewRect.Max.Y, FMath::DivideAndRoundUp(FullResSmokeRect.Max.Y, 2)));
 		const int32 MinTileX = FMath::Clamp((SmokeRect.Min.X - DrawRect.Min.X) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.X - 1);
 		const int32 MinTileY = FMath::Clamp((SmokeRect.Min.Y - DrawRect.Min.Y) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.Y - 1);
 		const int32 MaxTileX = FMath::Clamp((FMath::Max(SmokeRect.Max.X - 1, SmokeRect.Min.X) - DrawRect.Min.X) / TimeThiefSmokeParameterDefaults::CompositeTileSize, 0, TileGridSize.X - 1);
@@ -1711,7 +1712,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	const int32 CombinedShadowStepCount = FMath::Clamp(
 		CVarTimeThiefSmokeCombinedShadowStepCount.GetValueOnRenderThread(),
 		0,
-		8);
+		64);
 	const float CombinedShadowStepLength = FMath::Clamp(
 		CVarTimeThiefSmokeCombinedShadowStepLength.GetValueOnRenderThread(),
 		10.0f,
@@ -1726,12 +1727,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	for (int32 SmokeSlot = 0; SmokeSlot < SmokeCount; ++SmokeSlot)
 	{
 		const FRenderSmokeState& State = *RenderStates[SmokeSlot];
-		const FVector3f GridCellSize = (FVector3f(State.Volume.BoundsExtent) * 2.0f) / FVector3f(
-			FMath::Max(State.AllocatedGridSize.X, 1),
-			FMath::Max(State.AllocatedGridSize.Y, 1),
-			FMath::Max(State.AllocatedGridSize.Z, 1));
-		const float MaxGridCellSize = FMath::Max3(GridCellSize.X, GridCellSize.Y, GridCellSize.Z);
-
 		const FMatrix44f WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 		PackedDenseSmokeCount += State.PackedDenseFieldTexture.IsValid() ? 1 : 0;
 
@@ -1761,11 +1756,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		Descriptor.SelfShadowControls = FVector4f(FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SelfShadowStrength), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SelfShadowExtinction), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SelfShadowStepLength), static_cast<float>(TimeThiefSmokeParameterDefaults::SelfShadowInactiveBrickMaxSkipSteps));
 		Descriptor.NoiseFilamentA = FVector4f(FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderNoiseTimeScale), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentScale), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentStrength), FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentContrast));
 		Descriptor.FilamentAge = FVector4f(FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderFilamentWarpStrength), State.Volume.AgeSeconds, State.Volume.DurationSeconds, FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration));
-		Descriptor.GridResolution = FVector4f(
-			static_cast<float>(State.AllocatedGridSize.X),
-			static_cast<float>(State.AllocatedGridSize.Y),
-			static_cast<float>(State.AllocatedGridSize.Z),
-			0.0f);
 		Descriptor.RenderSteps_Quality = FVector4f(static_cast<float>(ConfiguredRenderMinSteps), static_cast<float>(ConfiguredRenderMaxSteps), 0.0f, 1.0f);
 		Descriptor.NaturalBoundsExtent_ObstacleFeather = FVector4f(State.Volume.NaturalBoundsExtent.X, State.Volume.NaturalBoundsExtent.Y, State.Volume.NaturalBoundsExtent.Z, TimeThiefSmokeParameterDefaults::ObstacleSdfSurfaceFeatherCm);
 		Descriptor.BoundaryNoiseControls = FVector4f(
@@ -1920,7 +1910,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	CompositeMetadata.PackedDenseSmokeCount = PackedDenseSmokeCount;
 	CompositeMetadata.BulletFieldActiveSmokeCount = BulletFieldActiveSmokeCount;
 	CompositeMetadata.bHalfResolution = true;
-	CompositeMetadata.bFastFilament = true;
+	CompositeMetadata.bFastFilament = false;
 	CompositeMetadata.bBoundaryShellGate = true;
 	CompositeMetadata.bSingleSmokeShader = bUseSingleSmokeShader;
 	CompositeMetadata.CameraInsideSmokeCount = 0;
@@ -1943,10 +1933,9 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	const FTimeThiefSmokeTestGpuProfiler::FQueryHandle CompositeQuery = SmokeTestGpuProfiler.BeginRasterPass(MoveTemp(CompositeMetadata));
 
 	FRHIBlendState* HalfResBlendState = TStaticBlendState<
-			CW_RGBA,
-			BO_Add, BF_One, BF_SourceAlpha,
-			BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI();
-
+		CW_RGBA,
+		BO_Add, BF_One, BF_SourceAlpha,
+		BO_Add, BF_Zero, BF_SourceAlpha>::GetRHI();
 	const FScreenPassTextureViewport OutputViewport(Output.Texture, DrawRect);
 	const FScreenPassTextureViewport InputViewport(CurrentSceneColor);
 	TShaderMapRef<FScreenPassVS> VertexShader(GetGlobalShaderMap(View.FeatureLevel));
@@ -2181,16 +2170,19 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 			}
 
 		const FIntPoint HalfResExtent(
-				FMath::Max(1, FMath::DivideAndRoundUp(CurrentSceneColor.ViewRect.Width(), 2)),
-				FMath::Max(1, FMath::DivideAndRoundUp(CurrentSceneColor.ViewRect.Height(), 2)));
-			const FRDGTextureDesc HalfResDesc = FRDGTextureDesc::Create2D(
-				HalfResExtent,
-				PF_FloatRGBA,
-				FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f)),
-				TexCreate_RenderTargetable | TexCreate_ShaderResource);
-			FRDGTextureRef HalfResSmokeTexture = GraphBuilder.CreateTexture(HalfResDesc, TEXT("TimeThiefSmoke.HalfResSmokeAccum"));
-
-			AddClearRenderTargetPass(GraphBuilder, HalfResSmokeTexture, FLinearColor(0.0f, 0.0f, 0.0f, 1.0f), FIntRect(0, 0, HalfResExtent.X, HalfResExtent.Y));
+			FMath::Max(1, FMath::DivideAndRoundUp(CurrentSceneColor.ViewRect.Width(), 2)),
+			FMath::Max(1, FMath::DivideAndRoundUp(CurrentSceneColor.ViewRect.Height(), 2)));
+		const FRDGTextureDesc HalfResDesc = FRDGTextureDesc::Create2D(
+			HalfResExtent,
+			PF_FloatRGBA,
+			FClearValueBinding(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f)),
+			TexCreate_RenderTargetable | TexCreate_ShaderResource);
+		FRDGTextureRef HalfResSmokeTexture = GraphBuilder.CreateTexture(HalfResDesc, TEXT("TimeThiefSmoke.HalfResSmokeAccum"));
+		AddClearRenderTargetPass(
+			GraphBuilder,
+			HalfResSmokeTexture,
+			FLinearColor(0.0f, 0.0f, 0.0f, 1.0f),
+			FIntRect(0, 0, HalfResExtent.X, HalfResExtent.Y));
 
 		for (int32 BatchIndex = 0; BatchIndex < Batches.Num(); ++BatchIndex)
 		{
@@ -2219,15 +2211,14 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 				Batches.Num());
 		}
 
-			const bool bLastPassAllowOverride = true;
-			CurrentSceneColor = BilateralUpsampleSmoke_RenderThread(
-				GraphBuilder,
-				View,
-				Inputs,
-				CurrentSceneColor,
-				HalfResSmokeTexture,
-				HalfResExtent,
-				bLastPassAllowOverride);
+		CurrentSceneColor = BilateralUpsampleSmoke_RenderThread(
+			GraphBuilder,
+			View,
+			Inputs,
+			CurrentSceneColor,
+			HalfResSmokeTexture,
+			HalfResExtent,
+			true);
 
 	return ReturnCurrentOrOverrideOutput();
 }
@@ -2252,32 +2243,38 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::BilateralUpsampleSmoke_RenderTh
 		Inputs.OverrideOutput.Texture != CurrentSceneColor.Texture;
 	const FScreenPassRenderTarget Output = bUseOverrideOutput
 		? Inputs.OverrideOutput
-		: FScreenPassRenderTarget::CreateFromInput(GraphBuilder, CurrentSceneColor, ERenderTargetLoadAction::ELoad, TEXT("TimeThiefSmoke.BilateralUpsample"));
+		: FScreenPassRenderTarget::CreateFromInput(
+			GraphBuilder,
+			CurrentSceneColor,
+			ERenderTargetLoadAction::ELoad,
+			TEXT("TimeThiefSmoke.BilateralUpsample"));
 	if (!Output.IsValid())
 	{
 		return CurrentSceneColor;
 	}
 
-	// Bypass scene color copy pass since the bilateral upsampling shader already samples
-	// the scene color and writes directly to the entire viewport of the output texture.
-
 	TShaderMapRef<FTimeThiefSmokeBilateralUpsamplePS> PixelShader(GetGlobalShaderMap(View.FeatureLevel));
-	FTimeThiefSmokeBilateralUpsamplePS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBilateralUpsamplePS::FParameters>();
-
+	FTimeThiefSmokeBilateralUpsamplePS::FParameters* PassParameters =
+		GraphBuilder.AllocParameters<FTimeThiefSmokeBilateralUpsamplePS::FParameters>();
 	PassParameters->SceneColorTexture = CurrentSceneColor.Texture;
 	FRDGTextureRef SceneDepthTexture = Inputs.SceneTextures.SceneTextures->GetParameters()->SceneDepthTexture;
 	PassParameters->SceneDepthTexture = SceneDepthTexture;
 	PassParameters->HalfResSmokeTexture = HalfResSmokeTexture;
 	PassParameters->SceneColorSampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 	PassParameters->HalfResSize = FVector2f(static_cast<float>(HalfResExtent.X), static_cast<float>(HalfResExtent.Y));
-
 	PassParameters->BilateralDepthSensitivity = FMath::Max(
 		0.0f,
 		CVarTimeThiefSmokeBilateralDepthSensitivity.GetValueOnRenderThread());
 
-	const FVector2f SceneColorTextureExtent(static_cast<float>(FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.X)), static_cast<float>(FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.Y)));
-	const FVector2f InputRectMin(static_cast<float>(CurrentSceneColor.ViewRect.Min.X), static_cast<float>(CurrentSceneColor.ViewRect.Min.Y));
-	const FVector2f OutputRectMin(static_cast<float>(Output.ViewRect.Min.X), static_cast<float>(Output.ViewRect.Min.Y));
+	const FVector2f SceneColorTextureExtent(
+		static_cast<float>(FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.X)),
+		static_cast<float>(FMath::Max(1, CurrentSceneColor.Texture->Desc.Extent.Y)));
+	const FVector2f InputRectMin(
+		static_cast<float>(CurrentSceneColor.ViewRect.Min.X),
+		static_cast<float>(CurrentSceneColor.ViewRect.Min.Y));
+	const FVector2f OutputRectMin(
+		static_cast<float>(Output.ViewRect.Min.X),
+		static_cast<float>(Output.ViewRect.Min.Y));
 	const FVector2f InputToOutputScale(
 		static_cast<float>(CurrentSceneColor.ViewRect.Width()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Width())),
 		static_cast<float>(CurrentSceneColor.ViewRect.Height()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Height())));
@@ -2296,9 +2293,15 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::BilateralUpsampleSmoke_RenderTh
 	SceneDepthViewRect.Max.Y = FMath::Clamp(SceneDepthViewRect.Max.Y, SceneDepthViewRect.Min.Y, SceneDepthTextureExtent.Y);
 	if (SceneDepthViewRect.Width() <= 0 || SceneDepthViewRect.Height() <= 0)
 	{
-		SceneDepthViewRect = FIntRect(0, 0, FMath::Max(1, SceneDepthTextureExtent.X), FMath::Max(1, SceneDepthTextureExtent.Y));
+		SceneDepthViewRect = FIntRect(
+			0,
+			0,
+			FMath::Max(1, SceneDepthTextureExtent.X),
+			FMath::Max(1, SceneDepthTextureExtent.Y));
 	}
-	const FVector2f SceneDepthRectMin(static_cast<float>(SceneDepthViewRect.Min.X), static_cast<float>(SceneDepthViewRect.Min.Y));
+	const FVector2f SceneDepthRectMin(
+		static_cast<float>(SceneDepthViewRect.Min.X),
+		static_cast<float>(SceneDepthViewRect.Min.Y));
 	const FVector2f OutputToDepthScale(
 		static_cast<float>(SceneDepthViewRect.Width()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Width())),
 		static_cast<float>(SceneDepthViewRect.Height()) / static_cast<float>(FMath::Max(1, Output.ViewRect.Height())));
@@ -2309,9 +2312,9 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::BilateralUpsampleSmoke_RenderTh
 		SceneDepthRectMin.Y - OutputRectMin.Y * OutputToDepthScale.Y);
 	PassParameters->SceneDepthViewRect = SceneDepthViewRect;
 	PassParameters->RenderTargets[0] = Output.GetRenderTargetBinding();
+
 	const FTimeThiefSmokeTestGpuProfiler::FQueryHandle UpsampleQuery = SmokeTestGpuProfiler.BeginRasterPass(
 		MakeSmokeTestGpuMetadata(TEXT("Composite.Upsample")));
-
 	TShaderMapRef<FScreenPassVS> VertexShader(GetGlobalShaderMap(View.FeatureLevel));
 	AddDrawScreenPass(
 		GraphBuilder,
@@ -2327,7 +2330,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::BilateralUpsampleSmoke_RenderTh
 			SetShaderParameters(RHICmdList, PixelShader, PixelShader.GetPixelShader(), *PassParameters);
 		});
 	SmokeTestGpuProfiler.EndRasterPass(GraphBuilder, Output.Texture, UpsampleQuery);
-
 	return Output;
 }
 

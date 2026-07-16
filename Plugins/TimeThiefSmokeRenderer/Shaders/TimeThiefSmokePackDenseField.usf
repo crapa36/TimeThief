@@ -17,8 +17,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const int3 CellCoord = int3(DispatchThreadId);
-	const float Density = DensityTexture.Load(int4(CellCoord, 0)) + DisplacedDensityTexture.Load(int4(CellCoord, 0));
+	const float Density = DensityTexture.Load(int4(CellCoord, 0));
+	const float DisplacedDensity = DisplacedDensityTexture.Load(int4(CellCoord, 0));
 	const float BulletCutout = bPackBulletChannels != 0u ? BulletCutoutTexture.Load(int4(CellCoord, 0)) : 0.0;
 	const float BulletSink = bPackBulletChannels != 0u ? BulletSinkTexture.Load(int4(CellCoord, 0)) : 0.0;
-	OutPackedDenseField[CellCoord] = float4(Density, 0.0, BulletCutout, BulletSink);
+	OutPackedDenseField[CellCoord] = float4(Density, DisplacedDensity, BulletCutout, BulletSink);
 }
