@@ -10,6 +10,7 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeVorticityCS, "/TimeThiefSmokeShaders/Time
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildCurlCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildCurl.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeUpdateVortexParticlesCS, "/TimeThiefSmokeShaders/TimeThiefSmokeUpdateVortexParticles.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildVortexBrickMasksCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildVortexBrickMasks.usf", "MainCS", SF_Compute);
+IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildVortexBrickMasksReverseCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildVortexBrickMasksReverse.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeSplatVortexParticlesCS, "/TimeThiefSmokeShaders/TimeThiefSmokeSplatVortexParticles.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildBrickOccupancyCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildBrickOccupancy.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildEventBrickMasksCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildEventBrickMasks.usf", "MainCS", SF_Compute);

@@ -184,6 +184,17 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeBuildVortexBrickMasksReverseCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildVortexBrickMasksReverseCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildVortexBrickMasksReverseCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		TIME_THIEF_SMOKE_BUILD_VORTEX_BRICK_MASKS_CS_PARAMETERS
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeSplatVortexParticlesCS : public FGlobalShader
 {
 public:

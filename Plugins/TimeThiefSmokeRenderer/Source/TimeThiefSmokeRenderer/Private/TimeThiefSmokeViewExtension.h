@@ -113,6 +113,15 @@ private:
 		uint64 QueuedFrame = 0;
 	};
 
+	struct FPendingVortexMaskValidationReadback
+	{
+		TUniquePtr<FRHIGPUBufferReadback> LegacyReadback;
+		TUniquePtr<FRHIGPUBufferReadback> ReverseReadback;
+		int32 SmokeId = INDEX_NONE;
+		uint32 BrickCount = 0;
+		uint64 QueuedFrame = 0;
+	};
+
 	FScreenPassTexture CompositeSmokeMulti_RenderThread(
 		FRDGBuilder& GraphBuilder,
 		const FSceneView& View,
@@ -144,6 +153,7 @@ private:
 	void ReleaseReadyRetiredSparseActiveBrickCountReadbacks();
 	void ProcessSmokeTestProbeRequests(FRDGBuilder& GraphBuilder, uint64 SceneKey);
 	void ConsumeSmokeTestProbeReadbacks();
+	void ConsumeVortexMaskValidationReadbacks();
 	bool HasRenderableSceneState_RenderThread(uint64 SceneKey, const FSceneViewFamily* ViewFamily = nullptr) const;
 	void UploadDeadVortexParticles(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexBuffer);
 	void AddVortexParticleUpdatePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGBufferRef VortexIn, FRDGBufferRef VortexOut, FRDGTextureRef DensityIn, FRDGTextureRef DisplacedDensityIn, FRDGTextureRef VelocityIn, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, FRDGBufferRef EventBuffer, int32 EventCount, float DeltaSeconds);
@@ -173,5 +183,6 @@ private:
 	TMap<uint64, float> LastFrameDeltaSecondsByScene;
 	TArray<FRetiredSparseActiveBrickCountReadback> RetiredSparseActiveBrickCountReadbacks;
 	TArray<FPendingSmokeTestProbeReadback> PendingSmokeTestProbeReadbacks;
+	TArray<FPendingVortexMaskValidationReadback> PendingVortexMaskValidationReadbacks;
 	FTimeThiefSmokeTestGpuProfiler SmokeTestGpuProfiler;
 };

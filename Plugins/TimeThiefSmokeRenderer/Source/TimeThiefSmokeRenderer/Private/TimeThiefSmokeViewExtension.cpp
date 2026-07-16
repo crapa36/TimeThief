@@ -136,8 +136,8 @@ namespace
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeReverseVortexBinning(
 		TEXT("r.TimeThiefSmoke.ReverseVortexBinning"),
-		0,
-		TEXT("Builds vortex brick masks from particles to affected bricks. 0=legacy brick scan, 1=reverse particle binning."));
+		1,
+		TEXT("Builds vortex brick masks from particles to affected bricks. 0=legacy brick scan, 1=reverse particle binning, 2=legacy output plus bitwise validation."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeFaceOpenStencils(
 		TEXT("r.TimeThiefSmoke.FaceOpenStencils"),
@@ -1226,6 +1226,61 @@ void FTimeThiefSmokeViewExtension::QueueSparseActiveBrickCountReadback(
 	State.bSparseActiveBrickCountReadbackPending = true;
 }
 
+void FTimeThiefSmokeViewExtension::ConsumeVortexMaskValidationReadbacks()
+{
+	for (int32 Index = PendingVortexMaskValidationReadbacks.Num() - 1; Index >= 0; --Index)
+	{
+		FPendingVortexMaskValidationReadback& Pending = PendingVortexMaskValidationReadbacks[Index];
+		if (!Pending.LegacyReadback || !Pending.ReverseReadback ||
+			!Pending.LegacyReadback->IsReady() || !Pending.ReverseReadback->IsReady())
+		{
+			continue;
+		}
+
+		const uint32 ValueCount = Pending.BrickCount * 4u;
+		const uint32 ByteCount = ValueCount * sizeof(uint32);
+		const uint32* LegacyValues = static_cast<const uint32*>(Pending.LegacyReadback->Lock(ByteCount));
+		const uint32* ReverseValues = static_cast<const uint32*>(Pending.ReverseReadback->Lock(ByteCount));
+		uint32 MismatchCount = 0u;
+		if (LegacyValues && ReverseValues)
+		{
+			for (uint32 ValueIndex = 0; ValueIndex < ValueCount; ++ValueIndex)
+			{
+				MismatchCount += LegacyValues[ValueIndex] != ReverseValues[ValueIndex] ? 1u : 0u;
+			}
+		}
+		else
+		{
+			MismatchCount = ValueCount;
+		}
+		Pending.LegacyReadback->Unlock();
+		Pending.ReverseReadback->Unlock();
+
+		if (MismatchCount == 0u)
+		{
+			UE_LOG(
+				LogTimeThiefSmokeRenderer,
+				Display,
+				TEXT("VortexMaskValidation SmokeId=%d Frame=%llu Bricks=%u XorMismatchWords=0"),
+				Pending.SmokeId,
+				Pending.QueuedFrame,
+				Pending.BrickCount);
+		}
+		else
+		{
+			UE_LOG(
+				LogTimeThiefSmokeRenderer,
+				Error,
+				TEXT("VortexMaskValidation SmokeId=%d Frame=%llu Bricks=%u XorMismatchWords=%u"),
+				Pending.SmokeId,
+				Pending.QueuedFrame,
+				Pending.BrickCount,
+				MismatchCount);
+		}
+		PendingVortexMaskValidationReadbacks.RemoveAtSwap(Index);
+	}
+}
+
 bool FTimeThiefSmokeViewExtension::HasRenderableSceneState_RenderThread(uint64 SceneKey, const FSceneViewFamily* ViewFamily) const
 {
 	for (const TPair<FRenderSmokeStateKey, FRenderSmokeState>& Pair : SmokeStates)
@@ -1265,6 +1320,7 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 	check(IsInRenderingThread());
 
 	ReleaseReadyRetiredSparseActiveBrickCountReadbacks();
+	ConsumeVortexMaskValidationReadbacks();
 
 	if (Frame.SceneKey == 0)
 	{
@@ -1395,6 +1451,7 @@ void FTimeThiefSmokeViewExtension::Clear_RenderThread()
 	check(IsInRenderingThread());
 	SmokeTestGpuProfiler.Reset_RenderThread();
 	PendingSmokeTestProbeReadbacks.Reset();
+	PendingVortexMaskValidationReadbacks.Reset();
 	SmokeStates.Reset();
 	LastFrameDeltaSecondsByScene.Reset();
 	RetiredSparseActiveBrickCountReadbacks.Reset();
@@ -1510,6 +1567,7 @@ void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICo
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildCurlCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeUpdateVortexParticlesCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksCS>(ShaderMap));
+		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksReverseCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSplatVortexParticlesCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildBrickOccupancyCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildEventBrickMasksCS>(ShaderMap));
@@ -2982,33 +3040,90 @@ FRDGBufferRef FTimeThiefSmokeViewExtension::AddBuildVortexBrickMasksPass(
 {
 	const FIntVector BrickGridSize = State.AllocatedBrickGridSize;
 	const uint32 BrickCount = static_cast<uint32>(FMath::Max(1, BrickGridSize.X * BrickGridSize.Y * BrickGridSize.Z));
-	FRDGBufferRef VortexBrickMasksBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32) * 4, BrickCount),
-		TEXT("TimeThiefSmoke.VortexBrickMasks"));
+	const int32 ParticleCount = FMath::Clamp(TimeThiefSmokeParameterDefaults::VortexParticleCount, 1, TimeThiefSmokeParameterDefaults::MaxVortexParticleCount);
+	const int32 BinningMode = FMath::Clamp(CVarTimeThiefSmokeReverseVortexBinning.GetValueOnRenderThread(), 0, 2);
+	FRDGBufferDesc MaskDesc = FRDGBufferDesc::CreateStructuredDesc(sizeof(uint32) * 4, BrickCount);
+	MaskDesc.Usage |= EBufferUsageFlags::SourceCopy;
+	auto CreateMaskBuffer = [&](const TCHAR* Name)
+	{
+		return GraphBuilder.CreateBuffer(MaskDesc, Name);
+	};
+	auto ConfigureParameters = [&](auto* PassParameters, FRDGBufferRef MaskBuffer)
+	{
+		PassParameters->VortexParticles = GraphBuilder.CreateSRV(VortexBuffer);
+		PassParameters->OutVortexBrickMasks = GraphBuilder.CreateUAV(MaskBuffer);
+		PassParameters->VortexParticleCount = ParticleCount;
+		PassParameters->MaxVortexParticleCount = TimeThiefSmokeParameterDefaults::MaxVortexParticleCount;
+		PassParameters->VortexParticleSplatRadius = FMath::Max(TimeThiefSmokeParameterDefaults::VortexParticleMinRadius, TimeThiefSmokeParameterDefaults::VortexParticleSplatRadius);
+		PassParameters->BrickGridResolution = BrickGridSize;
+		PassParameters->SmokeBrickSize = FMath::Clamp(TimeThiefSmokeParameterDefaults::SmokeBrickSize, TimeThiefSmokeParameterDefaults::SmokeBrickMinSize, TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
+		PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
+	};
+	auto MakeMetadata = [&](const TCHAR* PassName, const bool bReverse)
+	{
+		FTimeThiefSmokeTestGpuPassResult Metadata = MakeSmokeTestGpuMetadata(PassName, State.Volume.SmokeId);
+		Metadata.VortexParticleCount = ParticleCount;
+		Metadata.VortexBrickCount = static_cast<int32>(BrickCount);
+		Metadata.VortexParticleBrickPairs = bReverse ? 0 : static_cast<int32>(BrickCount) * ParticleCount;
+		return Metadata;
+	};
+	auto AddLegacyPass = [&](FRDGBufferRef MaskBuffer, const TCHAR* PassName)
+	{
+		TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+		FTimeThiefSmokeBuildVortexBrickMasksCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildVortexBrickMasksCS::FParameters>();
+		ConfigureParameters(PassParameters, MaskBuffer);
+		SmokeTestGpuProfiler.AddPass(
+			GraphBuilder,
+			RDG_EVENT_NAME("TimeThiefSmoke.BuildVortexBrickMasksLegacy SmokeId=%d", State.Volume.SmokeId),
+			ComputeShader,
+			PassParameters,
+			MakeGroupCount(BrickGridSize),
+			MakeMetadata(PassName, false));
+	};
+	auto AddReversePass = [&](FRDGBufferRef MaskBuffer, const TCHAR* PassName)
+	{
+		TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksReverseCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+		FTimeThiefSmokeBuildVortexBrickMasksReverseCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildVortexBrickMasksReverseCS::FParameters>();
+		ConfigureParameters(PassParameters, MaskBuffer);
+		AddClearUAVPass(GraphBuilder, PassParameters->OutVortexBrickMasks, 0u);
+		SmokeTestGpuProfiler.AddPass(
+			GraphBuilder,
+			RDG_EVENT_NAME("TimeThiefSmoke.BuildVortexBrickMasksReverse SmokeId=%d", State.Volume.SmokeId),
+			ComputeShader,
+			PassParameters,
+			FIntVector(FMath::DivideAndRoundUp(ParticleCount, 64), 1, 1),
+			MakeMetadata(PassName, true));
+	};
 
-	TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
-	FTimeThiefSmokeBuildVortexBrickMasksCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildVortexBrickMasksCS::FParameters>();
-	PassParameters->VortexParticles = GraphBuilder.CreateSRV(VortexBuffer);
-	PassParameters->OutVortexBrickMasks = GraphBuilder.CreateUAV(VortexBrickMasksBuffer);
-	PassParameters->VortexParticleCount = FMath::Clamp(TimeThiefSmokeParameterDefaults::VortexParticleCount, 1, TimeThiefSmokeParameterDefaults::MaxVortexParticleCount);
-	PassParameters->MaxVortexParticleCount = TimeThiefSmokeParameterDefaults::MaxVortexParticleCount;
-	PassParameters->VortexParticleSplatRadius = FMath::Max(TimeThiefSmokeParameterDefaults::VortexParticleMinRadius, TimeThiefSmokeParameterDefaults::VortexParticleSplatRadius);
-	PassParameters->BrickGridResolution = BrickGridSize;
-	PassParameters->SmokeBrickSize = FMath::Clamp(TimeThiefSmokeParameterDefaults::SmokeBrickSize, TimeThiefSmokeParameterDefaults::SmokeBrickMinSize, TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
-	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
+	if (BinningMode == 2)
+	{
+		FRDGBufferRef LegacyMaskBuffer = CreateMaskBuffer(TEXT("TimeThiefSmoke.VortexBrickMasksLegacyValidation"));
+		FRDGBufferRef ReverseMaskBuffer = CreateMaskBuffer(TEXT("TimeThiefSmoke.VortexBrickMasksReverseValidation"));
+		AddLegacyPass(LegacyMaskBuffer, TEXT("Vortex.BrickMasks.LegacyValidation"));
+		AddReversePass(ReverseMaskBuffer, TEXT("Vortex.BrickMasks.ReverseValidation"));
 
-	FTimeThiefSmokeTestGpuPassResult BrickMaskMetadata = MakeSmokeTestGpuMetadata(TEXT("Vortex.BrickMasks"), State.Volume.SmokeId);
-	BrickMaskMetadata.VortexParticleCount = PassParameters->VortexParticleCount;
-	BrickMaskMetadata.VortexBrickCount = static_cast<int32>(BrickCount);
-	BrickMaskMetadata.VortexParticleBrickPairs = static_cast<int32>(BrickCount) * PassParameters->VortexParticleCount;
-	SmokeTestGpuProfiler.AddPass(
-		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.BuildVortexBrickMasks SmokeId=%d", State.Volume.SmokeId),
-		ComputeShader,
-		PassParameters,
-		MakeGroupCount(BrickGridSize),
-		MoveTemp(BrickMaskMetadata));
+		FPendingVortexMaskValidationReadback Pending;
+		Pending.LegacyReadback = MakeUnique<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.VortexMaskLegacyValidation"));
+		Pending.ReverseReadback = MakeUnique<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.VortexMaskReverseValidation"));
+		Pending.SmokeId = State.Volume.SmokeId;
+		Pending.BrickCount = BrickCount;
+		Pending.QueuedFrame = GFrameNumberRenderThread;
+		const uint32 ByteCount = BrickCount * sizeof(uint32) * 4u;
+		AddEnqueueCopyPass(GraphBuilder, Pending.LegacyReadback.Get(), LegacyMaskBuffer, ByteCount);
+		AddEnqueueCopyPass(GraphBuilder, Pending.ReverseReadback.Get(), ReverseMaskBuffer, ByteCount);
+		PendingVortexMaskValidationReadbacks.Add(MoveTemp(Pending));
+		return LegacyMaskBuffer;
+	}
 
+	FRDGBufferRef VortexBrickMasksBuffer = CreateMaskBuffer(TEXT("TimeThiefSmoke.VortexBrickMasks"));
+	if (BinningMode == 1)
+	{
+		AddReversePass(VortexBrickMasksBuffer, TEXT("Vortex.BrickMasks"));
+	}
+	else
+	{
+		AddLegacyPass(VortexBrickMasksBuffer, TEXT("Vortex.BrickMasks"));
+	}
 	return VortexBrickMasksBuffer;
 }
 

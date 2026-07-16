@@ -1,0 +1,84 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+TIME_THIEF_SMOKE_BUILD_VORTEX_BRICK_MASKS_PARAMETERS
+
+uint FlattenBrickCoord(uint3 BrickCoord)
+{
+	const uint3 BrickGrid = uint3(BrickGridResolution);
+	return BrickCoord.x + BrickCoord.y * BrickGrid.x + BrickCoord.z * BrickGrid.x * BrickGrid.y;
+}
+
+void SetParticleBitAtomic(uint BrickIndex, int ParticleIndex)
+{
+	const uint Bit = 1u << (ParticleIndex & 31);
+	uint Ignored = 0u;
+	if (ParticleIndex < 32)
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].x, Bit, Ignored);
+	}
+	else if (ParticleIndex < 64)
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].y, Bit, Ignored);
+	}
+	else if (ParticleIndex < 96)
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].z, Bit, Ignored);
+	}
+	else
+	{
+		InterlockedOr(OutVortexBrickMasks[BrickIndex].w, Bit, Ignored);
+	}
+}
+
+[numthreads(64, 1, 1)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	const int ParticleIndex = (int)DispatchThreadId.x;
+	const int SafeParticleCount = min(VortexParticleCount, MaxVortexParticleCount);
+	if (ParticleIndex >= SafeParticleCount)
+	{
+		return;
+	}
+
+	const FTimeThiefSmokeVortexParticleShaderData Particle = VortexParticles[ParticleIndex];
+	if (Particle.LocalPositionLife.w <= 0.0 || Particle.VelocityStrength.w <= 0.0)
+	{
+		return;
+	}
+
+	const float InfluenceRadius = max(VortexParticleSplatRadius, 1.0);
+	const float3 SafeBoundsExtent = max(BoundsExtent, 1.0);
+	const float3 MinUVW = saturate((Particle.LocalPositionLife.xyz - InfluenceRadius) / SafeBoundsExtent * 0.5 + 0.5);
+	const float3 MaxUVW = saturate((Particle.LocalPositionLife.xyz + InfluenceRadius) / SafeBoundsExtent * 0.5 + 0.5);
+	const int3 MinBrick = clamp((int3)floor(MinUVW * float3(BrickGridResolution)), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 MaxBrick = clamp((int3)floor(MaxUVW * float3(BrickGridResolution)), int3(0, 0, 0), BrickGridResolution - 1);
+	const int3 VoxelGridResolution = BrickGridResolution * SmokeBrickSize;
+	const float3 GridResolutionFloat = max(float3(VoxelGridResolution), 1.0);
+
+	[loop]
+	for (int Z = MinBrick.z; Z <= MaxBrick.z; ++Z)
+	{
+		[loop]
+		for (int Y = MinBrick.y; Y <= MaxBrick.y; ++Y)
+		{
+			[loop]
+			for (int X = MinBrick.x; X <= MaxBrick.x; ++X)
+			{
+				const int3 BrickCoord = int3(X, Y, Z);
+				const int3 BrickMinCoord = BrickCoord * SmokeBrickSize;
+				const int3 BrickMaxCoord = min((BrickCoord + int3(1, 1, 1)) * SmokeBrickSize, VoxelGridResolution);
+				const float3 BrickMin = (float3(BrickMinCoord) / GridResolutionFloat * 2.0 - 1.0) * BoundsExtent;
+				const float3 BrickMax = (float3(BrickMaxCoord) / GridResolutionFloat * 2.0 - 1.0) * BoundsExtent;
+				const float3 BrickCenter = (BrickMin + BrickMax) * 0.5;
+				const float3 BrickHalfExtent = max((BrickMax - BrickMin) * 0.5, float3(1.0, 1.0, 1.0));
+				const float3 Delta = abs(Particle.LocalPositionLife.xyz - BrickCenter) - BrickHalfExtent;
+				const float DistanceSq = dot(max(Delta, 0.0), max(Delta, 0.0));
+				if (DistanceSq <= InfluenceRadius * InfluenceRadius)
+				{
+					SetParticleBitAtomic(FlattenBrickCoord(uint3(BrickCoord)), ParticleIndex);
+				}
+			}
+		}
+	}
+}
