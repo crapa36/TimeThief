@@ -9,7 +9,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 실제 시뮬레이션 연막 박스 반경(cm).
 	inline FVector GetSmokeBoundsExtent()
 	{
-		return FVector(700.0, 700.0, 400.0);
+		return FVector(700.0, 700.0, 480.0);
 	}
 
 	// 렌더링 박스에 더하는 여유 반경(cm). 높을수록 가장자리 잘림 감소, raymarch 범위 증가.
@@ -23,18 +23,18 @@ namespace TimeThiefSmokeParameterDefaults
 	// 연막 페이드아웃 시간(초).
 	constexpr float SmokeFadeOutDuration = 5.0f;
 	// 초기 연막 밀도.
-	constexpr float InitialDensity = 5.0f;
+	constexpr float InitialDensity = 3.2f;
 
 	// 생성 플룸
 
 	// 생성 직후 밀도와 속도 소스를 넣는 시간(초).
-	constexpr float PlumeEmissionDuration = 2.5f;
+	constexpr float PlumeEmissionDuration = 2.0f;
 	// 생성 소스 반경(cm). 높을수록 초기 연막 덩어리가 커짐.
-	constexpr float PlumeSourceRadius = 100.0f;
+	constexpr float PlumeSourceRadius = 90.0f;
 	// 초기 연막 수평 확산 속도(cm/s).
-	constexpr float PlumeExpansionVelocity = 500.0f;
+	constexpr float PlumeExpansionVelocity = 330.0f;
 	// 초기 연막 상승 속도(cm/s).
-	constexpr float PlumeRiseVelocity = 50.0f;
+	constexpr float PlumeRiseVelocity = 110.0f;
 
 	// 장애물 마스크
 
@@ -122,11 +122,11 @@ namespace TimeThiefSmokeParameterDefaults
 	// 빛과 그림자
 
 	// 연막 흡수 계수. 높을수록 더 어둡고 불투명하게 보임.
-	constexpr float Extinction = 3.0f;
+	constexpr float Extinction = 2.2f;
 	// 산란 색 반사 비율(0~1). 높을수록 밝게 보임.
-	constexpr float ScatteringAlbedo = 0.75f;
+	constexpr float ScatteringAlbedo = 0.84f;
 	// 전방 산란 방향성(-1~1). 높을수록 빛 방향 하이라이트 증가.
-	constexpr float ScatteringAnisotropy = 0.2f;
+	constexpr float ScatteringAnisotropy = 0.24f;
 	// 자체 그림자 기준 빛 방향.
 	inline FVector3f GetSelfShadowLightDirection()
 	{
@@ -157,23 +157,23 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더링 디테일
 
 	// 렌더 노이즈 공간 스케일. 높을수록 패턴이 촘촘해짐.
-	constexpr float RenderNoiseScale = 0.1f;
+	constexpr float RenderNoiseScale = 0.008f;
 	// 렌더 노이즈 강도. 높을수록 밀도 디테일 증가.
-	constexpr float RenderNoiseStrength = 1.5f;
+	constexpr float RenderNoiseStrength = 0.95f;
 	// 렌더 노이즈 시간 스케일. 높을수록 노이즈 움직임 증가.
-	constexpr float RenderNoiseTimeScale = 0.05f;
+	constexpr float RenderNoiseTimeScale = 0.04f;
 	// 렌더 경계 노이즈 공간 스케일(1/cm). 높을수록 경계 무늬가 촘촘해짐.
-	constexpr float RenderBoundaryNoiseScale = 0.005f;
+	constexpr float RenderBoundaryNoiseScale = 0.007f;
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
-	constexpr float RenderBoundaryNoiseStrength = 0.07f;
+	constexpr float RenderBoundaryNoiseStrength = 0.10f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
-	constexpr float RenderFilamentScale = 1.0f;
+	constexpr float RenderFilamentScale = 0.008f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 4.5f;
+	constexpr float RenderFilamentStrength = 2.0f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
-	constexpr float RenderFilamentContrast = 8.5f;
+	constexpr float RenderFilamentContrast = 2.0f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
-	constexpr float RenderFilamentWarpStrength = 7.5f;
+	constexpr float RenderFilamentWarpStrength = 1.5f;
 
 	// 이류와 감쇠
 
