@@ -60,22 +60,9 @@ uint FlattenBrickCoordForEventBins(int3 BrickCoord)
 
 uint4 GetEventBrickMask(uint3 CellCoord)
 {
-	if (bUseEventBrickBins == 0u)
-	{
-		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
-	}
-
 	const int SafeBrickSize = max(SmokeBrickSize, 1);
 	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
 	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
-}
-
-bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
-{
-	const uint WordIndex = (uint)EventIndex >> 5u;
-	const uint Bit = 1u << ((uint)EventIndex & 31u);
-	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
-	return (Word & Bit) != 0u;
 }
 
 [numthreads(4, 4, 4)]
@@ -113,23 +100,15 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
 	uint4 RemainingEventMask = EventBrickMask & TimeThiefSmokeValidEventMask(SafeEventCount);
-	const bool bUseBitIteration = TimeThiefSmokeUseEventBitIteration(bUseEventBitIteration, RemainingEventMask, SafeEventCount);
 	uint EventWordIndex = 0u;
 	[loop]
 	for (int CandidateIndex = 0; CandidateIndex < SafeEventCount; ++CandidateIndex)
 	{
-		const int EventIndex = bUseBitIteration
-			? TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex)
-			: CandidateIndex;
+		const int EventIndex = TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex);
 		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
 			break;
 		}
-		if (!bUseBitIteration && !IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
-		{
-			continue;
-		}
-
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		if ((uint)round(Event.TypeShapeAgeSeed.x) != 1u)
 		{

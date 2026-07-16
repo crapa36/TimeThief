@@ -377,7 +377,7 @@ namespace TimeThiefSmokeVolume
 		MixObstacleMaskHash(Hash, reinterpret_cast<uint64>(World));
 		MixObstacleMaskHash(Hash, static_cast<uint64>(Resolution));
 		MixObstacleMaskHash(Hash, static_cast<uint64>(TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives));
-		MixObstacleMaskHash(Hash, TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask ? 1ull : 0ull);
+		MixObstacleMaskHash(Hash, 1ull);
 		MixObstacleMaskTransform(Hash, SmokeTransform);
 		MixObstacleMaskVector(Hash, NaturalBoundsExtent);
 		MixObstacleMaskVector(Hash, RenderBoundsExtent);
@@ -927,20 +927,6 @@ FBox ATimeThiefSmokeVolume::GetCurrentSmokeWorldBounds() const
 
 void ATimeThiefSmokeVolume::FlushPendingObstacleFieldRebuild(float DeltaTime)
 {
-	if (!TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
-	{
-		if (bHasBuiltObstacleField || ObstacleFieldSignature != 0 || !ObstaclePrimitives.IsEmpty())
-		{
-			bHasBuiltObstacleField = true;
-			ObstaclePrimitives.Reset();
-			ObstacleFieldResolution = 0;
-			bHasSolidObstacleField = false;
-			ObstacleFieldSignature = 0;
-			++ObstacleFieldRevision;
-		}
-		return;
-	}
-
 	if (bObstacleFieldRebuildPending && !bHasBuiltObstacleField)
 	{
 		RebuildStaticObstacleField(DeltaTime);
@@ -1317,7 +1303,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 	bObstacleFieldRebuildPending = false;
 
 	UWorld* World = GetWorld();
-	if (!World || !TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
+	if (!World)
 	{
 		const bool bHadObstacleField = bHasBuiltObstacleField || ObstacleFieldSignature != 0 || !ObstaclePrimitives.IsEmpty();
 		ObstaclePrimitives.Reset();

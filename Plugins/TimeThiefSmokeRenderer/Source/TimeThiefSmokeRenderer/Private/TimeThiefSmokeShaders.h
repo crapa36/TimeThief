@@ -36,9 +36,7 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f SelfShadowControls = FVector4f::Zero();
 	FVector4f NoiseFilamentA = FVector4f::Zero();
 	FVector4f FilamentAge = FVector4f::Zero();
-	FVector4f GridResolution_UseSparse = FVector4f::Zero();
-	FVector4f BrickGridResolution_SmokeBrickSize = FVector4f::Zero();
-	FVector4f SparseAtlasBrickGridResolution_MaxActive = FVector4f::Zero();
+	FVector4f GridResolution = FVector4f::Zero();
 	FVector4f RenderSteps_Quality = FVector4f::Zero();
 	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
 	FVector4f RaymarchControls = FVector4f::Zero();
@@ -168,32 +166,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeBuildVortexBrickMasksCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildVortexBrickMasksCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildVortexBrickMasksCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_BUILD_VORTEX_BRICK_MASKS_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FTimeThiefSmokeBuildObstacleNeighborMaskCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildObstacleNeighborMaskCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildObstacleNeighborMaskCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		SHADER_PARAMETER(FIntVector, GridResolution)
-		SHADER_PARAMETER(float, SurfaceFeatherCm)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleSdfTexture)
-		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<uint>, OutObstacleNeighborMaskTexture)
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeBuildVortexBrickMasksReverseCS : public FGlobalShader
 {
 public:
@@ -249,17 +221,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeScatterSparseAtlasCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeScatterSparseAtlasCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeScatterSparseAtlasCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_SCATTER_SPARSE_ATLAS_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokePackDenseFieldCS : public FGlobalShader
 {
 public:
@@ -299,17 +260,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeDivergenceCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeDivergenceCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeDivergenceCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_DIVERGENCE_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeBuildMacDivergenceCS : public FGlobalShader
 {
 public:
@@ -332,17 +282,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeProjectVelocityCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeProjectVelocityCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeProjectVelocityCS, FGlobalShader);
-
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		TIME_THIEF_SMOKE_PROJECT_VELOCITY_CS_PARAMETERS
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeProjectMacToCollocatedVelocityCS : public FGlobalShader
 {
 public:
@@ -360,12 +299,9 @@ public:
 	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeCompositeMultiPS);
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeCompositeMultiPS, FGlobalShader);
 
-	class FHalfResolutionDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_HALF_RESOLUTION");
-	class FFastFilamentDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_FAST_FILAMENT");
-	class FBoundaryShellGateDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_BOUNDARY_SHELL_GATE");
 	class FSingleSmokeDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_SINGLE_SMOKE");
 	class FStepStatsDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_STEP_STATS");
-	using FPermutationDomain = TShaderPermutationDomain<FHalfResolutionDim, FFastFilamentDim, FBoundaryShellGateDim, FSingleSmokeDim, FStepStatsDim>;
+	using FPermutationDomain = TShaderPermutationDomain<FSingleSmokeDim, FStepStatsDim>;
 
 	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
@@ -392,8 +328,7 @@ public:
 		SHADER_PARAMETER(FVector3f, CombinedShadowLightDirection)
 		SHADER_PARAMETER(int32, CombinedShadowStepCount)
 		SHADER_PARAMETER(float, SelfShadowMinSampleWeight)
-		SHADER_PARAMETER(int32, IntervalIntegrationMode)
-		SHADER_PARAMETER(float, PixelPhaseJitterScale)
+		SHADER_PARAMETER(float, MinimumNoiseWavelengthScale)
 		SHADER_PARAMETER(int32, CompositeDebugMode)
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
@@ -402,22 +337,6 @@ public:
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, CompositeStepStats)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneColorTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneDepthTexture)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DensityTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DisplacedDensityTexture7)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture0)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture1)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture2)
@@ -426,38 +345,14 @@ public:
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture5)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture6)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletCutoutTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, BulletSinkTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<uint>, BrickOccupancyTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, SparseFieldAtlasTexture7)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture0)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture1)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture2)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture3)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture4)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture5)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture6)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture7)
 		SHADER_PARAMETER_SAMPLER(SamplerState, SceneColorSampler)
 		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
 		RENDER_TARGET_BINDING_SLOTS()

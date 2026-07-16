@@ -316,6 +316,7 @@ void FTimeThiefSmokeTestRecorder::WriteGpuPass(const FTimeThiefSmokeTestGpuPassR
 		Json->SetNumberField(TEXT("sparse_skip_step_count"), Result.SparseSkipStepCount);
 		Json->SetNumberField(TEXT("combined_medium_sample_count"), Result.CombinedMediumSampleCount);
 		Json->SetNumberField(TEXT("combined_shadow_evaluation_count"), Result.CombinedShadowEvaluationCount);
+		Json->SetNumberField(TEXT("filtered_noise_octave_count"), Result.FilteredNoiseOctaveCount);
 		Json->SetNumberField(TEXT("combined_shadow_step_count"), Result.CombinedShadowStepCount);
 		Json->SetNumberField(TEXT("combined_shadow_step_length"), Result.CombinedShadowStepLength);
 		Json->SetBoolField(TEXT("order_independent_integrator"), Result.bOrderIndependentIntegrator);

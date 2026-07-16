@@ -82,6 +82,7 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeTestGpuPassResult
 	uint32 SparseSkipStepCount = 0;
 	uint32 CombinedMediumSampleCount = 0;
 	uint32 CombinedShadowEvaluationCount = 0;
+	uint32 FilteredNoiseOctaveCount = 0;
 	int32 CombinedShadowStepCount = 0;
 	float CombinedShadowStepLength = 0.0f;
 	bool bOrderIndependentIntegrator = false;

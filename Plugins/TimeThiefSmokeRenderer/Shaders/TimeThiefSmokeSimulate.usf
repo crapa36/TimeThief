@@ -60,66 +60,9 @@ uint FlattenBrickCoordForEventBins(int3 BrickCoord)
 
 uint4 GetEventBrickMask(uint3 CellCoord)
 {
-	if (bUseEventBrickBins == 0u)
-	{
-		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
-	}
-
 	const int SafeBrickSize = max(SmokeBrickSize, 1);
 	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
 	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
-}
-
-bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
-{
-	const uint WordIndex = (uint)EventIndex >> 5u;
-	const uint Bit = 1u << ((uint)EventIndex & 31u);
-	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
-	return (Word & Bit) != 0u;
-}
-
-void ComputeAdvectionLimiterBounds(
-	float3 UVW,
-	out float DensityMin,
-	out float DensityMax,
-	out float DisplacedDensityMin,
-	out float DisplacedDensityMax,
-	out float3 VelocityMin,
-	out float3 VelocityMax)
-{
-	const float3 Texel = 1.0 / max(float3(GridResolution), 1.0);
-	const float3 GridPosition = UVW * float3(GridResolution) - 0.5;
-	const int3 BaseCoord = (int3)floor(GridPosition);
-	DensityMin = 999999.0;
-	DensityMax = -999999.0;
-	DisplacedDensityMin = 999999.0;
-	DisplacedDensityMax = -999999.0;
-	VelocityMin = float3(999999.0, 999999.0, 999999.0);
-	VelocityMax = float3(-999999.0, -999999.0, -999999.0);
-
-	[unroll]
-	for (int Z = 0; Z <= 1; ++Z)
-	{
-		[unroll]
-		for (int Y = 0; Y <= 1; ++Y)
-		{
-			[unroll]
-			for (int X = 0; X <= 1; ++X)
-			{
-				const int3 SampleCoord = clamp(BaseCoord + int3(X, Y, Z), int3(0, 0, 0), GridResolution - 1);
-				const float3 SampleUVW = (float3(SampleCoord) + 0.5) * Texel;
-				const float SampleDensity = DensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
-				const float SampleDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0);
-				const float3 SampleVelocity = VelocityIn.SampleLevel(VolumeSampler, SampleUVW, 0.0).xyz;
-				DensityMin = min(DensityMin, SampleDensity);
-				DensityMax = max(DensityMax, SampleDensity);
-				DisplacedDensityMin = min(DisplacedDensityMin, SampleDisplacedDensity);
-				DisplacedDensityMax = max(DisplacedDensityMax, SampleDisplacedDensity);
-				VelocityMin = min(VelocityMin, SampleVelocity);
-				VelocityMax = max(VelocityMax, SampleVelocity);
-			}
-		}
-	}
 }
 
 float3 ApplySimulationBoundsNoOutflow(float3 LocalPosition, float3 WorldVelocity)
@@ -204,29 +147,20 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	float3 EventSourceVelocity = float3(0.0, 0.0, 0.0);
 	float SourceObstacleOpen = 0.0;
 	float ExplosionBoundaryPreserve = 0.0;
-	bool bEventSourceInfluence = false;
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
-	const bool bProcessEvents = bSkipEmptyEventWork == 0u;
+	const bool bProcessEvents = EventCount > 0;
 	const uint4 EventBrickMask = bProcessEvents ? GetEventBrickMask(CellCoord) : uint4(0u, 0u, 0u, 0u);
 	uint4 RemainingEventMask = EventBrickMask & TimeThiefSmokeValidEventMask(SafeEventCount);
-	const bool bUseBitIteration = TimeThiefSmokeUseEventBitIteration(bUseEventBitIteration, RemainingEventMask, SafeEventCount);
 	const int CandidateCount = bProcessEvents ? SafeEventCount : 0;
 	uint EventWordIndex = 0u;
 	[loop]
 	for (int CandidateIndex = 0; CandidateIndex < CandidateCount; ++CandidateIndex)
 	{
-		const int EventIndex = bUseBitIteration
-			? TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex)
-			: CandidateIndex;
+		const int EventIndex = TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex);
 		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
 			break;
 		}
-		if (!bUseBitIteration && !IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
-		{
-			continue;
-		}
-
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
 		if (EventType == 3u)
@@ -252,7 +186,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 				const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SourceUp * PlumeRiseVelocity;
 				EventSourceDensity += SourceWeight * Emission * InitialDensity;
 				EventSourceVelocity += SourceVelocity * SourceWeight * Emission;
-				bEventSourceInfluence = bEventSourceInfluence || SourceWeight * Emission > 0.001;
 			}
 			continue;
 		}
@@ -323,13 +256,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		BulletImpulse += Direction * SinkWeight * BulletWakeImpulseStrength;
 	}
 	FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(0.0, 0.0);
-	bool bBulletInfluence = false;
 	if (bHasActiveBulletFields)
 	{
 		BulletCutout = clamp(BulletCutout, 0.0, 2.0);
 		BulletSink = saturate(BulletSink);
 		BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(BulletCutout, BulletSink);
-		bBulletInfluence = BulletCutout > 0.001 || BulletSink > 0.001 || dot(BulletImpulse, BulletImpulse) > 0.001;
 	}
 
 	float Density = 0.0;
@@ -341,45 +272,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		Density = DensityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0);
 		DisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0);
 		AdvectedVelocity = ApplySimulationBoundsNoOutflow(PreviousSampleLocal, VelocityIn.SampleLevel(VolumeSampler, PreviousSampleUVW, 0.0).xyz);
-	}
-
-	const float CurrentDensity = DensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
-	const float CurrentDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, UVW, 0.0);
-	const float SourceInfluenceRadius = max(PlumeSourceRadius * max(ObstacleSourceClearRadiusScale, 1.1), 1.0);
-	const bool bDefaultSourceInfluence = AgeSeconds < max(PlumeEmissionDuration + 0.25, 0.01) &&
-		dot(WorldPosition - SmokeOrigin, WorldPosition - SmokeOrigin) < SourceInfluenceRadius * SourceInfluenceRadius;
-	const bool bSourceInfluence = bDefaultSourceInfluence || bEventSourceInfluence;
-	const float CurrentTotalDensity = CurrentDensity + CurrentDisplacedDensity;
-	const float AdvectedTotalDensity = Density + DisplacedDensity;
-	const bool bUseLimiterForCell = bUseAdaptiveMacCormack == 0 ||
-		CurrentTotalDensity > 0.001 ||
-		AdvectedTotalDensity > 0.001 ||
-		dot(Velocity, Velocity) > 1.0 ||
-		bBulletInfluence ||
-		bSourceInfluence;
-	if (bUseMacCormackAdvection != 0 && bUseLimiterForCell && bPreviousInsideVolume && PreviousOpenMask > 0.01)
-	{
-		const float3 ForwardWorld = PreviousWorld + AdvectedVelocity * DeltaSeconds;
-		const float3 ForwardLocal = mul(float4(ForwardWorld, 1.0), WorldToLocal).xyz;
-		const float3 ForwardUVW = ForwardLocal / max(BoundsExtent, 1.0) * 0.5 + 0.5;
-		if (TimeThiefSmokeInsideUVW(ForwardUVW) && TimeThiefSmokeObstacleOpen(ObstacleTexture, VolumeSampler, ForwardUVW, ObstacleSdfSurfaceFeatherCm) > 0.01)
-		{
-			const float BackDensity = DensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
-			const float BackDisplacedDensity = DisplacedDensityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0);
-			const float CorrectedDensity = Density + 0.5 * (CurrentDensity - BackDensity);
-			const float CorrectedDisplacedDensity = DisplacedDensity + 0.5 * (CurrentDisplacedDensity - BackDisplacedDensity);
-			const float3 CorrectedVelocity = AdvectedVelocity + 0.5 * (Velocity - VelocityIn.SampleLevel(VolumeSampler, ForwardUVW, 0.0).xyz);
-			float DensityMin = 0.0;
-			float DensityMax = 0.0;
-			float DisplacedDensityMin = 0.0;
-			float DisplacedDensityMax = 0.0;
-			float3 VelocityMin = float3(0.0, 0.0, 0.0);
-			float3 VelocityMax = float3(0.0, 0.0, 0.0);
-			ComputeAdvectionLimiterBounds(PreviousSampleUVW, DensityMin, DensityMax, DisplacedDensityMin, DisplacedDensityMax, VelocityMin, VelocityMax);
-			Density = clamp(CorrectedDensity, max(DensityMin, 0.0), min(DensityMax, SmokeDensityMax));
-			DisplacedDensity = clamp(CorrectedDisplacedDensity, max(DisplacedDensityMin, 0.0), min(DisplacedDensityMax, SmokeDensityMax));
-			AdvectedVelocity = clamp(CorrectedVelocity, VelocityMin, VelocityMax);
-		}
 	}
 
 	float NeighborDensity = 0.0;

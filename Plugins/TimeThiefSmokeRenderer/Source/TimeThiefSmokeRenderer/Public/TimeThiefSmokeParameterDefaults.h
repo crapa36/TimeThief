@@ -39,9 +39,8 @@ namespace TimeThiefSmokeParameterDefaults
 	// 장애물 마스크
 
 	// 정적 월드 장애물 마스크 사용 여부. 끄면 비용 감소, 벽 차단 품질 감소.
-	constexpr bool bUseStaticObstacleMask = true;
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
-	constexpr int32 ObstacleMaskResolution = 16;
+	constexpr int32 ObstacleMaskResolution = 32;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
 	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
@@ -59,9 +58,8 @@ namespace TimeThiefSmokeParameterDefaults
 	// 시뮬레이션 격자
 
 	// 희소 MAC 격자 백엔드 기본 사용 여부. 끄면 dense 경로 사용.
-	constexpr bool bUseSparseMacSimulationByDefault = true;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 24;
+	constexpr int32 SmokeGridResolution = 32;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 SmokeGridMinAxisResolution = 16;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
@@ -85,7 +83,6 @@ namespace TimeThiefSmokeParameterDefaults
 	// 희소 아틀라스 활성 브릭 최대 개수. 높을수록 넓은 연막 지원과 VRAM 비용 증가.
 	constexpr int32 MaxActiveSmokeBricks = 32;
 	// sparse composite를 유지할 최대 활성 브릭 비율. 높을수록 sparse 경로 유지, 과밀 때 비용 증가.
-	constexpr float SparseCompositeMaxActiveRatio = 0.25f;
 	// 희소 브릭 활성화 최소 속도(cm/s). 높을수록 비용 감소, 약한 움직임 손실 증가.
 	constexpr float SparseVelocityActiveThreshold = 150.0f;
 
@@ -96,13 +93,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// raymarch 최소 샘플 수. 낮을수록 비용 감소, 얇은 연기 손실 증가.
 	constexpr int32 RenderStepCountMin = 8;
 	// raymarch 최대 기본 샘플 수. 높을수록 품질과 비용 증가.
-	constexpr int32 RenderStepCountMax = 128;
+	constexpr int32 RenderStepCountMax = 64;
 	// adaptive raymarch 최대 샘플 수. 높을수록 두꺼운 연막 품질과 비용 증가.
 	constexpr int32 RenderMaxStepCount = 32;
 	// adaptive raymarch 최소 최대 샘플 수. 낮을수록 비용 감소, 품질 감소.
 	constexpr int32 RenderMaxStepCountMin = 8;
 	// adaptive raymarch 상한 샘플 수. 높을수록 두꺼운 연기 품질과 비용 증가.
-	constexpr int32 RenderMaxStepCountMax = 128;
+	constexpr int32 RenderMaxStepCountMax = 64;
 	// Stable composite samples are anchored to a fixed world-distance lattice along each camera ray.
 	constexpr float RenderWorldStepLengthCm = 50.0f;
 	// raymarch 목표 스텝 길이의 voxel 배율. 높을수록 비용 감소, 디테일 감소.
@@ -114,7 +111,6 @@ namespace TimeThiefSmokeParameterDefaults
 	// 멀티 연막 composite tile 한 변 크기(px). 높을수록 타일 관리 비용 감소, culling 정밀도 감소.
 	constexpr int32 CompositeTileSize = 32;
 	// 멀티 연막 렌더링 활성화 여부 기본값. 0=개별 합성, 1=다중 합성.
-	constexpr int32 bUseMultiCompositeByDefault = 1;
 	// 한 번에 합성할 연막 슬롯 최대 개수. 높을수록 겹친 연막 처리량과 비용 증가.
 	constexpr int32 MaxCompositeSmokeSlots = 8;
 	// fullscreen composite 전환 화면 면적 비율. 낮을수록 fullscreen 경로를 더 빨리 사용.
@@ -185,10 +181,6 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float DensityDissipation = 0.02f;
 	// 초당 속도 감쇠율. 높을수록 움직임이 빨리 안정됨.
 	constexpr float VelocityDamping = 0.4f;
-	// MacCormack 이류 사용 여부. 켜면 이류 품질과 비용 증가.
-	constexpr bool bUseMacCormackAdvection = false;
-	// 약한 영역에서 MacCormack 보정을 줄일지 여부. 켜면 비용 감소, 약한 디테일 감소.
-	constexpr bool bUseAdaptiveMacCormack = true;
 
 	// 와류와 흔들림
 
@@ -233,7 +225,6 @@ namespace TimeThiefSmokeParameterDefaults
 	// 와류 입자 업데이트 간격(초). 높을수록 비용 감소, 반응 지연 증가.
 	constexpr float VortexSubstepIntervalSeconds = 1.0f / 8.0f;
 	// 와류 입자를 브릭 주변으로 제한할지 여부. 켜면 비용 감소.
-	constexpr bool bUseVortexBrickBins = true;
 
 	// 액터 wake와 공기 흐름
 
@@ -421,9 +412,7 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float SmokeSpatialCellSize = 2800.0f;
 
 	// 합성 scissor 기본 사용 여부. 켜면 합성 면적과 비용 감소.
-	constexpr int32 bUseCompositeScissorByDefault = 1;
 	// 빠른 필라멘트 렌더링 기본 사용 여부. 켜면 비용 감소, 디테일 감소.
-	constexpr int32 bUseFastFilamentByDefault = 1;
 	// 렌더러 시뮬레이션 목표 빈도(Hz). 높을수록 반응 품질과 비용 증가.
 	constexpr float SimulationHz = 30.0f;
 
@@ -453,9 +442,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 반해상도 렌더링 및 양방향 업샘플링
 
 	// 연막 레이마칭을 반해상도로 실행할지 여부. 켜면 합성 비용이 약 1/4로 감소.
-	constexpr int32 bUseHalfResRenderingByDefault = 1;
 	// 양방향(bilateral) 깊이 인식 업샘플링 사용 여부. 켜면 깊이 경계의 번짐(halo)을 억제.
-	constexpr int32 bUseBilateralUpsampleByDefault = 1;
 	// 양방향 필터 깊이 감도. 높을수록 깊이 차이에 민감(경계 보존↑, 노이즈 위험↑).
 	constexpr float BilateralDepthSensitivity = 10000.0f;
 

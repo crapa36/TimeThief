@@ -26,11 +26,6 @@ struct FTimeThiefSmokeBulletOpenMasks
 	float Edge;
 };
 
-int TimeThiefSmokeCountEventBits(uint4 Mask)
-{
-	return countbits(Mask.x) + countbits(Mask.y) + countbits(Mask.z) + countbits(Mask.w);
-}
-
 uint TimeThiefSmokeLowEventBitMask(int BitCount)
 {
 	if (BitCount <= 0)
@@ -48,20 +43,6 @@ uint4 TimeThiefSmokeValidEventMask(int EventCount)
 		TimeThiefSmokeLowEventBitMask(SafeEventCount - 32),
 		TimeThiefSmokeLowEventBitMask(SafeEventCount - 64),
 		TimeThiefSmokeLowEventBitMask(SafeEventCount - 96));
-}
-
-bool TimeThiefSmokeUseEventBitIteration(uint Mode, uint4 EventMask, int EventCount)
-{
-	if (Mode == 1u)
-	{
-		return true;
-	}
-	if (Mode != 2u || EventCount < 8)
-	{
-		return false;
-	}
-	const int ActiveEventCount = TimeThiefSmokeCountEventBits(EventMask);
-	return ActiveEventCount * 2 < EventCount;
 }
 
 int TimeThiefSmokePopLowestEventIndex(inout uint4 Mask, inout uint WordIndex)

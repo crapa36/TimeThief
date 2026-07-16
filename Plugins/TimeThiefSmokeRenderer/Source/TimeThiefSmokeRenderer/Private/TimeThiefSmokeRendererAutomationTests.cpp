@@ -45,10 +45,6 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TEXT("Inactive brick self-shadow skip keeps clamp range valid"),
 		TimeThiefSmokeParameterDefaults::SelfShadowInactiveBrickMaxSkipSteps >= 1);
 	TestTrue(
-		TEXT("Sparse composite active ratio remains normalized"),
-		TimeThiefSmokeParameterDefaults::SparseCompositeMaxActiveRatio > 0.0f &&
-		TimeThiefSmokeParameterDefaults::SparseCompositeMaxActiveRatio < 1.0f);
-	TestTrue(
 		TEXT("Dynamic obstacle refresh interval remains positive"),
 		TimeThiefSmokeParameterDefaults::ObstacleDynamicRefreshIntervalSeconds > 0.0f);
 	TestTrue(
