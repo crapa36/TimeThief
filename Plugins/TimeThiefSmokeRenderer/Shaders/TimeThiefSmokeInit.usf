@@ -12,7 +12,25 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
-	const float SourceSeed = TimeThiefSmokeSoftSphere(length(LocalPosition), max(PlumeSourceRadius, 1.0));
+	const float SafeSourceRadius = max(PlumeSourceRadius, 1.0);
+	float SourceSeed = 0.0;
+	[unroll]
+	for (int LobeIndex = 0; LobeIndex < 6; ++LobeIndex)
+	{
+		const float LobeSeed = SmokeSeed * 0.013 + (float)LobeIndex * 19.19;
+		float3 LobeDirection = float3(
+			TimeThiefSmokeHash13(float3(LobeSeed, 1.7, 9.2)),
+			TimeThiefSmokeHash13(float3(3.4, LobeSeed, 5.8)),
+			TimeThiefSmokeHash13(float3(7.1, 2.6, LobeSeed))) * 2.0 - 1.0;
+		LobeDirection.z *= 0.55;
+		LobeDirection = normalize(LobeDirection + float3(0.0001, 0.0001, 0.0001));
+		const float RadiusScale = lerp(0.34, 0.58, TimeThiefSmokeHash13(float3(LobeSeed, 11.3, 4.7)));
+		const float3 LobeCenter = LobeDirection * SafeSourceRadius * 0.52;
+		const float LobeRadius = SafeSourceRadius * RadiusScale;
+		const float3 ToLobe = LocalPosition - LobeCenter;
+		SourceSeed += exp2(-3.5 * dot(ToLobe, ToLobe) / max(LobeRadius * LobeRadius, 1.0));
+	}
+	SourceSeed = saturate(SourceSeed * 0.62);
 	const float3 Ellipsoid = LocalPosition / max(NaturalBoundsExtent * float3(0.92, 0.92, 0.84), 1.0);
 	const float BoundsFade = 1.0 - smoothstep(0.86, 1.0, length(Ellipsoid));
 	const float DensitySeed = InitialDensity * SourceSeed * BoundsFade * 0.45;
