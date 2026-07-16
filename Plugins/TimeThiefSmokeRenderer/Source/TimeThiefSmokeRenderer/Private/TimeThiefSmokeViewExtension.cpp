@@ -131,8 +131,8 @@ namespace
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeSkipEmptyEventPasses(
 		TEXT("r.TimeThiefSmoke.SkipEmptyEventPasses"),
-		0,
-		TEXT("Skips event passes that have no relevant events. 0=legacy dispatches, 1=skip empty passes."));
+		1,
+		TEXT("Skips event-only work when a required fused pass has no relevant events. 0=legacy event work, 1=skip empty event work."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeReverseVortexBinning(
 		TEXT("r.TimeThiefSmoke.ReverseVortexBinning"),
@@ -2958,6 +2958,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleUpdatePass(
 	PassParameters->ActorAirflowFullSpeed = FMath::Max(PassParameters->ActorAirflowMinSpeed + TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeedMinGap, TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeed);
 	PassParameters->ActorWakeTrailLengthScale = TimeThiefSmokeParameterDefaults::ActorWakeTrailLengthScale;
 	PassParameters->ActorWakeStreetLaneInnerRadiusScale = TimeThiefSmokeParameterDefaults::ActorWakeStreetLaneInnerRadiusScale;
+	PassParameters->bSkipEmptyEventWork = CVarTimeThiefSmokeSkipEmptyEventPasses.GetValueOnRenderThread() != 0 && EventCount <= 0 ? 1u : 0u;
 	PassParameters->EventCount = EventCount;
 	PassParameters->MaxShaderEventCount = TimeThiefSmokeParameterDefaults::ShaderEventLoopMaxCount;
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
@@ -4198,6 +4199,7 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 		PassParameters->bUseActiveBrickDispatch = bUseActiveBrickDispatch ? 1u : 0u;
 		PassParameters->bUseEventBrickBins = EventCount > 0 ? 1u : 0u;
 		PassParameters->bUseEventBitIteration = CVarTimeThiefSmokeEventBitIteration.GetValueOnRenderThread() != 0 ? 1u : 0u;
+		PassParameters->bSkipEmptyEventWork = CVarTimeThiefSmokeSkipEmptyEventPasses.GetValueOnRenderThread() != 0 && EventCount <= 0 ? 1u : 0u;
 		PassParameters->bHasBulletFields = bHasBulletFields ? 1u : 0u;
 		PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 		PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);
@@ -4349,6 +4351,7 @@ void FTimeThiefSmokeViewExtension::AddVorticityPass(
 	PassParameters->bUseSparseSimulationMask = State.bUseSparseSimulationMaskThisFrame ? 1u : 0u;
 	PassParameters->bUseEventBrickBins = EventCount > 0 ? 1u : 0u;
 	PassParameters->bUseEventBitIteration = CVarTimeThiefSmokeEventBitIteration.GetValueOnRenderThread() != 0 ? 1u : 0u;
+	PassParameters->bSkipEmptyEventWork = CVarTimeThiefSmokeSkipEmptyEventPasses.GetValueOnRenderThread() != 0 && EventCount <= 0 ? 1u : 0u;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->CellSize = CellSize;
 	PassParameters->DeltaSeconds = DeltaSeconds;

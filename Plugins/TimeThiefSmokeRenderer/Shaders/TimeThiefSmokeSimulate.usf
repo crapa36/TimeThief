@@ -206,9 +206,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	float ExplosionBoundaryPreserve = 0.0;
 	bool bEventSourceInfluence = false;
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
-	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
+	const bool bProcessEvents = bSkipEmptyEventWork == 0u;
+	const uint4 EventBrickMask = bProcessEvents ? GetEventBrickMask(CellCoord) : uint4(0u, 0u, 0u, 0u);
 	uint4 RemainingEventMask = EventBrickMask;
-	const int CandidateCount = bUseEventBitIteration != 0u
+	const int CandidateCount = !bProcessEvents
+		? 0
+		: bUseEventBitIteration != 0u
 		? min(TimeThiefSmokeCountEventBits(RemainingEventMask), SafeEventCount)
 		: SafeEventCount;
 	[loop]
