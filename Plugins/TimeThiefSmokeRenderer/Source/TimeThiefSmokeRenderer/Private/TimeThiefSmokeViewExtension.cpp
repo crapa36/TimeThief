@@ -3462,7 +3462,6 @@ void FTimeThiefSmokeViewExtension::AddInitPass(
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 	PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);
 	PassParameters->InitialDensity = TimeThiefSmokeParameterDefaults::InitialDensity;
-	PassParameters->SmokeSeed = static_cast<float>(State.Volume.SmokeId);
 	PassParameters->PlumeSourceRadius = TimeThiefSmokeParameterDefaults::PlumeSourceRadius;
 
 	SmokeTestGpuProfiler.AddPass(
@@ -3742,7 +3741,6 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 		PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);
 		PassParameters->DeltaSeconds = DeltaSeconds;
 		PassParameters->InitialDensity = TimeThiefSmokeParameterDefaults::InitialDensity;
-		PassParameters->SmokeSeed = static_cast<float>(State.Volume.SmokeId);
 		PassParameters->AgeSeconds = State.Volume.AgeSeconds;
 		PassParameters->DurationSeconds = State.Volume.DurationSeconds;
 		PassParameters->SmokeFadeOutDuration = TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration;

@@ -215,30 +215,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 				const float Emission = EmissionRamp * EmissionFade * max(Event.ExtentsStrength.w, 0.0);
 				const float EventSourceObstacleOpen = Emission > 0.001 ? TimeThiefSmokeSourceObstacleOpen(SourceDistance, SourceRadius) : 0.0;
 				SourceObstacleOpen = max(SourceObstacleOpen, EventSourceObstacleOpen);
-				float SourceWeightSum = 0.0;
-				float3 WeightedSourceVelocity = float3(0.0, 0.0, 0.0);
-				[unroll]
-				for (int LobeIndex = 0; LobeIndex < 6; ++LobeIndex)
-				{
-					const float LobeSeed = Event.TypeShapeAgeSeed.w * 0.013 + (float)LobeIndex * 19.19;
-					float3 LobeDirection = float3(
-						TimeThiefSmokeHash13(float3(LobeSeed, 1.7, 9.2)),
-						TimeThiefSmokeHash13(float3(3.4, LobeSeed, 5.8)),
-						TimeThiefSmokeHash13(float3(7.1, 2.6, LobeSeed))) * 2.0 - 1.0;
-					LobeDirection = normalize(LobeDirection + float3(0.0001, 0.0001, 0.0001));
-					const float RadiusScale = lerp(0.36, 0.60, TimeThiefSmokeHash13(float3(LobeSeed, 11.3, 4.7)));
-					const float3 ToLobe = WorldPosition - (Event.PositionRadius.xyz + LobeDirection * SourceRadius * 0.50);
-					const float LobeRadius = SourceRadius * RadiusScale;
-					const float LobeWeight = exp2(-3.5 * dot(ToLobe, ToLobe) / max(LobeRadius * LobeRadius, 1.0));
-					const float3 SourceRadial = normalize(ToLobe + SourceUp * 18.0);
-					const float SpinSign = TimeThiefSmokeHash13(float3(LobeSeed, 23.1, 6.4)) > 0.5 ? 1.0 : -1.0;
-					const float3 Tangential = normalize(cross(SourceUp, SourceRadial) + float3(0.0001, 0.0001, 0.0001)) * SpinSign;
-					const float3 LobeVelocity = SourceRadial * PlumeExpansionVelocity + SourceUp * PlumeRiseVelocity + Tangential * PlumeExpansionVelocity * 0.20;
-					SourceWeightSum += LobeWeight;
-					WeightedSourceVelocity += LobeVelocity * LobeWeight;
-				}
-				const float SourceWeight = saturate(SourceWeightSum * 0.62) * max(OpenMask, EventSourceObstacleOpen);
-				const float3 SourceVelocity = WeightedSourceVelocity / max(SourceWeightSum, 0.0001);
+				float SourceWeight = 1.0 - smoothstep(SourceRadius * 0.96, SourceRadius * 1.04, SourceDistance);
+				const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021 + Event.TypeShapeAgeSeed.w * 0.0017));
+				SourceWeight = saturate(SourceWeight * SourceNoise) * max(OpenMask, EventSourceObstacleOpen);
+				const float3 SourceRadial = normalize(SourceDelta + SourceUp * 18.0);
+				const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SourceUp * PlumeRiseVelocity;
 				EventSourceDensity += SourceWeight * Emission * InitialDensity;
 				EventSourceVelocity += SourceVelocity * SourceWeight * Emission;
 			}
@@ -390,33 +371,11 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float SafeSourceRadius = max(PlumeSourceRadius, 1.0);
 	const float DefaultSourceObstacleOpen = Emission > 0.001 ? TimeThiefSmokeSourceObstacleOpen(SourceDistance, SafeSourceRadius) : 0.0;
 	SourceObstacleOpen = max(SourceObstacleOpen, DefaultSourceObstacleOpen);
-	float SourceWeightSum = 0.0;
-	float3 WeightedSourceVelocity = float3(0.0, 0.0, 0.0);
-	[unroll]
-	for (int LobeIndex = 0; LobeIndex < 6; ++LobeIndex)
-	{
-		const float LobeSeed = SmokeSeed * 0.013 + (float)LobeIndex * 19.19;
-		float3 LobeDirection = float3(
-			TimeThiefSmokeHash13(float3(LobeSeed, 1.7, 9.2)),
-			TimeThiefSmokeHash13(float3(3.4, LobeSeed, 5.8)),
-			TimeThiefSmokeHash13(float3(7.1, 2.6, LobeSeed))) * 2.0 - 1.0;
-		LobeDirection.z *= 0.55;
-		LobeDirection = normalize(LobeDirection + float3(0.0001, 0.0001, 0.0001));
-		const float RadiusScale = lerp(0.34, 0.58, TimeThiefSmokeHash13(float3(LobeSeed, 11.3, 4.7)));
-		const float3 LobeCenterLocal = LobeDirection * SafeSourceRadius * 0.52;
-		const float3 ToLobeLocal = LocalPosition - LobeCenterLocal;
-		const float LobeRadius = SafeSourceRadius * RadiusScale;
-		const float LobeWeight = exp2(-3.5 * dot(ToLobeLocal, ToLobeLocal) / max(LobeRadius * LobeRadius, 1.0));
-		const float3 ToLobeWorld = mul(float4(ToLobeLocal, 0.0), LocalToWorld).xyz;
-		const float3 SourceRadial = normalize(ToLobeWorld + SmokeUp * 18.0);
-		const float SpinSign = TimeThiefSmokeHash13(float3(LobeSeed, 23.1, 6.4)) > 0.5 ? 1.0 : -1.0;
-		const float3 Tangential = normalize(cross(SmokeUp, SourceRadial) + float3(0.0001, 0.0001, 0.0001)) * SpinSign;
-		const float3 LobeVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity + Tangential * PlumeExpansionVelocity * 0.20;
-		SourceWeightSum += LobeWeight;
-		WeightedSourceVelocity += LobeVelocity * LobeWeight;
-	}
-	const float SourceWeight = saturate(SourceWeightSum * 0.62) * max(OpenMask, DefaultSourceObstacleOpen);
-	const float3 SourceVelocity = WeightedSourceVelocity / max(SourceWeightSum, 0.0001);
+	float SourceWeight = 1.0 - smoothstep(SafeSourceRadius * 0.96, SafeSourceRadius * 1.04, SourceDistance);
+	const float SourceNoise = lerp(0.86, 1.14, TimeThiefSmokeHash13(WorldPosition * 0.021));
+	SourceWeight = saturate(SourceWeight * SourceNoise) * max(OpenMask, DefaultSourceObstacleOpen);
+	const float3 SourceRadial = normalize(WorldPosition - SmokeOrigin + SmokeUp * 18.0);
+	const float3 SourceVelocity = SourceRadial * PlumeExpansionVelocity + SmokeUp * PlumeRiseVelocity;
 	SourceDensityInjection += SourceWeight * Emission * InitialDensity;
 	SourceVelocityInjection += SourceVelocity * SourceWeight * Emission;
 
