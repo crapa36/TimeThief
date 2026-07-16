@@ -262,6 +262,16 @@ void FTimeThiefSmokeTestRecorder::WriteGpuPass(const FTimeThiefSmokeTestGpuPassR
 	if (Result.BulletEventCount != 0) Json->SetNumberField(TEXT("bullet_events"), Result.BulletEventCount);
 	if (Result.ExplosionEventCount != 0) Json->SetNumberField(TEXT("explosion_events"), Result.ExplosionEventCount);
 	if (Result.ActorEventCount != 0) Json->SetNumberField(TEXT("actor_events"), Result.ActorEventCount);
+	if (Result.BrickEventBitCount != INDEX_NONE) Json->SetNumberField(TEXT("brick_event_bit_count"), Result.BrickEventBitCount);
+	if (Result.VisitedEventCount != INDEX_NONE) Json->SetNumberField(TEXT("visited_event_count"), Result.VisitedEventCount);
+	if (Result.SkippedEventCount != INDEX_NONE) Json->SetNumberField(TEXT("skipped_event_count"), Result.SkippedEventCount);
+	if (Result.VortexParticleCount != INDEX_NONE) Json->SetNumberField(TEXT("vortex_particle_count"), Result.VortexParticleCount);
+	if (Result.VortexBrickCount != INDEX_NONE) Json->SetNumberField(TEXT("vortex_brick_count"), Result.VortexBrickCount);
+	if (Result.VortexParticleBrickPairs != INDEX_NONE) Json->SetNumberField(TEXT("vortex_particle_brick_pairs"), Result.VortexParticleBrickPairs);
+	if (!Result.ObstacleStencilMode.IsEmpty()) Json->SetStringField(TEXT("obstacle_stencil_mode"), Result.ObstacleStencilMode);
+	if (Result.FaceOpenSampleCount != INDEX_NONE) Json->SetNumberField(TEXT("face_open_sample_count"), Result.FaceOpenSampleCount);
+	Json->SetBoolField(TEXT("pass_executed"), Result.bPassExecuted);
+	if (Result.DispatchGroupCount != INDEX_NONE) Json->SetNumberField(TEXT("dispatch_group_count"), Result.DispatchGroupCount);
 	if (Result.ViewportPixelCount > 0)
 	{
 		Json->SetNumberField(TEXT("draw_pixels"), Result.DrawPixelCount);

@@ -10,6 +10,7 @@ bool FTimeThiefSmokeTestGpuProfiler::ShouldMeasure() const
 
 FTimeThiefSmokeTestGpuProfiler::FQueryHandle FTimeThiefSmokeTestGpuProfiler::BeginRasterPass(FTimeThiefSmokeTestGpuPassResult Metadata)
 {
+	Metadata.bPassExecuted = true;
 	return ShouldMeasure() ? CreateQuery(MoveTemp(Metadata)) : nullptr;
 }
 

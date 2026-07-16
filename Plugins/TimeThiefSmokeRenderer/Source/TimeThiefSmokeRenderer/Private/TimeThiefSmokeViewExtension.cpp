@@ -124,6 +124,26 @@ namespace
 		TimeThiefSmokeParameterDefaults::bUseMultiCompositeByDefault,
 		TEXT("Enables batching multiple smokes into a single composite shader pass. 0=single pass per smoke, 1=multi composite batching."));
 
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeEventBitIteration(
+		TEXT("r.TimeThiefSmoke.EventBitIteration"),
+		0,
+		TEXT("Iterates only set event-brick mask bits while preserving ascending event order. 0=legacy full range, 1=set bits only."));
+
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeSkipEmptyEventPasses(
+		TEXT("r.TimeThiefSmoke.SkipEmptyEventPasses"),
+		0,
+		TEXT("Skips event passes that have no relevant events. 0=legacy dispatches, 1=skip empty passes."));
+
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeReverseVortexBinning(
+		TEXT("r.TimeThiefSmoke.ReverseVortexBinning"),
+		0,
+		TEXT("Builds vortex brick masks from particles to affected bricks. 0=legacy brick scan, 1=reverse particle binning."));
+
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeFaceOpenStencils(
+		TEXT("r.TimeThiefSmoke.FaceOpenStencils"),
+		0,
+		TEXT("Reuses precomputed obstacle face-open values in fluid stencils. 0=legacy SDF sampling, 1=face-open texture."));
+
 	uint64 GetSceneKey(const FSceneViewFamily& ViewFamily)
 	{
 		return reinterpret_cast<uint64>(ViewFamily.Scene);
@@ -2943,13 +2963,15 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleUpdatePass(
 	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 	PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 
+	FTimeThiefSmokeTestGpuPassResult ParticleMetadata = MakeSmokeTestGpuMetadata(TEXT("Vortex.ParticleUpdate"), State.Volume.SmokeId, EventCount);
+	ParticleMetadata.VortexParticleCount = VortexParticleCount;
 	SmokeTestGpuProfiler.AddPass(
 		GraphBuilder,
 		RDG_EVENT_NAME("TimeThiefSmoke.UpdateVortexParticles SmokeId=%d", State.Volume.SmokeId),
 		ComputeShader,
 		PassParameters,
 		FIntVector(FMath::DivideAndRoundUp(VortexParticleCount, 64), 1, 1),
-		MakeSmokeTestGpuMetadata(TEXT("Vortex.ParticleUpdate"), State.Volume.SmokeId, EventCount));
+		MoveTemp(ParticleMetadata));
 }
 
 FRDGBufferRef FTimeThiefSmokeViewExtension::AddBuildVortexBrickMasksPass(
@@ -2974,13 +2996,17 @@ FRDGBufferRef FTimeThiefSmokeViewExtension::AddBuildVortexBrickMasksPass(
 	PassParameters->SmokeBrickSize = FMath::Clamp(TimeThiefSmokeParameterDefaults::SmokeBrickSize, TimeThiefSmokeParameterDefaults::SmokeBrickMinSize, TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
 
+	FTimeThiefSmokeTestGpuPassResult BrickMaskMetadata = MakeSmokeTestGpuMetadata(TEXT("Vortex.BrickMasks"), State.Volume.SmokeId);
+	BrickMaskMetadata.VortexParticleCount = PassParameters->VortexParticleCount;
+	BrickMaskMetadata.VortexBrickCount = static_cast<int32>(BrickCount);
+	BrickMaskMetadata.VortexParticleBrickPairs = static_cast<int32>(BrickCount) * PassParameters->VortexParticleCount;
 	SmokeTestGpuProfiler.AddPass(
 		GraphBuilder,
 		RDG_EVENT_NAME("TimeThiefSmoke.BuildVortexBrickMasks SmokeId=%d", State.Volume.SmokeId),
 		ComputeShader,
 		PassParameters,
 		MakeGroupCount(BrickGridSize),
-		MakeSmokeTestGpuMetadata(TEXT("Vortex.BrickMasks"), State.Volume.SmokeId));
+		MoveTemp(BrickMaskMetadata));
 
 	return VortexBrickMasksBuffer;
 }
@@ -4273,13 +4299,16 @@ void FTimeThiefSmokeViewExtension::AddBuildCurlPass(
 	PassParameters->SmokeBrickSize = FMath::Clamp(TimeThiefSmokeParameterDefaults::SmokeBrickSize, TimeThiefSmokeParameterDefaults::SmokeBrickMinSize, TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
 	PassParameters->bUseSparseSimulationMask = State.bUseSparseSimulationMaskThisFrame ? 1u : 0u;
 
+	FTimeThiefSmokeTestGpuPassResult CurlMetadata = MakeSmokeTestGpuMetadata(TEXT("Vorticity.Curl"), State.Volume.SmokeId);
+	CurlMetadata.ObstacleStencilMode = TEXT("Sdf");
+	CurlMetadata.FaceOpenSampleCount = 0;
 	SmokeTestGpuProfiler.AddPass(
 		GraphBuilder,
 		RDG_EVENT_NAME("TimeThiefSmoke.BuildCurl SmokeId=%d", State.Volume.SmokeId),
 		ComputeShader,
 		PassParameters,
 		GroupCount,
-		MakeSmokeTestGpuMetadata(TEXT("Vorticity.Curl"), State.Volume.SmokeId));
+		MoveTemp(CurlMetadata));
 }
 
 void FTimeThiefSmokeViewExtension::AddVorticityPass(

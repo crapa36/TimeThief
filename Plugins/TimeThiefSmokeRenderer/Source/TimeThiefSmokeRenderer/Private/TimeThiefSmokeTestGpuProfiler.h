@@ -38,6 +38,11 @@ public:
 		FIntVector GroupCount,
 		FTimeThiefSmokeTestGpuPassResult Metadata)
 	{
+		Metadata.bPassExecuted = true;
+		Metadata.DispatchGroupCount = FMath::Clamp<int64>(
+			static_cast<int64>(GroupCount.X) * GroupCount.Y * GroupCount.Z,
+			0,
+			MAX_int32);
 		if (!ShouldMeasure())
 		{
 			FComputeShaderUtils::AddPass(GraphBuilder, MoveTemp(EventName), ComputeShader, Parameters, GroupCount);
@@ -69,6 +74,7 @@ public:
 		uint32 IndirectArgsOffset,
 		FTimeThiefSmokeTestGpuPassResult Metadata)
 	{
+		Metadata.bPassExecuted = true;
 		if (!ShouldMeasure())
 		{
 			FComputeShaderUtils::AddPass(GraphBuilder, MoveTemp(EventName), ComputeShader, Parameters, IndirectArgsBuffer, IndirectArgsOffset);

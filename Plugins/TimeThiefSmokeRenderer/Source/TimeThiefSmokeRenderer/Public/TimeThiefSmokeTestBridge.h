@@ -46,6 +46,16 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeTestGpuPassResult
 	int32 BulletEventCount = 0;
 	int32 ExplosionEventCount = 0;
 	int32 ActorEventCount = 0;
+	int32 BrickEventBitCount = INDEX_NONE;
+	int32 VisitedEventCount = INDEX_NONE;
+	int32 SkippedEventCount = INDEX_NONE;
+	int32 VortexParticleCount = INDEX_NONE;
+	int32 VortexBrickCount = INDEX_NONE;
+	int32 VortexParticleBrickPairs = INDEX_NONE;
+	FString ObstacleStencilMode;
+	int32 FaceOpenSampleCount = INDEX_NONE;
+	bool bPassExecuted = false;
+	int32 DispatchGroupCount = INDEX_NONE;
 	int32 DrawPixelCount = 0;
 	int32 ViewportPixelCount = 0;
 	FIntRect DrawRect;
