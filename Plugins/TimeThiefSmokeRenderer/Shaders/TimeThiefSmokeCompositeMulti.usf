@@ -279,7 +279,7 @@ float CompositeFilteredFilamentMask(float3 P, float Time, float Contrast, float 
 		BaseFrequency * 1.73,
 		MaximumFrequency,
 		EvaluatedOctaveCount);
-	const float Threads = saturate(RidgeA * 0.62 + RidgeB * 0.58 - 0.34);
+	const float Threads = saturate(RidgeA * 0.62 + RidgeB * 0.58 - 0.26);
 	return pow(Threads, max(Contrast, 0.1));
 }
 
@@ -303,9 +303,11 @@ float CompositeFilteredDensityNoise(
 	const float Base = CompositeFilteredFBM(Q, BaseFrequency, MaximumFrequency, EvaluatedOctaveCount);
 	const float BaseShape = smoothstep(0.22, 0.82, Base);
 	const float ErosionGate = 1.0 - smoothstep(0.32, 1.35, RawDensity);
+	const float InteriorDetailGate = smoothstep(0.45, 1.55, RawDensity) * (1.0 - smoothstep(1.8, 2.5, RawDensity));
+	const float DetailGate = saturate(max(ErosionGate, InteriorDetailGate));
 	float Detail = 0.5;
 	[branch]
-	if (ErosionGate > 0.02)
+	if (DetailGate > 0.02)
 	{
 		Detail = CompositeFilteredRidgedFBM(
 			Q * max(FineMultiplier, 1.0) + BaseShape * 0.37 - Time * 0.29,
@@ -313,8 +315,13 @@ float CompositeFilteredDensityNoise(
 			MaximumFrequency,
 			EvaluatedOctaveCount);
 	}
-	const float Erosion = ErosionGate * S * ((1.0 - BaseShape) * 0.22 + (1.0 - Detail) * 0.10);
-	return max(RawDensity - Erosion, 0.0) / max(RawDensity, 0.0001);
+	const float InteriorDetail = Detail * InteriorDetailGate * 0.04;
+	const float Clump = lerp(0.86, 1.16, BaseShape);
+	const float Target = clamp(
+		Clump - Detail * ErosionGate * lerp(0.18, 0.34, S) + InteriorDetail,
+		0.70,
+		1.26);
+	return lerp(1.0, Target, S);
 }
 
 float ComputeCompositeBoundaryNoise(
@@ -447,9 +454,10 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
 	const float RenderFilamentContrast = Desc.NoiseFilamentA.w;
 	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
-	const float MaxResolvedBaseNoiseScale = MaximumNoiseFrequency * 0.48;
-	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedBaseNoiseScale);
-	const float StableRenderFilamentScale = min(max(RenderFilamentScale, 0.0), MaxResolvedBaseNoiseScale);
+	const float MaxResolvedNoiseScale = MaximumNoiseFrequency * 0.48;
+	const float MaxResolvedFilamentScale = MaximumNoiseFrequency * 0.90;
+	const float StableRenderNoiseScale = min(max(RenderNoiseScale, 0.0), MaxResolvedNoiseScale);
+	const float StableRenderFilamentScale = min(max(RenderFilamentScale, 0.0), MaxResolvedFilamentScale);
 	const float FineNoiseMultiplier = min(1.86, MaximumNoiseFrequency / max(StableRenderNoiseScale, 0.0001));
 	const float FineFilamentMultiplier = min(1.9, MaximumNoiseFrequency / max(StableRenderFilamentScale, 0.0001));
 	const float DisplacedDominance = saturate(RawFields.y / max(RawDensity, 0.0001));
@@ -466,9 +474,9 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 		EvaluatedNoiseOctaveCount);
 
 	float FilamentGain = 1.0;
-	const float EdgeFilamentGate = 1.0 - smoothstep(0.35, 1.30, RawDensity);
-	const float FilamentDensityGate = smoothstep(0.025, 0.16, RawDensity);
-	const float FilamentInfluence = saturate(EdgeFilamentGate * FilamentDensityGate * lerp(1.0, 1.25, DisplacedDominance));
+	const float EdgeFilamentGate = smoothstep(0.18, 0.88, EllipsoidDistance);
+	const float FilamentDensityGate = smoothstep(0.015, 0.10, RawDensity) * (1.0 - smoothstep(1.35, 2.50, RawDensity));
+	const float FilamentInfluence = saturate(EdgeFilamentGate * FilamentDensityGate * lerp(1.0, 1.2, DisplacedDominance));
 	if (RenderFilamentStrength > 0.001 && FilamentInfluence > 0.015)
 	{
 		const float3 FilamentPosition = SimulationLocal * BoundsExtent * StableRenderFilamentScale;
@@ -504,8 +512,9 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 				MaximumNoiseFrequency,
 				EvaluatedNoiseOctaveCount);
 		}
-		const float FilamentLow = max(0.38, 1.0 - RenderFilamentStrength * (0.12 + AirPocket * 0.14));
-		FilamentGain = lerp(FilamentLow, 1.0, CombinedFilamentMask);
+		const float FilamentLow = max(0.58, 1.0 - RenderFilamentStrength * (0.14 + AirPocket * 0.20));
+		const float FilamentHigh = 1.0 + RenderFilamentStrength * 0.34;
+		FilamentGain = lerp(FilamentLow, FilamentHigh, CombinedFilamentMask);
 	}
 
 	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
