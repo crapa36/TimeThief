@@ -1,6 +1,5 @@
 #include "TimeThiefSmokeShaders.h"
 
-IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildTurbulenceNoiseCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildTurbulenceNoise.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeTestReduceCS, "/TimeThiefSmokeShaders/TimeThiefSmokeTestReduce.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeInitCS, "/TimeThiefSmokeShaders/TimeThiefSmokeInit.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildObstacleFieldCS, "/TimeThiefSmokeShaders/TimeThiefSmokeUploadObstacleMask.usf", "MainCS", SF_Compute);
@@ -26,4 +25,3 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectVelocityCS, "/TimeThiefSmokeShader
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeProjectMacToCollocatedVelocityCS, "/TimeThiefSmokeShaders/TimeThiefSmokeProjectMacToCollocatedVelocity.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeCompositeMultiPS, "/TimeThiefSmokeShaders/TimeThiefSmokeCompositeMulti.usf", "MainPS", SF_Pixel);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBilateralUpsamplePS, "/TimeThiefSmokeShaders/TimeThiefSmokeCompositeMulti.usf", "BilateralUpsampleMainPS", SF_Pixel);
-IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeTemporalPS, "/TimeThiefSmokeShaders/TimeThiefSmokeCompositeMulti.usf", "TemporalMainPS", SF_Pixel);

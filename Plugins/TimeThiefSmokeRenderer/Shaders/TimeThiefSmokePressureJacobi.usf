@@ -86,11 +86,6 @@ float ComputeFaceOpen(float PhiA, float PhiB)
 	return saturate(max(PhiA, PhiB) / max(abs(PhiA) + abs(PhiB), 0.0001));
 }
 
-float3 LoadFaceOpen(int3 Coord)
-{
-	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0)).xyz;
-}
-
 float AccumulateNeighborPressure(int3 Coord, int3 Offset, float Weight, float AxisInvCellSizeSq, inout float Denominator)
 {
 	if (Weight <= 0.0001)
@@ -125,33 +120,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	}
 
 	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
-	float FaceX0 = 0.0;
-	float FaceY0 = 0.0;
-	float FaceZ0 = 0.0;
-	float FaceX1 = 0.0;
-	float FaceY1 = 0.0;
-	float FaceZ1 = 0.0;
-	[branch]
-	if (bUseFaceOpenStencils != 0u)
-	{
-		const float3 NegativeFaceOpen = LoadFaceOpen(Coord);
-		FaceX0 = Coord.x <= 0 ? 0.0 : NegativeFaceOpen.x;
-		FaceY0 = Coord.y <= 0 ? 0.0 : NegativeFaceOpen.y;
-		FaceZ0 = Coord.z <= 0 ? 0.0 : NegativeFaceOpen.z;
-		FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : LoadFaceOpen(Coord + int3(1, 0, 0)).x;
-		FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 1, 0)).y;
-		FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 0, 1)).z;
-	}
-	else
-	{
-		const float CenterPhi = LoadPhi(Coord);
-		FaceX0 = Coord.x <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(1, 0, 0)));
-		FaceY0 = Coord.y <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(0, 1, 0)));
-		FaceZ0 = Coord.z <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(0, 0, 1)));
-		FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(1, 0, 0)));
-		FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(0, 1, 0)));
-		FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(0, 0, 1)));
-	}
+	const float CenterPhi = LoadPhi(Coord);
+	const float FaceX0 = Coord.x <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(1, 0, 0)));
+	const float FaceY0 = Coord.y <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(0, 1, 0)));
+	const float FaceZ0 = Coord.z <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(0, 0, 1)));
+	const float FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(1, 0, 0)));
+	const float FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(0, 1, 0)));
+	const float FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(0, 0, 1)));
 	float Denominator = 0.0;
 	const float NeighborPressure =
 		AccumulateNeighborPressure(Coord, int3(1, 0, 0), FaceX1, InvCellSizeSq.x, Denominator) +

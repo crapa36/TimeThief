@@ -78,7 +78,6 @@ private:
 		int32 AllocatedVortexParticleCount = 0;
 		float AccumulatedSimulationDeltaSeconds = 0.0f;
 		float AccumulatedVortexDeltaSeconds = 0.0f;
-		float AccumulatedVortexParticleDeltaSeconds = 0.0f;
 		float VortexActivityBudgetSeconds = 0.0f;
 		float BulletFieldDecayBudgetSeconds = 0.0f;
 		bool bBulletFieldsActive = false;
@@ -89,17 +88,6 @@ private:
 		bool bSparseOccupancyRefreshPending = false;
 		bool bSparseActiveBrickCountReadbackPending = false;
 		bool bUseSparseSimulationMaskThisFrame = false;
-		bool bHadInteractionEventThisFrame = false;
-	};
-
-	struct FTemporalSmokeHistory
-	{
-		TRefCountPtr<IPooledRenderTarget> SmokeTexture;
-		TRefCountPtr<IPooledRenderTarget> DepthTexture;
-		FMatrix44f PreviousViewProjection = FMatrix44f::Identity;
-		FIntPoint Extent = FIntPoint::ZeroValue;
-		uint64 SmokeSetHash = 0;
-		bool bValid = false;
 	};
 
 	struct FActiveBrickDispatchResources
@@ -146,19 +134,8 @@ private:
 		FRDGTextureRef HalfResSmokeTexture,
 		FIntPoint HalfResExtent,
 		bool bAllowOverrideOutput);
-	FRDGTextureRef TemporalFilterHalfResSmoke_RenderThread(
-		FRDGBuilder& GraphBuilder,
-		const FSceneView& View,
-		const FPostProcessMaterialInputs& Inputs,
-		FRDGTextureRef CurrentSmokeTexture,
-		FIntPoint SmokeExtent,
-		FIntRect FullResViewRect,
-		uint64 TemporalViewKey,
-		uint64 SmokeSetHash,
-		bool bInvalidateHistory);
 
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
-	FRDGTextureRef EnsureTurbulenceNoiseTexture(FRDGBuilder& GraphBuilder);
 	void EnsureObstacleFieldTextures(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void EnsureVortexParticleBuffers(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void ConsumeSparseActiveBrickCountReadback(FRenderSmokeState& State);
@@ -194,10 +171,7 @@ private:
 
 	TMap<FRenderSmokeStateKey, FRenderSmokeState> SmokeStates;
 	TMap<uint64, float> LastFrameDeltaSecondsByScene;
-	TMap<uint64, TUniquePtr<FTemporalSmokeHistory>> TemporalSmokeHistories;
 	TArray<FRetiredSparseActiveBrickCountReadback> RetiredSparseActiveBrickCountReadbacks;
 	TArray<FPendingSmokeTestProbeReadback> PendingSmokeTestProbeReadbacks;
-	TRefCountPtr<IPooledRenderTarget> TurbulenceNoiseTexture;
-	bool bTurbulenceNoiseNeedsBuild = true;
 	FTimeThiefSmokeTestGpuProfiler SmokeTestGpuProfiler;
 };

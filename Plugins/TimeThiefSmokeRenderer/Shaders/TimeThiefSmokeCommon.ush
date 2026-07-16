@@ -26,42 +26,6 @@ struct FTimeThiefSmokeBulletOpenMasks
 	float Edge;
 };
 
-int TimeThiefSmokePopEventIndex(inout uint4 Mask)
-{
-	if (Mask.x != 0u)
-	{
-		const int BitIndex = firstbitlow(Mask.x);
-		Mask.x &= Mask.x - 1u;
-		return BitIndex;
-	}
-	if (Mask.y != 0u)
-	{
-		const int BitIndex = firstbitlow(Mask.y);
-		Mask.y &= Mask.y - 1u;
-		return BitIndex + 32;
-	}
-	if (Mask.z != 0u)
-	{
-		const int BitIndex = firstbitlow(Mask.z);
-		Mask.z &= Mask.z - 1u;
-		return BitIndex + 64;
-	}
-	if (Mask.w != 0u)
-	{
-		const int BitIndex = firstbitlow(Mask.w);
-		Mask.w &= Mask.w - 1u;
-		return BitIndex + 96;
-	}
-	return -1;
-}
-
-int TimeThiefSmokeEventCandidateCount(uint4 Mask, int EventCount, uint bUseBins)
-{
-	return bUseBins != 0u
-		? countbits(Mask.x) + countbits(Mask.y) + countbits(Mask.z) + countbits(Mask.w)
-		: EventCount;
-}
-
 float TimeThiefSmokeHash13(float3 P)
 {
 	P = frac(P * 0.1031);
@@ -207,8 +171,8 @@ float TimeThiefSmokeDirectionalPhase(float3 WorldRayDirection, float3 WorldLight
 	const float3 SafeLightDirection = normalize(WorldLightDirection + float3(0.0, 0.0, 0.0001));
 	const float CosTheta = dot(SafeRayDirection, SafeLightDirection);
 	const float Primary = TimeThiefSmokeHenyeyGreenstein(CosTheta, Anisotropy);
-	const float Secondary = TimeThiefSmokeHenyeyGreenstein(CosTheta, -0.20);
-	return clamp(Primary * 0.80 + Secondary * 0.20, 0.72, 1.38);
+	const float Secondary = TimeThiefSmokeHenyeyGreenstein(CosTheta, -abs(Anisotropy) * 0.35);
+	return clamp(lerp(Secondary, Primary, 0.82), 0.72, 1.38);
 }
 
 float3 TimeThiefSmokePotential(float3 P, float Time)
@@ -585,28 +549,6 @@ FTimeThiefSmokeBulletOpenMasks TimeThiefSmokeBulletOpenMasksFromValues(float Cut
 	Masks.Detail = TimeThiefSmokeBulletDetailOpenFromValues(Cutout, Sink);
 	Masks.Edge = TimeThiefSmokeBulletEdgeMaskFromValues(Cutout, Sink);
 	return Masks;
-}
-
-float3 TimeThiefSmokeTurbulenceVector(
-	Texture3D<float4> NoiseTexture,
-	SamplerState NoiseSampler,
-	float3 NoisePosition,
-	float Time,
-	uint NoiseMode)
-{
-	if (NoiseMode == 1u)
-	{
-		return TimeThiefSmokeCurlNoise(NoisePosition, Time);
-	}
-	if (NoiseMode == 2u)
-	{
-		const float3 DriftA = float3(0.031, -0.019, 0.023) * Time;
-		const float3 DriftB = float3(-0.017, 0.029, 0.013) * Time;
-		const float3 A = NoiseTexture.SampleLevel(NoiseSampler, NoisePosition * 0.158333 + DriftA, 0.0).xyz * 2.0 - 1.0;
-		const float3 B = NoiseTexture.SampleLevel(NoiseSampler, NoisePosition * 0.308333 + float3(0.37, 0.11, 0.73) + DriftB, 0.0).xyz * 2.0 - 1.0;
-		return normalize(A * 0.68 + B * 0.32 + float3(0.0001, 0.0001, 0.0001));
-	}
-	return float3(0.0, 0.0, 0.0);
 }
 
 void TimeThiefSmokeClampDensityChannels(

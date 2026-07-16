@@ -3,19 +3,6 @@
 
 TIME_THIEF_SMOKE_VORTICITY_PARAMETERS
 
-#if TIME_THIEF_VORTICITY_FUSED_CURL
-static const int FusedGroupWidth = 4;
-static const int FusedHaloWidth = 2;
-static const int FusedTileWidth = FusedGroupWidth + FusedHaloWidth * 2;
-groupshared float4 FusedVelocityTile[FusedTileWidth * FusedTileWidth * FusedTileWidth];
-groupshared float4 FusedFaceOpenTile[FusedTileWidth * FusedTileWidth * FusedTileWidth];
-
-uint FlattenFusedCoord(int3 Coord)
-{
-	return (uint)(Coord.x + Coord.y * FusedTileWidth + Coord.z * FusedTileWidth * FusedTileWidth);
-}
-#endif
-
 bool IsSparseSimulationCellActive(uint3 CellCoord)
 {
 	if (bUseSparseSimulationMask == 0u)
@@ -75,43 +62,11 @@ float4 LoadCurlPacked(int3 Coord)
 	return CurlTexture.Load(int4(SafeCoord, 0));
 }
 
-#if TIME_THIEF_VORTICITY_FUSED_CURL
-float4 ComputeFusedCurlPacked(int3 SharedCoord, int3 GlobalCoord)
-{
-	if (!IsSparseSimulationCellActive(uint3(GlobalCoord)))
-	{
-		return float4(0.0, 0.0, 0.0, 0.0);
-	}
-
-	const float3 NegativeFaceOpen = FusedFaceOpenTile[FlattenFusedCoord(SharedCoord)].xyz;
-	const float3 VX0 = FusedVelocityTile[FlattenFusedCoord(SharedCoord - int3(1, 0, 0))].xyz * NegativeFaceOpen.x;
-	const float3 VX1 = FusedVelocityTile[FlattenFusedCoord(SharedCoord + int3(1, 0, 0))].xyz * FusedFaceOpenTile[FlattenFusedCoord(SharedCoord + int3(1, 0, 0))].x;
-	const float3 VY0 = FusedVelocityTile[FlattenFusedCoord(SharedCoord - int3(0, 1, 0))].xyz * NegativeFaceOpen.y;
-	const float3 VY1 = FusedVelocityTile[FlattenFusedCoord(SharedCoord + int3(0, 1, 0))].xyz * FusedFaceOpenTile[FlattenFusedCoord(SharedCoord + int3(0, 1, 0))].y;
-	const float3 VZ0 = FusedVelocityTile[FlattenFusedCoord(SharedCoord - int3(0, 0, 1))].xyz * NegativeFaceOpen.z;
-	const float3 VZ1 = FusedVelocityTile[FlattenFusedCoord(SharedCoord + int3(0, 0, 1))].xyz * FusedFaceOpenTile[FlattenFusedCoord(SharedCoord + int3(0, 0, 1))].z;
-	const float3 InvCellSize = 1.0 / max(CellSize, 1.0);
-	const float3 DVX = (VX1 - VX0) * 0.5 * InvCellSize.x;
-	const float3 DVY = (VY1 - VY0) * 0.5 * InvCellSize.y;
-	const float3 DVZ = (VZ1 - VZ0) * 0.5 * InvCellSize.z;
-	const float3 Curl = float3(DVY.z - DVZ.y, DVZ.x - DVX.z, DVX.y - DVY.x);
-	return float4(Curl, length(Curl));
-}
-
-float4 LoadFusedCurlPacked(int3 CoreCoord, int3 CoreSharedCoord, int3 Offset)
-{
-	const int3 TargetCoord = ClampSmokeCoord(CoreCoord + Offset);
-	const int3 TargetSharedCoord = CoreSharedCoord + TargetCoord - CoreCoord;
-	return ComputeFusedCurlPacked(TargetSharedCoord, TargetCoord);
-}
-#endif
-
 float LoadCachedCurlMagnitude(int3 Coord)
 {
 	return max(LoadCurlPacked(Coord).w, 0.0);
 }
 
-#if TIME_THIEF_VORTICITY_INTERACTION
 float LoadOpenDensity(int3 Coord)
 {
 	const int3 SafeCoord = ClampSmokeCoord(Coord);
@@ -148,23 +103,16 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 {
 	float3 Force = float3(0.0, 0.0, 0.0);
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
-	uint4 RemainingEventMask = EventBrickMask;
-	const int EventCandidateCount = TimeThiefSmokeEventCandidateCount(EventBrickMask, SafeEventCount, bUseEventBrickBins);
 	[loop]
-	for (int EventCandidateIndex = 0; EventCandidateIndex < EventCandidateCount; ++EventCandidateIndex)
+	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
 	{
-		const int EventIndex = bUseEventBrickBins != 0u ? TimeThiefSmokePopEventIndex(RemainingEventMask) : EventCandidateIndex;
-		if (EventIndex < 0 || EventIndex >= SafeEventCount)
+		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
 		{
 			continue;
 		}
 
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
-		if (EventType > 2u || (EventVorticityMask & (1u << EventType)) == 0u)
-		{
-			continue;
-		}
 		const float Age = saturate(Event.TypeShapeAgeSeed.z);
 		const float Seed = Event.TypeShapeAgeSeed.w;
 		const float3 EventPosition = Event.PositionRadius.xyz;
@@ -282,31 +230,10 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 	}
 	return Force * DensityMask;
 }
-#endif
 
 [numthreads(4, 4, 4)]
-void MainCS(
-	uint3 DispatchThreadId : SV_DispatchThreadID,
-	uint3 GroupThreadId : SV_GroupThreadID,
-	uint3 GroupId : SV_GroupID,
-	uint GroupIndex : SV_GroupIndex)
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
-#if TIME_THIEF_VORTICITY_FUSED_CURL
-	const int3 GroupBaseCoord = int3(GroupId) * FusedGroupWidth;
-	[unroll(8)]
-	for (uint TileIndex = GroupIndex; TileIndex < FusedTileWidth * FusedTileWidth * FusedTileWidth; TileIndex += 64u)
-	{
-		const int TileZ = (int)(TileIndex / (FusedTileWidth * FusedTileWidth));
-		const int TileRemainder = (int)TileIndex - TileZ * FusedTileWidth * FusedTileWidth;
-		const int TileY = TileRemainder / FusedTileWidth;
-		const int TileX = TileRemainder - TileY * FusedTileWidth;
-		const int3 SampleCoord = ClampSmokeCoord(GroupBaseCoord + int3(TileX, TileY, TileZ) - FusedHaloWidth);
-		FusedVelocityTile[TileIndex] = VelocityIn.Load(int4(SampleCoord, 0));
-		FusedFaceOpenTile[TileIndex] = ObstacleFaceOpenTexture.Load(int4(SampleCoord, 0));
-	}
-	GroupMemoryBarrierWithGroupSync();
-#endif
-
 	if (any(DispatchThreadId >= GridResolution))
 	{
 		return;
@@ -331,25 +258,13 @@ void MainCS(
 	const float Density = max(DensityIn.Load(int4(Coord, 0)) + DisplacedDensityIn.Load(int4(Coord, 0)), 0.0);
 	float3 Velocity = VelocityIn.Load(int4(Coord, 0)).xyz;
 	const float3 WorldPosition = TimeThiefSmokeVoxelWorld(DispatchThreadId, GridResolution, BoundsExtent, LocalToWorld);
-	#if TIME_THIEF_VORTICITY_FUSED_CURL
-	const int3 CoreSharedCoord = int3(GroupThreadId) + FusedHaloWidth;
-	const float4 CurlPacked = LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(0, 0, 0));
-	#else
 	const float4 CurlPacked = LoadCurlPacked(Coord);
-	#endif
 	const float3 Curl = CurlPacked.xyz;
 	const float CurlMagnitude = max(CurlPacked.w, 0.0);
-	#if TIME_THIEF_VORTICITY_FUSED_CURL
-	const float3 CurlGradient = float3(
-		LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(1, 0, 0)).w - LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(-1, 0, 0)).w,
-		LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(0, 1, 0)).w - LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(0, -1, 0)).w,
-		LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(0, 0, 1)).w - LoadFusedCurlPacked(Coord, CoreSharedCoord, int3(0, 0, -1)).w) * 0.5 / max(CellSize, 1.0);
-	#else
 	const float3 CurlGradient = float3(
 		LoadCachedCurlMagnitude(Coord + int3(1, 0, 0)) - LoadCachedCurlMagnitude(Coord - int3(1, 0, 0)),
 		LoadCachedCurlMagnitude(Coord + int3(0, 1, 0)) - LoadCachedCurlMagnitude(Coord - int3(0, 1, 0)),
 		LoadCachedCurlMagnitude(Coord + int3(0, 0, 1)) - LoadCachedCurlMagnitude(Coord - int3(0, 0, 1))) * 0.5 / max(CellSize, 1.0);
-	#endif
 	const float3 CurlNormal = SafeNormalize(CurlGradient);
 	const float CellLength = max(dot(CellSize, float3(0.333333, 0.333333, 0.333333)), 1.0);
 	const float DensityMask = saturate(Density * 0.72);
@@ -357,36 +272,14 @@ void MainCS(
 	const float BoundaryDamping = 1.0 - smoothstep(0.82, 1.08, length(Centered / float3(1.0, 1.0, 0.88)));
 	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
 	const float SafeSelfWobbleForceScale = max(SelfWobbleForceScale, 0.0);
-	const float3 CurlNoise = TimeThiefSmokeTurbulenceVector(
-		TurbulenceNoiseTexture,
-		TurbulenceNoiseSampler,
-		WorldPosition * 0.012,
-		AgeSeconds * 0.2 * SafeSelfWobbleTimeScale,
-		TurbulenceNoiseMode);
+	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale);
 	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * VorticityConfinementForceScale * SafeSelfWobbleForceScale;
 	const float TurbulenceBand = lerp(TurbulenceBandMinForce, TurbulenceBandMaxForce, saturate(CurlMagnitude * TurbulenceCurlMagnitudeScale)) * SafeSelfWobbleForceScale;
 	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * DensityMask * TurbulenceBand;
-	float3 AmbientAirForce = float3(0.0, 0.0, 0.0);
-	[branch]
-	if (bEnableAmbientAirForce != 0u)
-	{
-		AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
-	}
-	float3 AirInteractionForce = float3(0.0, 0.0, 0.0);
-	float3 EventForce = float3(0.0, 0.0, 0.0);
-	#if TIME_THIEF_VORTICITY_INTERACTION
-	[branch]
-	if (bEnableAirInteractionForce != 0u)
-	{
-		AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
-	}
-	[branch]
-	if (EventVorticityMask != 0u && EventCount > 0)
-	{
-		const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
-		EventForce = ComputeEventVortexForce(WorldPosition, Velocity, DensityMask, CurlNoise, CellLength, EventBrickMask);
-	}
-	#endif
+	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
+	const float3 AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
+	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
+	const float3 EventForce = ComputeEventVortexForce(WorldPosition, Velocity, DensityMask, CurlNoise, CellLength, EventBrickMask);
 	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AmbientAirForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
 	const float MaxDeltaSpeed = max(VorticityDeltaSpeedMin, VorticityDeltaSpeedStrengthScale * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
 	const float DeltaSpeed = length(DeltaVelocity);
