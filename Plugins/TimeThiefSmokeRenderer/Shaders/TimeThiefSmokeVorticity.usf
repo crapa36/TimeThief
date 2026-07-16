@@ -264,8 +264,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale);
 	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * VorticityConfinementForceScale * SafeSelfWobbleForceScale;
 	const float TurbulenceBand = lerp(TurbulenceBandMinForce, TurbulenceBandMaxForce, saturate(CurlMagnitude * TurbulenceCurlMagnitudeScale)) * SafeSelfWobbleForceScale;
-	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * DensityMask * TurbulenceBand;
-	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
+	const float Interface = saturate(length(ComputeDensityGradient(Coord)) * CellLength * 3.0) * saturate(Density * 1.35);
+	const float Shear = saturate(CurlMagnitude * TurbulenceCurlMagnitudeScale);
+	const float CoreSuppression = 1.0 - smoothstep(1.20, 2.50, Density);
+	const float TurbulenceMask = Interface * lerp(0.25, 1.0, Shear) * CoreSuppression;
+	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * TurbulenceMask * TurbulenceBand;
+	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * TurbulenceMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
 	const float3 AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
 	const bool bProcessEvents = EventCount > 0;
 	const uint4 EventBrickMask = bProcessEvents ? GetEventBrickMask(DispatchThreadId) : uint4(0u, 0u, 0u, 0u);

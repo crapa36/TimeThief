@@ -453,11 +453,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float SafeSelfWobbleVelocityScale = max(SelfWobbleVelocityScale, 0.0);
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.16 * SafeSelfWobbleTimeScale);
 	const float TotalDensity = Density + DisplacedDensity;
-	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
+	const float SurfaceMotionMask = smoothstep(0.02, 0.20, TotalDensity) * (1.0 - smoothstep(1.20, 2.50, TotalDensity));
+	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
 	const float Damping = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
 	AdvectedVelocity = AdvectedVelocity * Damping + Swirl + BulletImpulse * BulletMasks.Detail;
 	AdvectedVelocity += SourceVelocityInjection * DeltaSeconds * 2.0;
-	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
+	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
 	const float VelocityVentilation = NaturalVentilation * (1.0 - DisplacedDominance * 0.75);
 	AdvectedVelocity *= exp2(-VelocityVentilation * VelocityVentilation * (4.0 + max(VelocityDamping, 0.0)) * DeltaSeconds);
 	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
