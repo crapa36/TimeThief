@@ -9,25 +9,9 @@ uint FlattenBrickCoord(uint3 BrickCoord)
 	return BrickCoord.x + BrickCoord.y * BrickGrid.x + BrickCoord.z * BrickGrid.x * BrickGrid.y;
 }
 
-void SetParticleBit(inout uint4 Mask, int ParticleIndex)
+void SetParticleBit(inout uint Mask, int ParticleIndex)
 {
-	const uint Bit = 1u << (ParticleIndex & 31);
-	if (ParticleIndex < 32)
-	{
-		Mask.x |= Bit;
-	}
-	else if (ParticleIndex < 64)
-	{
-		Mask.y |= Bit;
-	}
-	else if (ParticleIndex < 96)
-	{
-		Mask.z |= Bit;
-	}
-	else
-	{
-		Mask.w |= Bit;
-	}
+	Mask |= 1u << ParticleIndex;
 }
 
 [numthreads(4, 4, 4)]
@@ -49,9 +33,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 BrickCenter = (BrickMin + BrickMax) * 0.5;
 	const float3 BrickHalfExtent = max((BrickMax - BrickMin) * 0.5, float3(1.0, 1.0, 1.0));
 	const float InfluenceRadius = max(VortexParticleSplatRadius, 1.0);
-	uint4 Mask = uint4(0u, 0u, 0u, 0u);
+	uint Mask = 0u;
 
-	const int SafeParticleCount = min(VortexParticleCount, MaxVortexParticleCount);
+	const int SafeParticleCount = min(min(VortexParticleCount, MaxVortexParticleCount), 32);
 	[loop]
 	for (int ParticleIndex = 0; ParticleIndex < SafeParticleCount; ++ParticleIndex)
 	{

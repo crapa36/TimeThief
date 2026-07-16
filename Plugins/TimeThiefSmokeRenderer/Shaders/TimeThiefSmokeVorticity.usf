@@ -103,21 +103,20 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 {
 	float3 Force = float3(0.0, 0.0, 0.0);
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
-	uint4 RemainingEventMask = EventBrickMask;
-	const int CandidateCount = bUseEventBitIteration != 0u
-		? min(TimeThiefSmokeCountEventBits(RemainingEventMask), SafeEventCount)
-		: SafeEventCount;
+	uint4 RemainingEventMask = EventBrickMask & TimeThiefSmokeValidEventMask(SafeEventCount);
+	const bool bUseBitIteration = TimeThiefSmokeUseEventBitIteration(bUseEventBitIteration, RemainingEventMask, SafeEventCount);
+	uint EventWordIndex = 0u;
 	[loop]
-	for (int CandidateIndex = 0; CandidateIndex < CandidateCount; ++CandidateIndex)
+	for (int CandidateIndex = 0; CandidateIndex < SafeEventCount; ++CandidateIndex)
 	{
-		const int EventIndex = bUseEventBitIteration != 0u
-			? TimeThiefSmokePopLowestEventIndex(RemainingEventMask)
+		const int EventIndex = bUseBitIteration
+			? TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex)
 			: CandidateIndex;
 		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
 			break;
 		}
-		if (bUseEventBitIteration == 0u && !IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		if (!bUseBitIteration && !IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
 		{
 			continue;
 		}

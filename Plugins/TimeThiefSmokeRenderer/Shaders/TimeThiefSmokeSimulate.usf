@@ -208,23 +208,21 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const bool bProcessEvents = bSkipEmptyEventWork == 0u;
 	const uint4 EventBrickMask = bProcessEvents ? GetEventBrickMask(CellCoord) : uint4(0u, 0u, 0u, 0u);
-	uint4 RemainingEventMask = EventBrickMask;
-	const int CandidateCount = !bProcessEvents
-		? 0
-		: bUseEventBitIteration != 0u
-		? min(TimeThiefSmokeCountEventBits(RemainingEventMask), SafeEventCount)
-		: SafeEventCount;
+	uint4 RemainingEventMask = EventBrickMask & TimeThiefSmokeValidEventMask(SafeEventCount);
+	const bool bUseBitIteration = TimeThiefSmokeUseEventBitIteration(bUseEventBitIteration, RemainingEventMask, SafeEventCount);
+	const int CandidateCount = bProcessEvents ? SafeEventCount : 0;
+	uint EventWordIndex = 0u;
 	[loop]
 	for (int CandidateIndex = 0; CandidateIndex < CandidateCount; ++CandidateIndex)
 	{
-		const int EventIndex = bUseEventBitIteration != 0u
-			? TimeThiefSmokePopLowestEventIndex(RemainingEventMask)
+		const int EventIndex = bUseBitIteration
+			? TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex)
 			: CandidateIndex;
 		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
 			break;
 		}
-		if (bUseEventBitIteration == 0u && !IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		if (!bUseBitIteration && !IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
 		{
 			continue;
 		}

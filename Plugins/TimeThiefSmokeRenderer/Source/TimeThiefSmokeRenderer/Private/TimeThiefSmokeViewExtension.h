@@ -54,6 +54,7 @@ private:
 		TRefCountPtr<IPooledRenderTarget> ObstacleSdfTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleVelocityTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleFaceOpenTexture;
+		TRefCountPtr<IPooledRenderTarget> ObstacleNeighborMaskTexture;
 		TRefCountPtr<IPooledRenderTarget> PrevObstacleSdfTexture;
 		TRefCountPtr<IPooledRenderTarget> PrevObstacleVelocityTexture;
 		TRefCountPtr<IPooledRenderTarget> PrevObstacleFaceOpenTexture;
@@ -74,6 +75,7 @@ private:
 		TUniquePtr<FRHIGPUBufferReadback> SparseActiveBrickCountReadback;
 		uint32 SparseActiveBrickCount = 0;
 		uint32 UploadedObstacleFieldRevision = MAX_uint32;
+		uint32 UploadedObstacleNeighborMaskRevision = MAX_uint32;
 		uint32 LastSimulatedFrame = MAX_uint32;
 		int32 AllocatedVortexParticleCount = 0;
 		float AccumulatedSimulationDeltaSeconds = 0.0f;

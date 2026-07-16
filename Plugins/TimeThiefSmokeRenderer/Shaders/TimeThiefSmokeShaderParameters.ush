@@ -140,8 +140,8 @@
 #define TT_SMOKE_HLSL_PARAM_VORTEX_PARTICLES StructuredBuffer<FTimeThiefSmokeVortexParticleShaderData> VortexParticles;
 #define TT_SMOKE_HLSL_PARAM_VORTEX_PARTICLES_IN StructuredBuffer<FTimeThiefSmokeVortexParticleShaderData> VortexParticlesIn;
 #define TT_SMOKE_HLSL_PARAM_OUT_VORTEX_PARTICLES RWStructuredBuffer<FTimeThiefSmokeVortexParticleShaderData> OutVortexParticles;
-#define TT_SMOKE_HLSL_PARAM_VORTEX_BRICK_MASKS StructuredBuffer<uint4> VortexBrickMasks;
-#define TT_SMOKE_HLSL_PARAM_OUT_VORTEX_BRICK_MASKS RWStructuredBuffer<uint4> OutVortexBrickMasks;
+#define TT_SMOKE_HLSL_PARAM_VORTEX_BRICK_MASKS StructuredBuffer<uint> VortexBrickMasks;
+#define TT_SMOKE_HLSL_PARAM_OUT_VORTEX_BRICK_MASKS RWStructuredBuffer<uint> OutVortexBrickMasks;
 #define TT_SMOKE_HLSL_PARAM_EVENT_BRICK_MASKS StructuredBuffer<uint4> EventBrickMasks;
 #define TT_SMOKE_HLSL_PARAM_OUT_EVENT_BRICK_MASKS RWStructuredBuffer<uint4> OutEventBrickMasks;
 #define TT_SMOKE_HLSL_PARAM_OUT_EVENT_BRICK_MASKS0 RWStructuredBuffer<uint4> OutEventBrickMasks0;
@@ -165,6 +165,7 @@
 #define TT_SMOKE_HLSL_PARAM_OBSTACLE_TEXTURE Texture3D<float> ObstacleTexture;
 #define TT_SMOKE_HLSL_PARAM_OBSTACLE_VELOCITY_TEXTURE Texture3D<float4> ObstacleVelocityTexture;
 #define TT_SMOKE_HLSL_PARAM_OBSTACLE_FACE_OPEN_TEXTURE Texture3D<float4> ObstacleFaceOpenTexture;
+#define TT_SMOKE_HLSL_PARAM_OBSTACLE_NEIGHBOR_MASK_TEXTURE Texture3D<uint> ObstacleNeighborMaskTexture;
 #define TT_SMOKE_HLSL_PARAM_OBSTACLE_SDF_SURFACE_FEATHER_CM float ObstacleSdfSurfaceFeatherCm;
 #define TT_SMOKE_HLSL_PARAM_BULLET_CUTOUT_TEXTURE Texture3D<float> BulletCutoutTexture;
 #define TT_SMOKE_HLSL_PARAM_BULLET_SINK_TEXTURE Texture3D<float> BulletSinkTexture;
@@ -381,6 +382,7 @@
 	TT_SMOKE_HLSL_PARAM_VELOCITY_IN \
 	TT_SMOKE_HLSL_PARAM_OUT_CURL \
 	TIME_THIEF_SMOKE_OBSTACLE_TEXTURE_PARAMETERS \
+	TT_SMOKE_HLSL_PARAM_OBSTACLE_NEIGHBOR_MASK_TEXTURE \
 	TT_SMOKE_HLSL_PARAM_BRICK_OCCUPANCY_TEXTURE \
 	TT_SMOKE_HLSL_PARAM_BRICK_GRID_RESOLUTION \
 	TT_SMOKE_HLSL_PARAM_SMOKE_BRICK_SIZE \

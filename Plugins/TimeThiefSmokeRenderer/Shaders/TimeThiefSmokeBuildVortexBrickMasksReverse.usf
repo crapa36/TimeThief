@@ -11,31 +11,16 @@ uint FlattenBrickCoord(uint3 BrickCoord)
 
 void SetParticleBitAtomic(uint BrickIndex, int ParticleIndex)
 {
-	const uint Bit = 1u << (ParticleIndex & 31);
+	const uint Bit = 1u << ParticleIndex;
 	uint Ignored = 0u;
-	if (ParticleIndex < 32)
-	{
-		InterlockedOr(OutVortexBrickMasks[BrickIndex].x, Bit, Ignored);
-	}
-	else if (ParticleIndex < 64)
-	{
-		InterlockedOr(OutVortexBrickMasks[BrickIndex].y, Bit, Ignored);
-	}
-	else if (ParticleIndex < 96)
-	{
-		InterlockedOr(OutVortexBrickMasks[BrickIndex].z, Bit, Ignored);
-	}
-	else
-	{
-		InterlockedOr(OutVortexBrickMasks[BrickIndex].w, Bit, Ignored);
-	}
+	InterlockedOr(OutVortexBrickMasks[BrickIndex], Bit, Ignored);
 }
 
 [numthreads(64, 1, 1)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
 	const int ParticleIndex = (int)DispatchThreadId.x;
-	const int SafeParticleCount = min(VortexParticleCount, MaxVortexParticleCount);
+	const int SafeParticleCount = min(min(VortexParticleCount, MaxVortexParticleCount), 32);
 	if (ParticleIndex >= SafeParticleCount)
 	{
 		return;

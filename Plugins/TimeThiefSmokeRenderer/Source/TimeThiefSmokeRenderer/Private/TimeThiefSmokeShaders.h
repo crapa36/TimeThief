@@ -184,6 +184,21 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeBuildObstacleNeighborMaskCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildObstacleNeighborMaskCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildObstacleNeighborMaskCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FIntVector, GridResolution)
+		SHADER_PARAMETER(float, SurfaceFeatherCm)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleSdfTexture)
+		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<uint>, OutObstacleNeighborMaskTexture)
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeBuildVortexBrickMasksReverseCS : public FGlobalShader
 {
 public:

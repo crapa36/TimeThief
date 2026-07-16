@@ -1,0 +1,40 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+int3 GridResolution;
+float SurfaceFeatherCm;
+Texture3D<float> ObstacleSdfTexture;
+SamplerState VolumeSampler;
+RWTexture3D<uint> OutObstacleNeighborMaskTexture;
+
+int3 ClampCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+bool IsOpen(int3 Coord)
+{
+	const uint3 SafeCoord = uint3(ClampCoord(Coord));
+	const float3 UVW = TimeThiefSmokeVoxelUVW(SafeCoord, GridResolution);
+	return TimeThiefSmokeObstacleOpen(ObstacleSdfTexture, VolumeSampler, UVW, SurfaceFeatherCm) > 0.01;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= GridResolution))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	uint Mask = 0u;
+	Mask |= IsOpen(Coord - int3(1, 0, 0)) ? 1u << 0u : 0u;
+	Mask |= IsOpen(Coord + int3(1, 0, 0)) ? 1u << 1u : 0u;
+	Mask |= IsOpen(Coord - int3(0, 1, 0)) ? 1u << 2u : 0u;
+	Mask |= IsOpen(Coord + int3(0, 1, 0)) ? 1u << 3u : 0u;
+	Mask |= IsOpen(Coord - int3(0, 0, 1)) ? 1u << 4u : 0u;
+	Mask |= IsOpen(Coord + int3(0, 0, 1)) ? 1u << 5u : 0u;
+	Mask |= IsOpen(Coord) ? 1u << 6u : 0u;
+	OutObstacleNeighborMaskTexture[DispatchThreadId] = Mask;
+}

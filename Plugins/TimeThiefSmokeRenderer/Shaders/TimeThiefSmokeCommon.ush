@@ -31,31 +31,52 @@ int TimeThiefSmokeCountEventBits(uint4 Mask)
 	return countbits(Mask.x) + countbits(Mask.y) + countbits(Mask.z) + countbits(Mask.w);
 }
 
-int TimeThiefSmokePopLowestEventIndex(inout uint4 Mask)
+uint TimeThiefSmokeLowEventBitMask(int BitCount)
 {
-	if (Mask.x != 0u)
+	if (BitCount <= 0)
 	{
-		const int BitIndex = firstbitlow(Mask.x);
-		Mask.x &= Mask.x - 1u;
-		return BitIndex;
+		return 0u;
 	}
-	if (Mask.y != 0u)
+	return BitCount >= 32 ? 0xffffffffu : (1u << BitCount) - 1u;
+}
+
+uint4 TimeThiefSmokeValidEventMask(int EventCount)
+{
+	const int SafeEventCount = clamp(EventCount, 0, 128);
+	return uint4(
+		TimeThiefSmokeLowEventBitMask(SafeEventCount),
+		TimeThiefSmokeLowEventBitMask(SafeEventCount - 32),
+		TimeThiefSmokeLowEventBitMask(SafeEventCount - 64),
+		TimeThiefSmokeLowEventBitMask(SafeEventCount - 96));
+}
+
+bool TimeThiefSmokeUseEventBitIteration(uint Mode, uint4 EventMask, int EventCount)
+{
+	if (Mode == 1u)
 	{
-		const int BitIndex = firstbitlow(Mask.y);
-		Mask.y &= Mask.y - 1u;
-		return 32 + BitIndex;
+		return true;
 	}
-	if (Mask.z != 0u)
+	if (Mode != 2u || EventCount < 8)
 	{
-		const int BitIndex = firstbitlow(Mask.z);
-		Mask.z &= Mask.z - 1u;
-		return 64 + BitIndex;
+		return false;
 	}
-	if (Mask.w != 0u)
+	const int ActiveEventCount = TimeThiefSmokeCountEventBits(EventMask);
+	return ActiveEventCount * 2 < EventCount;
+}
+
+int TimeThiefSmokePopLowestEventIndex(inout uint4 Mask, inout uint WordIndex)
+{
+	[loop]
+	while (WordIndex < 4u)
 	{
-		const int BitIndex = firstbitlow(Mask.w);
-		Mask.w &= Mask.w - 1u;
-		return 96 + BitIndex;
+		const uint Word = Mask[WordIndex];
+		if (Word != 0u)
+		{
+			const int BitIndex = firstbitlow(Word);
+			Mask[WordIndex] = Word & (Word - 1u);
+			return int(WordIndex * 32u) + BitIndex;
+		}
+		++WordIndex;
 	}
 	return -1;
 }
