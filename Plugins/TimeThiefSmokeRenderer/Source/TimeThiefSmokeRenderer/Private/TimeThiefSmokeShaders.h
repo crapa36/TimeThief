@@ -40,6 +40,7 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
 	FVector4f RaymarchControls = FVector4f::Zero();
 	FVector4f BoundaryNoiseControls = FVector4f::Zero();
+	FVector4f GridResolution_SpongeCells = FVector4f::Zero();
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData

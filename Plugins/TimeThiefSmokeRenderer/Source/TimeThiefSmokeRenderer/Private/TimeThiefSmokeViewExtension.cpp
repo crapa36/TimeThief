@@ -1763,6 +1763,11 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength),
 			static_cast<float>(State.Volume.SmokeId),
 			0.0f);
+		Descriptor.GridResolution_SpongeCells = FVector4f(
+			static_cast<float>(State.AllocatedGridSize.X),
+			static_cast<float>(State.AllocatedGridSize.Y),
+			static_cast<float>(State.AllocatedGridSize.Z),
+			2.0f);
 		const bool bHasBulletFields =
 			State.bBulletFieldsActive &&
 			State.BulletCutoutTextures[State.CurrentBulletFieldIndex].IsValid() &&

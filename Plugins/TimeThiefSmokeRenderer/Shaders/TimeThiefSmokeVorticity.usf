@@ -257,8 +257,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 CurlNormal = SafeNormalize(CurlGradient);
 	const float CellLength = max(dot(CellSize, float3(0.333333, 0.333333, 0.333333)), 1.0);
 	const float DensityMask = saturate(Density * 0.72);
-	const float3 Centered = UVW * 2.0 - 1.0;
-	const float BoundaryDamping = 1.0 - smoothstep(0.82, 1.08, length(Centered / float3(1.0, 1.0, 0.88)));
+	const float3 EdgeDistanceInCells = min(UVW, 1.0 - UVW) * float3(GridResolution);
+	const float DistanceToBoxEdge = min(EdgeDistanceInCells.x, min(EdgeDistanceInCells.y, EdgeDistanceInCells.z));
+	const float Sponge = smoothstep(0.0, 2.0, DistanceToBoxEdge);
 	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
 	const float SafeSelfWobbleForceScale = max(SelfWobbleForceScale, 0.0);
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale);
@@ -276,7 +277,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 EventForce = bProcessEvents
 		? ComputeEventVortexForce(WorldPosition, Velocity, DensityMask, CurlNoise, CellLength, EventBrickMask)
 		: float3(0.0, 0.0, 0.0);
-	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AmbientAirForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
+	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AmbientAirForce + AirInteractionForce + EventForce) * Sponge * OpenMask * SafeDeltaSeconds;
 	const float MaxDeltaSpeed = max(VorticityDeltaSpeedMin, VorticityDeltaSpeedStrengthScale * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
 	const float DeltaSpeed = length(DeltaVelocity);
 	if (DeltaSpeed > MaxDeltaSpeed)
@@ -292,5 +293,5 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		Velocity *= MaxSpeed / max(Speed, 0.0001);
 	}
 
-	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask, 0.0);
+	OutVelocity[DispatchThreadId] = float4(Velocity * OpenMask * lerp(0.65, 1.0, Sponge), 0.0);
 }
