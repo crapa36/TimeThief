@@ -149,7 +149,6 @@ float BilateralDepthSensitivity;
 float BilateralTransmittanceSensitivity;
 Texture2D HalfResSmokeTexture;
 Texture2D CurrentSmokeTexture;
-Texture2D<float2> CurrentSmokeDepthTexture;
 Texture2D HistorySmokeTexture;
 Texture2D<float> HistoryDepthTexture;
 int2 SmokeTextureSize;
@@ -849,15 +848,8 @@ float3 CompositeDebugHeatColor(float Value)
 void MainPS(
 	in noperspective float4 UVAndScreenPos : TEXCOORD0,
 	float4 SvPosition : SV_POSITION,
-	out float4 OutColor : SV_Target0
-#if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
-	, out float2 OutSmokeDepth : SV_Target1
-#endif
-	)
+	out float4 OutColor : SV_Target0)
 {
-#if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
-	OutSmokeDepth = float2(0.0, 0.0);
-#endif
 	const int2 PixelCoord = int2(SvPosition.xy) - TileRectMin;
 	const int2 TileCoord = clamp(PixelCoord / max(CompositeTileSize, 1), int2(0, 0), TileGridSize - 1);
 	const int TileIndex = TileCoord.y * TileGridSize.x + TileCoord.x;
@@ -1006,8 +998,6 @@ void MainPS(
 	const float PixelPhase = BlueNoiseScalar(uint2(SvPosition.xy), BlueNoiseFrameIndex);
 	float Transmittance = 1.0;
 	float3 SmokeColorAccum = float3(0.0, 0.0, 0.0);
-	float SmokeDepthMoment = 0.0;
-	float SmokeOpacityWeight = 0.0;
 	float DebugMaxCombinedExtinction = 0.0;
 	float DebugMinCombinedShadow = 1.0;
 	int ResolvedStableStepCount = 0;
@@ -1154,8 +1144,6 @@ void MainPS(
 					saturate(PowderDepth) * max(PowderEffectStrength, 0.0) +
 					max(AmbientFillStrength, 0.0));
 				SmokeColorAccum += SampleWeight * (MultipleScattering + LocalFill);
-				SmokeDepthMoment += SampleWeight * CurrentT;
-				SmokeOpacityWeight += SampleWeight;
 				Transmittance *= StepTransmittance;
 			}
 
@@ -1234,7 +1222,6 @@ void MainPS(
 	const float3 SmokeContribution = SmokeColorAccum;
 #if TIME_THIEF_COMPOSITE_HALF_RESOLUTION
 	OutColor = float4(SmokeContribution, Transmittance);
-	OutSmokeDepth = float2(SmokeDepthMoment, SmokeOpacityWeight);
 #else
 	const float3 Composited = SceneColor.rgb * Transmittance + SmokeContribution;
 	OutColor = float4(Composited, SceneColor.a);
@@ -1303,19 +1290,13 @@ FTimeThiefSmokeTemporalOutput TemporalMainPS(
 	const int2 MaxCoord = max(SmokeTextureSize - 1, int2(0, 0));
 	const int2 CurrentCoord = clamp(int2(SvPosition.xy), int2(0, 0), MaxCoord);
 	const float4 CurrentSmoke = CurrentSmokeTexture.Load(int3(CurrentCoord, 0));
-	const float2 CurrentDepthMoment = CurrentSmokeDepthTexture.Load(int3(CurrentCoord, 0));
-	const float CurrentSmokeDepth = CurrentDepthMoment.y > 0.0001
-		? CurrentDepthMoment.x / CurrentDepthMoment.y
-		: 0.0;
 	const float2 FullResPixel = float2(ViewRect.xy) + (float2(CurrentCoord) + 0.5) * SmokeToViewScale;
+	const float CurrentDepth = LoadSceneDeviceZ(FullResPixel);
 	float4 FilteredSmoke = CurrentSmoke;
 
-	if (TemporalHistoryValid != 0 && TemporalHistoryWeight > 0.001 && CurrentSmokeDepth > 0.0)
+	if (TemporalHistoryValid != 0 && TemporalHistoryWeight > 0.001)
 	{
-		const float3 NearWorld = ReconstructWorldPosition(FullResPixel, 1.0);
-		const float3 FarWorld = ReconstructWorldPosition(FullResPixel, 0.0);
-		const float3 WorldRayDirection = normalize(FarWorld - NearWorld);
-		const float3 WorldPosition = NearWorld + WorldRayDirection * CurrentSmokeDepth;
+		const float3 WorldPosition = ReconstructWorldPosition(FullResPixel, CurrentDepth);
 		const float4 PreviousClip = mul(float4(WorldPosition, 1.0), PrevViewProjection);
 		const float SafeW = abs(PreviousClip.w) > 0.000001 ? PreviousClip.w : 0.000001;
 		const float2 PreviousNdc = PreviousClip.xy / SafeW;
@@ -1323,8 +1304,9 @@ FTimeThiefSmokeTemporalOutput TemporalMainPS(
 		const bool bInsideHistory = PreviousClip.w > 0.0 && all(PreviousUV >= 0.0) && all(PreviousUV <= 1.0);
 		if (bInsideHistory)
 		{
+			const int2 HistoryCoord = clamp(int2(PreviousUV * float2(SmokeTextureSize)), int2(0, 0), MaxCoord);
 			const float4 RawHistorySmoke = HistorySmokeTexture.SampleLevel(SceneColorSampler, PreviousUV, 0.0);
-			const float HistoryDepth = HistoryDepthTexture.SampleLevel(SceneColorSampler, PreviousUV, 0.0);
+			const float HistoryDepth = HistoryDepthTexture.Load(int3(HistoryCoord, 0));
 			float4 NeighborhoodMin = CurrentSmoke;
 			float4 NeighborhoodMax = CurrentSmoke;
 			[unroll]
@@ -1340,8 +1322,7 @@ FTimeThiefSmokeTemporalOutput TemporalMainPS(
 				}
 			}
 
-			const float RelativeDepthThreshold = max(TemporalDepthThreshold, CurrentSmokeDepth * 0.08);
-			const bool bDepthValid = HistoryDepth > 0.0 && abs(CurrentSmokeDepth - HistoryDepth) <= RelativeDepthThreshold;
+			const bool bDepthValid = abs(CurrentDepth - HistoryDepth) <= TemporalDepthThreshold;
 			const bool bExtinctionValid = abs(CurrentSmoke.a - RawHistorySmoke.a) <= TemporalTransmittanceThreshold;
 			if (bDepthValid && bExtinctionValid)
 			{
@@ -1352,6 +1333,6 @@ FTimeThiefSmokeTemporalOutput TemporalMainPS(
 	}
 
 	Output.Smoke = FilteredSmoke;
-	Output.Depth = CurrentSmokeDepth;
+	Output.Depth = CurrentDepth;
 	return Output;
 }

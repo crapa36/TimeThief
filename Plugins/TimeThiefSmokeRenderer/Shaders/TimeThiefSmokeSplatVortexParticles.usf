@@ -120,8 +120,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		}
 	}
 
-	const float ReferenceCadenceScale = clamp(max(DeltaSeconds, 0.0) * 8.0, 0.0, 2.0);
-	Velocity += SplatVelocity * ReferenceCadenceScale;
+	Velocity += SplatVelocity;
 	const float MaxSpeed = max(MaxSmokeVelocity, 1.0);
 	const float Speed = length(Velocity);
 	if (Speed > MaxSpeed)

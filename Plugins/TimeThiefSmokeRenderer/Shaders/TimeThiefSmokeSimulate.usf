@@ -430,18 +430,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 			dot(WorldPosition, float3(0.021, 0.017, 0.013)) +
 			sin(dot(WorldPosition, float3(0.011, 0.026, 0.019))) * 1.7);
 		const float ChunkNoise = TimeThiefSmokeValueNoise(WorldPosition * 0.018);
-		const float CohesionPattern = saturate(CloudBillow * 0.58 + ChunkNoise * 0.42);
-		const float CohesionInfluence = saturate(Density * 0.58);
-		if (bEnableSimulationCloudCohesion == 2u)
-		{
-			const float LegacyCloudCohesion = lerp(0.72, 1.38, CohesionPattern);
-			Density *= lerp(1.0, LegacyCloudCohesion, CohesionInfluence);
-		}
-		else
-		{
-			const float SignedCohesionRate = 0.14 + (CohesionPattern - 0.5) * 0.10;
-			Density *= exp2(SignedCohesionRate * DeltaSeconds * 1.442695 * CohesionInfluence);
-		}
+		const float CloudCohesion = lerp(0.72, 1.38, saturate(CloudBillow * 0.58 + ChunkNoise * 0.42));
+		Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
 	}
 	const float NaturalVentilation = saturate(1.0 - NaturalBoundsMask);
 	const float TotalBeforeBoundary = max(Density + DisplacedDensity, 0.0001);
@@ -478,9 +468,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float NoiseA = TimeThiefSmokeHash13(WorldPosition * 0.006 + DeltaSeconds);
 		const float NoiseB = TimeThiefSmokeHash13(WorldPosition * 0.009 + 17.0);
 		const float3 CurlNoise = TimeThiefSmokeTurbulenceVector(TurbulenceNoiseTexture, TurbulenceNoiseSampler, WorldPosition * 0.012, AgeSeconds * 0.16 * SafeSelfWobbleTimeScale, TurbulenceNoiseMode);
-		const float CurlReferenceStepScale = clamp(max(DeltaSeconds, 0.0) * 30.0, 0.0, 2.0);
-		AdvectedVelocity += CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask * CurlReferenceStepScale;
-		AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask * CurlReferenceStepScale;
+		AdvectedVelocity += CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
+		AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * NaturalBoundsMask;
 	}
 	[branch]
 	if (bEnableExtendedBoundaryDamping != 0u)
