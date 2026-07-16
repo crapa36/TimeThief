@@ -4418,10 +4418,12 @@ void FTimeThiefSmokeViewExtension::AddBuildCurlPass(
 	PassParameters->BrickGridResolution = State.AllocatedBrickGridSize;
 	PassParameters->SmokeBrickSize = FMath::Clamp(TimeThiefSmokeParameterDefaults::SmokeBrickSize, TimeThiefSmokeParameterDefaults::SmokeBrickMinSize, TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
 	PassParameters->bUseSparseSimulationMask = State.bUseSparseSimulationMaskThisFrame ? 1u : 0u;
+	const bool bUseFaceOpenStencils = CVarTimeThiefSmokeFaceOpenStencils.GetValueOnRenderThread() != 0;
+	PassParameters->bUseFaceOpenStencils = bUseFaceOpenStencils ? 1u : 0u;
 
 	FTimeThiefSmokeTestGpuPassResult CurlMetadata = MakeSmokeTestGpuMetadata(TEXT("Vorticity.Curl"), State.Volume.SmokeId);
-	CurlMetadata.ObstacleStencilMode = TEXT("Sdf");
-	CurlMetadata.FaceOpenSampleCount = 0;
+	CurlMetadata.ObstacleStencilMode = bUseFaceOpenStencils ? TEXT("FaceOpen") : TEXT("Sdf");
+	CurlMetadata.FaceOpenSampleCount = bUseFaceOpenStencils ? 6 : 0;
 	SmokeTestGpuProfiler.AddPass(
 		GraphBuilder,
 		RDG_EVENT_NAME("TimeThiefSmoke.BuildCurl SmokeId=%d", State.Volume.SmokeId),
