@@ -30,7 +30,6 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	float4 NaturalBoundsExtent_ObstacleFeather;
 	float4 RaymarchControls;
 	float4 BoundaryNoiseControls;
-	float4 GridResolution_SpongeCells;
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData
@@ -189,14 +188,6 @@ float ComputeRenderBoundaryFadeStart(float3 BoundsExtent, float3 NaturalBoundsEx
 	const float3 NaturalCoverage = saturate(max(NaturalBoundsExtent, 1.0) / max(BoundsExtent, 1.0));
 	const float NaturalCoverageMax = max(max(NaturalCoverage.x, NaturalCoverage.y), NaturalCoverage.z);
 	return clamp(max(0.90, NaturalCoverageMax + 0.04), 0.82, 0.96);
-}
-
-float ComputeBoxSponge(FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
-{
-	const float3 GridResolution = max(Desc.GridResolution_SpongeCells.xyz, 1.0);
-	const float3 EdgeDistanceInCells = min(VolumeUVW, 1.0 - VolumeUVW) * GridResolution;
-	const float DistanceToEdge = min(EdgeDistanceInCells.x, min(EdgeDistanceInCells.y, EdgeDistanceInCells.z));
-	return smoothstep(0.0, max(Desc.GridResolution_SpongeCells.w, 0.001), DistanceToEdge);
 }
 
 float CompositeFilteredFBM(float3 P, float BaseFrequency, float MaximumFrequency, inout uint EvaluatedOctaveCount)
@@ -385,9 +376,16 @@ float EvaluateLowFrequencyShadowExtinction(
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
 	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
 	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
+	const float BoundaryFadeStart = ComputeRenderBoundaryFadeStart(BoundsExtent, Desc.NaturalBoundsExtent_ObstacleFeather.xyz);
+	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
 	const float MaximumNoiseFrequency = 1.0 / max(ShadowStepLength * MinimumNoiseWavelengthScale, 1.0);
+	const float BoundaryNoiseScale = min(max(Desc.BoundaryNoiseControls.x, 0.0), MaximumNoiseFrequency);
 	const float AgeSeconds = Desc.FilamentAge.y;
-	const float BoundaryMask = ComputeBoxSponge(Desc, VolumeUVW);
+	const float3 BoundaryNoisePosition = SampleWorld * BoundaryNoiseScale + float3(AgeSeconds * 0.011, -AgeSeconds * 0.007, AgeSeconds * 0.013);
+	const float BoundaryNoise = BoundaryNoiseScale > 0.0
+		? (TimeThiefSmokeValueNoise(BoundaryNoisePosition) - 0.5) * Desc.BoundaryNoiseControls.y
+		: 0.0;
+	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 	const float LifetimeAlpha = 1.0 - smoothstep(Desc.FilamentAge.z, Desc.FilamentAge.z + max(Desc.FilamentAge.w, 0.001), Desc.FilamentAge.y);
 	const float NoiseScale = min(max(Desc.ScatterNoise.z, 0.0), MaximumNoiseFrequency);
 	const float3 NoisePosition = SampleWorld * NoiseScale + float3(AgeSeconds * Desc.NoiseFilamentA.x * 0.19, -AgeSeconds * Desc.NoiseFilamentA.x * 0.11, AgeSeconds * Desc.NoiseFilamentA.x * 0.07);
@@ -409,6 +407,7 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	float SimulationDistanceScale,
 	float IntervalLength,
 	float PixelWorldFootprint,
+	float BoundaryFadeStart,
 	float LifetimeAlpha,
 	inout uint EvaluatedNoiseOctaveCount)
 {
@@ -426,7 +425,13 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
 	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-	const float BoundaryMask = ComputeBoxSponge(Desc, VolumeUVW);
+	float BoundaryNoise = 0.0;
+	const float MaximumBoundaryOffset = abs(Desc.BoundaryNoiseControls.y) * 0.5;
+	if (EllipsoidDistance >= BoundaryFadeStart - MaximumBoundaryOffset - 0.02)
+	{
+		BoundaryNoise = ComputeCompositeBoundaryNoise(Desc, SampleWorld, MaximumNoiseFrequency, EvaluatedNoiseOctaveCount);
+	}
+	const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance + BoundaryNoise);
 	const float AgeSeconds = Desc.FilamentAge.y;
 	const float DensityVisibility = ObstacleOpen * BulletMasks.Hard * BoundaryMask * LifetimeAlpha;
 	float Density = RawDensity * DensityVisibility;
@@ -558,6 +563,7 @@ void MainPS(
 	float3 SmokeLocalRayDirections[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float3 SmokeBoundsExtents[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float SmokeSimulationStepScales[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+	float SmokeBoundaryFadeStarts[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float SmokeLifetimeAlphas[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float3 SmokeLocalLightDirections[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float SmokeLightDistanceScales[TIME_THIEF_MAX_COMPOSITE_SMOKES];
@@ -599,6 +605,7 @@ void MainPS(
 
 		const float3 BoundsExtent = max(Desc.BoundsExtent_RenderStepVoxelScale.xyz, 1.0);
 		const float3 SimulationRayDirection = LocalRayDirection / BoundsExtent;
+		const float BoundaryFadeStart = ComputeRenderBoundaryFadeStart(BoundsExtent, Desc.NaturalBoundsExtent_ObstacleFeather.xyz);
 		const float LifetimeAlpha = 1.0 - smoothstep(Desc.FilamentAge.z, Desc.FilamentAge.z + max(Desc.FilamentAge.w, 0.001), Desc.FilamentAge.y);
 		TransmittanceEarlyOut = max(TransmittanceEarlyOut, Desc.RaymarchControls.y);
 		SmokeTMin[ActiveSmokeCount] = TMin;
@@ -608,6 +615,7 @@ void MainPS(
 		SmokeLocalRayDirections[ActiveSmokeCount] = LocalRayDirection;
 		SmokeBoundsExtents[ActiveSmokeCount] = BoundsExtent;
 		SmokeSimulationStepScales[ActiveSmokeCount] = length(SimulationRayDirection);
+		SmokeBoundaryFadeStarts[ActiveSmokeCount] = BoundaryFadeStart;
 		SmokeLifetimeAlphas[ActiveSmokeCount] = LifetimeAlpha;
 		SmokeLocalLightDirections[ActiveSmokeCount] = mul(float4(WorldLightDirection, 0.0), WorldToLocal).xyz;
 		SmokeLightDistanceScales[ActiveSmokeCount] = length(SmokeLocalLightDirections[ActiveSmokeCount] / BoundsExtent);
@@ -747,6 +755,7 @@ void MainPS(
 						SmokeSimulationStepScales[SmokeIndex],
 						IntervalLength,
 						PixelWorldFootprint,
+						SmokeBoundaryFadeStarts[SmokeIndex],
 						SmokeLifetimeAlphas[SmokeIndex],
 						FilteredNoiseOctaveCount);
 					++CombinedMediumSampleCount;

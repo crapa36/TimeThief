@@ -420,8 +420,10 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	SourceDensityInjection += SourceWeight * Emission * InitialDensity;
 	SourceVelocityInjection += SourceVelocity * SourceWeight * Emission;
 
-	const float BoundaryDamping = 1.0;
-	const float NaturalBoundsMask = 1.0;
+	const float BoundaryNoise = (TimeThiefSmokeHash13(WorldPosition * 0.007) - 0.5) * 0.04;
+	const float3 SimulationLocalForBoundary = LocalPosition / max(BoundsExtent, 1.0);
+	const float BoundaryDamping = TimeThiefSmokeRenderBoundaryMask(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+	const float NaturalBoundsMask = TimeThiefSmokeNaturalBoundsMask(SimulationLocalForBoundary, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
 	SourceDensityInjection *= NaturalBoundsMask;
 	SourceVelocityInjection *= NaturalBoundsMask;
 	Density += SourceDensityInjection * DeltaSeconds * 1.95 * BulletMasks.Source;
@@ -463,12 +465,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	AdvectedVelocity = ApplySimulationBoundsNoOutflow(LocalPosition, AdvectedVelocity);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);
-	const float3 EdgeDistanceInCells = min(UVW, 1.0 - UVW) * float3(GridResolution);
-	const float DistanceToBoxEdge = min(EdgeDistanceInCells.x, min(EdgeDistanceInCells.y, EdgeDistanceInCells.z));
-	const float Sponge = smoothstep(0.0, 2.0, DistanceToBoxEdge);
-	Density *= OutputOpenMask * Sponge;
-	DisplacedDensity *= OutputOpenMask * Sponge;
-	AdvectedVelocity *= lerp(0.65, 1.0, Sponge);
+	Density *= OutputOpenMask;
+	DisplacedDensity *= OutputOpenMask;
 	TimeThiefSmokeClampDensityChannels(Density, DisplacedDensity, SmokeDensityMax);
 	OutDensity[CellCoord] = Density;
 	OutDisplacedDensity[CellCoord] = DisplacedDensity;
