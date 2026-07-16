@@ -386,6 +386,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	SourceDensityInjection *= NaturalBoundsMask;
 	SourceVelocityInjection *= NaturalBoundsMask;
 	Density += SourceDensityInjection * DeltaSeconds * 1.95 * BulletMasks.Source;
+	const float CloudBillow = 0.5 + 0.5 * sin(
+		dot(WorldPosition, float3(0.021, 0.017, 0.013)) +
+		sin(dot(WorldPosition, float3(0.011, 0.026, 0.019))) * 1.7);
+	const float ChunkNoise = TimeThiefSmokeValueNoise(WorldPosition * 0.018);
+	const float CloudCohesion = lerp(0.72, 1.38, saturate(CloudBillow * 0.58 + ChunkNoise * 0.42));
+	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
 	const float NaturalVentilation = saturate(1.0 - NaturalBoundsMask);
 	const float TotalBeforeBoundary = max(Density + DisplacedDensity, 0.0001);
 	const float DisplacedDominance = saturate(DisplacedDensity / TotalBeforeBoundary);
@@ -404,7 +410,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float NoiseB = TimeThiefSmokeHash13(WorldPosition * 0.009 + 17.0);
 	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
 	const float SafeSelfWobbleVelocityScale = max(SelfWobbleVelocityScale, 0.0);
-	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.0045, AgeSeconds * SafeSelfWobbleTimeScale);
+	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.16 * SafeSelfWobbleTimeScale);
 	const float TotalDensity = Density + DisplacedDensity;
 	const float SurfaceMotionMask = smoothstep(0.02, 0.20, TotalDensity) * (1.0 - smoothstep(1.20, 2.50, TotalDensity));
 	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
