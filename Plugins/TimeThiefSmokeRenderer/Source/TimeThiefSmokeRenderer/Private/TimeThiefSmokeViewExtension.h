@@ -55,9 +55,6 @@ private:
 		TRefCountPtr<IPooledRenderTarget> ObstacleVelocityTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleFaceOpenTexture;
 		TRefCountPtr<IPooledRenderTarget> ObstacleNeighborMaskTexture;
-		TRefCountPtr<IPooledRenderTarget> PrevObstacleSdfTexture;
-		TRefCountPtr<IPooledRenderTarget> PrevObstacleVelocityTexture;
-		TRefCountPtr<IPooledRenderTarget> PrevObstacleFaceOpenTexture;
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
 		TRefCountPtr<IPooledRenderTarget> SparseFieldAtlasTexture;
 		TRefCountPtr<IPooledRenderTarget> PackedDenseFieldTexture;

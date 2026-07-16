@@ -69,6 +69,16 @@ namespace
 		TimeThiefSmokeParameterDefaults::RenderWorldStepLengthCm,
 		TEXT("Stable composite sample spacing along the camera ray in world centimeters."));
 
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeIntervalIntegration(
+		TEXT("r.TimeThiefSmoke.IntervalIntegration"),
+		1,
+		TEXT("Composite interval integration. 0=legacy point sample, 1=clipped interval length, 2=interval plus two boundary substeps."));
+
+	static TAutoConsoleVariable<float> CVarTimeThiefSmokePixelPhaseJitterScale(
+		TEXT("r.TimeThiefSmoke.PixelPhaseJitterScale"),
+		1.0f,
+		TEXT("Scales composite pixel phase jitter. 0=fixed 0.5 phase, 1=default small IGN jitter."));
+
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeCombinedShadowStepCount(
 		TEXT("r.TimeThiefSmoke.CombinedShadowStepCount"),
 		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount,
@@ -133,6 +143,11 @@ namespace
 		TEXT("r.TimeThiefSmoke.SkipEmptyEventPasses"),
 		1,
 		TEXT("Skips event-only work when a required fused pass has no relevant events. 0=legacy event work, 1=skip empty event work."));
+
+	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeNoBulletPermutation(
+		TEXT("r.TimeThiefSmoke.NoBulletPermutation"),
+		1,
+		TEXT("Uses a compile-time no-bullet simulation path while bullet fields are inactive. 0=runtime branch, 1=permutation."));
 
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeReverseVortexBinning(
 		TEXT("r.TimeThiefSmoke.ReverseVortexBinning"),
@@ -1565,7 +1580,12 @@ void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICo
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildObstacleNeighborMaskCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeApplyEventsCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeDynamicObstacleCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSimulateCS>(ShaderMap));
+		for (int32 CompileBulletFields = 0; CompileBulletFields <= 1; ++CompileBulletFields)
+		{
+			FTimeThiefSmokeSimulateCS::FPermutationDomain PermutationVector;
+			PermutationVector.Set<FTimeThiefSmokeSimulateCS::FCompileBulletFieldsDim>(CompileBulletFields != 0);
+			WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSimulateCS>(ShaderMap, PermutationVector));
+		}
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeVorticityCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildCurlCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeUpdateVortexParticlesCS>(ShaderMap));
@@ -1979,6 +1999,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 		CVarTimeThiefSmokeRenderWorldStepLength.GetValueOnRenderThread(),
 		10.0f,
 		200.0f);
+	const int32 IntervalIntegrationMode = FMath::Clamp(CVarTimeThiefSmokeIntervalIntegration.GetValueOnRenderThread(), 0, 2);
+	const float PixelPhaseJitterScale = FMath::Clamp(CVarTimeThiefSmokePixelPhaseJitterScale.GetValueOnRenderThread(), 0.0f, 1.0f);
 	const int32 CombinedShadowStepCount = FMath::Clamp(
 		CVarTimeThiefSmokeCombinedShadowStepCount.GetValueOnRenderThread(),
 		0,
@@ -2148,6 +2170,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	PassParameters->CombinedShadowLightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
 	PassParameters->CombinedShadowStepCount = CombinedShadowStepCount;
 	PassParameters->SelfShadowMinSampleWeight = FMath::Clamp(TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight, 0.0f, 1.0f);
+	PassParameters->IntervalIntegrationMode = IntervalIntegrationMode;
+	PassParameters->PixelPhaseJitterScale = PixelPhaseJitterScale;
 	PassParameters->CompositeDebugMode = CompositeDebugMode;
 	PassParameters->InvViewProjection = InvViewProjection;
 	struct FMultiSmokeTextureRefs
@@ -2821,12 +2845,6 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleFieldTextures(FRDGBuilder& Grap
 		AllocatePooledTexture(ObstacleSdfDesc, State.ObstacleSdfTexture, TEXT("TimeThiefSmoke.ObstacleSdf"));
 		AllocatePooledTexture(ObstacleVectorDesc, State.ObstacleVelocityTexture, TEXT("TimeThiefSmoke.ObstacleVelocity"));
 		AllocatePooledTexture(ObstacleVectorDesc, State.ObstacleFaceOpenTexture, TEXT("TimeThiefSmoke.ObstacleFaceOpen"));
-		State.PrevObstacleSdfTexture.SafeRelease();
-		State.PrevObstacleVelocityTexture.SafeRelease();
-		State.PrevObstacleFaceOpenTexture.SafeRelease();
-		AllocatePooledTexture(ObstacleSdfDesc, State.PrevObstacleSdfTexture, TEXT("TimeThiefSmoke.PrevObstacleSdf"));
-		AllocatePooledTexture(ObstacleVectorDesc, State.PrevObstacleVelocityTexture, TEXT("TimeThiefSmoke.PrevObstacleVelocity"));
-		AllocatePooledTexture(ObstacleVectorDesc, State.PrevObstacleFaceOpenTexture, TEXT("TimeThiefSmoke.PrevObstacleFaceOpen"));
 		State.AllocatedObstacleGridSize = DesiredGridSize;
 		State.UploadedObstacleFieldRevision = MAX_uint32;
 		State.UploadedObstacleNeighborMaskRevision = MAX_uint32;
@@ -2858,11 +2876,6 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleFieldTextures(FRDGBuilder& Grap
 	FRDGTextureRef CurrentObstacleSdfTexture = nullptr;
 	if (bNeedsObstacleFieldUpdate)
 	{
-	// Ping-pong pointer swap instead of copying
-	Swap(State.ObstacleSdfTexture, State.PrevObstacleSdfTexture);
-	Swap(State.ObstacleVelocityTexture, State.PrevObstacleVelocityTexture);
-	Swap(State.ObstacleFaceOpenTexture, State.PrevObstacleFaceOpenTexture);
-
 	const int32 PrimitiveCount = FMath::Min(State.Volume.ObstaclePrimitives.Num(), TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives);
 	const int32 UploadPrimitiveCount = FMath::Max(PrimitiveCount, 1);
 	FRDGUploadData<FTimeThiefSmokeObstaclePrimitive> UploadData(GraphBuilder, UploadPrimitiveCount);
@@ -2878,46 +2891,6 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleFieldTextures(FRDGBuilder& Grap
 		TEXT("TimeThiefSmoke.ObstaclePrimitiveUpload"));
 	GraphBuilder.QueueBufferUpload(PrimitiveBuffer, UploadData, ERDGInitialDataFlags::NoCopy);
 
-	FVector4f DirtyBoundsMin[32];
-	FVector4f DirtyBoundsMax[32];
-	int32 DirtyObstacleCount = 0;
-	bool bIsFirstFrame = (State.UploadedObstacleFieldRevision == MAX_uint32);
-
-	for (int32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount && DirtyObstacleCount < 32; ++PrimitiveIndex)
-	{
-		const FTimeThiefSmokeObstaclePrimitive& Prim = State.Volume.ObstaclePrimitives[PrimitiveIndex];
-		const float Shape = FMath::RoundToFloat(Prim.ExtentsShape.W);
-		const bool bIsMoving = Prim.Velocity.SizeSquared() > 4.0f || Prim.AngularVelocity.SizeSquared() > 0.0025f;
-		if (bIsMoving || bIsFirstFrame)
-		{
-			FVector3f Center(Prim.CenterRadius.X, Prim.CenterRadius.Y, Prim.CenterRadius.Z);
-			float Radius = Prim.CenterRadius.W;
-			FVector3f Extents(Prim.ExtentsShape.X, Prim.ExtentsShape.Y, Prim.ExtentsShape.Z);
-
-			FVector3f MinBounds = Center - FVector3f(Radius);
-			FVector3f MaxBounds = Center + FVector3f(Radius);
-
-			if (Shape >= 1.5f) // Box
-			{
-				MinBounds = Center - Extents * 1.5f;
-				MaxBounds = Center + Extents * 1.5f;
-			}
-			else if (Shape >= 0.5f) // Capsule
-			{
-				FVector3f Axis(Prim.AxisHalfLength.X, Prim.AxisHalfLength.Y, Prim.AxisHalfLength.Z);
-				float HalfLength = Prim.AxisHalfLength.W;
-				FVector3f EndA = Center - Axis * HalfLength;
-				FVector3f EndB = Center + Axis * HalfLength;
-				MinBounds = FVector3f::Min(EndA, EndB) - FVector3f(Radius);
-				MaxBounds = FVector3f::Max(EndA, EndB) + FVector3f(Radius);
-			}
-
-			DirtyBoundsMin[DirtyObstacleCount] = FVector4f(MinBounds, 0.0f);
-			DirtyBoundsMax[DirtyObstacleCount] = FVector4f(MaxBounds, 0.0f);
-			DirtyObstacleCount++;
-		}
-	}
-
 	CurrentObstacleSdfTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture, TEXT("TimeThiefSmoke.ObstacleSdf"));
 	FRDGTextureRef ObstacleVelocityTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleVelocityTexture, TEXT("TimeThiefSmoke.ObstacleVelocity"));
 	FRDGTextureRef ObstacleFaceOpenTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleFaceOpenTexture, TEXT("TimeThiefSmoke.ObstacleFaceOpen"));
@@ -2929,17 +2902,6 @@ void FTimeThiefSmokeViewExtension::EnsureObstacleFieldTextures(FRDGBuilder& Grap
 	PassParameters->ObstaclePrimitiveCount = PrimitiveCount;
 	PassParameters->FarDistanceCm = TimeThiefSmokeParameterDefaults::ObstacleFieldFarDistanceCm;
 	PassParameters->SurfaceFeatherCm = TimeThiefSmokeParameterDefaults::ObstacleSdfSurfaceFeatherCm;
-
-	PassParameters->PrevObstacleSdfTexture = GraphBuilder.RegisterExternalTexture(State.PrevObstacleSdfTexture);
-	PassParameters->PrevObstacleVelocityTexture = GraphBuilder.RegisterExternalTexture(State.PrevObstacleVelocityTexture);
-	PassParameters->PrevObstacleFaceOpenTexture = GraphBuilder.RegisterExternalTexture(State.PrevObstacleFaceOpenTexture);
-	PassParameters->DirtyObstacleCount = DirtyObstacleCount;
-	PassParameters->bIsFirstFrame = bIsFirstFrame ? 1 : 0;
-	for (int32 i = 0; i < 32; ++i)
-	{
-		PassParameters->DirtyBoundsMin[i] = i < DirtyObstacleCount ? DirtyBoundsMin[i] : FVector4f(0.0f);
-		PassParameters->DirtyBoundsMax[i] = i < DirtyObstacleCount ? DirtyBoundsMax[i] : FVector4f(0.0f);
-	}
 
 	PassParameters->OutObstacleSdfTexture = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(CurrentObstacleSdfTexture));
 	PassParameters->OutObstacleVelocityTexture = GraphBuilder.CreateUAV(FRDGTextureUAVDesc(ObstacleVelocityTexture));
@@ -4392,7 +4354,10 @@ void FTimeThiefSmokeViewExtension::AddSimulatePass(
 		PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
 	};
 
-	TShaderMapRef<FTimeThiefSmokeSimulateCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	FTimeThiefSmokeSimulateCS::FPermutationDomain PermutationVector;
+	const bool bCompileBulletFieldCode = CVarTimeThiefSmokeNoBulletPermutation.GetValueOnRenderThread() == 0 || bHasBulletFields;
+	PermutationVector.Set<FTimeThiefSmokeSimulateCS::FCompileBulletFieldsDim>(bCompileBulletFieldCode);
+	TShaderMapRef<FTimeThiefSmokeSimulateCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel), PermutationVector);
 	FTimeThiefSmokeSimulateCS::FParameters* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeSimulateCS::FParameters>();
 	SetCommonSimulateParameters(PassParameters);
 	PassParameters->BulletCutoutTexture = BulletCutoutTexture;

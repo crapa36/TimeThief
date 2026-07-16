@@ -134,6 +134,8 @@ float CombinedShadowExtinction;
 float3 CombinedShadowLightDirection;
 int CombinedShadowStepCount;
 float SelfShadowMinSampleWeight;
+int IntervalIntegrationMode;
+float PixelPhaseJitterScale;
 int CompositeDebugMode;
 float4x4 InvViewProjection;
 float2 HalfResSize;
@@ -977,7 +979,10 @@ void MainPS(
 	}
 
 	const float StepSize = max(RenderWorldStepLength, 1.0);
-	const float PixelPhase = InterleavedGradientNoise(SvPosition.xy);
+	const float NoisePhase = InterleavedGradientNoise(SvPosition.xy);
+	const float PixelPhase = 0.5 + (NoisePhase - 0.5) * 0.15 * PixelPhaseJitterScale;
+	const bool bUseIntervalLength = IntervalIntegrationMode >= 1;
+	const bool bUseBoundarySubsteps = IntervalIntegrationMode >= 2;
 	float Transmittance = 1.0;
 	float3 SmokeColorAccum = float3(0.0, 0.0, 0.0);
 	float DebugMaxCombinedExtinction = 0.0;
@@ -1015,15 +1020,51 @@ void MainPS(
 		}
 
 		++SegmentCount;
-		float CurrentT = AlignStableRaySample(SegmentStart, StepSize, PixelPhase);
-		if (CurrentT < SegmentEnd)
+		const float HalfStepSize = StepSize * 0.5;
+		float CurrentT = AlignStableRaySample(SegmentStart - (bUseIntervalLength ? HalfStepSize : 0.0), StepSize, PixelPhase);
+		const float SegmentSampleEnd = SegmentEnd + (bUseIntervalLength ? HalfStepSize : 0.0);
+		if (CurrentT < SegmentSampleEnd)
 		{
-			ResolvedStableStepCount += (int)ceil((SegmentEnd - CurrentT) / StepSize);
+			ResolvedStableStepCount += (int)ceil((SegmentSampleEnd - CurrentT) / StepSize);
 		}
 		[loop]
-		while (TotalLoopCount < TIME_THIEF_MAX_STABLE_STEPS && CurrentT < SegmentEnd)
+		while (TotalLoopCount < TIME_THIEF_MAX_STABLE_STEPS && CurrentT < SegmentSampleEnd)
 		{
-			const float3 SampleWorld = NearWorld + WorldRayDirection * CurrentT;
+			const float IntervalStart = bUseIntervalLength ? max(CurrentT - HalfStepSize, SegmentStart) : CurrentT;
+			const float IntervalEnd = bUseIntervalLength ? min(CurrentT + HalfStepSize, SegmentEnd) : CurrentT + StepSize;
+			const float IntervalLength = bUseIntervalLength ? max(IntervalEnd - IntervalStart, 0.0) : StepSize;
+			const float IntervalMidT = bUseIntervalLength ? (IntervalStart + IntervalEnd) * 0.5 : CurrentT;
+			if (IntervalLength <= 0.0)
+			{
+				CurrentT += StepSize;
+				continue;
+			}
+
+			bool bNeedsBoundarySubsteps = false;
+			if (bUseBoundarySubsteps)
+			{
+				[loop]
+				for (int SegmentSmokeIndex = 0; SegmentSmokeIndex < SegmentSmokeCount; ++SegmentSmokeIndex)
+				{
+					const int SmokeIndex = SegmentSmokeIndices[SegmentSmokeIndex];
+					const int Slot = SmokeSlots[SmokeIndex];
+					const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
+					const float3 BoundsExtent = SmokeBoundsExtents[SmokeIndex];
+					const float3 IntervalStartLocal = (SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * IntervalStart) / BoundsExtent;
+					const float3 IntervalEndLocal = (SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * IntervalEnd) / BoundsExtent;
+					const float StartDistance = length(IntervalStartLocal / float3(1.0, 1.0, 0.86));
+					const float EndDistance = length(IntervalEndLocal / float3(1.0, 1.0, 0.86));
+					const float MaximumBoundaryOffset = abs(Desc.BoundaryNoiseControls.y) * 0.5;
+					const float ShellMin = SmokeBoundaryFadeStarts[SmokeIndex] - MaximumBoundaryOffset - 0.02;
+					const float ShellMax = 1.0 + MaximumBoundaryOffset + 0.02;
+					if (max(StartDistance, EndDistance) >= ShellMin && min(StartDistance, EndDistance) <= ShellMax)
+					{
+						bNeedsBoundarySubsteps = true;
+						break;
+					}
+				}
+			}
+
 			bool bSawInactiveCandidate = false;
 			bool bSawActiveCandidate = false;
 			float InactiveSkip = StepSize * RaymarchMaxSkipScale;
@@ -1031,48 +1072,57 @@ void MainPS(
 			float3 TotalScatteringSource = float3(0.0, 0.0, 0.0);
 
 			[loop]
-			for (int SegmentSmokeIndex = 0; SegmentSmokeIndex < SegmentSmokeCount; ++SegmentSmokeIndex)
+			for (int IntegrationSampleIndex = 0; IntegrationSampleIndex < (bNeedsBoundarySubsteps ? 2 : 1); ++IntegrationSampleIndex)
 			{
-				const int SmokeIndex = SegmentSmokeIndices[SegmentSmokeIndex];
-				if (CurrentT < SmokeTMin[SmokeIndex] || CurrentT > SmokeTMax[SmokeIndex])
-				{
-					continue;
-				}
+				const float IntegrationFraction = bNeedsBoundarySubsteps ? ((float)IntegrationSampleIndex + 0.5) * 0.5 : 0.5;
+				const float IntegrationSampleT = bUseIntervalLength ? lerp(IntervalStart, IntervalEnd, IntegrationFraction) : CurrentT;
+				const float IntegrationWeight = bNeedsBoundarySubsteps ? 0.5 : 1.0;
+				const float3 SampleWorld = NearWorld + WorldRayDirection * IntegrationSampleT;
 
-				const int Slot = SmokeSlots[SmokeIndex];
-				const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
-				const float3 BoundsExtent = SmokeBoundsExtents[SmokeIndex];
-				const float3 SampleLocal = SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * CurrentT;
-				const float3 SimulationLocal = SampleLocal / BoundsExtent;
-				const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
-				if (!TimeThiefSmokeInsideUVW(VolumeUVW))
+				[loop]
+				for (int SegmentSmokeIndex = 0; SegmentSmokeIndex < SegmentSmokeCount; ++SegmentSmokeIndex)
 				{
-					continue;
-				}
+					const int SmokeIndex = SegmentSmokeIndices[SegmentSmokeIndex];
+					if (IntegrationSampleT < SmokeTMin[SmokeIndex] || IntegrationSampleT > SmokeTMax[SmokeIndex])
+					{
+						continue;
+					}
 
-				if (!IsActiveBrick(Slot, Desc, VolumeUVW))
-				{
-					InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, Slot, VolumeUVW, SmokeRayUVWDirections[SmokeIndex], StepSize));
-					bSawInactiveCandidate = true;
-					continue;
-				}
+					const int Slot = SmokeSlots[SmokeIndex];
+					const FTimeThiefSmokeCompositeDescriptorShaderData Desc = CompositeSmokeDescriptors[Slot];
+					const float3 BoundsExtent = SmokeBoundsExtents[SmokeIndex];
+					const float3 SampleLocal = SmokeLocalOrigins[SmokeIndex] + SmokeLocalRayDirections[SmokeIndex] * IntegrationSampleT;
+					const float3 SimulationLocal = SampleLocal / BoundsExtent;
+					const float3 VolumeUVW = SimulationLocal * 0.5 + 0.5;
+					if (!TimeThiefSmokeInsideUVW(VolumeUVW))
+					{
+						continue;
+					}
 
-				bSawActiveCandidate = true;
-				const FTimeThiefSmokeMediumSample MediumSample = EvaluateSmokeMedium(
-					Slot,
-					Desc,
-					SampleWorld,
-					BoundsExtent,
-					SimulationLocal,
-					VolumeUVW,
-					SmokeColors[SmokeIndex],
-					SmokeSimulationStepScales[SmokeIndex],
-					SmokeMaxGridCellSizes[SmokeIndex],
-					SmokeBoundaryFadeStarts[SmokeIndex],
-					SmokeLifetimeAlphas[SmokeIndex]);
-				++CombinedMediumSampleCount;
-				TotalExtinctionCoefficient += MediumSample.ExtinctionCoefficient;
-				TotalScatteringSource += MediumSample.ExtinctionCoefficient * MediumSample.ScatteringSource;
+					if (!IsActiveBrick(Slot, Desc, VolumeUVW))
+					{
+						InactiveSkip = min(InactiveSkip, ComputeInactiveBrickSkip(Desc, Slot, VolumeUVW, SmokeRayUVWDirections[SmokeIndex], StepSize));
+						bSawInactiveCandidate = true;
+						continue;
+					}
+
+					bSawActiveCandidate = true;
+					const FTimeThiefSmokeMediumSample MediumSample = EvaluateSmokeMedium(
+						Slot,
+						Desc,
+						SampleWorld,
+						BoundsExtent,
+						SimulationLocal,
+						VolumeUVW,
+						SmokeColors[SmokeIndex],
+						SmokeSimulationStepScales[SmokeIndex],
+						SmokeMaxGridCellSizes[SmokeIndex],
+						SmokeBoundaryFadeStarts[SmokeIndex],
+						SmokeLifetimeAlphas[SmokeIndex]);
+					++CombinedMediumSampleCount;
+					TotalExtinctionCoefficient += IntegrationWeight * MediumSample.ExtinctionCoefficient;
+					TotalScatteringSource += IntegrationWeight * MediumSample.ExtinctionCoefficient * MediumSample.ScatteringSource;
+				}
 			}
 
 			++StableSampleCount;
@@ -1080,7 +1130,7 @@ void MainPS(
 			DebugMaxCombinedExtinction = max(DebugMaxCombinedExtinction, TotalExtinctionCoefficient);
 			if (TotalExtinctionCoefficient > 0.000001)
 			{
-				const float StepOpticalDepth = TotalExtinctionCoefficient * StepSize;
+				const float StepOpticalDepth = TotalExtinctionCoefficient * IntervalLength;
 				const float StepTransmittance = exp2(-StepOpticalDepth * 1.442695);
 				const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
 				float CombinedShadow = 1.0;
@@ -1098,7 +1148,7 @@ void MainPS(
 							const float3 ShadowBoundsExtent = SmokeBoundsExtents[ShadowSmokeIndex];
 							const float3 ShadowLocal =
 								SmokeLocalOrigins[ShadowSmokeIndex] +
-								SmokeLocalRayDirections[ShadowSmokeIndex] * CurrentT +
+								SmokeLocalRayDirections[ShadowSmokeIndex] * IntervalMidT +
 								SmokeLocalLightDirections[ShadowSmokeIndex] * (CombinedShadowStepLength * (float)ShadowStepIndex);
 							const float3 ShadowSimulationLocal = ShadowLocal / ShadowBoundsExtent;
 							ShadowStepExtinction += EvaluateLowFrequencyShadowExtinction(

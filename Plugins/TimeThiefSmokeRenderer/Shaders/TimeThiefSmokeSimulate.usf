@@ -150,7 +150,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		return;
 	}
 
-	const bool bHasActiveBulletFields = bHasBulletFields != 0u;
+	const bool bHasActiveBulletFields = TIME_THIEF_SIMULATE_COMPILE_BULLET_FIELDS != 0 && bHasBulletFields != 0u;
 	if (bUseActiveBrickDispatch == 0u && !IsSparseSimulationCellActive(CellCoord))
 	{
 		const float FadeOutAlpha = saturate(max(AgeSeconds - DurationSeconds, 0.0) / max(SmokeFadeOutDuration, 0.001));

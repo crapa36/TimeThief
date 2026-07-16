@@ -94,13 +94,6 @@ public:
 		SHADER_PARAMETER(float, FarDistanceCm)
 		SHADER_PARAMETER(float, SurfaceFeatherCm)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeObstaclePrimitive>, ObstaclePrimitives)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PrevObstacleSdfTexture)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PrevObstacleVelocityTexture)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PrevObstacleFaceOpenTexture)
-		SHADER_PARAMETER_ARRAY(FVector4f, DirtyBoundsMin, [32])
-		SHADER_PARAMETER_ARRAY(FVector4f, DirtyBoundsMax, [32])
-		SHADER_PARAMETER(int32, DirtyObstacleCount)
-		SHADER_PARAMETER(int32, bIsFirstFrame)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutObstacleSdfTexture)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float4>, OutObstacleVelocityTexture)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float4>, OutObstacleFaceOpenTexture)
@@ -134,6 +127,8 @@ class FTimeThiefSmokeSimulateCS : public FGlobalShader
 public:
 	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeSimulateCS);
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeSimulateCS, FGlobalShader);
+	class FCompileBulletFieldsDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_SIMULATE_COMPILE_BULLET_FIELDS");
+	using FPermutationDomain = TShaderPermutationDomain<FCompileBulletFieldsDim>;
 
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		TIME_THIEF_SMOKE_SIMULATE_CS_PARAMETERS
@@ -397,6 +392,8 @@ public:
 		SHADER_PARAMETER(FVector3f, CombinedShadowLightDirection)
 		SHADER_PARAMETER(int32, CombinedShadowStepCount)
 		SHADER_PARAMETER(float, SelfShadowMinSampleWeight)
+		SHADER_PARAMETER(int32, IntervalIntegrationMode)
+		SHADER_PARAMETER(float, PixelPhaseJitterScale)
 		SHADER_PARAMETER(int32, CompositeDebugMode)
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
