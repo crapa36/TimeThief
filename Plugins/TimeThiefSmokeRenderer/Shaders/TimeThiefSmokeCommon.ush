@@ -26,6 +26,40 @@ struct FTimeThiefSmokeBulletOpenMasks
 	float Edge;
 };
 
+int TimeThiefSmokeCountEventBits(uint4 Mask)
+{
+	return countbits(Mask.x) + countbits(Mask.y) + countbits(Mask.z) + countbits(Mask.w);
+}
+
+int TimeThiefSmokePopLowestEventIndex(inout uint4 Mask)
+{
+	if (Mask.x != 0u)
+	{
+		const int BitIndex = firstbitlow(Mask.x);
+		Mask.x &= Mask.x - 1u;
+		return BitIndex;
+	}
+	if (Mask.y != 0u)
+	{
+		const int BitIndex = firstbitlow(Mask.y);
+		Mask.y &= Mask.y - 1u;
+		return 32 + BitIndex;
+	}
+	if (Mask.z != 0u)
+	{
+		const int BitIndex = firstbitlow(Mask.z);
+		Mask.z &= Mask.z - 1u;
+		return 64 + BitIndex;
+	}
+	if (Mask.w != 0u)
+	{
+		const int BitIndex = firstbitlow(Mask.w);
+		Mask.w &= Mask.w - 1u;
+		return 96 + BitIndex;
+	}
+	return -1;
+}
+
 float TimeThiefSmokeHash13(float3 P)
 {
 	P = frac(P * 0.1031);
