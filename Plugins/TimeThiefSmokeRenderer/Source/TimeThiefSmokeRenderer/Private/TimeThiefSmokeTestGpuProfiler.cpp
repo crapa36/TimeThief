@@ -45,7 +45,7 @@ void FTimeThiefSmokeTestGpuProfiler::EndRasterPass(
 	if (StepStatsBuffer)
 	{
 		Query->StepStatsReadback = MakeUnique<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.CompositeStepStatsReadback"));
-		AddEnqueueCopyPass(GraphBuilder, Query->StepStatsReadback.Get(), StepStatsBuffer, 17u * sizeof(uint32));
+		AddEnqueueCopyPass(GraphBuilder, Query->StepStatsReadback.Get(), StepStatsBuffer, 32u * sizeof(uint32));
 	}
 }
 
@@ -82,7 +82,7 @@ void FTimeThiefSmokeTestGpuProfiler::PollResults_RenderThread()
 				: 0.0;
 			if (Query->StepStatsReadback)
 			{
-				const uint32* Stats = static_cast<const uint32*>(Query->StepStatsReadback->Lock(17u * sizeof(uint32)));
+				const uint32* Stats = static_cast<const uint32*>(Query->StepStatsReadback->Lock(32u * sizeof(uint32)));
 				if (Stats)
 				{
 					const uint32 ResolvedCount = Stats[3];
@@ -107,6 +107,21 @@ void FTimeThiefSmokeTestGpuProfiler::PollResults_RenderThread()
 					Query->Metadata.SamplePhaseHash = Stats[13];
 					Query->Metadata.bOrderIndependentIntegrator = Stats[15] != 0u;
 					Query->Metadata.FilteredNoiseOctaveCount = Stats[16];
+					Query->Metadata.BoundaryNoiseOctaveCount = Stats[17];
+					Query->Metadata.DensityNoiseOctaveCount = Stats[18];
+					Query->Metadata.FilamentNoiseOctaveCount = Stats[19];
+					Query->Metadata.ShadowNoiseOctaveCount = Stats[20];
+					Query->Metadata.CombinedShadowStepSampleCount = Stats[21];
+					Query->Metadata.CombinedShadowMediumSampleCount = Stats[22];
+					Query->Metadata.BoundaryEvaluationCount = Stats[23];
+					Query->Metadata.BoundaryCoarseNoiseEvaluationCount = Stats[24];
+					Query->Metadata.BoundaryFineNoiseEvaluationCount = Stats[25];
+					Query->Metadata.BoundaryInteriorSkipCount = Stats[26];
+					Query->Metadata.BoundaryExteriorRejectCount = Stats[27];
+					Query->Metadata.ShadowIntervalSkipCount = Stats[28];
+					Query->Metadata.ShadowOpticalDepthEarlyOutCount = Stats[29];
+					Query->Metadata.ShadowAdaptiveDoubleStepCount = Stats[30];
+					Query->Metadata.ShadowEllipsoidRejectCount = Stats[31];
 				}
 				Query->StepStatsReadback->Unlock();
 			}

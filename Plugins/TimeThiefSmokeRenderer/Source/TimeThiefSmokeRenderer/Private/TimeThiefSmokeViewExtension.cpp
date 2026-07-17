@@ -1785,7 +1785,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	if (bCollectStepStats)
 	{
 		StepStatsBuffer = GraphBuilder.CreateBuffer(
-			FRDGBufferDesc::CreateBufferDesc(sizeof(uint32), 17),
+			FRDGBufferDesc::CreateBufferDesc(sizeof(uint32), 32),
 			TEXT("TimeThiefSmoke.CompositeStepStats"));
 		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(StepStatsBuffer, PF_R32_UINT), 0u);
 	}
