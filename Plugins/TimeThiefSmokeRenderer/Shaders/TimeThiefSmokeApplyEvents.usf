@@ -87,6 +87,14 @@ float ResolveExplosionWallBlock(float3 UVW, float OpenMask, float3 RadialWorld)
 	return saturate((OpenMask - AheadOpen) * 2.5 + (0.55 - AheadOpen) * 1.5);
 }
 
+float ResolveExplosionOuterDistanceFalloff(float Distance, float Radius, float MaxInfluenceRadius)
+{
+	const float InfluenceWidth = max(MaxInfluenceRadius - Radius, 1.0);
+	const float DistanceAlpha = saturate((Distance - Radius) / InfluenceWidth);
+	const float EdgeWeight = exp2(-1.0);
+	return saturate((exp2(-DistanceAlpha) - EdgeWeight) / max(1.0 - EdgeWeight, 0.0001));
+}
+
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 {
@@ -174,25 +182,26 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float CorePressure = saturate(
 			(CoreShockShell + CoreReached * 0.42) * CoreMask * CorePushFade);
 
-		// Outside the gameplay radius, an expanding air-pressure front pushes surrounding smoke without deleting it.
+		// Outside the gameplay radius, strength falls exponentially until the configured influence edge.
 		const float OutsideBlastMask = smoothstep(Radius * 0.94, Radius * 1.04, Distance);
-		const float AirFieldFalloff = 1.0 - smoothstep(Radius, MaxInfluenceRadius, Distance);
+		const float AirFieldFalloff = ResolveExplosionOuterDistanceFalloff(Distance, Radius, MaxInfluenceRadius);
 		const float SurroundingAir = saturate(OutsideBlastMask * AirFieldFalloff);
 		const float FrontRadius = lerp(Radius * 1.02, MaxInfluenceRadius, Age);
 		const float FrontThickness = max((MaxInfluenceRadius - Radius) * 0.32, Radius * 0.08);
 		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.2, FrontThickness, abs(Distance - FrontRadius));
+		const float AttenuatedShockShell = ShockShell * AirFieldFalloff;
 		const float ShockFade = 1.0 - smoothstep(0.82, 1.0, Age);
 		const float AirFieldFade = 1.0 - smoothstep(0.48, 0.92, Age);
-		const float OuterPressure = saturate((ShockShell + SurroundingAir * 0.72 * AirFieldFade) * OutsideBlastMask);
+		const float OuterPressure = saturate((AttenuatedShockShell + SurroundingAir * 0.72 * AirFieldFade) * OutsideBlastMask);
 		const float PressureWeight = saturate(CorePressure + OuterPressure);
 
 		Velocity *= 1.0 - WallBlock * PressureWeight * ShockFade * 0.65;
 		Velocity += Radial * (CorePressure * 1.18 + OuterPressure) * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.5 * RadialImpulseScale;
-		Velocity += Curl * (CoreShockShell * 0.18 + ShockShell * 0.36 + SurroundingAir * 0.12) * Strength * ShockFade * SafeDeltaSeconds * 110.0 * (1.0 - WallBlock);
+		Velocity += Curl * (CoreShockShell * 0.18 + AttenuatedShockShell * 0.36 + SurroundingAir * 0.12) * Strength * ShockFade * SafeDeltaSeconds * 110.0 * (1.0 - WallBlock);
 
 		// Move affected smoke into the displaced channel before its inner portion gradually fades out.
 		const float DisplacementWeight = saturate(
-			(CorePressure * 0.68 + SurroundingAir * 0.82 + ShockShell * 0.32) *
+			(CorePressure * 0.68 + SurroundingAir * 0.82 + AttenuatedShockShell * 0.32) *
 			Strength * ShockFade * SafeDeltaSeconds * 2.2);
 		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
 		NaturalDensity -= ShiftedDensity;
