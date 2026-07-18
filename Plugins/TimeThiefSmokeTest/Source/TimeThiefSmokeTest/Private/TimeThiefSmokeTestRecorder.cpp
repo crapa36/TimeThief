@@ -293,10 +293,8 @@ void FTimeThiefSmokeTestRecorder::WriteGpuPass(const FTimeThiefSmokeTestGpuPassR
 		Json->SetNumberField(TEXT("average_smokes_per_nonempty_tile"), Result.AverageSmokesPerNonEmptyTile);
 		Json->SetArrayField(TEXT("tile_smoke_count_histogram"), IntArrayJson(Result.TileSmokeCountHistogram));
 	}
-	if (Result.RenderMaxSteps > 0)
+	if (Result.EstimatedFullRaySteps > 0)
 	{
-		Json->SetNumberField(TEXT("render_min_steps"), Result.RenderMinSteps);
-		Json->SetNumberField(TEXT("render_max_steps"), Result.RenderMaxSteps);
 		Json->SetNumberField(TEXT("estimated_full_ray_steps"), Result.EstimatedFullRaySteps);
 		Json->SetNumberField(TEXT("target_step_length"), Result.TargetStepLength);
 		if (Result.ActualResolvedStepMax > 0)

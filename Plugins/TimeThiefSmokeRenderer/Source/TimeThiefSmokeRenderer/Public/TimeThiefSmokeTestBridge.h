@@ -64,8 +64,6 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeTestGpuPassResult
 	int32 MaxSmokesPerTile = 0;
 	float AverageSmokesPerNonEmptyTile = 0.0f;
 	TArray<int32> TileSmokeCountHistogram;
-	int32 RenderMinSteps = 0;
-	int32 RenderMaxSteps = 0;
 	int32 EstimatedFullRaySteps = 0;
 	float TargetStepLength = 0.0f;
 	int32 ActualResolvedStepMin = 0;

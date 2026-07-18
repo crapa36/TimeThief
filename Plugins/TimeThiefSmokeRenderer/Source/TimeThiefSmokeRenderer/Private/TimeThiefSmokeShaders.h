@@ -29,16 +29,13 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f WorldToLocal1 = FVector4f::Zero();
 	FVector4f WorldToLocal2 = FVector4f::Zero();
 	FVector4f WorldToLocal3 = FVector4f::Zero();
-	FVector4f BoundsExtent_RenderStepVoxelScale = FVector4f::Zero();
+	FVector4f BoundsExtent_DetailDensityCutoff = FVector4f::Zero();
 	FVector4f RenderBoundsExtent_Extinction = FVector4f::Zero();
-	FVector4f ScatterNoise = FVector4f::Zero();
-	FVector4f SelfShadowLightDirection_StepCount = FVector4f::Zero();
-	FVector4f SelfShadowControls = FVector4f::Zero();
+	FVector4f AnisotropyNoise = FVector4f::Zero();
+	FVector4f SelfShadowLightDirection = FVector4f::Zero();
 	FVector4f NoiseFilamentA = FVector4f::Zero();
 	FVector4f FilamentAge = FVector4f::Zero();
-	FVector4f RenderSteps_Quality = FVector4f::Zero();
 	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
-	FVector4f RaymarchControls = FVector4f::Zero();
 	FVector4f BoundaryNoiseControls = FVector4f::Zero();
 };
 

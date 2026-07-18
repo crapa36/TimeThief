@@ -497,9 +497,9 @@ namespace TimeThiefSmokeVolume
 
 	bool AreObstacleTransformsNearlyEqual(const FTransform& Left, const FTransform& Right)
 	{
-		return Left.GetLocation().Equals(Right.GetLocation(), 0.1) &&
-			Left.GetScale3D().Equals(Right.GetScale3D(), 0.001) &&
-			Left.GetRotation().AngularDistance(Right.GetRotation()) <= 0.001;
+		return Left.GetLocation().Equals(Right.GetLocation(), TimeThiefSmokeParameterDefaults::ObstacleTransformLocationToleranceCm) &&
+			Left.GetScale3D().Equals(Right.GetScale3D(), TimeThiefSmokeParameterDefaults::ObstacleTransformScaleTolerance) &&
+			Left.GetRotation().AngularDistance(Right.GetRotation()) <= TimeThiefSmokeParameterDefaults::ObstacleTransformRotationToleranceRadians;
 	}
 
 	FSmokeObstacleMotion MakeSmokeLocalObstacleMotion(

@@ -211,7 +211,7 @@ namespace TimeThiefSmoke
 
 	void BuildSmokeActorOverlapGroups(const TArray<FBox>& SmokeBounds, TArray<FSmokeActorOverlapGroup>& OutGroups)
 	{
-		if (SmokeBounds.Num() <= 8)
+		if (SmokeBounds.Num() <= TimeThiefSmokeParameterDefaults::SmokeBroadphaseLinearScanMaxCount)
 		{
 			BuildSmokeActorOverlapGroupsDense(SmokeBounds, OutGroups);
 			return;

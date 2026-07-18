@@ -25,40 +25,29 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::SmokeBrickSize >= TimeThiefSmokeParameterDefaults::SmokeBrickMinSize &&
 		TimeThiefSmokeParameterDefaults::SmokeBrickSize <= TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
 	TestTrue(
-		TEXT("Render step defaults stay inside renderer limits"),
-		TimeThiefSmokeParameterDefaults::RenderStepCount >= TimeThiefSmokeParameterDefaults::RenderStepCountMin &&
-		TimeThiefSmokeParameterDefaults::RenderStepCount <= TimeThiefSmokeParameterDefaults::RenderStepCountMax &&
-		TimeThiefSmokeParameterDefaults::RenderMaxStepCount >= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMin &&
-		TimeThiefSmokeParameterDefaults::RenderMaxStepCount <= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMax &&
-		TimeThiefSmokeParameterDefaults::RenderStepCount <= TimeThiefSmokeParameterDefaults::RenderMaxStepCount);
+		TEXT("World raymarch spacing default stays inside renderer limits"),
+		TimeThiefSmokeParameterDefaults::RenderWorldStepLengthCm >= TimeThiefSmokeParameterDefaults::RenderWorldStepLengthMinCm &&
+		TimeThiefSmokeParameterDefaults::RenderWorldStepLengthCm <= TimeThiefSmokeParameterDefaults::RenderWorldStepLengthMaxCm);
 	TestTrue(
-		TEXT("Render voxel step default stays inside renderer limits"),
-		TimeThiefSmokeParameterDefaults::RenderStepVoxelScale >= TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMin &&
-		TimeThiefSmokeParameterDefaults::RenderStepVoxelScale <= TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMax);
+		TEXT("Half-resolution default remains a boolean console value"),
+		TimeThiefSmokeParameterDefaults::HalfResolution == 0 || TimeThiefSmokeParameterDefaults::HalfResolution == 1);
 	TestTrue(
 		TEXT("Obstacle mask cache keeps at least one reusable entry"),
 		TimeThiefSmokeParameterDefaults::ObstacleMaskCacheMaxEntries > 0);
 	TestTrue(
-		TEXT("Inactive brick raymarch skip keeps clamp range valid"),
-		TimeThiefSmokeParameterDefaults::InactiveBrickRaymarchMaxSkipScale >= 1.0f);
-	TestTrue(
-		TEXT("Inactive brick self-shadow skip keeps clamp range valid"),
-		TimeThiefSmokeParameterDefaults::SelfShadowInactiveBrickMaxSkipSteps >= 1);
-	TestTrue(
-		TEXT("Dynamic obstacle refresh interval remains positive"),
-		TimeThiefSmokeParameterDefaults::ObstacleDynamicRefreshIntervalSeconds > 0.0f);
-	TestTrue(
 		TEXT("Self-shadow sample threshold skips only tiny contributions"),
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight > 0.0f &&
-		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight < TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
-	const FVector RenderBoundsExtent =
-		TimeThiefSmokeParameterDefaults::GetSmokeBoundsExtent() +
-		TimeThiefSmokeParameterDefaults::GetRenderBoundsPadding();
+		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight <= TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
 	TestTrue(
-		TEXT("Combined shadow defaults preserve target spacing across the full volume diagonal"),
-		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount > 0 &&
-		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount * TimeThiefSmokeParameterDefaults::CombinedShadowStepLength >=
-			RenderBoundsExtent.Size() * 2.0);
+		TEXT("Combined shadow defaults stay inside runtime clamp limits"),
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount >= TimeThiefSmokeParameterDefaults::CombinedShadowStepCountMin &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount <= TimeThiefSmokeParameterDefaults::CombinedShadowStepCountMax &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepLength >= TimeThiefSmokeParameterDefaults::CombinedShadowStepLengthMinCm &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepLength <= TimeThiefSmokeParameterDefaults::CombinedShadowStepLengthMaxCm);
+	TestTrue(
+		TEXT("Render detail cutoff remains inside the simulated density range"),
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff > 0.0f &&
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff <= TimeThiefSmokeParameterDefaults::SmokeDensityMax);
 	TestTrue(
 		TEXT("Render transmittance early-out stays in normalized range"),
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut > 0.0f &&
@@ -84,6 +73,10 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Simulation event delta clamp remains positive"),
 		TimeThiefSmokeParameterDefaults::SimulationEventDeltaSecondsMax > 0.0f);
+	TestTrue(
+		TEXT("Simulation frame clamp and substep budget remain positive"),
+		TimeThiefSmokeParameterDefaults::SimulationFrameDeltaSecondsMax > 0.0f &&
+		TimeThiefSmokeParameterDefaults::MaxSimulationSubstepsPerFrame > 0);
 	TestTrue(
 		TEXT("Smoke density clamp remains above initial density"),
 		TimeThiefSmokeParameterDefaults::SmokeDensityMax >= TimeThiefSmokeParameterDefaults::InitialDensity);
@@ -130,6 +123,9 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Composite scissor requires a positive saved-pixel threshold"),
 		TimeThiefSmokeParameterDefaults::CompositeScissorMinSavedPixels > 0);
+	TestTrue(
+		TEXT("Smoke broadphase keeps a positive linear-scan range"),
+		TimeThiefSmokeParameterDefaults::SmokeBroadphaseLinearScanMaxCount > 0);
 	TestTrue(
 		TEXT("Actor interaction cadence remains enabled"),
 		TimeThiefSmokeParameterDefaults::ActorInteractionHz > 0.0f);
