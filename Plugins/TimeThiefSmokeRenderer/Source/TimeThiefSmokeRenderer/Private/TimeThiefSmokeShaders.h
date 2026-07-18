@@ -14,6 +14,11 @@ struct FTimeThiefSmokeEventShaderData
 	FVector4f Rotation = FVector4f::Zero();
 	FVector4f TypeShapeAgeSeed = FVector4f::Zero();
 	FVector4f PreviousPositionSpeed = FVector4f::Zero();
+	FVector4f ExplosionParameters = FVector4f(
+		TimeThiefSmokeParameterDefaults::ExplosionInfluenceRadiusScale,
+		0.0f,
+		0.0f,
+		0.0f);
 };
 
 struct FTimeThiefSmokeVortexParticleShaderData
