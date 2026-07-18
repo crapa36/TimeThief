@@ -341,8 +341,8 @@ namespace TimeThiefSmokeParameterDefaults
 
 	// 폭발 충격
 
-	// 폭발 충격 영향 반경(cm). 높을수록 영향 범위와 비용 증가.
-	constexpr float ExplosionShockRadius = 700.0f;
+	// 폭발 이벤트 안전 최소 반경(cm). 실제 영향 반경은 게임/네트워크에서 전달된 값을 사용한다.
+	constexpr float ExplosionShockRadius = 1.0f;
 	// 폭발 속도 충격 유지 시간(초). 높을수록 충격 지속 증가.
 	constexpr float ExplosionImpulseDuration = 0.85f;
 	// 폭발 바깥 방향 속도 강도(cm/s). 높을수록 연막 밀림 증가.
