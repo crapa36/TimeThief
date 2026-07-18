@@ -151,15 +151,30 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 
 		const float Distance = length(ToCell);
 		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
+		const float3 Radial = normalize(float3(ToCell.xy, ToCell.z * 0.35) + float3(0.0001, 0.0001, 0.0001));
+		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
+		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
+		const float WallBlock = ResolveExplosionWallBlock(UVW, OpenMask, Radial);
+		const float RadialImpulseScale = lerp(1.0, 0.06, WallBlock);
 
-		// Smoke inside the gameplay explosion radius is removed. A narrow feather avoids a hard voxel ring.
-		const float ClearMask = 1.0 - smoothstep(Radius * 0.96, Radius, Distance);
-		const float ClearAmount = saturate(ClearMask * Strength);
-		NaturalDensity *= 1.0 - ClearAmount;
-		DisplacedDensity *= 1.0 - ClearAmount;
-		Velocity *= 1.0 - ClearMask;
+		// The inner blast front reaches smoke progressively, pushes it first, then dissipates it over time.
+		const float CoreMask = 1.0 - smoothstep(Radius * 0.88, Radius * 1.02, Distance);
+		const float CoreFrontProgress = smoothstep(0.0, 0.72, Age);
+		const float CoreFrontRadius = Radius * lerp(0.12, 1.05, CoreFrontProgress);
+		const float CoreFrontThickness = max(Radius * 0.18, 1.0);
+		const float CoreShockShell = 1.0 - smoothstep(
+			CoreFrontThickness * 0.2,
+			CoreFrontThickness,
+			abs(Distance - CoreFrontRadius));
+		const float CoreReached = 1.0 - smoothstep(
+			max(CoreFrontRadius - CoreFrontThickness * 0.35, 0.0),
+			CoreFrontRadius + CoreFrontThickness * 0.35,
+			Distance);
+		const float CorePushFade = 1.0 - smoothstep(0.64, 0.96, Age);
+		const float CorePressure = saturate(
+			(CoreShockShell + CoreReached * 0.42) * CoreMask * CorePushFade);
 
-		// Outside the cleared radius, an expanding pressure front pushes surrounding smoke into open air.
+		// Outside the gameplay radius, an expanding air-pressure front pushes surrounding smoke without deleting it.
 		const float OutsideBlastMask = smoothstep(Radius * 0.94, Radius * 1.04, Distance);
 		const float AirFieldFalloff = 1.0 - smoothstep(Radius, MaxInfluenceRadius, Distance);
 		const float SurroundingAir = saturate(OutsideBlastMask * AirFieldFalloff);
@@ -168,24 +183,27 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.2, FrontThickness, abs(Distance - FrontRadius));
 		const float ShockFade = 1.0 - smoothstep(0.82, 1.0, Age);
 		const float AirFieldFade = 1.0 - smoothstep(0.48, 0.92, Age);
-		const float PressureWeight = saturate((ShockShell + SurroundingAir * 0.72 * AirFieldFade) * OutsideBlastMask);
-		const float3 Radial = normalize(float3(ToCell.xy, ToCell.z * 0.35) + float3(0.0001, 0.0001, 0.0001));
-		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
-		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
-		const float WallBlock = ResolveExplosionWallBlock(UVW, OpenMask, Radial);
-		const float RadialImpulseScale = lerp(1.0, 0.06, WallBlock);
+		const float OuterPressure = saturate((ShockShell + SurroundingAir * 0.72 * AirFieldFade) * OutsideBlastMask);
+		const float PressureWeight = saturate(CorePressure + OuterPressure);
 
 		Velocity *= 1.0 - WallBlock * PressureWeight * ShockFade * 0.65;
-		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.5 * RadialImpulseScale;
-		Velocity += Curl * (ShockShell * 0.36 + SurroundingAir * 0.12) * Strength * ShockFade * SafeDeltaSeconds * 110.0 * (1.0 - WallBlock);
+		Velocity += Radial * (CorePressure * 1.18 + OuterPressure) * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.5 * RadialImpulseScale;
+		Velocity += Curl * (CoreShockShell * 0.18 + ShockShell * 0.36 + SurroundingAir * 0.12) * Strength * ShockFade * SafeDeltaSeconds * 110.0 * (1.0 - WallBlock);
 
-		// Preserve the surrounding smoke mass while moving it into the displaced channel for advection.
+		// Move affected smoke into the displaced channel before its inner portion gradually fades out.
 		const float DisplacementWeight = saturate(
-			(SurroundingAir * 0.82 + ShockShell * 0.32) *
-			Strength * ShockFade * SafeDeltaSeconds * 2.2 * OutsideBlastMask);
+			(CorePressure * 0.68 + SurroundingAir * 0.82 + ShockShell * 0.32) *
+			Strength * ShockFade * SafeDeltaSeconds * 2.2);
 		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
 		NaturalDensity -= ShiftedDensity;
 		DisplacedDensity += ShiftedDensity;
+
+		const float DissolveRamp = smoothstep(0.08, 0.68, Age);
+		const float DissolveRate = lerp(1.4, 7.0, DissolveRamp);
+		const float CoreDissipation = saturate(
+			CoreMask * CoreReached * Strength * SafeDeltaSeconds * DissolveRate);
+		NaturalDensity *= 1.0 - CoreDissipation;
+		DisplacedDensity *= 1.0 - CoreDissipation;
 	}
 
 	NaturalDensity *= OpenMask;
