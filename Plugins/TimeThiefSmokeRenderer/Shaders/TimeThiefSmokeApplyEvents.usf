@@ -151,33 +151,38 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 
 		const float Distance = length(ToCell);
 		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
-		const float FrontRadius = Radius * lerp(0.12, 1.08, Age);
-		const float FrontThickness = max(Radius * 0.16, 1.0);
-		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
-		const float EvacuatedCore = (1.0 - smoothstep(max(FrontRadius * 0.35, 1.0), max(FrontRadius * 0.92, 2.0), Distance)) *
-			(1.0 - smoothstep(0.72, 1.0, Age));
-		const float BlastInterior = (1.0 - smoothstep(Radius * 0.72, Radius, Distance)) *
-			(1.0 - smoothstep(0.0, 0.55, Age));
+
+		// Smoke inside the gameplay explosion radius is removed. A narrow feather avoids a hard voxel ring.
+		const float ClearMask = 1.0 - smoothstep(Radius * 0.96, Radius, Distance);
+		const float ClearAmount = saturate(ClearMask * Strength);
+		NaturalDensity *= 1.0 - ClearAmount;
+		DisplacedDensity *= 1.0 - ClearAmount;
+		Velocity *= 1.0 - ClearMask;
+
+		// Outside the cleared radius, an expanding pressure front pushes surrounding smoke into open air.
+		const float OutsideBlastMask = smoothstep(Radius * 0.94, Radius * 1.04, Distance);
+		const float AirFieldFalloff = 1.0 - smoothstep(Radius, MaxInfluenceRadius, Distance);
+		const float SurroundingAir = saturate(OutsideBlastMask * AirFieldFalloff);
+		const float FrontRadius = lerp(Radius * 1.02, MaxInfluenceRadius, Age);
+		const float FrontThickness = max((MaxInfluenceRadius - Radius) * 0.32, Radius * 0.08);
+		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.2, FrontThickness, abs(Distance - FrontRadius));
+		const float ShockFade = 1.0 - smoothstep(0.82, 1.0, Age);
+		const float AirFieldFade = 1.0 - smoothstep(0.48, 0.92, Age);
+		const float PressureWeight = saturate((ShockShell + SurroundingAir * 0.72 * AirFieldFade) * OutsideBlastMask);
 		const float3 Radial = normalize(float3(ToCell.xy, ToCell.z * 0.35) + float3(0.0001, 0.0001, 0.0001));
 		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
 		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
-		const float PressureWeight = saturate(ShockShell + max(EvacuatedCore * 0.55, BlastInterior * 0.42));
-		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
 		const float WallBlock = ResolveExplosionWallBlock(UVW, OpenMask, Radial);
 		const float RadialImpulseScale = lerp(1.0, 0.06, WallBlock);
+
 		Velocity *= 1.0 - WallBlock * PressureWeight * ShockFade * 0.65;
-		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0 * RadialImpulseScale;
-		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 120.0 * (1.0 - WallBlock);
+		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.5 * RadialImpulseScale;
+		Velocity += Curl * (ShockShell * 0.36 + SurroundingAir * 0.12) * Strength * ShockFade * SafeDeltaSeconds * 110.0 * (1.0 - WallBlock);
 
-		// The blast consumes part of the smoke instead of preserving all mass against walls.
-		const float EarlyImpulse = 1.0 - smoothstep(0.22, 0.62, Age);
-		const float DensityLoss = saturate(
-			(EvacuatedCore * 0.50 + BlastInterior * 0.18 + ShockShell * 0.12 + WallBlock * PressureWeight * 0.25) *
-			Strength * EarlyImpulse * SafeDeltaSeconds * 1.8);
-		NaturalDensity *= 1.0 - DensityLoss;
-		DisplacedDensity *= 1.0 - DensityLoss;
-
-		const float DisplacementWeight = saturate(PressureWeight * Strength * ShockFade * SafeDeltaSeconds * 2.0);
+		// Preserve the surrounding smoke mass while moving it into the displaced channel for advection.
+		const float DisplacementWeight = saturate(
+			(SurroundingAir * 0.82 + ShockShell * 0.32) *
+			Strength * ShockFade * SafeDeltaSeconds * 2.2 * OutsideBlastMask);
 		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
 		NaturalDensity -= ShiftedDensity;
 		DisplacedDensity += ShiftedDensity;
