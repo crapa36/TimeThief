@@ -8,6 +8,7 @@ struct FTimeThiefSmokeEventShaderData
 	float4 Rotation;
 	float4 TypeShapeAgeSeed;
 	float4 PreviousPositionSpeed;
+	float4 ExplosionParameters;
 };
 
 struct FTimeThiefSmokeVortexParticleShaderData
@@ -389,7 +390,8 @@ float TimeThiefSmokeBulletWakeInfluenceRadius(FTimeThiefSmokeEventShaderData Eve
 float TimeThiefSmokeExplosionInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 {
 	const float Radius = max(Event.PositionRadius.w, 1.0);
-	return Radius * 1.55;
+	const float RadiusScale = max(Event.ExplosionParameters.x, 1.0);
+	return Radius * RadiusScale;
 }
 
 float TimeThiefSmokePlumeSourceInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
