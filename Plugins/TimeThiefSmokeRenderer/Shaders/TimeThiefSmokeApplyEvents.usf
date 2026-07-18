@@ -65,6 +65,28 @@ uint4 GetEventBrickMask(uint3 CellCoord)
 	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
 }
 
+float ResolveExplosionWallBlock(float3 UVW, float OpenMask, float3 RadialWorld)
+{
+	const float3 RadialLocal = mul(float4(RadialWorld, 0.0), WorldToLocal).xyz;
+	const float3 RadialUvDirection = normalize(
+		RadialLocal / max(BoundsExtent, float3(1.0, 1.0, 1.0)) +
+		float3(0.0001, 0.0001, 0.0001));
+	const float3 VoxelUv = 1.0 / max(float3(GridResolution), float3(1.0, 1.0, 1.0));
+	const float3 OutwardUvStep = RadialUvDirection * VoxelUv;
+	const float NearOpen = TimeThiefSmokeObstacleOpen(
+		ObstacleTexture,
+		VolumeSampler,
+		UVW + OutwardUvStep * 1.25,
+		ObstacleSdfSurfaceFeatherCm);
+	const float FarOpen = TimeThiefSmokeObstacleOpen(
+		ObstacleTexture,
+		VolumeSampler,
+		UVW + OutwardUvStep * 2.5,
+		ObstacleSdfSurfaceFeatherCm);
+	const float AheadOpen = min(NearOpen, FarOpen);
+	return saturate((OpenMask - AheadOpen) * 2.5 + (0.55 - AheadOpen) * 1.5);
+}
+
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 {
@@ -134,14 +156,27 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
 		const float EvacuatedCore = (1.0 - smoothstep(max(FrontRadius * 0.35, 1.0), max(FrontRadius * 0.92, 2.0), Distance)) *
 			(1.0 - smoothstep(0.72, 1.0, Age));
-		const float3 Radial = normalize(ToCell + float3(0.0001, 0.0001, 0.0001));
+		const float BlastInterior = (1.0 - smoothstep(Radius * 0.72, Radius, Distance)) *
+			(1.0 - smoothstep(0.0, 0.55, Age));
+		const float3 Radial = normalize(float3(ToCell.xy, ToCell.z * 0.35) + float3(0.0001, 0.0001, 0.0001));
 		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
 		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
-		const float PressureWeight = saturate(ShockShell + EvacuatedCore * 0.28);
+		const float PressureWeight = saturate(ShockShell + max(EvacuatedCore * 0.55, BlastInterior * 0.42));
 		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
-		// Explosion is a momentum impulse. Density is preserved here and moves through advection.
-		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
-		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
+		const float WallBlock = ResolveExplosionWallBlock(UVW, OpenMask, Radial);
+		const float RadialImpulseScale = lerp(1.0, 0.06, WallBlock);
+		Velocity *= 1.0 - WallBlock * PressureWeight * ShockFade * 0.65;
+		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0 * RadialImpulseScale;
+		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 120.0 * (1.0 - WallBlock);
+
+		// The blast consumes part of the smoke instead of preserving all mass against walls.
+		const float EarlyImpulse = 1.0 - smoothstep(0.22, 0.62, Age);
+		const float DensityLoss = saturate(
+			(EvacuatedCore * 0.50 + BlastInterior * 0.18 + ShockShell * 0.12 + WallBlock * PressureWeight * 0.25) *
+			Strength * EarlyImpulse * SafeDeltaSeconds * 1.8);
+		NaturalDensity *= 1.0 - DensityLoss;
+		DisplacedDensity *= 1.0 - DensityLoss;
+
 		const float DisplacementWeight = saturate(PressureWeight * Strength * ShockFade * SafeDeltaSeconds * 2.0);
 		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
 		NaturalDensity -= ShiftedDensity;
