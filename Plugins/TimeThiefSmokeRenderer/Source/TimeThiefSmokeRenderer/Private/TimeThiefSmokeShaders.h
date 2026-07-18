@@ -237,6 +237,33 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
+class FTimeThiefSmokeBuildLightVolumeCS : public FGlobalShader
+{
+public:
+	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildLightVolumeCS);
+	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildLightVolumeCS, FGlobalShader);
+
+	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
+		SHADER_PARAMETER(FIntVector, GridResolution)
+		SHADER_PARAMETER(FVector3f, BoundsExtent)
+		SHADER_PARAMETER(FVector3f, NaturalBoundsExtent)
+		SHADER_PARAMETER(FVector3f, LightDirection)
+		SHADER_PARAMETER(float, ShadowStepLength)
+		SHADER_PARAMETER(int32, ShadowStepCount)
+		SHADER_PARAMETER(float, NoiseScale)
+		SHADER_PARAMETER(float, NoiseStrength)
+		SHADER_PARAMETER(float, NoiseTime)
+		SHADER_PARAMETER(float, LifetimeAlpha)
+		SHADER_PARAMETER(float, ObstacleFeather)
+		SHADER_PARAMETER(FMatrix44f, LocalToWorld)
+		SHADER_PARAMETER(FMatrix44f, WorldToLocal)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture)
+		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
+		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutLightOpticalDepth)
+	END_SHADER_PARAMETER_STRUCT()
+};
+
 class FTimeThiefSmokeBuildActiveBrickListCS : public FGlobalShader
 {
 public:
@@ -300,7 +327,8 @@ public:
 
 	class FSingleSmokeDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_SINGLE_SMOKE");
 	class FStepStatsDim : SHADER_PERMUTATION_BOOL("TIME_THIEF_COMPOSITE_STEP_STATS");
-	using FPermutationDomain = TShaderPermutationDomain<FSingleSmokeDim, FStepStatsDim>;
+	class FCostModeDim : SHADER_PERMUTATION_INT("TIME_THIEF_COMPOSITE_COST_MODE", 5);
+	using FPermutationDomain = TShaderPermutationDomain<FSingleSmokeDim, FStepStatsDim, FCostModeDim>;
 
 	static void ModifyCompilationEnvironment(const FGlobalShaderPermutationParameters& Parameters, FShaderCompilerEnvironment& OutEnvironment)
 	{
@@ -351,6 +379,30 @@ public:
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture5)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture6)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture7)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture0)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture1)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture2)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture3)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture4)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture5)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture6)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture7)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture0)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture1)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture2)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture3)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture4)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture5)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture6)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture7)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture0)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture1)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture2)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture3)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture4)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture5)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture6)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousLightOpticalDepthTexture7)
 		SHADER_PARAMETER_SAMPLER(SamplerState, SceneColorSampler)
 		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
 		RENDER_TARGET_BINDING_SLOTS()

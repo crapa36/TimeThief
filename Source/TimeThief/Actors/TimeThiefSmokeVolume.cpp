@@ -862,6 +862,7 @@ ATimeThiefSmokeVolume::ATimeThiefSmokeVolume()
 
 void ATimeThiefSmokeVolume::InitializeSmokeVolume(AActor* InOwnerActor, APawn* InInstigatorPawn)
 {
+	SimulationTransform = GetActorTransform();
 	if (SmokeId == INDEX_NONE)
 	{
 		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
@@ -907,7 +908,7 @@ FVector ATimeThiefSmokeVolume::GetCurrentSmokeRenderBoundsExtent() const
 FBox ATimeThiefSmokeVolume::GetCurrentSmokeWorldBounds() const
 {
 	const FVector BoundsExtent = GetCurrentSmokeRenderBoundsExtent();
-	const FTransform SmokeTransform = GetActorTransform();
+	const FTransform& SmokeTransform = SimulationTransform;
 	FBox Bounds(EForceInit::ForceInit);
 
 	for (int32 Z = -1; Z <= 1; Z += 2)
@@ -1100,6 +1101,7 @@ void ATimeThiefSmokeVolume::ApplyInteractionEvent(const FTimeThiefSmokeInteracti
 void ATimeThiefSmokeVolume::BeginPlay()
 {
 	Super::BeginPlay();
+	SimulationTransform = GetActorTransform();
 
 	if (SmokeBoundsComponent)
 	{
@@ -1325,7 +1327,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 	const FVector BoundsExtent = GetCurrentSmokeRenderBoundsExtent();
 	const FVector CellHalfExtent = BoundsExtent / static_cast<float>(Resolution);
 	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeObstacleMaskQueryExtent(CellHalfExtent, TimeThiefSmokeParameterDefaults::ObstacleMaskInflation);
-	const FTransform SmokeTransform = GetActorTransform();
+	const FTransform& SmokeTransform = SimulationTransform;
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeObstacleMask), false);
 	QueryParams.AddIgnoredActor(this);

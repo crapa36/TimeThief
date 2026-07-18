@@ -8,6 +8,10 @@
 #define TIME_THIEF_COMPOSITE_STEP_STATS 0
 #endif
 
+#ifndef TIME_THIEF_COMPOSITE_COST_MODE
+#define TIME_THIEF_COMPOSITE_COST_MODE 0
+#endif
+
 #define TIME_THIEF_MAX_SEGMENT_BOUNDARIES (2 + TIME_THIEF_MAX_COMPOSITE_SMOKES * 2)
 #define TIME_THIEF_MAX_STABLE_STEPS 256
 #include "/Engine/Private/ScreenPass.ush"
@@ -55,6 +59,30 @@ Texture3D<float4> PackedDenseFieldTexture4;
 Texture3D<float4> PackedDenseFieldTexture5;
 Texture3D<float4> PackedDenseFieldTexture6;
 Texture3D<float4> PackedDenseFieldTexture7;
+Texture3D<float4> PreviousPackedDenseFieldTexture0;
+Texture3D<float4> PreviousPackedDenseFieldTexture1;
+Texture3D<float4> PreviousPackedDenseFieldTexture2;
+Texture3D<float4> PreviousPackedDenseFieldTexture3;
+Texture3D<float4> PreviousPackedDenseFieldTexture4;
+Texture3D<float4> PreviousPackedDenseFieldTexture5;
+Texture3D<float4> PreviousPackedDenseFieldTexture6;
+Texture3D<float4> PreviousPackedDenseFieldTexture7;
+Texture3D<float> LightOpticalDepthTexture0;
+Texture3D<float> LightOpticalDepthTexture1;
+Texture3D<float> LightOpticalDepthTexture2;
+Texture3D<float> LightOpticalDepthTexture3;
+Texture3D<float> LightOpticalDepthTexture4;
+Texture3D<float> LightOpticalDepthTexture5;
+Texture3D<float> LightOpticalDepthTexture6;
+Texture3D<float> LightOpticalDepthTexture7;
+Texture3D<float> PreviousLightOpticalDepthTexture0;
+Texture3D<float> PreviousLightOpticalDepthTexture1;
+Texture3D<float> PreviousLightOpticalDepthTexture2;
+Texture3D<float> PreviousLightOpticalDepthTexture3;
+Texture3D<float> PreviousLightOpticalDepthTexture4;
+Texture3D<float> PreviousLightOpticalDepthTexture5;
+Texture3D<float> PreviousLightOpticalDepthTexture6;
+Texture3D<float> PreviousLightOpticalDepthTexture7;
 SamplerState SceneColorSampler;
 SamplerState VolumeSampler;
 StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData> CompositeSmokeDescriptors;
@@ -89,11 +117,6 @@ float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
 	float4 World = mul(float4(NDC, DeviceZ, 1.0), InvViewProjection);
 	const float SafeW = abs(World.w) > 0.000001 ? World.w : (World.w < 0.0 ? -0.000001 : 0.000001);
 	return World.xyz / SafeW;
-}
-
-float InterleavedGradientNoise(float2 PixelPosition)
-{
-	return frac(52.9829189 * frac(dot(PixelPosition, float2(0.06711056, 0.00583715))));
 }
 
 float LoadSceneDeviceZ(float2 PixelPosition)
@@ -164,14 +187,72 @@ float4 SamplePackedDenseFieldTexture(int Slot, float3 UVW)
 	return float4(0.0, 0.0, 0.0, 0.0);
 }
 
+float4 SamplePreviousPackedDenseFieldTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return PreviousPackedDenseFieldTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return PreviousPackedDenseFieldTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return PreviousPackedDenseFieldTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return PreviousPackedDenseFieldTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return PreviousPackedDenseFieldTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return PreviousPackedDenseFieldTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return PreviousPackedDenseFieldTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return PreviousPackedDenseFieldTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return 0.0;
+}
+
 float4 SampleFieldSet(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
 {
-	return SamplePackedDenseFieldTexture(Slot, saturate(VolumeUVW));
+	const float3 UVW = saturate(VolumeUVW);
+#if TIME_THIEF_COMPOSITE_COST_MODE == 1
+	return SamplePackedDenseFieldTexture(Slot, UVW);
+#else
+	return lerp(SamplePreviousPackedDenseFieldTexture(Slot, UVW), SamplePackedDenseFieldTexture(Slot, UVW), saturate(Desc.BoundaryNoiseControls.w));
+#endif
+}
+
+float SampleLightOpticalDepthTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return LightOpticalDepthTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return LightOpticalDepthTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return LightOpticalDepthTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return LightOpticalDepthTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return LightOpticalDepthTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return LightOpticalDepthTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return LightOpticalDepthTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return LightOpticalDepthTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return 0.0;
+}
+
+float SamplePreviousLightOpticalDepthTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return PreviousLightOpticalDepthTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return PreviousLightOpticalDepthTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return PreviousLightOpticalDepthTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return PreviousLightOpticalDepthTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return PreviousLightOpticalDepthTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return PreviousLightOpticalDepthTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return PreviousLightOpticalDepthTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return PreviousLightOpticalDepthTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return 0.0;
+}
+
+float SampleInterpolatedLightOpticalDepth(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 UVW)
+{
+	return lerp(SamplePreviousLightOpticalDepthTexture(Slot, UVW), SampleLightOpticalDepthTexture(Slot, UVW), saturate(Desc.BoundaryNoiseControls.w));
 }
 
 float SampleDensityField(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 VolumeUVW)
 {
-	const float4 Fields = SamplePackedDenseFieldTexture(Slot, saturate(VolumeUVW));
+	const float4 Fields = SampleFieldSet(Slot, Desc, VolumeUVW);
 	return Fields.x + Fields.y;
 }
 
@@ -412,73 +493,6 @@ FTimeThiefSmokeMediumSample MakeEmptySmokeMediumSample()
 	return Sample;
 }
 
-float EvaluateLowFrequencyShadowExtinction(
-	int Slot,
-	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
-	float3 SampleWorld,
-	float3 SimulationLocal,
-	float3 VolumeUVW,
-	float3 BoundsExtent,
-	float BoundaryFadeStart,
-	float LifetimeAlpha,
-	float LightDistanceScale,
-	inout uint EvaluatedShadowNoiseOctaveCount,
-	inout uint BoundaryEvaluationCount,
-	inout uint BoundaryCoarseNoiseEvaluationCount,
-	inout uint BoundaryFineNoiseEvaluationCount,
-	inout uint BoundaryInteriorSkipCount,
-	inout uint BoundaryExteriorRejectCount)
-{
-	if (!TimeThiefSmokeInsideUVW(VolumeUVW))
-	{
-		return 0.0;
-	}
-
-	const float4 RawFields = SampleFieldSet(Slot, Desc, VolumeUVW);
-	const float RawDensity = max(RawFields.x + RawFields.y, 0.0);
-	if (RawDensity <= 0.0001)
-	{
-		return 0.0;
-	}
-
-	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
-	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
-	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
-	const float BaseVisibility = ObstacleOpen * BulletMasks.Hard * LifetimeAlpha;
-	if (BaseVisibility <= 0.0001)
-	{
-		return 0.0;
-	}
-
-	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-	uint BoundaryNoiseOctaveCount = 0u;
-	const float BoundaryMask = EvaluateBoundaryMaskLazy(
-		Desc,
-		SampleWorld,
-		EllipsoidDistance,
-		BoundaryFadeStart,
-		BoundaryNoiseOctaveCount,
-		BoundaryEvaluationCount,
-		BoundaryCoarseNoiseEvaluationCount,
-		BoundaryFineNoiseEvaluationCount,
-		BoundaryInteriorSkipCount,
-		BoundaryExteriorRejectCount);
-	EvaluatedShadowNoiseOctaveCount += BoundaryNoiseOctaveCount;
-	if (BoundaryMask <= 0.0001)
-	{
-		return 0.0;
-	}
-
-	const float AgeSeconds = Desc.FilamentAge.y;
-	const float NoiseScale = max(Desc.ScatterNoise.z, 0.0);
-	const float3 NoisePosition = SampleWorld * NoiseScale + float3(AgeSeconds * Desc.NoiseFilamentA.x * 0.19, -AgeSeconds * Desc.NoiseFilamentA.x * 0.11, AgeSeconds * Desc.NoiseFilamentA.x * 0.07);
-	const float BaseNoise = NoiseScale > 0.0 ? TimeThiefSmokeValueNoise(NoisePosition) : 0.5;
-	const float DensityNoise = lerp(1.0, lerp(0.74, 1.28, smoothstep(0.22, 0.82, BaseNoise)), saturate(Desc.ScatterNoise.w));
-	const float DisplacedDominance = saturate(RawFields.y / max(RawDensity, 0.0001));
-	const float LowFrequencyDensity = RawDensity * DensityNoise * lerp(1.0, 1.1, DisplacedDominance) * BaseVisibility * BoundaryMask;
-	return max(LowFrequencyDensity, 0.0) * LightDistanceScale;
-}
-
 FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	int Slot,
 	FTimeThiefSmokeCompositeDescriptorShaderData Desc,
@@ -507,6 +521,13 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	{
 		return Sample;
 	}
+
+#if TIME_THIEF_COMPOSITE_COST_MODE == 4
+	Sample.ExtinctionCoefficient = max(RawDensity * Desc.RenderBoundsExtent_Extinction.w * SimulationDistanceScale, 0.0);
+	Sample.ScatteringSource = SmokeColor;
+	Sample.Density = RawDensity;
+	return Sample;
+#endif
 
 	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
@@ -558,16 +579,25 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
 	const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
 	const uint DensityNoiseOctaveStart = EvaluatedNoiseOctaveCount;
-	const float DensityNoise = CompositeDensityNoise(
+	const float DensityNoise =
+#if TIME_THIEF_COMPOSITE_COST_MODE == 2
+		1.0;
+#else
+		CompositeDensityNoise(
 		NoisePosition,
 		TimeNoise,
 		RenderNoiseStrength * lerp(1.0, 1.15, DisplacedDominance),
 		FineNoiseMultiplier,
 		EvaluatedNoiseOctaveCount);
+#endif
 	EvaluatedDensityNoiseOctaveCount += EvaluatedNoiseOctaveCount - DensityNoiseOctaveStart;
 
 	float FilamentGain = 1.0;
-	if (RenderFilamentStrength > 0.001)
+	if (RenderFilamentStrength > 0.001
+#if TIME_THIEF_COMPOSITE_COST_MODE == 2
+		&& false
+#endif
+	)
 	{
 		const uint FilamentNoiseOctaveStart = EvaluatedNoiseOctaveCount;
 		const float3 FilamentPosition = SimulationLocal * BoundsExtent * StableRenderFilamentScale;
@@ -652,7 +682,6 @@ void MainPS(
 	float SmokeBoundaryFadeStarts[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float SmokeLifetimeAlphas[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	float3 SmokeLocalLightDirections[TIME_THIEF_MAX_COMPOSITE_SMOKES];
-	float SmokeLightDistanceScales[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	int SmokeSlots[TIME_THIEF_MAX_COMPOSITE_SMOKES];
 	int ActiveSmokeCount = 0;
 	float RayStart = SceneT;
@@ -704,7 +733,6 @@ void MainPS(
 		SmokeBoundaryFadeStarts[ActiveSmokeCount] = BoundaryFadeStart;
 		SmokeLifetimeAlphas[ActiveSmokeCount] = LifetimeAlpha;
 		SmokeLocalLightDirections[ActiveSmokeCount] = mul(float4(WorldLightDirection, 0.0), WorldToLocal).xyz;
-		SmokeLightDistanceScales[ActiveSmokeCount] = length(SmokeLocalLightDirections[ActiveSmokeCount] / BoundsExtent);
 		SmokeSlots[ActiveSmokeCount] = Slot;
 		++ActiveSmokeCount;
 		RayStart = min(RayStart, TMin);
@@ -743,8 +771,7 @@ void MainPS(
 
 	const float StepSize = max(RenderWorldStepLength, 1.0);
 	const float HalfStepSize = StepSize * 0.5;
-	const float NoisePhase = InterleavedGradientNoise(SvPosition.xy);
-	const float PixelPhase = 0.5 + (NoisePhase - 0.5) * 0.15;
+	const float PixelPhase = 0.5;
 	float Transmittance = 1.0;
 	float3 SmokeColorAccum = float3(0.0, 0.0, 0.0);
 	float DebugMaxCombinedExtinction = 0.0;
@@ -876,18 +903,25 @@ void MainPS(
 				const float StepTransmittance = exp2(-StepOpticalDepth * 1.442695);
 				const float SampleWeight = Transmittance * (1.0 - StepTransmittance);
 				float CombinedShadow = 1.0;
-				if (SampleWeight > SelfShadowMinSampleWeight && CombinedShadowStepCount > 0 && CombinedShadowStrength > 0.001 && CombinedShadowExtinction > 0.001)
+				if (SampleWeight > SelfShadowMinSampleWeight && CombinedShadowStepCount > 0 && CombinedShadowStrength > 0.001 && CombinedShadowExtinction > 0.001
+#if TIME_THIEF_COMPOSITE_COST_MODE == 3 || TIME_THIEF_COMPOSITE_COST_MODE == 4
+					&& false
+#endif
+				)
 				{
-					float ShadowRayEnd = 0.0;
-					float ShadowSmokeTMin[TIME_THIEF_MAX_COMPOSITE_SMOKES];
-					float ShadowSmokeTMax[TIME_THIEF_MAX_COMPOSITE_SMOKES];
-					bool ShadowSmokeActive[TIME_THIEF_MAX_COMPOSITE_SMOKES];
+					float ShadowOpticalDepth = 0.0;
+#if TIME_THIEF_COMPOSITE_SINGLE_SMOKE
+					const int ShadowSlot = SmokeSlots[0];
+					const float3 ShadowLocal = SmokeLocalOrigins[0] + SmokeLocalRayDirections[0] * IntervalMidT;
+					const float3 ShadowUVW = saturate((ShadowLocal / SmokeBoundsExtents[0]) * 0.5 + 0.5);
+					const FTimeThiefSmokeCompositeDescriptorShaderData ShadowDesc = CompositeSmokeDescriptors[ShadowSlot];
+					ShadowOpticalDepth = SampleInterpolatedLightOpticalDepth(ShadowSlot, ShadowDesc, ShadowUVW);
+					++CombinedShadowMediumSampleCount;
+#else
 					[loop]
 					for (int ShadowSmokeIndex = 0; ShadowSmokeIndex < ActiveSmokeCount; ++ShadowSmokeIndex)
 					{
-						ShadowSmokeActive[ShadowSmokeIndex] = false;
-						ShadowSmokeTMin[ShadowSmokeIndex] = 0.0;
-						ShadowSmokeTMax[ShadowSmokeIndex] = 0.0;
+						const int ShadowSlot = SmokeSlots[ShadowSmokeIndex];
 						const float3 ShadowBoundsExtent = SmokeBoundsExtents[ShadowSmokeIndex];
 						const float3 ShadowOrigin =
 							(SmokeLocalOrigins[ShadowSmokeIndex] + SmokeLocalRayDirections[ShadowSmokeIndex] * IntervalMidT) /
@@ -895,149 +929,31 @@ void MainPS(
 						const float3 ShadowDirection = SmokeLocalLightDirections[ShadowSmokeIndex] / ShadowBoundsExtent;
 						float ShadowTMin = 0.0;
 						float ShadowTMax = 0.0;
-						if (IntersectUnitBox(ShadowOrigin, ShadowDirection, ShadowTMin, ShadowTMax))
+						if (!IntersectUnitBox(ShadowOrigin, ShadowDirection, ShadowTMin, ShadowTMax))
 						{
-							ShadowTMin = max(ShadowTMin, 0.0);
-							if (ShadowTMax > ShadowTMin)
-							{
-								ShadowSmokeActive[ShadowSmokeIndex] = true;
-								ShadowSmokeTMin[ShadowSmokeIndex] = ShadowTMin;
-								ShadowSmokeTMax[ShadowSmokeIndex] = ShadowTMax;
-								ShadowRayEnd = max(ShadowRayEnd, ShadowTMax);
-							}
-						}
-					}
-
-					if (ShadowRayEnd > 0.0)
-					{
-						const float NominalShadowStepLength = max(CombinedShadowStepLength, 1.0);
-						const int MaximumShadowStepCount = min(
-							max((int)ceil(ShadowRayEnd / NominalShadowStepLength), 1),
-							CombinedShadowStepCount);
-						float ShadowOpticalDepth = 0.0;
-						float ShadowIntervalStart = 0.0;
-						float PreviousShadowStepExtinction = 0.0;
-						float PreviousPreviousShadowStepExtinction = 0.0;
-						int ShadowStepIndex = 0;
-						[loop]
-						while (ShadowStepIndex < MaximumShadowStepCount && ShadowIntervalStart < ShadowRayEnd)
-						{
-							++CombinedShadowStepSampleCount;
-							float ShadowStepLength = NominalShadowStepLength;
-							if (ShadowStepIndex >= 2 &&
-								PreviousShadowStepExtinction <= 0.001 &&
-								PreviousPreviousShadowStepExtinction <= 0.001 &&
-								abs(PreviousShadowStepExtinction - PreviousPreviousShadowStepExtinction) <= 0.00025)
-							{
-								const float ExpandedShadowIntervalEnd = min(ShadowIntervalStart + NominalShadowStepLength * 2.0, ShadowRayEnd);
-								const float ExpandedShadowDistance = (ShadowIntervalStart + ExpandedShadowIntervalEnd) * 0.5;
-								bool bCrossesShadowIntervalBoundary = false;
-								bool bNearSmokeBoundary = false;
-								[loop]
-								for (int ShadowSmokeIndex = 0; ShadowSmokeIndex < ActiveSmokeCount; ++ShadowSmokeIndex)
-								{
-									if (!ShadowSmokeActive[ShadowSmokeIndex])
-									{
-										continue;
-									}
-
-									bCrossesShadowIntervalBoundary = bCrossesShadowIntervalBoundary ||
-										(ShadowSmokeTMin[ShadowSmokeIndex] > ShadowIntervalStart && ShadowSmokeTMin[ShadowSmokeIndex] < ExpandedShadowIntervalEnd) ||
-										(ShadowSmokeTMax[ShadowSmokeIndex] > ShadowIntervalStart && ShadowSmokeTMax[ShadowSmokeIndex] < ExpandedShadowIntervalEnd);
-									if (ExpandedShadowDistance >= ShadowSmokeTMin[ShadowSmokeIndex] && ExpandedShadowDistance <= ShadowSmokeTMax[ShadowSmokeIndex])
-									{
-										const float3 ShadowBoundsExtent = SmokeBoundsExtents[ShadowSmokeIndex];
-										const float3 ExpandedShadowLocal =
-											SmokeLocalOrigins[ShadowSmokeIndex] +
-											SmokeLocalRayDirections[ShadowSmokeIndex] * IntervalMidT +
-											SmokeLocalLightDirections[ShadowSmokeIndex] * ExpandedShadowDistance;
-										const float ExpandedEllipsoidDistance = length((ExpandedShadowLocal / ShadowBoundsExtent) / float3(1.0, 1.0, 0.86));
-										const FTimeThiefSmokeCompositeDescriptorShaderData ShadowDesc = CompositeSmokeDescriptors[SmokeSlots[ShadowSmokeIndex]];
-										const float BoundaryStrength = abs(ShadowDesc.BoundaryNoiseControls.y);
-										bNearSmokeBoundary = bNearSmokeBoundary ||
-											(ExpandedEllipsoidDistance >= SmokeBoundaryFadeStarts[ShadowSmokeIndex] - BoundaryStrength * 0.5 &&
-											 ExpandedEllipsoidDistance <= 1.04 + BoundaryStrength * 0.25);
-									}
-								}
-
-								if (!bCrossesShadowIntervalBoundary && !bNearSmokeBoundary)
-								{
-									ShadowStepLength = NominalShadowStepLength * 2.0;
-									++ShadowAdaptiveDoubleStepCount;
-								}
-							}
-
-							const float ShadowIntervalEnd = min(ShadowIntervalStart + ShadowStepLength, ShadowRayEnd);
-							const float ShadowIntervalLength = max(ShadowIntervalEnd - ShadowIntervalStart, 0.0);
-							const float ShadowDistance = (ShadowIntervalStart + ShadowIntervalEnd) * 0.5;
-							const float3 ShadowSampleWorld = SampleWorld + WorldLightDirection * ShadowDistance;
-							float ShadowStepExtinction = 0.0;
-							[loop]
-							for (int ShadowSmokeIndex = 0; ShadowSmokeIndex < ActiveSmokeCount; ++ShadowSmokeIndex)
-							{
-								if (!ShadowSmokeActive[ShadowSmokeIndex] ||
-									ShadowDistance < ShadowSmokeTMin[ShadowSmokeIndex] ||
-									ShadowDistance > ShadowSmokeTMax[ShadowSmokeIndex])
-								{
-									++ShadowIntervalSkipCount;
-									continue;
-								}
-
-								const int ShadowSlot = SmokeSlots[ShadowSmokeIndex];
-								const float3 ShadowBoundsExtent = SmokeBoundsExtents[ShadowSmokeIndex];
-								const float3 ShadowLocal =
-									SmokeLocalOrigins[ShadowSmokeIndex] +
-									SmokeLocalRayDirections[ShadowSmokeIndex] * IntervalMidT +
-									SmokeLocalLightDirections[ShadowSmokeIndex] * ShadowDistance;
-								const float3 ShadowSimulationLocal = ShadowLocal / ShadowBoundsExtent;
-								const FTimeThiefSmokeCompositeDescriptorShaderData ShadowDesc = CompositeSmokeDescriptors[ShadowSlot];
-								const float ShadowBoundaryStrength = abs(ShadowDesc.BoundaryNoiseControls.y);
-								const float ShadowMaximumBoundaryDistance = max(
-									1.0 + ShadowBoundaryStrength * 0.5,
-									1.04 + ShadowBoundaryStrength * 0.25);
-								if (length(ShadowSimulationLocal / float3(1.0, 1.0, 0.86)) >= ShadowMaximumBoundaryDistance)
-								{
-									++ShadowEllipsoidRejectCount;
-									continue;
-								}
-
-								ShadowStepExtinction += EvaluateLowFrequencyShadowExtinction(
-									ShadowSlot,
-									ShadowDesc,
-									ShadowSampleWorld,
-									ShadowSimulationLocal,
-									ShadowSimulationLocal * 0.5 + 0.5,
-									ShadowBoundsExtent,
-									SmokeBoundaryFadeStarts[ShadowSmokeIndex],
-									SmokeLifetimeAlphas[ShadowSmokeIndex],
-									SmokeLightDistanceScales[ShadowSmokeIndex],
-									ShadowNoiseOctaveCount,
-									BoundaryEvaluationCount,
-									BoundaryCoarseNoiseEvaluationCount,
-									BoundaryFineNoiseEvaluationCount,
-									BoundaryInteriorSkipCount,
-									BoundaryExteriorRejectCount);
-								++CombinedShadowMediumSampleCount;
-							}
-							ShadowOpticalDepth += ShadowStepExtinction * ShadowIntervalLength;
-							PreviousPreviousShadowStepExtinction = PreviousShadowStepExtinction;
-							PreviousShadowStepExtinction = ShadowStepExtinction;
-							ShadowIntervalStart = ShadowIntervalEnd;
-							++ShadowStepIndex;
-							if (ShadowOpticalDepth * CombinedShadowExtinction >= 6.0)
-							{
-								++ShadowOpticalDepthEarlyOutCount;
-								break;
-							}
+							continue;
 						}
 
-						ShadowOpticalDepth *= CombinedShadowExtinction;
-						const float ShadowTransmittance = exp2(-ShadowOpticalDepth * 1.442695);
-						const float PowderDepth = 1.0 - exp2(-ShadowOpticalDepth * 0.75 * 1.442695);
-						const float PowderLighting = lerp(0.9, 1.06, saturate(PowderDepth));
-						CombinedShadow = saturate(lerp(1.0, ShadowTransmittance * PowderLighting, CombinedShadowStrength));
-						++CombinedShadowEvaluationCount;
+						const float ShadowEntryDistance = max(ShadowTMin, 0.0);
+						if (ShadowTMax <= ShadowEntryDistance)
+						{
+							continue;
+						}
+
+						const float3 ShadowEntryLocal = ShadowOrigin + ShadowDirection * ShadowEntryDistance;
+						const float3 ShadowUVW = saturate(ShadowEntryLocal * 0.5 + 0.5);
+						const FTimeThiefSmokeCompositeDescriptorShaderData ShadowDesc = CompositeSmokeDescriptors[ShadowSlot];
+						ShadowOpticalDepth += SampleInterpolatedLightOpticalDepth(ShadowSlot, ShadowDesc, ShadowUVW);
+						++CombinedShadowMediumSampleCount;
 					}
+#endif
+
+					ShadowOpticalDepth *= CombinedShadowExtinction;
+					const float ShadowTransmittance = exp2(-ShadowOpticalDepth * 1.442695);
+					const float PowderDepth = 1.0 - exp2(-ShadowOpticalDepth * 0.75 * 1.442695);
+					const float PowderLighting = lerp(0.9, 1.06, saturate(PowderDepth));
+					CombinedShadow = saturate(lerp(1.0, ShadowTransmittance * PowderLighting, CombinedShadowStrength));
+					++CombinedShadowEvaluationCount;
 				}
 
 				DebugMinCombinedShadow = min(DebugMinCombinedShadow, CombinedShadow);

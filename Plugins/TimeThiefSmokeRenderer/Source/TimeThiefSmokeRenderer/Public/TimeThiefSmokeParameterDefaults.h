@@ -133,7 +133,7 @@ namespace TimeThiefSmokeParameterDefaults
 		return FVector3f(-0.45f, -0.25f, 0.86f).GetSafeNormal();
 	}
 	// 자체 그림자 적용 강도(0~1). 높을수록 연막 내부 그림자 증가.
-	constexpr float SelfShadowStrength = 0.8f;
+	constexpr float SelfShadowStrength = 0.6f;
 	// 자체 그림자 흡수 계수. 높을수록 그림자가 진해짐.
 	constexpr float SelfShadowExtinction = 1.0f;
 	// 자체 그림자 샘플 수. 높을수록 그림자 품질과 비용 증가.
@@ -141,12 +141,12 @@ namespace TimeThiefSmokeParameterDefaults
 	// 자체 그림자 샘플 간격(cm). 높을수록 넓은 그림자, 낮을수록 세밀한 그림자.
 	constexpr float SelfShadowStepLength = 100.0f;
 	// Combined-medium shadow quality selected from the stabilization A/B candidates.
-	constexpr int32 CombinedShadowStepCount = 64;
+	constexpr int32 CombinedShadowStepCount = 32;
 	constexpr float CombinedShadowStepLength = 40.0f;
 	// 비활성 브릭 내부 자체 그림자 샘플 건너뛰기 수. 높을수록 비용 감소.
-	constexpr int32 SelfShadowInactiveBrickMaxSkipSteps = 8;
+	constexpr int32 SelfShadowInactiveBrickMaxSkipSteps = 16;
 	// 자체 그림자를 계산할 최소 샘플 기여도. 높을수록 그림자 비용 감소.
-	constexpr float SelfShadowMinSampleWeight = 0.01f;
+	constexpr float SelfShadowMinSampleWeight = 0.02f;
 	// 빈 raymarch 구간 최대 건너뛰기 배율. 높을수록 비용 감소, 빈 공간 culling이 거칠어짐.
 	constexpr float InactiveBrickRaymarchMaxSkipScale = 8.0f;
 	// raymarch 투과율 종료 기준. 높을수록 비용 감소, 진한 연막 누적 손실 증가.
@@ -163,17 +163,17 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더 노이즈 시간 스케일. 높을수록 노이즈 움직임 증가.
 	constexpr float RenderNoiseTimeScale = 0.035f;
 	// 렌더 경계 노이즈 공간 스케일(1/cm). 높을수록 경계 무늬가 촘촘해짐.
-	constexpr float RenderBoundaryNoiseScale = 0.012f;
+	constexpr float RenderBoundaryNoiseScale = 0.01f;
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
 	constexpr float RenderBoundaryNoiseStrength = 0.14f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
-	constexpr float RenderFilamentScale = 0.018f;
+	constexpr float RenderFilamentScale = 0.015f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 1.8f;
+	constexpr float RenderFilamentStrength = 1.5f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
 	constexpr float RenderFilamentContrast = 1.0f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
-	constexpr float RenderFilamentWarpStrength = 1.4f;
+	constexpr float RenderFilamentWarpStrength = 1.5f;
 
 	// 이류와 감쇠
 
@@ -185,23 +185,23 @@ namespace TimeThiefSmokeParameterDefaults
 	// 와류와 흔들림
 
 	// 기본 와류 강도. 높을수록 소용돌이 움직임 증가.
-	constexpr float VorticityStrength = 0.8f;
+	constexpr float VorticityStrength = 1.0f;
 	// 와류 보존 강도. 높을수록 회전 구조 유지와 비용 증가.
-	constexpr float VorticityConfinementStrength = 1.6f;
+	constexpr float VorticityConfinementStrength = 2.0f;
 	// 난류 힘 강도. 높을수록 불규칙 움직임 증가.
-	constexpr float TurbulenceStrength = 0.9f;
+	constexpr float TurbulenceStrength = 1.0f;
 	// 주변 공기 흐름 반응 강도. 높을수록 외부 힘 반응 증가.
-	constexpr float AirInteractionStrength = 0.58f;
+	constexpr float AirInteractionStrength = 0.75f;
 	// 자체 흔들림 시간 스케일. 높을수록 흔들림 변화 속도 증가.
-	constexpr float SelfWobbleTimeScale = 0.025f;
+	constexpr float SelfWobbleTimeScale = 0.05f;
 	// 자체 흔들림 속도 스케일. 높을수록 내부 움직임 증가.
 	constexpr float SelfWobbleVelocityScale = 0.25f;
 	// 이벤트 주변 자체 흔들림 힘 배율. 높을수록 이벤트 반응 증가.
-	constexpr float SelfWobbleForceScale = 0.55f;
+	constexpr float SelfWobbleForceScale = 0.6f;
 	// 와류 입자 자체 흔들림 배율. 높을수록 와류 입자 움직임 증가.
-	constexpr float SelfWobbleParticleScale = 0.25f;
+	constexpr float SelfWobbleParticleScale = 0.3f;
 	// 이벤트가 만드는 국소 와류 강도. 높을수록 총알/폭발/액터 반응 증가.
-	constexpr float EventVortexStrength = 1.2f;
+	constexpr float EventVortexStrength = 1.5f;
 	// 와류 입자 수. 높을수록 디테일과 비용 증가.
 	constexpr int32 VortexParticleCount = 24;
 	// 와류 입자 최대 수. 높을수록 설정 허용 범위와 버퍼 비용 증가.

@@ -1165,7 +1165,7 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 
 		FTimeThiefSmokeRendererVolume RendererVolume;
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
-		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
+		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetSimulationTransform());
 		RendererVolume.NaturalBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
 		RendererVolume.RenderBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeRenderBoundsExtent());
 		RendererVolume.SimulationBoundsExtent = FVector3f(
