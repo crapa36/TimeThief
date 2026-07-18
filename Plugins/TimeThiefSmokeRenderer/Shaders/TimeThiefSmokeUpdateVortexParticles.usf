@@ -135,7 +135,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		const float Density = DenseVortexDensityAt(UVW);
 		const float3 WorldPosition = mul(float4(Particle.LocalPositionLife.xyz, 1.0), LocalToWorld).xyz;
 		float3 ActorDirection = 0.0;
-		const float ActorWake = DenseVortexActorWakeSeed(WorldPosition, ActorDirection);
+		const float ActorWake = EventCount <= 0
+			? 0.0
+			: DenseVortexActorWakeSeed(WorldPosition, ActorDirection);
 		if (OpenMask < 0.08 || (Density < 0.015 && ActorWake < 0.02 && BulletDetail < 0.06))
 		{
 			OutVortexParticles[ParticleIndex] = DenseVortexDeadParticle();
@@ -168,8 +170,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float OpenMask = DenseVortexOpenAt(CandidateUVW);
 	const float SurfaceShear = OpenMask * smoothstep(0.03, 0.28, CellDensity) * saturate(length(CandidateVelocity) / 420.0);
 	float3 ActorDirection = 0.0;
-	const float ActorWake = DenseVortexActorWakeSeed(CandidateWorld, ActorDirection);
-	const float ExplosionShell = DenseVortexExplosionShellSeed(CandidateWorld);
+	const bool bProcessEventSeeds = EventCount > 0;
+	const float ActorWake = bProcessEventSeeds ? DenseVortexActorWakeSeed(CandidateWorld, ActorDirection) : 0.0;
+	const float ExplosionShell = bProcessEventSeeds ? DenseVortexExplosionShellSeed(CandidateWorld) : 0.0;
 	const float DensityEdgeSeed = EdgeWeight * smoothstep(0.04, 0.32, CellDensity);
 	const float BulletSeed = BulletDetail * smoothstep(0.015, 0.18, CellDensity);
 	const float EventSeed = max(ExplosionShell, ActorWake);

@@ -19,12 +19,6 @@ enum class ETimeThiefSmokeRendererInteractionShape : uint8
 	LineWake = 3
 };
 
-enum class ETimeThiefSmokeSimulationBackend : uint8
-{
-	DenseLegacy = 0,
-	SparseMac = 1
-};
-
 enum class ETimeThiefSmokeObstaclePrimitiveShape : uint8
 {
 	Sphere = 0,

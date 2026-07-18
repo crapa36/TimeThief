@@ -14,6 +14,7 @@
 #include "Smoke/TimeThiefSmokeWorldSubsystem.h"
 #include "TimeThief.h"
 #include "TimeThiefSmokeParameterDefaults.h"
+#include "TimeThiefSmokeTestBridge.h"
 #include "Weapon/TimeThiefRocketProjectile.h"
 #include "Weapon/TimeThiefThrowableProjectile.h"
 #include "WorldCollision.h"
@@ -376,7 +377,7 @@ namespace TimeThiefSmokeVolume
 		MixObstacleMaskHash(Hash, reinterpret_cast<uint64>(World));
 		MixObstacleMaskHash(Hash, static_cast<uint64>(Resolution));
 		MixObstacleMaskHash(Hash, static_cast<uint64>(TimeThiefSmokeParameterDefaults::MaxObstaclePrimitives));
-		MixObstacleMaskHash(Hash, TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask ? 1ull : 0ull);
+		MixObstacleMaskHash(Hash, 1ull);
 		MixObstacleMaskTransform(Hash, SmokeTransform);
 		MixObstacleMaskVector(Hash, NaturalBoundsExtent);
 		MixObstacleMaskVector(Hash, RenderBoundsExtent);
@@ -496,9 +497,9 @@ namespace TimeThiefSmokeVolume
 
 	bool AreObstacleTransformsNearlyEqual(const FTransform& Left, const FTransform& Right)
 	{
-		return Left.GetLocation().Equals(Right.GetLocation(), 0.1) &&
-			Left.GetScale3D().Equals(Right.GetScale3D(), 0.001) &&
-			Left.GetRotation().AngularDistance(Right.GetRotation()) <= 0.001;
+		return Left.GetLocation().Equals(Right.GetLocation(), TimeThiefSmokeParameterDefaults::ObstacleTransformLocationToleranceCm) &&
+			Left.GetScale3D().Equals(Right.GetScale3D(), TimeThiefSmokeParameterDefaults::ObstacleTransformScaleTolerance) &&
+			Left.GetRotation().AngularDistance(Right.GetRotation()) <= TimeThiefSmokeParameterDefaults::ObstacleTransformRotationToleranceRadians;
 	}
 
 	FSmokeObstacleMotion MakeSmokeLocalObstacleMotion(
@@ -861,6 +862,7 @@ ATimeThiefSmokeVolume::ATimeThiefSmokeVolume()
 
 void ATimeThiefSmokeVolume::InitializeSmokeVolume(AActor* InOwnerActor, APawn* InInstigatorPawn)
 {
+	SimulationTransform = GetActorTransform();
 	if (SmokeId == INDEX_NONE)
 	{
 		if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
@@ -906,7 +908,7 @@ FVector ATimeThiefSmokeVolume::GetCurrentSmokeRenderBoundsExtent() const
 FBox ATimeThiefSmokeVolume::GetCurrentSmokeWorldBounds() const
 {
 	const FVector BoundsExtent = GetCurrentSmokeRenderBoundsExtent();
-	const FTransform SmokeTransform = GetActorTransform();
+	const FTransform& SmokeTransform = SimulationTransform;
 	FBox Bounds(EForceInit::ForceInit);
 
 	for (int32 Z = -1; Z <= 1; Z += 2)
@@ -926,20 +928,6 @@ FBox ATimeThiefSmokeVolume::GetCurrentSmokeWorldBounds() const
 
 void ATimeThiefSmokeVolume::FlushPendingObstacleFieldRebuild(float DeltaTime)
 {
-	if (!TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
-	{
-		if (bHasBuiltObstacleField || ObstacleFieldSignature != 0 || !ObstaclePrimitives.IsEmpty())
-		{
-			bHasBuiltObstacleField = true;
-			ObstaclePrimitives.Reset();
-			ObstacleFieldResolution = 0;
-			bHasSolidObstacleField = false;
-			ObstacleFieldSignature = 0;
-			++ObstacleFieldRevision;
-		}
-		return;
-	}
-
 	if (bObstacleFieldRebuildPending && !bHasBuiltObstacleField)
 	{
 		RebuildStaticObstacleField(DeltaTime);
@@ -1041,6 +1029,22 @@ void ATimeThiefSmokeVolume::HandleBulletTrace(const FVector& EntryPoint, const F
 	Event.Strength = FMath::Clamp(Strength * RandomStream.FRandRange(TimeThiefSmokeParameterDefaults::BulletWakeStrengthRandomMin, TimeThiefSmokeParameterDefaults::BulletWakeStrengthRandomMax), 0.0f, 1.0f);
 	Event.NormalizedAge = 0.0f;
 	Event.Seed = RandomStream.RandRange(1, INT32_MAX - 1);
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent TestEvent;
+		TestEvent.Type = TEXT("bullet_event_generated");
+		TestEvent.SmokeId = SmokeId;
+		TestEvent.Entry = EntryPoint;
+		TestEvent.Exit = ExitPoint;
+		TestEvent.Position = Event.Position;
+		TestEvent.Direction = Event.Direction;
+		TestEvent.Radius = Event.Radius;
+		TestEvent.Length = Event.Length;
+		TestEvent.Strength = Event.Strength;
+		TestEvent.Seed = Event.Seed;
+		TestEvent.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(TestEvent);
+	}
 
 	ApplyInteractionEvent(Event);
 }
@@ -1061,6 +1065,20 @@ void ATimeThiefSmokeVolume::HandleExplosionShock(const FVector& Center, float Ra
 	Event.Extents = FVector(TimeThiefSmokeParameterDefaults::ExplosionOutwardStrength, 0.0f, 0.0f);
 	Event.NormalizedAge = 0.0f;
 	Event.Seed = Seed;
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent TestEvent;
+		TestEvent.Type = TEXT("explosion_event_generated");
+		TestEvent.SmokeId = SmokeId;
+		TestEvent.Position = Event.Position;
+		TestEvent.Direction = Event.Direction;
+		TestEvent.Extents = Event.Extents;
+		TestEvent.Radius = Event.Radius;
+		TestEvent.Strength = Event.Strength;
+		TestEvent.Seed = Event.Seed;
+		TestEvent.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(TestEvent);
+	}
 
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 	{
@@ -1083,6 +1101,7 @@ void ATimeThiefSmokeVolume::ApplyInteractionEvent(const FTimeThiefSmokeInteracti
 void ATimeThiefSmokeVolume::BeginPlay()
 {
 	Super::BeginPlay();
+	SimulationTransform = GetActorTransform();
 
 	if (SmokeBoundsComponent)
 	{
@@ -1103,6 +1122,16 @@ void ATimeThiefSmokeVolume::BeginPlay()
 
 	if (UTimeThiefSmokeWorldSubsystem* SmokeSubsystem = GetWorld() ? GetWorld()->GetSubsystem<UTimeThiefSmokeWorldSubsystem>() : nullptr)
 	{
+		if (FTimeThiefSmokeTestBridge::IsActive())
+		{
+			FTimeThiefSmokeTestEvent Event;
+			Event.Type = TEXT("smoke_spawned");
+			Event.SmokeId = SmokeId;
+			Event.Position = GetActorLocation();
+			Event.Extents = GetCurrentSmokeBoundsExtent();
+			Event.FrameId = GFrameCounter;
+			FTimeThiefSmokeTestBridge::Emit(Event);
+		}
 		SmokeSubsystem->RegisterSmokeVolume(this);
 	}
 	LastSmokeSpatialBounds = GetCurrentSmokeWorldBounds();
@@ -1174,9 +1203,49 @@ void ATimeThiefSmokeVolume::GatherActorPushEventsFromSamples(const TArray<FTimeT
 		Event.Speed = Sample.Speed;
 		Event.NormalizedAge = 0.0f;
 		Event.Seed = Sample.Seed;
+		if (FTimeThiefSmokeTestBridge::IsActive())
+		{
+			FTimeThiefSmokeTestEvent Entered;
+			Entered.Type = TEXT("actor_entered_smoke");
+			Entered.SmokeId = SmokeId;
+			Entered.ActorName = OverlapOwner->GetName();
+			Entered.ComponentName = PrimitiveComponent->GetName();
+			Entered.Position = Sample.Position;
+			Entered.PreviousPosition = Sample.PreviousPosition;
+			Entered.Speed = Sample.Speed;
+			Entered.FrameId = GFrameCounter;
+			FTimeThiefSmokeTestBridge::Emit(Entered);
+
+			FTimeThiefSmokeTestEvent Generated = Entered;
+			Generated.Type = TEXT("actor_push_event_generated");
+			switch (Sample.Shape)
+			{
+			case ESmokeInteractionShape::Sphere: Generated.Shape = TEXT("sphere"); break;
+			case ESmokeInteractionShape::Capsule: Generated.Shape = TEXT("capsule"); break;
+			case ESmokeInteractionShape::Box: Generated.Shape = TEXT("box"); break;
+			default: Generated.Shape = TEXT("unknown"); break;
+			}
+			Generated.Direction = Sample.Direction;
+			Generated.Extents = Sample.Extents;
+			Generated.Radius = Sample.Radius;
+			Generated.Length = Sample.Length;
+			Generated.Strength = Sample.Strength;
+			Generated.Seed = Sample.Seed;
+			FTimeThiefSmokeTestBridge::Emit(Generated);
+		}
 
 		if (MaxEvents <= 0)
 		{
+			if (FTimeThiefSmokeTestBridge::IsActive())
+			{
+				FTimeThiefSmokeTestEvent Rejected;
+				Rejected.Type = TEXT("actor_push_event_rejected");
+				Rejected.SmokeId = SmokeId;
+				Rejected.ActorName = OverlapOwner->GetName();
+				Rejected.ComponentName = PrimitiveComponent->GetName();
+				Rejected.FrameId = GFrameCounter;
+				FTimeThiefSmokeTestBridge::Emit(Rejected);
+			}
 			continue;
 		}
 
@@ -1200,6 +1269,17 @@ void ATimeThiefSmokeVolume::GatherActorPushEventsFromSamples(const TArray<FTimeT
 		if (WeakestEventIndex != INDEX_NONE && Event.Strength > WeakestStrength)
 		{
 			ActorEvents[WeakestEventIndex] = Event;
+		}
+		else if (FTimeThiefSmokeTestBridge::IsActive())
+		{
+			FTimeThiefSmokeTestEvent Rejected;
+			Rejected.Type = TEXT("actor_push_event_rejected");
+			Rejected.SmokeId = SmokeId;
+			Rejected.ActorName = OverlapOwner->GetName();
+			Rejected.ComponentName = PrimitiveComponent->GetName();
+			Rejected.Strength = Event.Strength;
+			Rejected.FrameId = GFrameCounter;
+			FTimeThiefSmokeTestBridge::Emit(Rejected);
 		}
 	}
 
@@ -1225,7 +1305,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 	bObstacleFieldRebuildPending = false;
 
 	UWorld* World = GetWorld();
-	if (!World || !TimeThiefSmokeParameterDefaults::bUseStaticObstacleMask)
+	if (!World)
 	{
 		const bool bHadObstacleField = bHasBuiltObstacleField || ObstacleFieldSignature != 0 || !ObstaclePrimitives.IsEmpty();
 		ObstaclePrimitives.Reset();
@@ -1247,7 +1327,7 @@ void ATimeThiefSmokeVolume::RebuildStaticObstacleField(float DeltaTime)
 	const FVector BoundsExtent = GetCurrentSmokeRenderBoundsExtent();
 	const FVector CellHalfExtent = BoundsExtent / static_cast<float>(Resolution);
 	const FVector ObstacleQueryExtent = TimeThiefSmokeVolume::MakeObstacleMaskQueryExtent(CellHalfExtent, TimeThiefSmokeParameterDefaults::ObstacleMaskInflation);
-	const FTransform SmokeTransform = GetActorTransform();
+	const FTransform& SmokeTransform = SimulationTransform;
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(TimeThiefSmokeObstacleMask), false);
 	QueryParams.AddIgnoredActor(this);

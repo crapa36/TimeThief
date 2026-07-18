@@ -21,6 +21,7 @@ public:
 
 	int32 GetSmokeId() const { return SmokeId; }
 	float GetSmokeAgeSeconds() const { return SmokeAgeSeconds; }
+	const FTransform& GetSimulationTransform() const { return SimulationTransform; }
 	FVector GetCurrentSmokeBoundsExtent() const;
 	FVector GetCurrentSmokeRenderBoundsExtent() const;
 	FBox GetCurrentSmokeWorldBounds() const;
@@ -56,6 +57,7 @@ private:
 	int32 SmokeId = INDEX_NONE;
 
 	float SmokeAgeSeconds = 0.0f;
+	FTransform SimulationTransform = FTransform::Identity;
 	TArray<FTimeThiefSmokeObstaclePrimitive> ObstaclePrimitives;
 	uint64 ObstacleFieldSignature = 0;
 	int32 ObstacleFieldResolution = 0;

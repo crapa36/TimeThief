@@ -144,3 +144,4 @@ Content/Assets/
 **/*.sln.DotSettings.user
 /Plugins/NVIDIA
 /Plugins/Marketplace
+/Plugins/TimeThiefSmokeTest/Scenarios

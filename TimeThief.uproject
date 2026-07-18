@@ -63,6 +63,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "TimeThiefSmokeTest",
+			"Enabled": true
+		},
+		{
 			"Name": "DLSS",
 			"Enabled": true,
 			"Optional": true,
