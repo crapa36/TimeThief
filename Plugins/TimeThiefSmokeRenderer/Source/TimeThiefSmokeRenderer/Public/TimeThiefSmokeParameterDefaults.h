@@ -345,6 +345,8 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float ExplosionShockRadius = 1.0f;
 	// 폭발 속도 충격 유지 시간(초). 높을수록 충격 지속 증가.
 	constexpr float ExplosionImpulseDuration = 0.85f;
+	// 폭발 반경 대비 외부 공기장 영향 반경 배율. 높을수록 폭발 반경 밖 연막 밀림 범위 증가.
+	constexpr float ExplosionInfluenceRadiusScale = 1.3f;
 	// 폭발 바깥 방향 속도 강도(cm/s). 높을수록 연막 밀림 증가.
 	constexpr float ExplosionOutwardStrength = 800.0f;
 
