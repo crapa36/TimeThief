@@ -224,6 +224,7 @@ public:
 // Test
 public:
 	void HandleDebugDraw(const se::game::N_DebugDraw& Pkt);
+	void HandleTPPos(const se::test::N_TPPos& Pkt);
 	void HandleZoneStop(const se::test::N_ZoneStop& Pkt);
 	void HandleZoneStart(const se::test::N_ZoneStart& Pkt);
 	
@@ -304,6 +305,7 @@ public:
 	void RequestMoneyReq(int32 Amount);
 	void RequestHealthReq(int32 Health);
 	void RequestMaxHealthReq(int32 MaxHealth);
+	void RequestTPAll(FVector Pos);
 	void RequestZoneStop();
 	void RequestZoneStart();
 	void RequestZoneReset();

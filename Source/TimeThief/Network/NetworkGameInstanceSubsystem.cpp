@@ -2974,6 +2974,26 @@ void UNetworkGameInstanceSubsystem::HandleDebugDraw(const se::game::N_DebugDraw&
 	}
 }
 
+void UNetworkGameInstanceSubsystem::HandleTPPos(const se::test::N_TPPos& Pkt)
+{
+	check(IsInGameThread());
+
+	UWorld* World = GetWorld();
+	APlayerController* LocalPlayerController = World ? World->GetFirstPlayerController() : nullptr;
+	APawn* LocalPlayer = LocalPlayerController ? LocalPlayerController->GetPawn() : nullptr;
+	if (LocalPlayer == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot handle N_TPPos: No possessed local player"));
+		return;
+	}
+
+	const FVector Position = ToVector(Pkt.position());
+	LocalPlayer->SetActorLocation(Position, false, nullptr, ETeleportType::TeleportPhysics);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Handled N_TPPos. Pos=(%.1f, %.1f, %.1f)"),
+		Position.X, Position.Y, Position.Z);
+}
+
 void UNetworkGameInstanceSubsystem::HandleZoneStop(const se::test::N_ZoneStop& Pkt)
 {
 	check(IsInGameThread());
@@ -3684,6 +3704,27 @@ void UNetworkGameInstanceSubsystem::RequestMaxHealthReq(int32 MaxHealth)
 	SendPacket(SendBuffer);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MaxHealthReq to server. MaxHealth=%d"), MaxHealth);
+}
+
+void UNetworkGameInstanceSubsystem::RequestTPAll(FVector Pos)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request TP all: Not connected to server"));
+		return;
+	}
+
+	se::test::C_TPAllReq Request;
+	auto* Position = Request.mutable_position();
+	Position->set_x(Pos.X);
+	Position->set_y(Pos.Y);
+	Position->set_z(Pos.Z);
+
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_TPAllReq to server. Pos=(%.1f, %.1f, %.1f)"),
+		Pos.X, Pos.Y, Pos.Z);
 }
 
 void UNetworkGameInstanceSubsystem::RequestZoneStop()

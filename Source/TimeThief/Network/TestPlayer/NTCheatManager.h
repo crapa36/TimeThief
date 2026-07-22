@@ -37,6 +37,9 @@ public:
 	
 	UFUNCTION(Exec)
 	void Tp(float X, float Y, float Z);
+
+	UFUNCTION(Exec)
+	void TpAll(float X, float Y, float Z);
 	
 	UFUNCTION(Exec)
 	void TestSpawnMonster(float X, float Y, float Z, int32 MonsterType);

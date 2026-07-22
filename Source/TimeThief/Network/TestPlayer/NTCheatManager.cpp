@@ -84,6 +84,16 @@ void UNTCheatManager::Tp(float X, float Y, float Z)
 	UE_LOG(LogTemp, Warning, TEXT("[Cheat] Teleport: X=%.2f Y=%.2f Z=%.2f"), X, Y, Z);
 }
 
+void UNTCheatManager::TpAll(float X, float Y, float Z)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[Cheat] TpAll: X=%.2f Y=%.2f Z=%.2f"), X, Y, Z);
+
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+	{
+		NGIS->RequestTPAll(FVector(X, Y, Z));
+	}
+}
+
 void UNTCheatManager::TestSpawnMonster(float X, float Y, float Z, int32 MonsterType)
 {
 	if (MonsterType < 0)

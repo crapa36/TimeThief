@@ -115,6 +115,32 @@ struct C_MaxHealthReqDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_MaxHealthReqDefaultTypeInternal _C_MaxHealthReq_default_instance_;
+PROTOBUF_CONSTEXPR C_TPAllReq::C_TPAllReq(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_TPAllReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_TPAllReqDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_TPAllReqDefaultTypeInternal() {}
+  union {
+    C_TPAllReq _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_TPAllReqDefaultTypeInternal _C_TPAllReq_default_instance_;
+PROTOBUF_CONSTEXPR N_TPPos::N_TPPos(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.position_)*/nullptr
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct N_TPPosDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR N_TPPosDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~N_TPPosDefaultTypeInternal() {}
+  union {
+    N_TPPos _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_TPPosDefaultTypeInternal _N_TPPos_default_instance_;
 PROTOBUF_CONSTEXPR C_ZoneStopReq::C_ZoneStopReq(
     ::_pbi::ConstantInitialized) {}
 struct C_ZoneStopReqDefaultTypeInternal {
@@ -194,7 +220,7 @@ struct N_ZoneStartDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_ZoneStartDefaultTypeInternal _N_ZoneStart_default_instance_;
 }  // namespace test
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_test_2ftest_5fmessages_2eproto[14];
+static ::_pb::Metadata file_level_metadata_test_2ftest_5fmessages_2eproto[16];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_test_2ftest_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_test_2ftest_5fmessages_2eproto = nullptr;
 
@@ -251,6 +277,20 @@ const uint32_t TableStruct_test_2ftest_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::test::C_MaxHealthReq, _impl_.max_health_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_TPAllReq, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_TPAllReq, _impl_.position_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::test::N_TPPos, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::test::N_TPPos, _impl_.position_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::test::C_ZoneStopReq, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
@@ -301,13 +341,15 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 30, -1, -1, sizeof(::se::test::C_MoneyReq)},
   { 37, -1, -1, sizeof(::se::test::C_HealthReq)},
   { 44, -1, -1, sizeof(::se::test::C_MaxHealthReq)},
-  { 51, -1, -1, sizeof(::se::test::C_ZoneStopReq)},
-  { 57, -1, -1, sizeof(::se::test::C_ZoneStartReq)},
-  { 63, -1, -1, sizeof(::se::test::C_ZoneResetReq)},
-  { 69, -1, -1, sizeof(::se::test::C_ZoneDamageOffReq)},
-  { 75, -1, -1, sizeof(::se::test::C_ZoneDamageOnReq)},
-  { 81, -1, -1, sizeof(::se::test::N_ZoneStop)},
-  { 87, -1, -1, sizeof(::se::test::N_ZoneStart)},
+  { 51, -1, -1, sizeof(::se::test::C_TPAllReq)},
+  { 58, -1, -1, sizeof(::se::test::N_TPPos)},
+  { 65, -1, -1, sizeof(::se::test::C_ZoneStopReq)},
+  { 71, -1, -1, sizeof(::se::test::C_ZoneStartReq)},
+  { 77, -1, -1, sizeof(::se::test::C_ZoneResetReq)},
+  { 83, -1, -1, sizeof(::se::test::C_ZoneDamageOffReq)},
+  { 89, -1, -1, sizeof(::se::test::C_ZoneDamageOnReq)},
+  { 95, -1, -1, sizeof(::se::test::N_ZoneStop)},
+  { 101, -1, -1, sizeof(::se::test::N_ZoneStart)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -318,6 +360,8 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::test::_C_MoneyReq_default_instance_._instance,
   &::se::test::_C_HealthReq_default_instance_._instance,
   &::se::test::_C_MaxHealthReq_default_instance_._instance,
+  &::se::test::_C_TPAllReq_default_instance_._instance,
+  &::se::test::_N_TPPos_default_instance_._instance,
   &::se::test::_C_ZoneStopReq_default_instance_._instance,
   &::se::test::_C_ZoneStartReq_default_instance_._instance,
   &::se::test::_C_ZoneResetReq_default_instance_._instance,
@@ -342,13 +386,16 @@ const char descriptor_table_protodef_test_2ftest_5fmessages_2eproto[] PROTOBUF_S
   "\n\nC_MoneyReq\022\016\n\006amount\030\001 \001(\005:\r\210\265\030\263F\220\265\030\001\230"
   "\265\030\t\",\n\013C_HealthReq\022\016\n\006health\030\001 \001(\005:\r\210\265\030\264"
   "F\220\265\030\001\230\265\030\t\"3\n\016C_MaxHealthReq\022\022\n\nmax_healt"
-  "h\030\001 \001(\005:\r\210\265\030\265F\220\265\030\001\230\265\030\t\"\036\n\rC_ZoneStopReq:"
-  "\r\210\265\030\202G\220\265\030\001\230\265\030\t\"\037\n\016C_ZoneStartReq:\r\210\265\030\203G\220"
-  "\265\030\001\230\265\030\t\"\037\n\016C_ZoneResetReq:\r\210\265\030\204G\220\265\030\001\230\265\030\t"
-  "\"#\n\022C_ZoneDamageOffReq:\r\210\265\030\205G\220\265\030\001\230\265\030\t\"\"\n"
-  "\021C_ZoneDamageOnReq:\r\210\265\030\206G\220\265\030\001\230\265\030\t\"\033\n\nN_Z"
-  "oneStop:\r\210\265\030\207G\220\265\030\002\230\265\030\t\"\034\n\013N_ZoneStart:\r\210"
-  "\265\030\210G\220\265\030\002\230\265\030\tb\006proto3"
+  "h\030\001 \001(\005:\r\210\265\030\265F\220\265\030\001\230\265\030\t\"A\n\nC_TPAllReq\022$\n\010"
+  "position\030\001 \001(\0132\022.se.common.Vector3:\r\210\265\030\274"
+  "F\220\265\030\001\230\265\030\t\">\n\007N_TPPos\022$\n\010position\030\001 \001(\0132\022"
+  ".se.common.Vector3:\r\210\265\030\275F\220\265\030\002\230\265\030\t\"\036\n\rC_Z"
+  "oneStopReq:\r\210\265\030\202G\220\265\030\001\230\265\030\t\"\037\n\016C_ZoneStart"
+  "Req:\r\210\265\030\203G\220\265\030\001\230\265\030\t\"\037\n\016C_ZoneResetReq:\r\210\265"
+  "\030\204G\220\265\030\001\230\265\030\t\"#\n\022C_ZoneDamageOffReq:\r\210\265\030\205G"
+  "\220\265\030\001\230\265\030\t\"\"\n\021C_ZoneDamageOnReq:\r\210\265\030\206G\220\265\030\001"
+  "\230\265\030\t\"\033\n\nN_ZoneStop:\r\210\265\030\207G\220\265\030\002\230\265\030\t\"\034\n\013N_Z"
+  "oneStart:\r\210\265\030\210G\220\265\030\002\230\265\030\tb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_test_2ftest_5fmessages_2eproto_deps[3] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -357,9 +404,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_test_2ftest_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_test_2ftest_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_test_2ftest_5fmessages_2eproto = {
-    false, false, 820, descriptor_table_protodef_test_2ftest_5fmessages_2eproto,
+    false, false, 951, descriptor_table_protodef_test_2ftest_5fmessages_2eproto,
     "test/test_messages.proto",
-    &descriptor_table_test_2ftest_5fmessages_2eproto_once, descriptor_table_test_2ftest_5fmessages_2eproto_deps, 3, 14,
+    &descriptor_table_test_2ftest_5fmessages_2eproto_once, descriptor_table_test_2ftest_5fmessages_2eproto_deps, 3, 16,
     schemas, file_default_instances, TableStruct_test_2ftest_5fmessages_2eproto::offsets,
     file_level_metadata_test_2ftest_5fmessages_2eproto, file_level_enum_descriptors_test_2ftest_5fmessages_2eproto,
     file_level_service_descriptors_test_2ftest_5fmessages_2eproto,
@@ -1748,6 +1795,404 @@ void C_MaxHealthReq::InternalSwap(C_MaxHealthReq* other) {
 
 // ===================================================================
 
+class C_TPAllReq::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const C_TPAllReq* msg);
+};
+
+const ::se::common::Vector3&
+C_TPAllReq::_Internal::position(const C_TPAllReq* msg) {
+  return *msg->_impl_.position_;
+}
+void C_TPAllReq::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+C_TPAllReq::C_TPAllReq(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.test.C_TPAllReq)
+}
+C_TPAllReq::C_TPAllReq(const C_TPAllReq& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_TPAllReq* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.test.C_TPAllReq)
+}
+
+inline void C_TPAllReq::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_TPAllReq::~C_TPAllReq() {
+  // @@protoc_insertion_point(destructor:se.test.C_TPAllReq)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_TPAllReq::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+}
+
+void C_TPAllReq::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_TPAllReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.test.C_TPAllReq)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_TPAllReq::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_TPAllReq::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.test.C_TPAllReq)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.test.C_TPAllReq)
+  return target;
+}
+
+size_t C_TPAllReq::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.test.C_TPAllReq)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_TPAllReq::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_TPAllReq::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_TPAllReq::GetClassData() const { return &_class_data_; }
+
+
+void C_TPAllReq::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_TPAllReq*>(&to_msg);
+  auto& from = static_cast<const C_TPAllReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.test.C_TPAllReq)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_TPAllReq::CopyFrom(const C_TPAllReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.test.C_TPAllReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_TPAllReq::IsInitialized() const {
+  return true;
+}
+
+void C_TPAllReq::InternalSwap(C_TPAllReq* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.position_, other->_impl_.position_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_TPAllReq::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
+      file_level_metadata_test_2ftest_5fmessages_2eproto[7]);
+}
+
+// ===================================================================
+
+class N_TPPos::_Internal {
+ public:
+  static const ::se::common::Vector3& position(const N_TPPos* msg);
+};
+
+const ::se::common::Vector3&
+N_TPPos::_Internal::position(const N_TPPos* msg) {
+  return *msg->_impl_.position_;
+}
+void N_TPPos::clear_position() {
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+}
+N_TPPos::N_TPPos(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.test.N_TPPos)
+}
+N_TPPos::N_TPPos(const N_TPPos& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  N_TPPos* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  if (from._internal_has_position()) {
+    _this->_impl_.position_ = new ::se::common::Vector3(*from._impl_.position_);
+  }
+  // @@protoc_insertion_point(copy_constructor:se.test.N_TPPos)
+}
+
+inline void N_TPPos::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.position_){nullptr}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+N_TPPos::~N_TPPos() {
+  // @@protoc_insertion_point(destructor:se.test.N_TPPos)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void N_TPPos::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+  if (this != internal_default_instance()) delete _impl_.position_;
+}
+
+void N_TPPos::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void N_TPPos::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.test.N_TPPos)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  if (GetArenaForAllocation() == nullptr && _impl_.position_ != nullptr) {
+    delete _impl_.position_;
+  }
+  _impl_.position_ = nullptr;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* N_TPPos::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // .se.common.Vector3 position = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 10)) {
+          ptr = ctx->ParseMessage(_internal_mutable_position(), ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* N_TPPos::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.test.N_TPPos)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, _Internal::position(this),
+        _Internal::position(this).GetCachedSize(), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.test.N_TPPos)
+  return target;
+}
+
+size_t N_TPPos::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.test.N_TPPos)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // .se.common.Vector3 position = 1;
+  if (this->_internal_has_position()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(
+        *_impl_.position_);
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData N_TPPos::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    N_TPPos::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_TPPos::GetClassData() const { return &_class_data_; }
+
+
+void N_TPPos::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<N_TPPos*>(&to_msg);
+  auto& from = static_cast<const N_TPPos&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.test.N_TPPos)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_has_position()) {
+    _this->_internal_mutable_position()->::se::common::Vector3::MergeFrom(
+        from._internal_position());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void N_TPPos::CopyFrom(const N_TPPos& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.test.N_TPPos)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool N_TPPos::IsInitialized() const {
+  return true;
+}
+
+void N_TPPos::InternalSwap(N_TPPos* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.position_, other->_impl_.position_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata N_TPPos::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
+      file_level_metadata_test_2ftest_5fmessages_2eproto[8]);
+}
+
+// ===================================================================
+
 class C_ZoneStopReq::_Internal {
  public:
 };
@@ -1783,7 +2228,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneStopReq::GetClassData() 
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneStopReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[7]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[9]);
 }
 
 // ===================================================================
@@ -1823,7 +2268,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneStartReq::GetClassData()
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneStartReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[8]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[10]);
 }
 
 // ===================================================================
@@ -1863,7 +2308,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneResetReq::GetClassData()
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneResetReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[9]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[11]);
 }
 
 // ===================================================================
@@ -1903,7 +2348,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneDamageOffReq::GetClassDa
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneDamageOffReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[10]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[12]);
 }
 
 // ===================================================================
@@ -1943,7 +2388,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneDamageOnReq::GetClassDat
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneDamageOnReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[11]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[13]);
 }
 
 // ===================================================================
@@ -1983,7 +2428,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_ZoneStop::GetClassData() con
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ZoneStop::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[12]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[14]);
 }
 
 // ===================================================================
@@ -2023,7 +2468,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_ZoneStart::GetClassData() co
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ZoneStart::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[13]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[15]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -2057,6 +2502,14 @@ Arena::CreateMaybeMessage< ::se::test::C_HealthReq >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::test::C_MaxHealthReq*
 Arena::CreateMaybeMessage< ::se::test::C_MaxHealthReq >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::test::C_MaxHealthReq >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::test::C_TPAllReq*
+Arena::CreateMaybeMessage< ::se::test::C_TPAllReq >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::test::C_TPAllReq >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::test::N_TPPos*
+Arena::CreateMaybeMessage< ::se::test::N_TPPos >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::test::N_TPPos >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::test::C_ZoneStopReq*
 Arena::CreateMaybeMessage< ::se::test::C_ZoneStopReq >(Arena* arena) {
