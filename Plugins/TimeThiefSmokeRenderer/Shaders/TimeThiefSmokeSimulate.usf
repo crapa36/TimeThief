@@ -3,6 +3,21 @@
 
 TIME_THIEF_SMOKE_SIMULATE_PARAMETERS
 
+// The original shaping constants were tuned at the default 30 Hz simulation rate.
+// Convert per-step multipliers and velocity increments to continuous-time equivalents
+// so changing the simulation rate does not change the amount applied per second.
+static const float TimeThiefSmokeReferenceSimulationHz = 30.0;
+
+float TimeThiefSmokeReferenceStepScale(float DeltaTimeSeconds)
+{
+	return max(DeltaTimeSeconds, 0.0) * TimeThiefSmokeReferenceSimulationHz;
+}
+
+float TimeThiefSmokeScaleReferenceMultiplier(float ReferenceMultiplier, float DeltaTimeSeconds)
+{
+	return pow(max(ReferenceMultiplier, 0.0001), TimeThiefSmokeReferenceStepScale(DeltaTimeSeconds));
+}
+
 bool IsSparseSimulationCellActive(uint3 CellCoord)
 {
 	if (bUseSparseSimulationMask == 0u)
@@ -391,15 +406,17 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		sin(dot(WorldPosition, float3(0.011, 0.026, 0.019))) * 1.7);
 	const float ChunkNoise = TimeThiefSmokeValueNoise(WorldPosition * 0.018);
 	const float CloudCohesion = lerp(0.72, 1.38, saturate(CloudBillow * 0.58 + ChunkNoise * 0.42));
-	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
+	Density *= TimeThiefSmokeScaleReferenceMultiplier(
+		lerp(1.0, CloudCohesion, saturate(Density * 0.58)),
+		DeltaSeconds);
 	const float NaturalVentilation = saturate(1.0 - NaturalBoundsMask);
 	const float TotalBeforeBoundary = max(Density + DisplacedDensity, 0.0001);
 	const float DisplacedDominance = saturate(DisplacedDensity / TotalBeforeBoundary);
 	const float BoundaryPreserve = saturate(ExplosionBoundaryPreserve + DisplacedDominance * 0.65);
 	const float NaturalBoundaryDamping = lerp(BoundaryDamping, max(BoundaryDamping, 0.82), ExplosionBoundaryPreserve);
 	const float DisplacedBoundaryDamping = lerp(BoundaryDamping, max(BoundaryDamping, 0.96), BoundaryPreserve);
-	Density *= NaturalBoundaryDamping;
-	DisplacedDensity *= DisplacedBoundaryDamping;
+	Density *= TimeThiefSmokeScaleReferenceMultiplier(NaturalBoundaryDamping, DeltaSeconds);
+	DisplacedDensity *= TimeThiefSmokeScaleReferenceMultiplier(DisplacedBoundaryDamping, DeltaSeconds);
 	const float NaturalVentilationDissipation = NaturalVentilation * NaturalVentilation * (4.0 + max(EffectiveDissipation, 0.0) + max(VelocityDamping, 0.0)) * (1.0 - ExplosionBoundaryPreserve * 0.9);
 	const float NaturalVentilationDecay = exp2(-NaturalVentilationDissipation * DeltaSeconds);
 	const float DisplacedVentilationDecay = lerp(NaturalVentilationDecay, 1.0, DisplacedDominance);
@@ -414,13 +431,14 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	const float TotalDensity = Density + DisplacedDensity;
 	const float SurfaceMotionMask = smoothstep(0.02, 0.20, TotalDensity) * (1.0 - smoothstep(1.20, 2.50, TotalDensity));
 	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
+	const float ReferenceStepScale = TimeThiefSmokeReferenceStepScale(DeltaSeconds);
 	const float Damping = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
-	AdvectedVelocity = AdvectedVelocity * Damping + Swirl + BulletImpulse * BulletMasks.Detail;
+	AdvectedVelocity = AdvectedVelocity * Damping + Swirl * ReferenceStepScale + BulletImpulse * BulletMasks.Detail;
 	AdvectedVelocity += SourceVelocityInjection * DeltaSeconds * 2.0;
-	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
+	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask * ReferenceStepScale;
 	const float VelocityVentilation = NaturalVentilation * (1.0 - DisplacedDominance * 0.75);
 	AdvectedVelocity *= exp2(-VelocityVentilation * VelocityVentilation * (4.0 + max(VelocityDamping, 0.0)) * DeltaSeconds);
-	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
+	AdvectedVelocity *= TimeThiefSmokeScaleReferenceMultiplier(lerp(0.35, 1.0, BoundaryDamping), DeltaSeconds);
 	AdvectedVelocity = ApplySimulationBoundsNoOutflow(LocalPosition, AdvectedVelocity);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);
