@@ -3985,7 +3985,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	QueueSparseActiveBrickCountReadback(GraphBuilder, State, FinalActiveBrickResources.ActiveBrickCountBuffer);
 	State.bSparseOccupancyRefreshPending = false;
 
-	if (bIsFinalSimulationSubstep)
+	if (bIsFinalSimulationStep)
 	{
 		AddPackDenseFieldPass(
 			GraphBuilder,
