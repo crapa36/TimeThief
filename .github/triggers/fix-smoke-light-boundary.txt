@@ -1,1 +1,1 @@
-preserve light volume boundary after analytic silhouette restore v3
+preserve light volume boundary after analytic silhouette restore v4
