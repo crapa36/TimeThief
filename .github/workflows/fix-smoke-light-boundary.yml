@@ -56,8 +56,8 @@ jobs:
           function_start = text.index("void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(")
           function_end = text.index("\n}\n", function_start) + 3
           block = text[function_start:function_end]
-          old = "\tPassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);\n"
-          new = old + "\tPassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);\n"
+          old = "\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n"
+          new = old + "\tPassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;\n"
           assert block.count(old) == 1
           text = text[:function_start] + block.replace(old, new, 1) + text[function_end:]
           cpp.write_text(text)
@@ -66,7 +66,7 @@ jobs:
           grep -q '^float3 NaturalBoundsExtent;$' "$LIGHT"
           grep -q 'const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(' "$LIGHT"
           grep -q 'SHADER_PARAMETER(FVector3f, NaturalBoundsExtent)' "$HEADER"
-          grep -q 'PassParameters->NaturalBoundsExtent = FVector3f(State.Volume.NaturalBoundsExtent);' "$CPP"
+          grep -q 'PassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;' "$CPP"
           test "$(git diff --name-only | wc -l)" -eq 3
           git diff --check
 
