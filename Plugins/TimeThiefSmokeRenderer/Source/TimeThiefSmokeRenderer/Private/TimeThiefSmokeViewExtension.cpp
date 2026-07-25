@@ -76,21 +76,6 @@ namespace
 		TimeThiefSmokeParameterDefaults::SimulationHz,
 		TEXT("Caps custom smoke simulation update rate. <=0 simulates every rendered frame."));
 
-	static TAutoConsoleVariable<int32> CVarTimeThiefSmokePressureSolver(
-		TEXT("r.TimeThiefSmoke.PressureSolver"),
-		TimeThiefSmokeParameterDefaults::PressureSolver,
-		TEXT("Pressure solver. 0=reference Jacobi, 1=two-level MGPCG."));
-
-	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeMGPCGMaxIterations(
-		TEXT("r.TimeThiefSmoke.MGPCGMaxIterations"),
-		TimeThiefSmokeParameterDefaults::MGPCGMaxIterations,
-		TEXT("Maximum GPU-resident MGPCG iterations."));
-
-	static TAutoConsoleVariable<float> CVarTimeThiefSmokeMGPCGRelativeTolerance(
-		TEXT("r.TimeThiefSmoke.MGPCGRelativeTolerance"),
-		TimeThiefSmokeParameterDefaults::MGPCGRelativeTolerance,
-		TEXT("Relative L2 residual target for MGPCG."));
-
 	static TAutoConsoleVariable<int32> CVarTimeThiefSmokeTemporalReconstruction(
 		TEXT("r.TimeThiefSmoke.TemporalReconstruction"),
 		TimeThiefSmokeParameterDefaults::TemporalReconstruction,
@@ -187,17 +172,6 @@ namespace
 			BrickCount >= TimeThiefSmokeParameterDefaults::SparseMinBrickCount;
 	}
 
-
-	int32 ComputeAdaptiveFluidSubstepCount(float MaxVelocity, float DeltaSeconds, float MinCellSize)
-	{
-		const float SafeCellSize = FMath::Max(MinCellSize, 1.0f);
-		const float CourantLimit = FMath::Max(TimeThiefSmokeParameterDefaults::QualityCourantLimit, 0.1f);
-		const float Courant = FMath::Max(MaxVelocity, 0.0f) * FMath::Max(DeltaSeconds, 0.0f) / SafeCellSize;
-		return FMath::Clamp(
-			FMath::CeilToInt(Courant / CourantLimit),
-			1,
-			TimeThiefSmokeParameterDefaults::MaxAdaptiveFluidSubsteps);
-	}
 
 	bool HasRenderableSparseState(const uint32 SparseActiveBrickCount, const bool bReadbackPending)
 	{
@@ -1126,9 +1100,6 @@ namespace
 		TestEqual(TEXT("World voxel sizing preserves the shorter Z axis"), QualityGrid.Z, 40);
 		TestTrue(TEXT("Production brick grid enables sparse simulation"), ShouldUseSparseSimulationForGrid(FIntVector(8, 8, 5)));
 		TestFalse(TEXT("Tiny brick grids skip sparse management"), ShouldUseSparseSimulationForGrid(FIntVector(2, 2, 2)));
-		TestEqual(TEXT("Low Courant flow uses one fluid step"), ComputeAdaptiveFluidSubstepCount(100.0f, 1.0f / 30.0f, 20.0f), 1);
-		TestEqual(TEXT("High Courant flow clamps to the configured fluid budget"), ComputeAdaptiveFluidSubstepCount(2600.0f, 1.0f / 30.0f, 20.0f), TimeThiefSmokeParameterDefaults::MaxAdaptiveFluidSubsteps);
-		TestTrue(TEXT("MGPCG tolerance remains stricter than one percent"), TimeThiefSmokeParameterDefaults::MGPCGRelativeTolerance < 0.01f);
 
 		return true;
 	}
@@ -1154,56 +1125,6 @@ void FTimeThiefSmokeViewExtension::ConsumeSparseActiveBrickCountReadback(FRender
 	State.bSparseActiveBrickCountReadbackPending = false;
 }
 
-
-void FTimeThiefSmokeViewExtension::ConsumeVelocityMaximumReadback(FRenderSmokeState& State)
-{
-	if (!State.VelocityMaximumReadback.IsValid() || !State.VelocityMaximumReadback->IsReady())
-	{
-		return;
-	}
-	const float* Value = static_cast<const float*>(State.VelocityMaximumReadback->Lock(sizeof(float)));
-	State.LastMeasuredMaxVelocity = Value ? FMath::Max(*Value, 0.0f) : State.LastMeasuredMaxVelocity;
-	State.VelocityMaximumReadback->Unlock();
-	State.VelocityMaximumReadback.Reset();
-	State.bVelocityMaximumReadbackPending = false;
-}
-
-void FTimeThiefSmokeViewExtension::QueueVelocityMaximumReadback(
-	FRDGBuilder& GraphBuilder,
-	FRenderSmokeState& State,
-	FRDGTextureRef VelocityTexture)
-{
-	if (!VelocityTexture || State.bVelocityMaximumReadbackPending ||
-		GFrameNumberRenderThread - State.LastVelocityMeasurementFrame < static_cast<uint32>(TimeThiefSmokeParameterDefaults::VelocityReadbackIntervalFrames))
-	{
-		return;
-	}
-	const FIntVector Groups = MakeGroupCount(State.AllocatedGridSize);
-	const uint32 TileCount = static_cast<uint32>(FMath::Max(1, Groups.X * Groups.Y * Groups.Z));
-	FRDGBufferRef TileBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(float), TileCount),
-		TEXT("TimeThiefSmoke.VelocityMaximumTiles"));
-	FRDGBufferRef ResultBuffer = GraphBuilder.CreateBuffer(
-		FRDGBufferDesc::CreateStructuredDesc(sizeof(float), 1),
-		TEXT("TimeThiefSmoke.VelocityMaximum"));
-	TShaderMapRef<FTimeThiefSmokeVelocityMaxTilesCS> TilesShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
-	auto* TileParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeVelocityMaxTilesCS::FParameters>();
-	TileParameters->GridResolution = State.AllocatedGridSize;
-	TileParameters->GroupGridResolution = Groups;
-	TileParameters->VelocityTexture = VelocityTexture;
-	TileParameters->OutTileMaximums = GraphBuilder.CreateUAV(TileBuffer);
-	FComputeShaderUtils::AddPass(GraphBuilder, RDG_EVENT_NAME("TimeThiefSmoke.VelocityMaximumTiles"), TilesShader, TileParameters, Groups);
-	TShaderMapRef<FTimeThiefSmokeVelocityMaxFinalCS> FinalShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
-	auto* FinalParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeVelocityMaxFinalCS::FParameters>();
-	FinalParameters->GroupGridResolution = Groups;
-	FinalParameters->TileMaximums = GraphBuilder.CreateSRV(TileBuffer);
-	FinalParameters->OutMaximum = GraphBuilder.CreateUAV(ResultBuffer);
-	FComputeShaderUtils::AddPass(GraphBuilder, RDG_EVENT_NAME("TimeThiefSmoke.VelocityMaximumFinal"), FinalShader, FinalParameters, FIntVector(1, 1, 1));
-	State.VelocityMaximumReadback = MakeUnique<FRHIGPUBufferReadback>(TEXT("TimeThiefSmoke.VelocityMaximumReadback"));
-	AddEnqueueCopyPass(GraphBuilder, State.VelocityMaximumReadback.Get(), ResultBuffer, sizeof(float));
-	State.bVelocityMaximumReadbackPending = true;
-	State.LastVelocityMeasurementFrame = GFrameNumberRenderThread;
-}
 
 void FTimeThiefSmokeViewExtension::RetireSparseActiveBrickCountReadback(FRenderSmokeState& State)
 {
@@ -1345,9 +1266,6 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.LastSimulatedFrame = MAX_uint32;
 			State.SparseActiveBrickCount = 0u;
 			RetireSparseActiveBrickCountReadback(State);
-			State.VelocityMaximumReadback.Reset();
-			State.bVelocityMaximumReadbackPending = false;
-			State.LastMeasuredMaxVelocity = 0.0f;
 			State.AllocatedVortexParticleCount = 0;
 			State.AccumulatedSimulationDeltaSeconds = 0.0f;
 			State.SimulationTimeSeconds = 0.0f;
@@ -1579,24 +1497,6 @@ void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICo
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildLightVolumeCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildMacDivergenceCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokePressureResidualCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeVelocityMaxTilesCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeVelocityMaxFinalCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGMeanTilesCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGMeanFinalCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGInitializeCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGApplyOperatorCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGJacobiSmoothCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGResidualCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGRestrictCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGProlongateAddCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGCopyCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGUpdateXRCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGUpdatePCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGDotTilesCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGDotFinalCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGInitializeStateCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGComputeAlphaCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeMGPCGComputeBetaCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeProjectionReduceTilesCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeProjectionReduceFinalCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokePressureJacobiCS>(ShaderMap));
@@ -1634,7 +1534,6 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 			State.ProjectionDiagnosticsStepId = MAX_uint64;
 		}
 		ConsumeSparseActiveBrickCountReadback(State);
-		ConsumeVelocityMaximumReadback(State);
 		if (State.LastSimulatedFrame == GFrameNumberRenderThread)
 		{
 			continue;
@@ -1682,29 +1581,13 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 				const bool bHasFollowingSubstep =
 					SubstepCount + 1 < TimeThiefSmokeParameterDefaults::MaxSimulationSubstepsPerFrame &&
 					RemainingAfterSubstep >= SimulationInterval;
-				const TArray<FTimeThiefSmokeRendererEvent> OriginalEvents = State.PendingEvents;
-				TArray<FTimeThiefSmokeRendererEvent> PersistentPlumeEvents;
-				for (const FTimeThiefSmokeRendererEvent& Event : OriginalEvents)
-				{
-					if (Event.Type == ETimeThiefSmokeRendererInteractionType::PlumeSource) PersistentPlumeEvents.Add(Event);
-				}
-				const FVector3f CellSize = MakeCellSize(State.Volume, State.AllocatedGridSize);
-				const float MinCellSize = FMath::Max(FMath::Min3(CellSize.X, CellSize.Y, CellSize.Z), 1.0f);
-				const int32 FluidSubsteps = ComputeAdaptiveFluidSubstepCount(State.LastMeasuredMaxVelocity * 1.25f, SimulationInterval, MinCellSize);
-				const float FluidDeltaSeconds = SimulationInterval / static_cast<float>(FluidSubsteps);
-				for (int32 FluidSubstep = 0; FluidSubstep < FluidSubsteps; ++FluidSubstep)
-				{
-					if (FluidSubstep > 0) State.PendingEvents = PersistentPlumeEvents;
-					const bool bFinalFluidSubstep = FluidSubstep + 1 == FluidSubsteps;
-					SimulateSmoke(
-						GraphBuilder,
-						State,
-						FluidDeltaSeconds,
-						FluidSubstep == 0 ? SimulationInterval : FluidDeltaSeconds,
-						bFinalFluidSubstep,
-						bFinalFluidSubstep && !bHasFollowingSubstep);
-					State.SimulationTimeSeconds += FluidDeltaSeconds;
-				}
+				SimulateSmoke(
+					GraphBuilder,
+					State,
+					SimulationInterval,
+					SimulationInterval,
+					!bHasFollowingSubstep);
+				State.SimulationTimeSeconds += SimulationInterval;
 
 				State.AccumulatedSimulationDeltaSeconds = FMath::Max(0.0f, State.AccumulatedSimulationDeltaSeconds - SimulationInterval);
 				++SubstepCount;
@@ -1714,20 +1597,8 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 		}
 		else
 		{
-			const FVector3f CellSize = MakeCellSize(State.Volume, State.AllocatedGridSize);
-			const float MinCellSize = FMath::Max(FMath::Min3(CellSize.X, CellSize.Y, CellSize.Z), 1.0f);
-			const int32 FluidSubsteps = ComputeAdaptiveFluidSubstepCount(State.LastMeasuredMaxVelocity * 1.25f, FrameDeltaSeconds, MinCellSize);
-			const float FluidDeltaSeconds = FluidSubsteps > 0 ? FrameDeltaSeconds / static_cast<float>(FluidSubsteps) : FrameDeltaSeconds;
-			const TArray<FTimeThiefSmokeRendererEvent> OriginalEvents = State.PendingEvents;
-			TArray<FTimeThiefSmokeRendererEvent> PersistentPlumeEvents;
-			for (const FTimeThiefSmokeRendererEvent& Event : OriginalEvents) if (Event.Type == ETimeThiefSmokeRendererInteractionType::PlumeSource) PersistentPlumeEvents.Add(Event);
-			for (int32 FluidSubstep = 0; FluidSubstep < FluidSubsteps; ++FluidSubstep)
-			{
-				if (FluidSubstep > 0) State.PendingEvents = PersistentPlumeEvents;
-				const bool bFinalFluidSubstep = FluidSubstep + 1 == FluidSubsteps;
-				SimulateSmoke(GraphBuilder, State, FluidDeltaSeconds, FluidSubstep == 0 ? FrameDeltaSeconds : FluidDeltaSeconds, bFinalFluidSubstep, bFinalFluidSubstep);
-				State.SimulationTimeSeconds += FluidDeltaSeconds;
-			}
+			SimulateSmoke(GraphBuilder, State, FrameDeltaSeconds, FrameDeltaSeconds, true);
+			State.SimulationTimeSeconds += FrameDeltaSeconds;
 
 			State.RenderTimeSeconds = State.SimulationTimeSeconds;
 			State.RenderInterpolationAlpha = 1.0f;
@@ -3218,8 +3089,7 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleSplatPass(
 	FRDGTextureRef VelocityIn,
 	FRDGTextureRef BulletCutoutTexture,
 	FRDGTextureRef BulletSinkTexture,
-	FRDGTextureRef VelocityOut,
-	float DeltaSeconds)
+	FRDGTextureRef VelocityOut)
 {
 	const FIntVector GridSize = State.AllocatedGridSize;
 	const FIntVector GroupCount = MakeGroupCount(GridSize);
@@ -3239,7 +3109,6 @@ void FTimeThiefSmokeViewExtension::AddVortexParticleSplatPass(
 	PassParameters->OutVelocity = GraphBuilder.CreateUAV(VelocityOut);
 	PassParameters->GridResolution = GridSize;
 	PassParameters->BoundsExtent = FVector3f(State.Volume.BoundsExtent);
-	PassParameters->DeltaSeconds = DeltaSeconds;
 	PassParameters->VortexParticleCount = FMath::Clamp(TimeThiefSmokeParameterDefaults::VortexParticleCount, 1, TimeThiefSmokeParameterDefaults::MaxVortexParticleCount);
 	PassParameters->MaxVortexParticleCount = TimeThiefSmokeParameterDefaults::MaxVortexParticleCount;
 	PassParameters->VortexParticleSplatRadius = FMath::Max(TimeThiefSmokeParameterDefaults::VortexParticleMinRadius, TimeThiefSmokeParameterDefaults::VortexParticleSplatRadius);
@@ -3365,8 +3234,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	FRenderSmokeState& State,
 	float DeltaSeconds,
 	float EventDeltaSeconds,
-	bool bFinalizeFluidStep,
-	bool bIsFinalSimulationSubstep)
+	bool bIsFinalSimulationStep)
 {
 	EnsureResources(GraphBuilder, State);
 	EnsureVortexParticleBuffers(GraphBuilder, State);
@@ -3374,7 +3242,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 	const bool bCollectProjectionDiagnostics = ShouldCollectProjectionDiagnostics(
 		FTimeThiefSmokeTestBridge::IsActive(),
 		FTimeThiefSmokeTestBridge::IsMeasurementActive(),
-		bIsFinalSimulationSubstep);
+		bIsFinalSimulationStep);
 
 	FRDGTextureRef DensityTextures[2] =
 	{
@@ -3965,8 +3833,7 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			VelocityTextures[State.CurrentVelocityIndex],
 			BulletCutoutConsumerTexture,
 			BulletSinkConsumerTexture,
-			VelocityTextures[VortexSplatWriteVelocityIndex],
-			VortexDeltaSeconds);
+			VelocityTextures[VortexSplatWriteVelocityIndex]);
 		State.CurrentVelocityIndex = VortexSplatWriteVelocityIndex;
 		State.AccumulatedVortexDeltaSeconds = 0.0f;
 	}
@@ -3991,24 +3858,28 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 		PressureTextures[0],
 		GetActiveBrickResourcesForPass());
 
-	FRDGTextureRef PressureForProjection = PressureTextures[0];
-	if (CVarTimeThiefSmokePressureSolver.GetValueOnRenderThread() == 1)
+	const FVector3f PressureCellSize = MakeCellSize(State.Volume, State.AllocatedGridSize);
+	int32 CurrentPressureIndex = 0;
+	const int32 PressureIterations = FMath::Clamp(
+		TimeThiefSmokeParameterDefaults::PressureIterations,
+		TimeThiefSmokeParameterDefaults::PressureIterationsMin,
+		TimeThiefSmokeParameterDefaults::PressureIterationsMax);
+	for (int32 Iteration = 0; Iteration < PressureIterations; ++Iteration)
 	{
-		PressureForProjection = AddMGPCGPressureSolvePasses(GraphBuilder, State, DivergenceTexture);
+		const int32 NextPressureIndex = 1 - CurrentPressureIndex;
+		AddPressureJacobiPass(
+			GraphBuilder,
+			State,
+			State.AllocatedGridSize,
+			PressureCellSize,
+			PressureTextures[CurrentPressureIndex],
+			DivergenceTexture,
+			PressureTextures[NextPressureIndex],
+			GetActiveBrickResourcesForPass(),
+			Iteration);
+		CurrentPressureIndex = NextPressureIndex;
 	}
-	else
-	{
-		const FVector3f CellSize = MakeCellSize(State.Volume, State.AllocatedGridSize);
-		int32 CurrentPressureIndex = 0;
-		const int32 PressureIterations = FMath::Clamp(TimeThiefSmokeParameterDefaults::PressureIterations, TimeThiefSmokeParameterDefaults::PressureIterationsMin, TimeThiefSmokeParameterDefaults::PressureIterationsMax);
-		for (int32 Iteration = 0; Iteration < PressureIterations; ++Iteration)
-		{
-			const int32 NextPressureIndex = 1 - CurrentPressureIndex;
-			AddPressureJacobiPass(GraphBuilder, State, State.AllocatedGridSize, CellSize, PressureTextures[CurrentPressureIndex], DivergenceTexture, PressureTextures[NextPressureIndex], GetActiveBrickResourcesForPass(), Iteration);
-			CurrentPressureIndex = NextPressureIndex;
-		}
-		PressureForProjection = PressureTextures[CurrentPressureIndex];
-	}
+	FRDGTextureRef PressureForProjection = PressureTextures[CurrentPressureIndex];
 	if (bCollectProjectionDiagnostics)
 	{
 		AddPressureResidualPass(
@@ -4051,14 +3922,6 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			DiagnosticPressureResidual,
 			VelocityTextures[State.CurrentVelocityIndex],
 			DeltaSeconds);
-	}
-	if (bFinalizeFluidStep)
-	{
-		QueueVelocityMaximumReadback(GraphBuilder, State, VelocityTextures[State.CurrentVelocityIndex]);
-	}
-	else
-	{
-		return;
 	}
 	if (IsPastSparseRenderableLifetime(State.Volume))
 	{
@@ -5118,274 +4981,6 @@ void FTimeThiefSmokeViewExtension::AddProjectionDiagnosticsPass(
 	State.ProjectionDiagnosticsMinCellSize = FMath::Min3(CellSize.X, CellSize.Y, CellSize.Z);
 }
 
-
-FRDGTextureRef FTimeThiefSmokeViewExtension::AddMGPCGPressureSolvePasses(
-	FRDGBuilder& GraphBuilder,
-	FRenderSmokeState& State,
-	FRDGTextureRef DivergenceIn)
-{
-	const FIntVector FineGrid = State.AllocatedGridSize;
-	const FIntVector CoarseGrid(
-		FMath::Max(FMath::DivideAndRoundUp(FineGrid.X, 2), 1),
-		FMath::Max(FMath::DivideAndRoundUp(FineGrid.Y, 2), 1),
-		FMath::Max(FMath::DivideAndRoundUp(FineGrid.Z, 2), 1));
-	const FVector3f FineCellSize = MakeCellSize(State.Volume, FineGrid);
-	const FVector3f CoarseCellSize = FineCellSize * 2.0f;
-	const FIntVector FineGroups = MakeGroupCount(FineGrid);
-	const FIntVector CoarseGroups = MakeGroupCount(CoarseGrid);
-	const uint32 FineTileCount = FMath::Max(1, FineGroups.X * FineGroups.Y * FineGroups.Z);
-	const float RelativeTolerance = FMath::Clamp(
-		CVarTimeThiefSmokeMGPCGRelativeTolerance.GetValueOnRenderThread(),
-		1.0e-7f,
-		1.0e-2f);
-	const int32 MaxIterations = FMath::Clamp(
-		CVarTimeThiefSmokeMGPCGMaxIterations.GetValueOnRenderThread(),
-		1,
-		64);
-
-	auto CreateScalarTexture = [&GraphBuilder](const FIntVector& Grid, const TCHAR* Name)
-	{
-		return GraphBuilder.CreateTexture(
-			FRDGTextureDesc::Create3D(
-				Grid,
-				PF_R32_FLOAT,
-				FClearValueBinding::Black,
-				TexCreate_ShaderResource | TexCreate_UAV),
-			Name);
-	};
-	auto CreateFloatBuffer = [&GraphBuilder](uint32 Count, const TCHAR* Name)
-	{
-		return GraphBuilder.CreateBuffer(FRDGBufferDesc::CreateStructuredDesc(sizeof(float), FMath::Max(Count, 1u)), Name);
-	};
-	auto CreateFloat2Buffer = [&GraphBuilder](uint32 Count, const TCHAR* Name)
-	{
-		return GraphBuilder.CreateBuffer(FRDGBufferDesc::CreateStructuredDesc(sizeof(FVector2f), FMath::Max(Count, 1u)), Name);
-	};
-
-	FRDGTextureRef X[2] = { CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.X0")), CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.X1")) };
-	FRDGTextureRef R[2] = { CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.R0")), CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.R1")) };
-	FRDGTextureRef Z[2] = { CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.Z0")), CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.Z1")) };
-	FRDGTextureRef P[2] = { CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.P0")), CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.P1")) };
-	FRDGTextureRef AP = CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.AP"));
-	FRDGTextureRef FineResidual = CreateScalarTexture(FineGrid, TEXT("TimeThiefSmoke.MGPCG.PreconditionerResidual"));
-	FRDGTextureRef CoarseRhs = CreateScalarTexture(CoarseGrid, TEXT("TimeThiefSmoke.MGPCG.CoarseRhs"));
-	FRDGTextureRef CoarseZ[2] = { CreateScalarTexture(CoarseGrid, TEXT("TimeThiefSmoke.MGPCG.CoarseZ0")), CreateScalarTexture(CoarseGrid, TEXT("TimeThiefSmoke.MGPCG.CoarseZ1")) };
-
-	FRDGBufferRef MeanTiles = CreateFloat2Buffer(FineTileCount, TEXT("TimeThiefSmoke.MGPCG.MeanTiles"));
-	FRDGBufferRef MeanScalar = CreateFloatBuffer(1, TEXT("TimeThiefSmoke.MGPCG.Mean"));
-	FRDGBufferRef DotTiles = CreateFloatBuffer(FineTileCount, TEXT("TimeThiefSmoke.MGPCG.DotTiles"));
-	FRDGBufferRef Scalar0 = CreateFloatBuffer(1, TEXT("TimeThiefSmoke.MGPCG.Scalar0"));
-	FRDGBufferRef Scalar1 = CreateFloatBuffer(1, TEXT("TimeThiefSmoke.MGPCG.Scalar1"));
-	FRDGBufferRef Alpha = CreateFloatBuffer(1, TEXT("TimeThiefSmoke.MGPCG.Alpha"));
-	FRDGBufferRef Beta = CreateFloatBuffer(1, TEXT("TimeThiefSmoke.MGPCG.Beta"));
-	FRDGBufferRef SolverState[2] =
-	{
-		GraphBuilder.CreateBuffer(FRDGBufferDesc::CreateStructuredDesc(sizeof(FVector4f), 2), TEXT("TimeThiefSmoke.MGPCG.State0")),
-		GraphBuilder.CreateBuffer(FRDGBufferDesc::CreateStructuredDesc(sizeof(FVector4f), 2), TEXT("TimeThiefSmoke.MGPCG.State1"))
-	};
-
-	FRDGTextureRef ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);
-	FRDGTextureRef FaceOpenTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleFaceOpenTexture);
-	FRHISamplerState* VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-
-	auto SetCommon = [&](auto* Parameters, const FIntVector& Grid, const FVector3f& CellSize)
-	{
-		Parameters->GridResolution = Grid;
-		Parameters->FineGridResolution = FineGrid;
-		Parameters->GroupGridResolution = MakeGroupCount(Grid);
-		Parameters->CellSize = CellSize;
-		Parameters->RelativeTolerance = RelativeTolerance;
-		Parameters->IterationIndex = 0;
-		Parameters->ObstacleTexture = ObstacleTexture;
-		Parameters->ObstacleFaceOpenTexture = FaceOpenTexture;
-		Parameters->VolumeSampler = VolumeSampler;
-	};
-	auto AddTexturePass = [&](auto ShaderType, const TCHAR* Name, auto Configure, const FIntVector& Grid, const FVector3f& CellSize)
-	{
-		using TShader = std::remove_pointer_t<decltype(ShaderType)>;
-		TShaderMapRef<TShader> Shader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
-		typename TShader::FParameters* Parameters = GraphBuilder.AllocParameters<typename TShader::FParameters>();
-		SetCommon(Parameters, Grid, CellSize);
-		Configure(Parameters);
-		SmokeTestGpuProfiler.AddPass(GraphBuilder, RDG_EVENT_NAME("TimeThiefSmoke.%s", Name), Shader, Parameters, MakeGroupCount(Grid), MakeSmokeTestGpuMetadata(Name, State.Volume.SmokeId));
-	};
-	auto AddScalarPass = [&](auto ShaderType, const TCHAR* Name, auto Configure)
-	{
-		using TShader = std::remove_pointer_t<decltype(ShaderType)>;
-		TShaderMapRef<TShader> Shader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
-		typename TShader::FParameters* Parameters = GraphBuilder.AllocParameters<typename TShader::FParameters>();
-		SetCommon(Parameters, FineGrid, FineCellSize);
-		Configure(Parameters);
-		SmokeTestGpuProfiler.AddPass(GraphBuilder, RDG_EVENT_NAME("TimeThiefSmoke.%s", Name), Shader, Parameters, FIntVector(1, 1, 1), MakeSmokeTestGpuMetadata(Name, State.Volume.SmokeId));
-	};
-	auto AddDot = [&](FRDGTextureRef A, FRDGTextureRef B, FRDGBufferRef Output, const TCHAR* Name)
-	{
-		AddTexturePass((FTimeThiefSmokeMGPCGDotTilesCS*)nullptr, Name, [&](auto* Params)
-		{
-			Params->VectorA = A;
-			Params->VectorB = B;
-			Params->OutTileSums = GraphBuilder.CreateUAV(DotTiles);
-		}, FineGrid, FineCellSize);
-		AddScalarPass((FTimeThiefSmokeMGPCGDotFinalCS*)nullptr, Name, [&](auto* Params)
-		{
-			Params->GroupGridResolution = FineGroups;
-			Params->TileSums = GraphBuilder.CreateSRV(DotTiles);
-			Params->OutScalar = GraphBuilder.CreateUAV(Output);
-		});
-	};
-	auto AddPreconditioner = [&](FRDGTextureRef Residual, FRDGTextureRef& OutZ)
-	{
-		FRDGTextureRef FineSmooth[2] = { Z[0], Z[1] };
-		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(FineSmooth[0]), 0.0f);
-		int32 FineIndex = 0;
-		for (int32 Iteration = 0; Iteration < TimeThiefSmokeParameterDefaults::MGPCGPreSmoothIterations; ++Iteration)
-		{
-			const int32 Next = 1 - FineIndex;
-			AddTexturePass((FTimeThiefSmokeMGPCGJacobiSmoothCS*)nullptr, TEXT("Pressure.MGPCG.PreSmooth"), [&](auto* Params)
-			{
-				Params->PressureTexture = FineSmooth[FineIndex];
-				Params->RightHandSideTexture = Residual;
-				Params->OutVector = GraphBuilder.CreateUAV(FineSmooth[Next]);
-			}, FineGrid, FineCellSize);
-			FineIndex = Next;
-		}
-		AddTexturePass((FTimeThiefSmokeMGPCGResidualCS*)nullptr, TEXT("Pressure.MGPCG.FineResidual"), [&](auto* Params)
-		{
-			Params->PressureTexture = FineSmooth[FineIndex];
-			Params->RightHandSideTexture = Residual;
-			Params->OutVector = GraphBuilder.CreateUAV(FineResidual);
-		}, FineGrid, FineCellSize);
-		AddTexturePass((FTimeThiefSmokeMGPCGRestrictCS*)nullptr, TEXT("Pressure.MGPCG.Restrict"), [&](auto* Params)
-		{
-			Params->FineTexture = FineResidual;
-			Params->OutVector = GraphBuilder.CreateUAV(CoarseRhs);
-		}, CoarseGrid, CoarseCellSize);
-		AddClearUAVPass(GraphBuilder, GraphBuilder.CreateUAV(CoarseZ[0]), 0.0f);
-		int32 CoarseIndex = 0;
-		for (int32 Iteration = 0; Iteration < TimeThiefSmokeParameterDefaults::MGPCGCoarseIterations; ++Iteration)
-		{
-			const int32 Next = 1 - CoarseIndex;
-			AddTexturePass((FTimeThiefSmokeMGPCGJacobiSmoothCS*)nullptr, TEXT("Pressure.MGPCG.CoarseSmooth"), [&](auto* Params)
-			{
-				Params->PressureTexture = CoarseZ[CoarseIndex];
-				Params->RightHandSideTexture = CoarseRhs;
-				Params->OutVector = GraphBuilder.CreateUAV(CoarseZ[Next]);
-			}, CoarseGrid, CoarseCellSize);
-			CoarseIndex = Next;
-		}
-		const int32 CorrectedIndex = 1 - FineIndex;
-		AddTexturePass((FTimeThiefSmokeMGPCGProlongateAddCS*)nullptr, TEXT("Pressure.MGPCG.Prolongate"), [&](auto* Params)
-		{
-			Params->FineTexture = FineSmooth[FineIndex];
-			Params->CoarseTexture = CoarseZ[CoarseIndex];
-			Params->OutVector = GraphBuilder.CreateUAV(FineSmooth[CorrectedIndex]);
-		}, FineGrid, FineCellSize);
-		FineIndex = CorrectedIndex;
-		for (int32 Iteration = 0; Iteration < TimeThiefSmokeParameterDefaults::MGPCGPostSmoothIterations; ++Iteration)
-		{
-			const int32 Next = 1 - FineIndex;
-			AddTexturePass((FTimeThiefSmokeMGPCGJacobiSmoothCS*)nullptr, TEXT("Pressure.MGPCG.PostSmooth"), [&](auto* Params)
-			{
-				Params->PressureTexture = FineSmooth[FineIndex];
-				Params->RightHandSideTexture = Residual;
-				Params->OutVector = GraphBuilder.CreateUAV(FineSmooth[Next]);
-			}, FineGrid, FineCellSize);
-			FineIndex = Next;
-		}
-		OutZ = FineSmooth[FineIndex];
-	};
-
-	AddTexturePass((FTimeThiefSmokeMGPCGMeanTilesCS*)nullptr, TEXT("Pressure.MGPCG.MeanTiles"), [&](auto* Params)
-	{
-		Params->DivergenceTexture = DivergenceIn;
-		Params->OutMeanTileSums = GraphBuilder.CreateUAV(MeanTiles);
-	}, FineGrid, FineCellSize);
-	AddScalarPass((FTimeThiefSmokeMGPCGMeanFinalCS*)nullptr, TEXT("Pressure.MGPCG.MeanFinal"), [&](auto* Params)
-	{
-		Params->GroupGridResolution = FineGroups;
-		Params->MeanTileSums = GraphBuilder.CreateSRV(MeanTiles);
-		Params->OutScalar = GraphBuilder.CreateUAV(MeanScalar);
-	});
-	AddTexturePass((FTimeThiefSmokeMGPCGInitializeCS*)nullptr, TEXT("Pressure.MGPCG.Initialize"), [&](auto* Params)
-	{
-		Params->DivergenceTexture = DivergenceIn;
-		Params->InputScalar0 = GraphBuilder.CreateSRV(MeanScalar);
-		Params->OutVectorA = GraphBuilder.CreateUAV(X[0]);
-		Params->OutVectorB = GraphBuilder.CreateUAV(R[0]);
-		Params->OutVectorC = GraphBuilder.CreateUAV(Z[0]);
-		Params->OutVectorD = GraphBuilder.CreateUAV(P[0]);
-	}, FineGrid, FineCellSize);
-
-	FRDGTextureRef InitialZ = nullptr;
-	AddPreconditioner(R[0], InitialZ);
-	AddTexturePass((FTimeThiefSmokeMGPCGCopyCS*)nullptr, TEXT("Pressure.MGPCG.InitialDirection"), [&](auto* Params)
-	{
-		Params->VectorA = InitialZ;
-		Params->OutVector = GraphBuilder.CreateUAV(P[0]);
-	}, FineGrid, FineCellSize);
-	AddDot(R[0], InitialZ, Scalar0, TEXT("Pressure.MGPCG.InitialRZ"));
-	AddDot(R[0], R[0], Scalar1, TEXT("Pressure.MGPCG.InitialResidual"));
-	AddScalarPass((FTimeThiefSmokeMGPCGInitializeStateCS*)nullptr, TEXT("Pressure.MGPCG.InitializeState"), [&](auto* Params)
-	{
-		Params->InputScalar0 = GraphBuilder.CreateSRV(Scalar0);
-		Params->InputScalar1 = GraphBuilder.CreateSRV(Scalar1);
-		Params->OutSolverState = GraphBuilder.CreateUAV(SolverState[0]);
-	});
-
-	int32 Current = 0;
-	int32 StateIndex = 0;
-	for (int32 Iteration = 0; Iteration < MaxIterations; ++Iteration)
-	{
-		AddTexturePass((FTimeThiefSmokeMGPCGApplyOperatorCS*)nullptr, TEXT("Pressure.MGPCG.ApplyA"), [&](auto* Params)
-		{
-			Params->VectorA = P[Current];
-			Params->OutVector = GraphBuilder.CreateUAV(AP);
-		}, FineGrid, FineCellSize);
-		AddDot(P[Current], AP, Scalar0, TEXT("Pressure.MGPCG.PAp"));
-		AddScalarPass((FTimeThiefSmokeMGPCGComputeAlphaCS*)nullptr, TEXT("Pressure.MGPCG.Alpha"), [&](auto* Params)
-		{
-			Params->SolverStateIn = GraphBuilder.CreateSRV(SolverState[StateIndex]);
-			Params->InputScalar0 = GraphBuilder.CreateSRV(Scalar0);
-			Params->OutScalar = GraphBuilder.CreateUAV(Alpha);
-		});
-		const int32 Next = 1 - Current;
-		AddTexturePass((FTimeThiefSmokeMGPCGUpdateXRCS*)nullptr, TEXT("Pressure.MGPCG.UpdateXR"), [&](auto* Params)
-		{
-			Params->VectorA = X[Current];
-			Params->VectorB = P[Current];
-			Params->PressureTexture = R[Current];
-			Params->RightHandSideTexture = AP;
-			Params->InputScalar0 = GraphBuilder.CreateSRV(Alpha);
-			Params->OutVectorA = GraphBuilder.CreateUAV(X[Next]);
-			Params->OutVectorB = GraphBuilder.CreateUAV(R[Next]);
-		}, FineGrid, FineCellSize);
-		FRDGTextureRef NewZ = nullptr;
-		AddPreconditioner(R[Next], NewZ);
-		AddDot(R[Next], NewZ, Scalar0, TEXT("Pressure.MGPCG.RZ"));
-		AddDot(R[Next], R[Next], Scalar1, TEXT("Pressure.MGPCG.Residual"));
-		const int32 NextStateIndex = 1 - StateIndex;
-		AddScalarPass((FTimeThiefSmokeMGPCGComputeBetaCS*)nullptr, TEXT("Pressure.MGPCG.Beta"), [&](auto* Params)
-		{
-			Params->IterationIndex = Iteration;
-			Params->SolverStateIn = GraphBuilder.CreateSRV(SolverState[StateIndex]);
-			Params->InputScalar0 = GraphBuilder.CreateSRV(Scalar0);
-			Params->InputScalar1 = GraphBuilder.CreateSRV(Scalar1);
-			Params->OutScalar = GraphBuilder.CreateUAV(Beta);
-			Params->OutSolverState = GraphBuilder.CreateUAV(SolverState[NextStateIndex]);
-		});
-		AddTexturePass((FTimeThiefSmokeMGPCGUpdatePCS*)nullptr, TEXT("Pressure.MGPCG.UpdateP"), [&](auto* Params)
-		{
-			Params->VectorA = NewZ;
-			Params->VectorB = P[Current];
-			Params->InputScalar0 = GraphBuilder.CreateSRV(Beta);
-			Params->OutVector = GraphBuilder.CreateUAV(P[Next]);
-		}, FineGrid, FineCellSize);
-		Current = Next;
-		StateIndex = NextStateIndex;
-	}
-
-	return X[Current];
-}
 
 void FTimeThiefSmokeViewExtension::AddPressureJacobiPass(
 	FRDGBuilder& GraphBuilder,
