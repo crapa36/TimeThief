@@ -355,31 +355,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeVelocityMaxTilesCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeVelocityMaxTilesCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeVelocityMaxTilesCS, FGlobalShader);
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		SHADER_PARAMETER(FIntVector, GridResolution)
-		SHADER_PARAMETER(FIntVector, GroupGridResolution)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, VelocityTexture)
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float>, OutTileMaximums)
-	END_SHADER_PARAMETER_STRUCT()
-};
-
-class FTimeThiefSmokeVelocityMaxFinalCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeVelocityMaxFinalCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeVelocityMaxFinalCS, FGlobalShader);
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		SHADER_PARAMETER(FIntVector, GroupGridResolution)
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float>, TileMaximums)
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float>, OutMaximum)
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokePressureResidualCS : public FGlobalShader
 {
 public:
@@ -442,65 +417,6 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-
-#define TIME_THIEF_DECLARE_MGPCG_SHADER(ShaderClass) \
-class ShaderClass : public FGlobalShader \
-{ \
-public: \
-	DECLARE_GLOBAL_SHADER(ShaderClass); \
-	SHADER_USE_PARAMETER_STRUCT(ShaderClass, FGlobalShader); \
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, ) \
-		SHADER_PARAMETER(FIntVector, GridResolution) \
-		SHADER_PARAMETER(FIntVector, FineGridResolution) \
-		SHADER_PARAMETER(FIntVector, GroupGridResolution) \
-		SHADER_PARAMETER(FVector3f, CellSize) \
-		SHADER_PARAMETER(float, RelativeTolerance) \
-		SHADER_PARAMETER(int32, IterationIndex) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, DivergenceTexture) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, VectorA) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, VectorB) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PressureTexture) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, RightHandSideTexture) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, FineTexture) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, CoarseTexture) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture) \
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, ObstacleFaceOpenTexture) \
-		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler) \
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float>, InputScalar0) \
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float>, InputScalar1) \
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float4>, SolverStateIn) \
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float>, TileSums) \
-		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<float2>, MeanTileSums) \
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutVector) \
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutVectorA) \
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutVectorB) \
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutVectorC) \
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutVectorD) \
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float>, OutTileSums) \
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float2>, OutMeanTileSums) \
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float>, OutScalar) \
-		SHADER_PARAMETER_RDG_BUFFER_UAV(RWStructuredBuffer<float4>, OutSolverState) \
-	END_SHADER_PARAMETER_STRUCT() \
-};
-
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGMeanTilesCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGMeanFinalCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGInitializeCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGApplyOperatorCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGJacobiSmoothCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGResidualCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGRestrictCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGProlongateAddCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGCopyCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGUpdateXRCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGUpdatePCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGDotTilesCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGDotFinalCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGInitializeStateCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGComputeAlphaCS)
-TIME_THIEF_DECLARE_MGPCG_SHADER(FTimeThiefSmokeMGPCGComputeBetaCS)
-
-#undef TIME_THIEF_DECLARE_MGPCG_SHADER
 
 class FTimeThiefSmokePressureJacobiCS : public FGlobalShader
 {

@@ -103,27 +103,6 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr int32 SparseMinBrickCount = 64;
 	// 희소 브릭 활성화 최소 속도(cm/s). 높을수록 비용 감소, 약한 움직임 손실 증가.
 	constexpr float SparseVelocityActiveThreshold = 150.0f;
-	// 적응형 substep의 Courant 수 상한. 낮을수록 안정성과 substep 비용 증가.
-	constexpr float QualityCourantLimit = 1.0f;
-	// 유체 적응형 substep 최대 횟수. 높을수록 고속 흐름 안정성과 프레임 비용 증가.
-	constexpr int32 MaxAdaptiveFluidSubsteps = 4;
-
-	// 압력 솔버
-
-	// 압력 솔버 선택. 0은 Jacobi, 1은 multigrid-preconditioned conjugate gradient.
-	constexpr int32 PressureSolver = 1;
-	// MGPCG 최대 반복 횟수. 높을수록 압력 수렴 품질과 비용 증가.
-	constexpr int32 MGPCGMaxIterations = 16;
-	// MGPCG 하강 전 smoothing 반복 횟수. 높을수록 고주파 오차 제거와 비용 증가.
-	constexpr int32 MGPCGPreSmoothIterations = 2;
-	// MGPCG 상승 후 smoothing 반복 횟수. 높을수록 보간 오차 제거와 비용 증가.
-	constexpr int32 MGPCGPostSmoothIterations = 2;
-	// MGPCG coarse grid 반복 횟수. 높을수록 저주파 오차 제거와 비용 증가.
-	constexpr int32 MGPCGCoarseIterations = 12;
-	// MGPCG 상대 잔차 수렴 기준. 낮을수록 압력 정확도와 반복 비용 증가.
-	constexpr float MGPCGRelativeTolerance = 1.0e-4f;
-	// 최대 속도 GPU readback 간격(frame). 높을수록 readback 비용과 적응형 substep 반응 지연 증가.
-	constexpr int32 VelocityReadbackIntervalFrames = 4;
 
 	// 렌더링 raymarch
 
@@ -360,17 +339,17 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 후류
 
 	// 총알이 지우는 연막 반경(cm). 높을수록 구멍 크기 증가.
-	constexpr float BulletClearRadius = 36.0f;
+	constexpr float BulletClearRadius = 32.0f;
 	// 총알 구멍 반경 랜덤 최소 배율. 높을수록 가장 작은 구멍 크기 증가.
-	constexpr float BulletClearRadiusRandomMin = 1.0f;
+	constexpr float BulletClearRadiusRandomMin = 0.95f;
 	// 총알 구멍 반경 랜덤 최대 배율. 높을수록 가장 큰 구멍 크기 증가.
 	constexpr float BulletClearRadiusRandomMax = 1.2f;
 	// 총알 후류 강도 랜덤 최소 배율. 높을수록 가장 약한 후류 강도 증가.
 	constexpr float BulletWakeStrengthRandomMin = 0.9f;
 	// 총알 후류 강도 랜덤 최대 배율. 높을수록 가장 강한 후류 강도 증가.
-	constexpr float BulletWakeStrengthRandomMax = 1.8f;
+	constexpr float BulletWakeStrengthRandomMax = 1.0f;
 	// 총알 후류가 보이는 최대 시간(초). 높을수록 흔적 지속 증가.
-	constexpr float BulletWakeMaxVisibleLife = 1.5f;
+	constexpr float BulletWakeMaxVisibleLife = 0.2f;
 	// 총알 구멍이 풀리는 시간(초). 높을수록 구멍 복구가 느림.
 	constexpr float BulletWakeReleaseDuration = 1.5f;
 	// 총알 주변 공기 통로 유지 시간(초). 높을수록 통로 영향 지속 증가.
@@ -380,9 +359,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 진행 방향 속도 충격 강도(cm/s). 높을수록 wake 흐름 증가.
 	constexpr float BulletWakeImpulseStrength = 55.0f;
 	// 총알 구멍 가장자리 부드러움. 높을수록 경계가 부드럽고 넓어짐.
-	constexpr float BulletWakeCutoutFeather = 1.0f;
+	constexpr float BulletWakeCutoutFeather = 1.5f;
 	// 총알 wake 수명 최소값(초).
-	constexpr float BulletWakeMinLifeSeconds = 0.5f;
+	constexpr float BulletWakeMinLifeSeconds = 0.05f;
 	// 총알 구멍 feather 최소값.
 	constexpr float BulletWakeCutoutFeatherMin = 0.2f;
 	// 총알 wake 유지 코어 내부 반경 배율. 높을수록 완전히 열린 코어 범위 증가.
