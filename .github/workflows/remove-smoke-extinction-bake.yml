@@ -1,0 +1,217 @@
+name: Remove smoke extinction bake
+
+on:
+  pull_request:
+    branches: [SmokeOptimization]
+    paths: [.github/triggers/remove-smoke-extinction-bake.txt]
+
+permissions:
+  contents: write
+
+jobs:
+  remove-bake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Remove precomputed extinction volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_HEAD=c6ae678b8ef9b8bbd191f4cfe4abdaa900c27e41
+          BASELINE=9af2a158b683877d79f623f9790a350701ba7941
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          BASELINE = "9af2a158b683877d79f623f9790a350701ba7941"
+
+          def git_show(path: str) -> str:
+              return subprocess.check_output(["git", "show", f"{BASELINE}:{path}"], text=True)
+
+          def section(text: str, start: str, end: str) -> str:
+              a = text.index(start)
+              b = text.index(end, a)
+              return text[a:b]
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              assert count == 1, (label, count)
+              return text.replace(old, new, 1)
+
+          # Composite: sample packed density and obstacle SDF directly at each ray sample.
+          comp_path = "Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf"
+          comp_file = Path(comp_path)
+          comp = comp_file.read_text()
+          base_comp = git_show(comp_path)
+          comp = replace_once(
+              comp,
+              '#include "/TimeThiefSmokeShaders/TimeThiefSmokeExtinction.ush"\n',
+              '',
+              'extinction include')
+          obstacle_decls = section(
+              base_comp,
+              'Texture3D<float> ObstacleTexture0;',
+              'Texture3D<float4> PackedDenseFieldTexture0;')
+          comp = replace_once(
+              comp,
+              'Texture3D<float4> PackedDenseFieldTexture0;',
+              obstacle_decls + 'Texture3D<float4> PackedDenseFieldTexture0;',
+              'obstacle texture declarations')
+          a = comp.index('Texture3D<float> ExtinctionTexture0;')
+          b = comp.index('Texture3D<float> LightOpticalDepthTexture0;', a)
+          comp = comp[:a] + comp[b:]
+          obstacle_function = section(
+              base_comp,
+              'float SampleObstacleTexture(',
+              'float4 SamplePackedDenseFieldTexture(')
+          comp = replace_once(
+              comp,
+              'float4 SamplePackedDenseFieldTexture(',
+              obstacle_function + 'float4 SamplePackedDenseFieldTexture(',
+              'obstacle sampler')
+          a = comp.index('float SampleExtinctionTexture(')
+          b = comp.index('float SampleLightOpticalDepthTexture(', a)
+          comp = comp[:a] + comp[b:]
+          direct_medium = section(
+              base_comp,
+              'FTimeThiefSmokeMediumSample EvaluateSmokeMedium(',
+              'float AlignStableRaySample(')
+          a = comp.index('FTimeThiefSmokeMediumSample EvaluateSmokeMedium(')
+          b = comp.index('float AlignStableRaySample(', a)
+          comp = comp[:a] + direct_medium + comp[b:]
+          comp_file.write_text(comp)
+
+          # Light volume: keep the shadow cache, but integrate packed fields directly.
+          light_path = "Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf"
+          Path(light_path).write_text(git_show(light_path))
+
+          # Shader declarations and parameter bindings.
+          header_path = "Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h"
+          header_file = Path(header_path)
+          header = header_file.read_text()
+          base_header = git_show(header_path)
+          a = header.index('class FTimeThiefSmokeBuildExtinctionVolumeCS')
+          b = header.index('class FTimeThiefSmokeBuildLightVolumeCS', a)
+          header = header[:a] + header[b:]
+          desired_light_class = section(
+              base_header,
+              'class FTimeThiefSmokeBuildLightVolumeCS',
+              'class FTimeThiefSmokeBuildActiveBrickListCS')
+          a = header.index('class FTimeThiefSmokeBuildLightVolumeCS')
+          b = header.index('class FTimeThiefSmokeBuildActiveBrickListCS', a)
+          header = header[:a] + desired_light_class + header[b:]
+          comp_start = header.index('class FTimeThiefSmokeCompositeMultiPS')
+          comp_end = header.index('class FTimeThiefSmokeTemporalResolvePS', comp_start)
+          comp_block = header[comp_start:comp_end]
+          base_comp_start = base_header.index('class FTimeThiefSmokeCompositeMultiPS')
+          base_comp_end = base_header.index('class FTimeThiefSmokeBilateralUpsamplePS', base_comp_start)
+          base_comp_block = base_header[base_comp_start:base_comp_end]
+          obstacle_params = section(
+              base_comp_block,
+              '\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture0)',
+              '\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture0)')
+          comp_block = replace_once(
+              comp_block,
+              '\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture0)',
+              obstacle_params + '\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture0)',
+              'composite obstacle parameters')
+          a = comp_block.index('\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture0)')
+          b = comp_block.index('\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture0)', a)
+          comp_block = comp_block[:a] + comp_block[b:]
+          header = header[:comp_start] + comp_block + header[comp_end:]
+          header_file.write_text(header)
+
+          shaders_cpp_path = "Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.cpp"
+          shaders_cpp_file = Path(shaders_cpp_path)
+          shaders_cpp = shaders_cpp_file.read_text()
+          shaders_cpp = replace_once(
+              shaders_cpp,
+              'IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildExtinctionVolumeCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildExtinctionVolume.usf", "MainCS", SF_Compute);\n',
+              '',
+              'extinction shader registration')
+          shaders_cpp_file.write_text(shaders_cpp)
+
+          view_h_path = "Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.h"
+          view_h_file = Path(view_h_path)
+          view_h = view_h_file.read_text()
+          view_h = replace_once(
+              view_h,
+              '\t\tTRefCountPtr<IPooledRenderTarget> ExtinctionTextures[2];\n',
+              '',
+              'extinction state textures')
+          view_h = replace_once(
+              view_h,
+              '\tvoid AddBuildExtinctionVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);\n',
+              '',
+              'extinction pass declaration')
+          view_h_file.write_text(view_h)
+
+          view_cpp_path = "Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp"
+          view_cpp_file = Path(view_cpp_path)
+          view_cpp = view_cpp_file.read_text()
+          view_cpp = replace_once(
+              view_cpp,
+              '\t\tWarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildExtinctionVolumeCS>(ShaderMap));\n',
+              '',
+              'extinction PSO warmup')
+          view_cpp = replace_once(
+              view_cpp,
+              '''\t\tif (!State.ExtinctionTextures[TextureIndex].IsValid())\n\t\t{\n\t\t\tAllocatePooledTexture(ScalarDesc, State.ExtinctionTextures[TextureIndex], TEXT("TimeThiefSmoke.Extinction"));\n\t\t}\n''',
+              '',
+              'extinction allocation')
+          view_cpp = replace_once(
+              view_cpp,
+              '''\tstruct FMultiSmokeTextureRefs\n\t{\n\t\tFRDGTextureRef PackedDenseFieldTexture = nullptr;\n\t\tFRDGTextureRef PreviousPackedDenseFieldTexture = nullptr;\n\t\tFRDGTextureRef ExtinctionTexture = nullptr;\n\t\tFRDGTextureRef PreviousExtinctionTexture = nullptr;\n\t\tFRDGTextureRef LightOpticalDepthTexture = nullptr;\n\t\tFRDGTextureRef PreviousLightOpticalDepthTexture = nullptr;\n\t\tFRDGTextureRef RenderOccupancyTexture = nullptr;\n\t};\n''',
+              '''\tstruct FMultiSmokeTextureRefs\n\t{\n\t\tFRDGTextureRef ObstacleTexture = nullptr;\n\t\tFRDGTextureRef PackedDenseFieldTexture = nullptr;\n\t\tFRDGTextureRef PreviousPackedDenseFieldTexture = nullptr;\n\t\tFRDGTextureRef LightOpticalDepthTexture = nullptr;\n\t\tFRDGTextureRef PreviousLightOpticalDepthTexture = nullptr;\n\t\tFRDGTextureRef RenderOccupancyTexture = nullptr;\n\t};\n''',
+              'multi-smoke texture refs')
+          view_cpp = replace_once(
+              view_cpp,
+              '''\t\tTextureRefs.PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[State.CurrentPackedFieldIndex]);\n\t\tconst int32 PreviousIndex = State.bPackedFieldHistoryValid ? 1 - State.CurrentPackedFieldIndex : State.CurrentPackedFieldIndex;\n\t\tTextureRefs.PreviousPackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[PreviousIndex]);\n\t\tTextureRefs.ExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[State.CurrentPackedFieldIndex]);\n\t\tTextureRefs.PreviousExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[PreviousIndex]);\n\t\tTextureRefs.LightOpticalDepthTexture = GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[State.CurrentPackedFieldIndex]);\n''',
+              '''\t\tTextureRefs.ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);\n\t\tTextureRefs.PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[State.CurrentPackedFieldIndex]);\n\t\tconst int32 PreviousIndex = State.bPackedFieldHistoryValid ? 1 - State.CurrentPackedFieldIndex : State.CurrentPackedFieldIndex;\n\t\tTextureRefs.PreviousPackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[PreviousIndex]);\n\t\tTextureRefs.LightOpticalDepthTexture = GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[State.CurrentPackedFieldIndex]);\n''',
+              'multi-smoke texture registration')
+          view_cpp = replace_once(
+              view_cpp,
+              '''\tFRDGTextureRef* PackedDenseFieldTargets[] = { &PassParameters->PackedDenseFieldTexture0, &PassParameters->PackedDenseFieldTexture1, &PassParameters->PackedDenseFieldTexture2, &PassParameters->PackedDenseFieldTexture3, &PassParameters->PackedDenseFieldTexture4, &PassParameters->PackedDenseFieldTexture5, &PassParameters->PackedDenseFieldTexture6, &PassParameters->PackedDenseFieldTexture7 };\n\tFRDGTextureRef* PreviousPackedDenseFieldTargets[] = { &PassParameters->PreviousPackedDenseFieldTexture0, &PassParameters->PreviousPackedDenseFieldTexture1, &PassParameters->PreviousPackedDenseFieldTexture2, &PassParameters->PreviousPackedDenseFieldTexture3, &PassParameters->PreviousPackedDenseFieldTexture4, &PassParameters->PreviousPackedDenseFieldTexture5, &PassParameters->PreviousPackedDenseFieldTexture6, &PassParameters->PreviousPackedDenseFieldTexture7 };\n\tFRDGTextureRef* ExtinctionTargets[] = { &PassParameters->ExtinctionTexture0, &PassParameters->ExtinctionTexture1, &PassParameters->ExtinctionTexture2, &PassParameters->ExtinctionTexture3, &PassParameters->ExtinctionTexture4, &PassParameters->ExtinctionTexture5, &PassParameters->ExtinctionTexture6, &PassParameters->ExtinctionTexture7 };\n\tFRDGTextureRef* PreviousExtinctionTargets[] = { &PassParameters->PreviousExtinctionTexture0, &PassParameters->PreviousExtinctionTexture1, &PassParameters->PreviousExtinctionTexture2, &PassParameters->PreviousExtinctionTexture3, &PassParameters->PreviousExtinctionTexture4, &PassParameters->PreviousExtinctionTexture5, &PassParameters->PreviousExtinctionTexture6, &PassParameters->PreviousExtinctionTexture7 };\n''',
+              '''\tFRDGTextureRef* ObstacleTargets[] = { &PassParameters->ObstacleTexture0, &PassParameters->ObstacleTexture1, &PassParameters->ObstacleTexture2, &PassParameters->ObstacleTexture3, &PassParameters->ObstacleTexture4, &PassParameters->ObstacleTexture5, &PassParameters->ObstacleTexture6, &PassParameters->ObstacleTexture7 };\n\tFRDGTextureRef* PackedDenseFieldTargets[] = { &PassParameters->PackedDenseFieldTexture0, &PassParameters->PackedDenseFieldTexture1, &PassParameters->PackedDenseFieldTexture2, &PassParameters->PackedDenseFieldTexture3, &PassParameters->PackedDenseFieldTexture4, &PassParameters->PackedDenseFieldTexture5, &PassParameters->PackedDenseFieldTexture6, &PassParameters->PackedDenseFieldTexture7 };\n\tFRDGTextureRef* PreviousPackedDenseFieldTargets[] = { &PassParameters->PreviousPackedDenseFieldTexture0, &PassParameters->PreviousPackedDenseFieldTexture1, &PassParameters->PreviousPackedDenseFieldTexture2, &PassParameters->PreviousPackedDenseFieldTexture3, &PassParameters->PreviousPackedDenseFieldTexture4, &PassParameters->PreviousPackedDenseFieldTexture5, &PassParameters->PreviousPackedDenseFieldTexture6, &PassParameters->PreviousPackedDenseFieldTexture7 };\n''',
+              'composite target arrays')
+          view_cpp = replace_once(
+              view_cpp,
+              '''\t\t*PackedDenseFieldTargets[Slot] = TextureRefs.PackedDenseFieldTexture;\n\t\t*PreviousPackedDenseFieldTargets[Slot] = TextureRefs.PreviousPackedDenseFieldTexture;\n\t\t*ExtinctionTargets[Slot] = TextureRefs.ExtinctionTexture;\n\t\t*PreviousExtinctionTargets[Slot] = TextureRefs.PreviousExtinctionTexture;\n''',
+              '''\t\t*ObstacleTargets[Slot] = TextureRefs.ObstacleTexture;\n\t\t*PackedDenseFieldTargets[Slot] = TextureRefs.PackedDenseFieldTexture;\n\t\t*PreviousPackedDenseFieldTargets[Slot] = TextureRefs.PreviousPackedDenseFieldTexture;\n''',
+              'composite target assignment')
+          assert view_cpp.count('\t\tAddBuildExtinctionVolumePass(GraphBuilder, State);\n') == 2
+          view_cpp = view_cpp.replace('\t\tAddBuildExtinctionVolumePass(GraphBuilder, State);\n', '')
+          a = view_cpp.index('void FTimeThiefSmokeViewExtension::AddBuildExtinctionVolumePass(')
+          b = view_cpp.index('void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(', a)
+          view_cpp = view_cpp[:a] + view_cpp[b:]
+          desired_light_pass = '''void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State)\n{\n\tconst int32 Index = State.CurrentPackedFieldIndex;\n\tif (!State.PackedDenseFieldTextures[Index].IsValid() || !State.ObstacleSdfTexture.IsValid() || !State.LightOpticalDepthTextures[Index].IsValid())\n\t{\n\t\tState.bLightVolumeValid = false;\n\t\tState.bLightVolumeHistoryValid = false;\n\t\treturn;\n\t}\n\tconst float FadeDuration = FMath::Max(TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration, 0.001f);\n\tconst float FadeAlpha = FMath::Clamp((State.SimulationTimeSeconds - State.Volume.DurationSeconds) / FadeDuration, 0.0f, 1.0f);\n\tState.bLightVolumeHistoryValid = State.bLightVolumeValid;\n\tTShaderMapRef<FTimeThiefSmokeBuildLightVolumeCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));\n\tauto* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildLightVolumeCS::FParameters>();\n\tPassParameters->GridResolution = State.AllocatedGridSize;\n\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;\n\tPassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();\n\tPassParameters->ShadowStepLength = FMath::Max(TimeThiefSmokeParameterDefaults::CombinedShadowStepLength, 1.0f);\n\tPassParameters->ShadowStepCount = FMath::Max(TimeThiefSmokeParameterDefaults::CombinedShadowStepCount, 1);\n\tPassParameters->NoiseScale = FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseScale, 0.0f);\n\tPassParameters->NoiseStrength = FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseStrength, 0.0f);\n\tPassParameters->NoiseTime = State.SimulationTimeSeconds * FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseTimeScale, 0.0f);\n\tPassParameters->LifetimeAlpha = 1.0f - FadeAlpha * FadeAlpha * (3.0f - 2.0f * FadeAlpha);\n\tPassParameters->ObstacleFeather = ResolveObstacleFeatherCm(State.Volume, State.AllocatedGridSize);\n\tPassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();\n\tPassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();\n\tPassParameters->PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[Index]);\n\tPassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);\n\tPassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();\n\tPassParameters->OutLightOpticalDepth = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[Index]));\n\tSmokeTestGpuProfiler.AddPass(\n\t\tGraphBuilder,\n\t\tRDG_EVENT_NAME("TimeThiefSmoke.BuildLightVolume SmokeId=%d", State.Volume.SmokeId),\n\t\tComputeShader,\n\t\tPassParameters,\n\t\tMakeGroupCount(State.AllocatedGridSize),\n\t\tMakeSmokeTestGpuMetadata(TEXT("Composite.BuildLightVolume"), State.Volume.SmokeId));\n\tState.bLightVolumeValid = true;\n}\n\n'''
+          a = view_cpp.index('void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(')
+          b = view_cpp.index('void FTimeThiefSmokeViewExtension::AddBuildMacDivergencePass(', a)
+          view_cpp = view_cpp[:a] + desired_light_pass + view_cpp[b:]
+          view_cpp_file.write_text(view_cpp)
+          PY
+
+          git rm \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildExtinctionVolume.usf \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeExtinction.ush
+
+          ! git grep -n -E 'FTimeThiefSmokeBuildExtinctionVolumeCS|AddBuildExtinctionVolumePass|ExtinctionTextures|ExtinctionTexture[0-9]|PreviousExtinctionTexture|TimeThiefSmokeExtinction' -- Plugins/TimeThiefSmokeRenderer
+          grep -q 'float SampleObstacleTexture' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf
+          grep -q 'float Density = RawDensity \* DensityVisibility;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf
+          grep -q 'Texture3D<float4> PackedDenseFieldTexture;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf
+          ! grep -q 'Texture3D<float> ExtinctionTexture;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf
+          test "$(git diff --name-only | wc -l)" -eq 8
+          git diff --check
+
+          export GIT_AUTHOR_NAME='crapa36'
+          export GIT_AUTHOR_EMAIL='50472938+crapa36@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='crapa36'
+          export GIT_COMMITTER_EMAIL='50472938+crapa36@users.noreply.github.com'
+          git add Plugins/TimeThiefSmokeRenderer
+          git commit -m 'Remove precomputed smoke extinction volume'
+          git push origin HEAD:SmokeOptimization
