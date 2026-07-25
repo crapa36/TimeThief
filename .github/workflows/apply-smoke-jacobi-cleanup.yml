@@ -1,0 +1,36 @@
+name: Apply smoke Jacobi cleanup
+
+on:
+  push:
+    branches:
+      - agent/restore-smoke-jacobi
+    paths:
+      - .github/workflows/apply-smoke-jacobi-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/restore-smoke-jacobi
+          fetch-depth: 0
+      - name: Apply and validate cleanup
+        run: python3 .github/scripts/apply_smoke_jacobi_cleanup.py
+      - name: Review generated diff
+        shell: bash
+        run: |
+          git diff --stat
+          git diff --check
+          git status --short
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          git config user.name "OpenAI"
+          git config user.email "noreply@openai.com"
+          git add -A Plugins/TimeThiefSmokeRenderer Plugins/TimeThiefSmokeTest
+          git commit -m "Restore Jacobi-only smoke projection"
+          git push origin HEAD:agent/restore-smoke-jacobi
