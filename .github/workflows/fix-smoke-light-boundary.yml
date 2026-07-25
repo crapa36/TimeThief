@@ -42,25 +42,17 @@ jobs:
 
           header = Path("Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h")
           text = header.read_text()
-          class_start = text.index("class FTimeThiefSmokeBuildLightVolumeCS")
-          class_end = text.index("\n};", class_start) + 4
-          block = text[class_start:class_end]
-          old = """\t\tSHADER_PARAMETER(FIntVector, GridResolution)\n\t\tSHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)\n"""
-          new = """\t\tSHADER_PARAMETER(FIntVector, GridResolution)\n\t\tSHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, NaturalBoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)\n"""
-          assert block.count(old) == 1
-          text = text[:class_start] + block.replace(old, new, 1) + text[class_end:]
-          header.write_text(text)
+          old = """\t\tSHADER_PARAMETER(FIntVector, GridResolution)\n\t\tSHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)\n\t\tSHADER_PARAMETER(float, ShadowStepLength)\n"""
+          new = """\t\tSHADER_PARAMETER(FIntVector, GridResolution)\n\t\tSHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, NaturalBoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)\n\t\tSHADER_PARAMETER(float, ShadowStepLength)\n"""
+          assert text.count(old) == 1
+          header.write_text(text.replace(old, new, 1))
 
           cpp = Path("Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp")
           text = cpp.read_text()
-          function_start = text.index("void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(")
-          function_end = text.index("\n}\n", function_start) + 3
-          block = text[function_start:function_end]
-          old = "\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n"
-          new = old + "\tPassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;\n"
-          assert block.count(old) == 1
-          text = text[:function_start] + block.replace(old, new, 1) + text[function_end:]
-          cpp.write_text(text)
+          old = """\tPassParameters->GridResolution = State.AllocatedGridSize;\n\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();\n"""
+          new = """\tPassParameters->GridResolution = State.AllocatedGridSize;\n\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;\n\tPassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();\n"""
+          assert text.count(old) == 1
+          cpp.write_text(text.replace(old, new, 1))
           PY
 
           grep -q '^float3 NaturalBoundsExtent;$' "$LIGHT"
