@@ -1,0 +1,50 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeExtinction.ush"
+
+int3 GridResolution;
+float3 BoundsExtent;
+float3 NaturalBoundsExtent;
+float NoiseScale;
+float NoiseStrength;
+float NoiseTime;
+float LifetimeAlpha;
+float ObstacleFeather;
+float4x4 LocalToWorld;
+Texture3D<float4> PackedDenseFieldTexture;
+Texture3D<float> ObstacleTexture;
+Texture3D<float4> DetailNoiseTexture;
+SamplerState VolumeSampler;
+SamplerState DetailNoiseSampler;
+RWTexture3D<float> OutExtinctionTexture;
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
+	const float3 SimulationLocal = LocalPosition / max(BoundsExtent, 1.0.xxx);
+	const float3 WorldPosition = mul(float4(LocalPosition, 1.0), LocalToWorld).xyz;
+	const float4 Fields = PackedDenseFieldTexture.Load(int4(int3(DispatchThreadId), 0));
+	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(
+		ObstacleTexture.SampleLevel(VolumeSampler, UVW, 0.0),
+		ObstacleFeather);
+	const float3 BoundaryNoiseUVW = frac((WorldPosition * 0.0067 + NoiseTime * float3(0.13, -0.07, 0.11)) * 0.25);
+	const float BoundaryNoiseSample = DetailNoiseTexture.SampleLevel(DetailNoiseSampler, BoundaryNoiseUVW, 0.0).z;
+	const float BaseNoiseSample = NoiseScale > 0.0
+		? DetailNoiseTexture.SampleLevel(
+			DetailNoiseSampler,
+			frac((WorldPosition * NoiseScale + float3(NoiseTime * 0.19, -NoiseTime * 0.11, NoiseTime * 0.07)) * 0.25),
+			0.0).x
+		: 0.5;
+	OutExtinctionTexture[DispatchThreadId] = TimeThiefSmokeEvaluateBaseExtinction(
+		Fields,
+		SimulationLocal,
+		ObstacleOpen,
+		NaturalBoundsExtent,
+		BoundsExtent,
+		NoiseStrength,
+		BoundaryNoiseSample,
+		BaseNoiseSample,
+		LifetimeAlpha);
+}

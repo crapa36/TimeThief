@@ -3,20 +3,13 @@
 
 int3 GridResolution;
 float3 BoundsExtent;
-float3 NaturalBoundsExtent;
 float3 LightDirection;
 float ShadowStepLength;
 int ShadowStepCount;
-float NoiseScale;
-float NoiseStrength;
-float NoiseTime;
-float LifetimeAlpha;
-float ObstacleFeather;
-float4x4 LocalToWorld;
 float4x4 WorldToLocal;
-Texture3D<float4> PackedDenseFieldTexture;
-Texture3D<float> ObstacleTexture;
+Texture3D<float> ExtinctionTexture;
 SamplerState VolumeSampler;
+SamplerState DetailNoiseSampler;
 RWTexture3D<float> OutLightOpticalDepth;
 
 bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float TMax)
@@ -35,11 +28,7 @@ bool IntersectUnitBox(float3 Origin, float3 Direction, out float TMin, out float
 [numthreads(4, 4, 4)]
 void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 {
-	if (any(DispatchThreadId >= uint3(GridResolution)))
-	{
-		return;
-	}
-
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
 	const float3 LocalPosition = TimeThiefSmokeVoxelLocal(DispatchThreadId, GridResolution, BoundsExtent);
 	const float3 SimulationLocal = LocalPosition / max(BoundsExtent, 1.0.xxx);
 	const float3 LocalLightDirection = mul(float4(normalize(LightDirection), 0.0), WorldToLocal).xyz;
@@ -60,29 +49,12 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			const float IntervalLength = max(IntervalEnd - IntervalStart, 0.0);
 			const float Distance = (IntervalStart + IntervalEnd) * 0.5;
 			const float3 SampleLocal = LocalPosition + LocalLightDirection * Distance;
-			const float3 SampleSimulationLocal = SampleLocal / max(BoundsExtent, 1.0.xxx);
-			const float3 UVW = SampleSimulationLocal * 0.5 + 0.5;
-			if (!TimeThiefSmokeInsideUVW(UVW))
+			const float3 UVW = SampleLocal / max(BoundsExtent, 1.0.xxx) * 0.5 + 0.5;
+			if (TimeThiefSmokeInsideUVW(UVW))
 			{
-				continue;
+				OpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * LightDistanceScale * IntervalLength;
 			}
-
-			const float4 Fields = PackedDenseFieldTexture.SampleLevel(VolumeSampler, UVW, 0.0);
-			const float RawDensity = max(Fields.x + Fields.y, 0.0);
-			const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Fields.z, Fields.w);
-			const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(ObstacleTexture.SampleLevel(VolumeSampler, UVW, 0.0), ObstacleFeather);
-			const float EllipsoidDistance = length(SampleSimulationLocal / float3(1.0, 1.0, 0.86));
-			const float3 NaturalCoverage = saturate(max(NaturalBoundsExtent, 1.0.xxx) / max(BoundsExtent, 1.0.xxx));
-			const float BoundaryFadeStart = clamp(max(0.90, max(max(NaturalCoverage.x, NaturalCoverage.y), NaturalCoverage.z) + 0.04), 0.82, 0.96);
-			const float BoundaryMask = 1.0 - smoothstep(BoundaryFadeStart, 1.0, EllipsoidDistance);
-			const float3 WorldPosition = mul(float4(SampleLocal, 1.0), LocalToWorld).xyz;
-			const float BaseNoise = NoiseScale > 0.0 ? TimeThiefSmokeValueNoise(WorldPosition * NoiseScale + float3(NoiseTime * 0.19, -NoiseTime * 0.11, NoiseTime * 0.07)) : 0.5;
-			const float DensityNoise = lerp(1.0, lerp(0.74, 1.28, smoothstep(0.22, 0.82, BaseNoise)), saturate(NoiseStrength));
-			const float DisplacedDominance = saturate(Fields.y / max(RawDensity, 0.0001));
-			const float Density = RawDensity * DensityNoise * lerp(1.0, 1.1, DisplacedDominance) * ObstacleOpen * BulletMasks.Hard * LifetimeAlpha * BoundaryMask;
-			OpticalDepth += max(Density, 0.0) * LightDistanceScale * IntervalLength;
 		}
 	}
-
 	OutLightOpticalDepth[DispatchThreadId] = max(OpticalDepth, 0.0);
 }

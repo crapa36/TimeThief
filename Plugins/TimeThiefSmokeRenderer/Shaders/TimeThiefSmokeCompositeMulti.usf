@@ -16,6 +16,7 @@
 #define TIME_THIEF_MAX_STABLE_STEPS 256
 #include "/Engine/Private/ScreenPass.ush"
 #include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeExtinction.ush"
 
 struct FTimeThiefSmokeCompositeDescriptorShaderData
 {
@@ -40,14 +41,6 @@ struct FTimeThiefSmokeCompositeTileRangeShaderData
 
 Texture2D SceneColorTexture;
 Texture2D<float> SceneDepthTexture;
-Texture3D<float> ObstacleTexture0;
-Texture3D<float> ObstacleTexture1;
-Texture3D<float> ObstacleTexture2;
-Texture3D<float> ObstacleTexture3;
-Texture3D<float> ObstacleTexture4;
-Texture3D<float> ObstacleTexture5;
-Texture3D<float> ObstacleTexture6;
-Texture3D<float> ObstacleTexture7;
 Texture3D<float4> PackedDenseFieldTexture0;
 Texture3D<float4> PackedDenseFieldTexture1;
 Texture3D<float4> PackedDenseFieldTexture2;
@@ -64,6 +57,22 @@ Texture3D<float4> PreviousPackedDenseFieldTexture4;
 Texture3D<float4> PreviousPackedDenseFieldTexture5;
 Texture3D<float4> PreviousPackedDenseFieldTexture6;
 Texture3D<float4> PreviousPackedDenseFieldTexture7;
+Texture3D<float> ExtinctionTexture0;
+Texture3D<float> ExtinctionTexture1;
+Texture3D<float> ExtinctionTexture2;
+Texture3D<float> ExtinctionTexture3;
+Texture3D<float> ExtinctionTexture4;
+Texture3D<float> ExtinctionTexture5;
+Texture3D<float> ExtinctionTexture6;
+Texture3D<float> ExtinctionTexture7;
+Texture3D<float> PreviousExtinctionTexture0;
+Texture3D<float> PreviousExtinctionTexture1;
+Texture3D<float> PreviousExtinctionTexture2;
+Texture3D<float> PreviousExtinctionTexture3;
+Texture3D<float> PreviousExtinctionTexture4;
+Texture3D<float> PreviousExtinctionTexture5;
+Texture3D<float> PreviousExtinctionTexture6;
+Texture3D<float> PreviousExtinctionTexture7;
 Texture3D<float> LightOpticalDepthTexture0;
 Texture3D<float> LightOpticalDepthTexture1;
 Texture3D<float> LightOpticalDepthTexture2;
@@ -80,8 +89,18 @@ Texture3D<float> PreviousLightOpticalDepthTexture4;
 Texture3D<float> PreviousLightOpticalDepthTexture5;
 Texture3D<float> PreviousLightOpticalDepthTexture6;
 Texture3D<float> PreviousLightOpticalDepthTexture7;
+Texture3D<uint> RenderOccupancyTexture0;
+Texture3D<uint> RenderOccupancyTexture1;
+Texture3D<uint> RenderOccupancyTexture2;
+Texture3D<uint> RenderOccupancyTexture3;
+Texture3D<uint> RenderOccupancyTexture4;
+Texture3D<uint> RenderOccupancyTexture5;
+Texture3D<uint> RenderOccupancyTexture6;
+Texture3D<uint> RenderOccupancyTexture7;
+Texture3D<float4> DetailNoiseTexture;
 SamplerState SceneColorSampler;
 SamplerState VolumeSampler;
+SamplerState DetailNoiseSampler;
 StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData> CompositeSmokeDescriptors;
 StructuredBuffer<FTimeThiefSmokeCompositeTileRangeShaderData> TileSmokeRanges;
 StructuredBuffer<uint> TileSmokeIndices;
@@ -103,7 +122,9 @@ float CombinedShadowExtinction;
 float3 CombinedShadowLightDirection;
 int CombinedShadowStepCount;
 float SelfShadowMinSampleWeight;
+float SamplePhase;
 int CompositeDebugMode;
+int3 RenderOccupancyResolution;
 float4x4 InvViewProjection;
 
 float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
@@ -152,21 +173,29 @@ float4x4 GetWorldToLocal(FTimeThiefSmokeCompositeDescriptorShaderData Desc)
 	return MakeMatrix(Desc.WorldToLocal0, Desc.WorldToLocal1, Desc.WorldToLocal2, Desc.WorldToLocal3);
 }
 
-float SampleObstacleTexture(int Slot, float3 UVW)
+
+uint LoadRenderOccupancy(int Slot, int3 MacroCoord)
 {
+	const int3 SafeCoord = clamp(MacroCoord, int3(0, 0, 0), max(RenderOccupancyResolution - 1, int3(0, 0, 0)));
 	switch (Slot)
 	{
-	case 0: return ObstacleTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 1: return ObstacleTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 2: return ObstacleTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 3: return ObstacleTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 4: return ObstacleTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 5: return ObstacleTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 6: return ObstacleTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 7: return ObstacleTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 0: return RenderOccupancyTexture0.Load(int4(SafeCoord, 0));
+	case 1: return RenderOccupancyTexture1.Load(int4(SafeCoord, 0));
+	case 2: return RenderOccupancyTexture2.Load(int4(SafeCoord, 0));
+	case 3: return RenderOccupancyTexture3.Load(int4(SafeCoord, 0));
+	case 4: return RenderOccupancyTexture4.Load(int4(SafeCoord, 0));
+	case 5: return RenderOccupancyTexture5.Load(int4(SafeCoord, 0));
+	case 6: return RenderOccupancyTexture6.Load(int4(SafeCoord, 0));
+	case 7: return RenderOccupancyTexture7.Load(int4(SafeCoord, 0));
 	}
-	return 0.0;
+	return 1u;
 }
+
+float4 SampleDetailNoise(float3 Position)
+{
+	return DetailNoiseTexture.SampleLevel(DetailNoiseSampler, frac(Position), 0.0);
+}
+
 
 float4 SamplePackedDenseFieldTexture(int Slot, float3 UVW)
 {
@@ -207,6 +236,47 @@ float4 SampleFieldSet(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Des
 	return SamplePackedDenseFieldTexture(Slot, UVW);
 #else
 	return lerp(SamplePreviousPackedDenseFieldTexture(Slot, UVW), SamplePackedDenseFieldTexture(Slot, UVW), saturate(Desc.BoundaryNoiseControls.w));
+#endif
+}
+
+float SampleExtinctionTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return ExtinctionTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return ExtinctionTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return ExtinctionTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return ExtinctionTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return ExtinctionTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return ExtinctionTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return ExtinctionTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return ExtinctionTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return 0.0;
+}
+
+float SamplePreviousExtinctionTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return PreviousExtinctionTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return PreviousExtinctionTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return PreviousExtinctionTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return PreviousExtinctionTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return PreviousExtinctionTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return PreviousExtinctionTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return PreviousExtinctionTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return PreviousExtinctionTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return 0.0;
+}
+
+float SampleInterpolatedExtinction(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 UVW)
+{
+#if TIME_THIEF_COMPOSITE_COST_MODE == 1
+	return SampleExtinctionTexture(Slot, UVW);
+#else
+	return lerp(SamplePreviousExtinctionTexture(Slot, UVW), SampleExtinctionTexture(Slot, UVW), saturate(Desc.BoundaryNoiseControls.w));
 #endif
 }
 
@@ -269,80 +339,33 @@ float ComputeRenderBoundaryFadeStart(float3 BoundsExtent, float3 NaturalBoundsEx
 
 float CompositeFBM(float3 P, inout uint EvaluatedOctaveCount)
 {
-	float Sum = 0.0;
-	float Amplitude = 0.5;
-	float Normalizer = 0.0;
-	[unroll]
-	for (int Octave = 0; Octave < 4; ++Octave)
-	{
-		Sum += TimeThiefSmokeValueNoise(P) * Amplitude;
-		Normalizer += Amplitude;
-		P = P * 2.03 + float3(17.1, 31.7, 11.3);
-		Amplitude *= 0.5;
-		++EvaluatedOctaveCount;
-	}
-	return Sum / max(Normalizer, 0.0001);
+	++EvaluatedOctaveCount;
+	return SampleDetailNoise(P * 0.25 + float3(0.11, 0.37, 0.23)).x;
 }
 
 float CompositeRidgedFBM(float3 P, inout uint EvaluatedOctaveCount)
 {
-	float Sum = 0.0;
-	float Amplitude = 0.5;
-	float Normalizer = 0.0;
-	[unroll]
-	for (int Octave = 0; Octave < 4; ++Octave)
-	{
-		const float Ridge = 1.0 - abs(TimeThiefSmokeValueNoise(P) * 2.0 - 1.0);
-		Sum += Ridge * Ridge * Amplitude;
-		Normalizer += Amplitude;
-		P = P * 2.07 + float3(29.3, 5.7, 43.1);
-		Amplitude *= 0.5;
-		++EvaluatedOctaveCount;
-	}
-	return Sum / max(Normalizer, 0.0001);
+	++EvaluatedOctaveCount;
+	return SampleDetailNoise(P * 0.25 + float3(0.43, 0.17, 0.61)).y;
 }
 
 float CompositeRidgedFBM2(float3 P, inout uint EvaluatedOctaveCount)
 {
-	float Sum = 0.0;
-	float Amplitude = 0.5;
-	float Normalizer = 0.0;
-	[unroll]
-	for (int Octave = 0; Octave < 2; ++Octave)
-	{
-		const float Ridge = 1.0 - abs(TimeThiefSmokeValueNoise(P) * 2.0 - 1.0);
-		Sum += Ridge * Ridge * Amplitude;
-		Normalizer += Amplitude;
-		P = P * 2.07 + float3(29.3, 5.7, 43.1);
-		Amplitude *= 0.5;
-		++EvaluatedOctaveCount;
-	}
-	return Sum / max(Normalizer, 0.0001);
+	++EvaluatedOctaveCount;
+	return SampleDetailNoise(P * 0.25 + float3(0.73, 0.29, 0.07)).w;
 }
 
 float CompositeFBM3(float3 P, inout uint EvaluatedOctaveCount)
 {
-	float Sum = 0.0;
-	float Amplitude = 0.5;
-	float Normalizer = 0.0;
-	[unroll]
-	for (int Octave = 0; Octave < 3; ++Octave)
-	{
-		Sum += TimeThiefSmokeValueNoise(P) * Amplitude;
-		Normalizer += Amplitude;
-		P = P * 2.03 + float3(17.1, 31.7, 11.3);
-		Amplitude *= 0.5;
-		++EvaluatedOctaveCount;
-	}
-	return Sum / max(Normalizer, 0.0001);
+	++EvaluatedOctaveCount;
+	return SampleDetailNoise(P * 0.25 + float3(0.19, 0.83, 0.47)).z;
 }
 
 float3 CompositeDomainWarp(float3 P, float Time, inout uint EvaluatedOctaveCount)
 {
-	return (float3(
-		CompositeFBM(P + float3(13.1, 7.7, 3.3) + Time, EvaluatedOctaveCount),
-		CompositeFBM(P + float3(2.5, 19.3, 11.9) - Time * 0.73, EvaluatedOctaveCount),
-		CompositeFBM(P + float3(23.7, 5.1, 17.4) + Time * 0.41, EvaluatedOctaveCount)) - 0.5) * 2.0;
+	++EvaluatedOctaveCount;
+	const float4 Noise = SampleDetailNoise(P * 0.25 + float3(Time * 0.031, -Time * 0.023, Time * 0.017));
+	return (float3(Noise.w, Noise.x, Noise.z) - 0.5) * 2.0;
 }
 
 float CompositeFilamentMask(
@@ -526,74 +549,25 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	return Sample;
 #endif
 
-	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
-	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
-	const float BaseVisibility = ObstacleOpen * BulletMasks.Hard * LifetimeAlpha;
-	if (BaseVisibility <= 0.0001)
-	{
-		return Sample;
-	}
-
-	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
-	const uint BoundaryNoiseOctaveStart = EvaluatedNoiseOctaveCount;
-	const float BoundaryMask = EvaluateBoundaryMaskLazy(
-		Desc,
-		SampleWorld,
-		EllipsoidDistance,
-		BoundaryFadeStart,
-		EvaluatedNoiseOctaveCount,
-		BoundaryEvaluationCount,
-		BoundaryCoarseNoiseEvaluationCount,
-		BoundaryFineNoiseEvaluationCount,
-		BoundaryInteriorSkipCount,
-		BoundaryExteriorRejectCount);
-	EvaluatedBoundaryNoiseOctaveCount += EvaluatedNoiseOctaveCount - BoundaryNoiseOctaveStart;
-	if (BoundaryMask <= 0.0001)
-	{
-		return Sample;
-	}
-
 	const float AgeSeconds = Desc.FilamentAge.y;
-	const float DensityVisibility = BaseVisibility * BoundaryMask;
-	float Density = RawDensity * DensityVisibility;
-	if (Density <= 0.0001)
-	{
-		return Sample;
-	}
-
-	const float RenderNoiseScale = Desc.AnisotropyNoise.y;
-	const float RenderNoiseStrength = Desc.AnisotropyNoise.z;
 	const float RenderNoiseTimeScale = Desc.NoiseFilamentA.x;
 	const float RenderFilamentScale = Desc.NoiseFilamentA.y;
 	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
 	const float RenderFilamentContrast = max(Desc.NoiseFilamentA.w, 0.01);
 	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
-	const float StableRenderNoiseScale = max(RenderNoiseScale, 0.0);
-	const float StableRenderFilamentScale = max(RenderFilamentScale, 0.0);
-	const float FineNoiseMultiplier = 2.0;
-	const float FineFilamentMultiplier = 2.0;
-	const float DisplacedDominance = saturate(RawFields.y / max(RawDensity, 0.0001));
 	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
-	const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
-	const bool bEvaluateRenderDetail = Density < Desc.BoundsExtent_DetailDensityCutoff.w;
-	float DensityNoise = 1.0;
-	if (bEvaluateRenderDetail)
+	const float SharedBaseExtinction = SampleInterpolatedExtinction(Slot, Desc, VolumeUVW);
+	++BoundaryEvaluationCount;
+	if (SharedBaseExtinction <= 0.0001)
 	{
-		const uint DensityNoiseOctaveStart = EvaluatedNoiseOctaveCount;
-#if TIME_THIEF_COMPOSITE_COST_MODE == 2
-		DensityNoise = 1.0;
-#else
-		DensityNoise = CompositeDensityNoise(
-			NoisePosition,
-			TimeNoise,
-			RenderNoiseStrength * lerp(1.0, 1.15, DisplacedDominance),
-			FineNoiseMultiplier,
-			EvaluatedNoiseOctaveCount);
-#endif
-		EvaluatedDensityNoiseOctaveCount += EvaluatedNoiseOctaveCount - DensityNoiseOctaveStart;
+		return Sample;
 	}
 
+	float Density = SharedBaseExtinction;
+	const float StableRenderFilamentScale = max(RenderFilamentScale, 0.0);
+	const float FineFilamentMultiplier = 2.0;
+	const bool bEvaluateRenderDetail = Density < Desc.BoundsExtent_DetailDensityCutoff.w;
 	float FilamentGain = 1.0;
 	if (bEvaluateRenderDetail && RenderFilamentStrength > 0.001
 #if TIME_THIEF_COMPOSITE_COST_MODE == 2
@@ -631,7 +605,7 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	}
 
 	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-	Density *= DensityNoise * FilamentGain * BulletEdgeDensityGain;
+	Density *= FilamentGain * BulletEdgeDensityGain;
 	Sample.ExtinctionCoefficient = max(Density * Desc.RenderBoundsExtent_Extinction.w * SimulationDistanceScale, 0.0);
 	Sample.ScatteringSource = SmokeColor * saturate(0.82 + Density * 0.85);
 	Sample.Density = Density;
@@ -773,13 +747,14 @@ void MainPS(
 
 	const float StepSize = max(RenderWorldStepLength, 1.0);
 	const float HalfStepSize = StepSize * 0.5;
-	const float PixelPhase = 0.5;
+	const float PixelPhase = frac(SamplePhase + TimeThiefSmokeHash13(float3(SvPosition.xy, SamplePhase)) * 0.25);
 	float Transmittance = 1.0;
 	float3 SmokeColorAccum = float3(0.0, 0.0, 0.0);
 	float DebugMaxCombinedExtinction = 0.0;
 	float DebugMinCombinedShadow = 1.0;
 	int ResolvedStableStepCount = 0;
 	int StableSampleCount = 0;
+	int SparseSkipStepCount = 0;
 	int SegmentCount = 0;
 	int CombinedMediumSampleCount = 0;
 	int CombinedShadowEvaluationCount = 0;
@@ -844,6 +819,39 @@ void MainPS(
 				CurrentT += StepSize;
 				continue;
 			}
+
+#if TIME_THIEF_COMPOSITE_SINGLE_SMOKE
+			const float3 OccupancySampleLocal = SmokeLocalOrigins[0] + SmokeLocalRayDirections[0] * IntervalMidT;
+			const float3 OccupancyUVW = (OccupancySampleLocal / SmokeBoundsExtents[0]) * 0.5 + 0.5;
+			if (TimeThiefSmokeInsideUVW(OccupancyUVW))
+			{
+				const int3 MacroResolution = max(RenderOccupancyResolution, int3(1, 1, 1));
+				const int3 MacroCoord = clamp((int3)floor(OccupancyUVW * float3(MacroResolution)), int3(0, 0, 0), MacroResolution - 1);
+				if (LoadRenderOccupancy(SmokeSlots[0], MacroCoord) == 0u)
+				{
+					const float3 RayUVWDirection = (SmokeLocalRayDirections[0] / SmokeBoundsExtents[0]) * 0.5;
+					const float3 DirectionPositive = step(float3(0.0, 0.0, 0.0), RayUVWDirection);
+					const float3 NextBoundaryUVW = (float3(MacroCoord) + DirectionPositive) / float3(MacroResolution);
+					float3 AxisDistance = float3(100000000.0, 100000000.0, 100000000.0);
+					if (abs(RayUVWDirection.x) > 0.000001) AxisDistance.x = (NextBoundaryUVW.x - OccupancyUVW.x) / RayUVWDirection.x;
+					if (abs(RayUVWDirection.y) > 0.000001) AxisDistance.y = (NextBoundaryUVW.y - OccupancyUVW.y) / RayUVWDirection.y;
+					if (abs(RayUVWDirection.z) > 0.000001) AxisDistance.z = (NextBoundaryUVW.z - OccupancyUVW.z) / RayUVWDirection.z;
+					float SkipDistance = 100000000.0;
+					if (AxisDistance.x > 0.000001) SkipDistance = min(SkipDistance, AxisDistance.x);
+					if (AxisDistance.y > 0.000001) SkipDistance = min(SkipDistance, AxisDistance.y);
+					if (AxisDistance.z > 0.000001) SkipDistance = min(SkipDistance, AxisDistance.z);
+					if (SkipDistance < 10000000.0)
+					{
+						const float PreviousT = CurrentT;
+						CurrentT = AlignStableRaySample(IntervalMidT + SkipDistance + 0.001, StepSize, PixelPhase);
+						CurrentT = max(CurrentT, PreviousT + StepSize);
+						SparseSkipStepCount += max((int)floor((CurrentT - PreviousT) / StepSize), 1);
+						++TotalLoopCount;
+						continue;
+					}
+				}
+			}
+#endif
 
 			float TotalExtinctionCoefficient = 0.0;
 			float3 TotalScatteringSource = float3(0.0, 0.0, 0.0);
@@ -989,7 +997,7 @@ void MainPS(
 	InterlockedAdd(CompositeStepStats[7], 1u);
 	InterlockedAdd(CompositeStepStats[8], (uint)SegmentCount);
 	InterlockedAdd(CompositeStepStats[9], (uint)StableSampleCount);
-	InterlockedAdd(CompositeStepStats[10], 0u);
+	InterlockedAdd(CompositeStepStats[10], (uint)SparseSkipStepCount);
 	InterlockedAdd(CompositeStepStats[11], (uint)CombinedMediumSampleCount);
 	InterlockedAdd(CompositeStepStats[12], (uint)CombinedShadowEvaluationCount);
 	InterlockedXor(CompositeStepStats[13], 0u);

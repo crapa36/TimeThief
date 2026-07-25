@@ -1,0 +1,120 @@
+#include "/Engine/Public/Platform.ush"
+#include "/Engine/Private/ScreenPass.ush"
+
+Texture2D<float4> CurrentSmokeTexture;
+Texture2D<float4> HistorySmokeTexture;
+Texture2D<float> HistoryDepthTexture;
+Texture2D<float> SceneDepthTexture;
+SamplerState SmokeSampler;
+float4 SceneDepthPixelScaleBias;
+int4 ViewRect;
+int4 SceneDepthViewRect;
+float2 CurrentSmokeSize;
+float BilateralDepthSensitivity;
+float HistoryWeight;
+float TransmittanceRejection;
+float NeighborhoodClampExpansion;
+uint bHistoryValid;
+float4x4 InvViewProjection;
+float4x4 PreviousViewProjection;
+float3 CurrentViewOrigin;
+float3 PreviousViewOrigin;
+float DepthRejectionCm;
+
+float LoadSceneDeviceZ(float2 PixelPosition)
+{
+	const float2 DepthPixelPosition = PixelPosition * SceneDepthPixelScaleBias.xy + SceneDepthPixelScaleBias.zw;
+	const int2 DepthMin = SceneDepthViewRect.xy;
+	const int2 DepthMax = max(SceneDepthViewRect.xy, SceneDepthViewRect.zw - 1);
+	const int2 DepthPixel = clamp((int2)floor(DepthPixelPosition), DepthMin, DepthMax);
+	return SceneDepthTexture.Load(int3(DepthPixel, 0)).r;
+}
+
+float3 ReconstructWorldPosition(float2 PixelPosition, float DeviceZ)
+{
+	const float2 ViewSize = max(float2(ViewRect.zw - ViewRect.xy), 1.0);
+	const float2 UV = (PixelPosition - float2(ViewRect.xy)) / ViewSize;
+	const float2 NDC = float2(UV.x * 2.0 - 1.0, 1.0 - UV.y * 2.0);
+	float4 World = mul(float4(NDC, DeviceZ, 1.0), InvViewProjection);
+	const float SafeW = abs(World.w) > 0.000001 ? World.w : (World.w < 0.0 ? -0.000001 : 0.000001);
+	return World.xyz / SafeW;
+}
+
+float4 ResolveCurrentSmoke(float2 PixelPosition, out float4 NeighborhoodMin, out float4 NeighborhoodMax)
+{
+	const float2 ScreenUV = (PixelPosition - float2(ViewRect.xy)) / max(float2(ViewRect.zw - ViewRect.xy), 1.0);
+	const float2 SmokeTexel = ScreenUV * CurrentSmokeSize - 0.5;
+	const int2 MaxCoord = int2(CurrentSmokeSize) - 1;
+	const int2 C00 = clamp(int2(floor(SmokeTexel)), int2(0, 0), MaxCoord);
+	const int2 C10 = clamp(C00 + int2(1, 0), int2(0, 0), MaxCoord);
+	const int2 C01 = clamp(C00 + int2(0, 1), int2(0, 0), MaxCoord);
+	const int2 C11 = clamp(C00 + int2(1, 1), int2(0, 0), MaxCoord);
+	const float4 S00 = CurrentSmokeTexture.Load(int3(C00, 0));
+	const float4 S10 = CurrentSmokeTexture.Load(int3(C10, 0));
+	const float4 S01 = CurrentSmokeTexture.Load(int3(C01, 0));
+	const float4 S11 = CurrentSmokeTexture.Load(int3(C11, 0));
+	NeighborhoodMin = min(min(S00, S10), min(S01, S11));
+	NeighborhoodMax = max(max(S00, S10), max(S01, S11));
+	const float2 F = frac(SmokeTexel);
+	float4 W = float4((1.0 - F.x) * (1.0 - F.y), F.x * (1.0 - F.y), (1.0 - F.x) * F.y, F.x * F.y);
+	const float DeviceZ = LoadSceneDeviceZ(PixelPosition);
+	const float3 World = ReconstructWorldPosition(PixelPosition, DeviceZ);
+	const float2 Origin = float2(ViewRect.xy);
+	const float2 P00 = Origin + (float2(C00) + 0.5) * 2.0;
+	const float2 P10 = Origin + (float2(C10) + 0.5) * 2.0;
+	const float2 P01 = Origin + (float2(C01) + 0.5) * 2.0;
+	const float2 P11 = Origin + (float2(C11) + 0.5) * 2.0;
+	const float D00 = length(World - ReconstructWorldPosition(P00, LoadSceneDeviceZ(P00)));
+	const float D10 = length(World - ReconstructWorldPosition(P10, LoadSceneDeviceZ(P10)));
+	const float D01 = length(World - ReconstructWorldPosition(P01, LoadSceneDeviceZ(P01)));
+	const float D11 = length(World - ReconstructWorldPosition(P11, LoadSceneDeviceZ(P11)));
+	W /= 1.0 + float4(D00, D10, D01, D11) * max(BilateralDepthSensitivity, 0.0);
+	W /= max(dot(W, float4(1.0, 1.0, 1.0, 1.0)), 0.00001);
+	return S00 * W.x + S10 * W.y + S01 * W.z + S11 * W.w;
+}
+
+void MainPS(
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
+	out float4 OutSmoke : SV_Target0,
+	out float OutDepth : SV_Target1)
+{
+	float4 NeighborhoodMin;
+	float4 NeighborhoodMax;
+	float4 Current = ResolveCurrentSmoke(SvPosition.xy, NeighborhoodMin, NeighborhoodMax);
+	Current.rgb = max(Current.rgb, 0.0);
+	Current.a = saturate(Current.a);
+	const float DeviceZ = LoadSceneDeviceZ(SvPosition.xy);
+	const float3 World = ReconstructWorldPosition(SvPosition.xy, DeviceZ);
+	OutDepth = length(World - CurrentViewOrigin);
+	if (bHistoryValid == 0u)
+	{
+		OutSmoke = Current;
+		return;
+	}
+	const float4 PreviousClip = mul(float4(World, 1.0), PreviousViewProjection);
+	if (PreviousClip.w <= 0.00001)
+	{
+		OutSmoke = Current;
+		return;
+	}
+	const float2 PreviousNdc = PreviousClip.xy / PreviousClip.w;
+	const float2 PreviousUV = float2(PreviousNdc.x * 0.5 + 0.5, 0.5 - PreviousNdc.y * 0.5);
+	if (any(PreviousUV <= 0.0) || any(PreviousUV >= 1.0))
+	{
+		OutSmoke = Current;
+		return;
+	}
+	float4 History = HistorySmokeTexture.SampleLevel(SmokeSampler, PreviousUV, 0.0);
+	const float HistoryDepth = HistoryDepthTexture.SampleLevel(SmokeSampler, PreviousUV, 0.0);
+	const float ExpectedPreviousDepth = length(World - PreviousViewOrigin);
+	const float DepthConfidence = saturate(1.0 - abs(HistoryDepth - ExpectedPreviousDepth) / max(DepthRejectionCm, 1.0));
+	const float4 Expansion = max(NeighborhoodMax - NeighborhoodMin, 0.001) * max(NeighborhoodClampExpansion, 0.0);
+	History = clamp(History, NeighborhoodMin - Expansion, NeighborhoodMax + Expansion);
+	const float TransmittanceDelta = abs(History.a - Current.a);
+	const float Confidence = saturate(1.0 - TransmittanceDelta / max(TransmittanceRejection, 0.0001));
+	const float Weight = saturate(HistoryWeight) * Confidence * DepthConfidence;
+	OutSmoke = lerp(Current, History, Weight);
+	OutSmoke.rgb = max(OutSmoke.rgb, 0.0);
+	OutSmoke.a = saturate(OutSmoke.a);
+}

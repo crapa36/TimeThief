@@ -1,0 +1,27 @@
+#pragma once
+
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+float TimeThiefSmokeEvaluateBaseExtinction(
+	float4 Fields,
+	float3 SimulationLocal,
+	float ObstacleOpen,
+	float3 NaturalBoundsExtent,
+	float3 BoundsExtent,
+	float NoiseStrength,
+	float BoundaryNoiseSample,
+	float BaseNoiseSample,
+	float LifetimeAlpha)
+{
+	const float RawDensity = max(Fields.x + Fields.y, 0.0);
+	if (RawDensity <= 0.0 || ObstacleOpen <= 0.0 || LifetimeAlpha <= 0.0)
+	{
+		return 0.0;
+	}
+	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Fields.z, Fields.w);
+	const float BoundaryNoise = (BoundaryNoiseSample - 0.5) * 0.045;
+	const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);
+	const float DensityNoise = lerp(1.0, lerp(0.74, 1.28, smoothstep(0.22, 0.82, BaseNoiseSample)), saturate(NoiseStrength));
+	const float DisplacedDominance = saturate(Fields.y / max(RawDensity, 0.0001));
+	return max(RawDensity * DensityNoise * lerp(1.0, 1.1, DisplacedDominance) * ObstacleOpen * BulletMasks.Hard * LifetimeAlpha * BoundaryMask, 0.0);
+}
