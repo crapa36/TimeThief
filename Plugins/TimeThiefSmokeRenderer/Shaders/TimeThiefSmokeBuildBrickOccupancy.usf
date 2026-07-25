@@ -99,13 +99,15 @@ void MainCS(uint3 GroupId : SV_GroupID, uint3 GroupThreadId : SV_GroupThreadID)
 
 	if (all(GroupThreadId == uint3(0, 0, 0)))
 	{
-		SharedActive = 0u;
+		// Bullet cutout and sink fields need every brick to evolve while they decay.
+		// Keeping the sparse dispatch but activating the full grid avoids brick-shaped refill boundaries.
+		SharedActive = bCheckBulletChannels != 0u ? 1u : 0u;
 	}
 	GroupMemoryBarrierWithGroupSync();
 
 	const int BrickSize = max(SmokeBrickSize, 1);
 	const int3 BrickBase = int3(GroupId) * BrickSize;
-	if (all(GroupThreadId == uint3(0, 0, 0)) && IsEventActiveBrick(int3(GroupId)))
+	if (SharedActive == 0u && all(GroupThreadId == uint3(0, 0, 0)) && IsEventActiveBrick(int3(GroupId)))
 	{
 		SharedActive = 1u;
 	}
