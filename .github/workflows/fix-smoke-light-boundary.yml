@@ -18,6 +18,7 @@ jobs:
         with:
           ref: SmokeOptimization
           fetch-depth: 0
+          show-progress: false
       - name: Apply analytic boundary to light volume
         shell: bash
         run: |
@@ -33,25 +34,25 @@ jobs:
           text = light.read_text()
           old = """int3 GridResolution;\nfloat3 BoundsExtent;\nfloat3 LightDirection;\n"""
           new = """int3 GridResolution;\nfloat3 BoundsExtent;\nfloat3 NaturalBoundsExtent;\nfloat3 LightDirection;\n"""
-          assert text.count(old) == 1
+          assert text.count(old) == 1, ("light parameters", text.count(old))
           text = text.replace(old, new, 1)
           old = """\t\t\tconst float3 SampleLocal = LocalPosition + LocalLightDirection * Distance;\n\t\t\tconst float3 UVW = SampleLocal / max(BoundsExtent, 1.0.xxx) * 0.5 + 0.5;\n\t\t\tif (TimeThiefSmokeInsideUVW(UVW))\n\t\t\t{\n\t\t\t\tOpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * LightDistanceScale * IntervalLength;\n\t\t\t}\n"""
           new = """\t\t\tconst float3 SampleLocal = LocalPosition + LocalLightDirection * Distance;\n\t\t\tconst float3 SampleSimulationLocal = SampleLocal / max(BoundsExtent, 1.0.xxx);\n\t\t\tconst float3 UVW = SampleSimulationLocal * 0.5 + 0.5;\n\t\t\tif (TimeThiefSmokeInsideUVW(UVW))\n\t\t\t{\n\t\t\t\t// The shared extinction volume no longer contains the render silhouette. Keep\n\t\t\t\t// the light field bounded by the same continuous ellipsoid used for rendering.\n\t\t\t\tconst float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(\n\t\t\t\t\tSampleSimulationLocal,\n\t\t\t\t\tBoundsExtent,\n\t\t\t\t\tNaturalBoundsExtent,\n\t\t\t\t\t0.0);\n\t\t\t\tOpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * BoundaryMask * LightDistanceScale * IntervalLength;\n\t\t\t}\n"""
-          assert text.count(old) == 1
+          assert text.count(old) == 1, ("light accumulation", text.count(old))
           light.write_text(text.replace(old, new, 1))
 
           header = Path("Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h")
           text = header.read_text()
           old = """\t\tSHADER_PARAMETER(FIntVector, GridResolution)\n\t\tSHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)\n\t\tSHADER_PARAMETER(float, ShadowStepLength)\n"""
           new = """\t\tSHADER_PARAMETER(FIntVector, GridResolution)\n\t\tSHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, NaturalBoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)\n\t\tSHADER_PARAMETER(float, ShadowStepLength)\n"""
-          assert text.count(old) == 1
+          assert text.count(old) == 1, ("header parameters", text.count(old))
           header.write_text(text.replace(old, new, 1))
 
           cpp = Path("Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp")
           text = cpp.read_text()
           old = """\tPassParameters->GridResolution = State.AllocatedGridSize;\n\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();\n"""
           new = """\tPassParameters->GridResolution = State.AllocatedGridSize;\n\tPassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;\n\tPassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();\n"""
-          assert text.count(old) == 1
+          assert text.count(old) == 1, ("C++ parameters", text.count(old))
           cpp.write_text(text.replace(old, new, 1))
           PY
 
