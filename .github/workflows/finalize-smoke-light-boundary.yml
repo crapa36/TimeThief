@@ -1,4 +1,4 @@
-name: Finalize smoke light boundary
+name: Diagnose smoke light boundary
 
 on:
   pull_request:
@@ -6,49 +6,40 @@ on:
     paths: [.github/triggers/finalize-smoke-light-boundary.txt]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  fix:
+  diagnose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: SmokeOptimization
-          fetch-depth: 0
-      - shell: bash
+          fetch-depth: 1
+      - name: Count patch targets
+        shell: bash
         run: |
-          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-
-          light = Path('Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf')
-          s = light.read_text()
-          s = s.replace('float3 BoundsExtent;\nfloat3 LightDirection;', 'float3 BoundsExtent;\nfloat3 NaturalBoundsExtent;\nfloat3 LightDirection;', 1)
-          s = s.replace('const float3 UVW = SampleLocal / max(BoundsExtent, 1.0.xxx) * 0.5 + 0.5;', 'const float3 SampleSimulationLocal = SampleLocal / max(BoundsExtent, 1.0.xxx);\n\t\t\tconst float3 UVW = SampleSimulationLocal * 0.5 + 0.5;', 1)
-          s = s.replace('OpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * LightDistanceScale * IntervalLength;', 'const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(\n\t\t\t\t\tSampleSimulationLocal, BoundsExtent, NaturalBoundsExtent, 0.0);\n\t\t\t\tOpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * BoundaryMask * LightDistanceScale * IntervalLength;', 1)
-          light.write_text(s)
-
-          header = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h')
-          s = header.read_text()
-          a = s.index('class FTimeThiefSmokeBuildLightVolumeCS')
-          b = s.index('class FTimeThiefSmokeBuildActiveBrickListCS', a)
-          block = s[a:b].replace('SHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)', 'SHADER_PARAMETER(FVector3f, BoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, NaturalBoundsExtent)\n\t\tSHADER_PARAMETER(FVector3f, LightDirection)', 1)
-          header.write_text(s[:a] + block + s[b:])
-
-          cpp = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp')
-          s = cpp.read_text()
-          a = s.index('void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(')
-          b = s.index('void FTimeThiefSmokeViewExtension::AddBuildMacDivergencePass(', a)
-          block = s[a:b].replace('PassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->LightDirection', 'PassParameters->BoundsExtent = State.Volume.BoundsExtent;\n\tPassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;\n\tPassParameters->LightDirection', 1)
-          cpp.write_text(s[:a] + block + s[b:])
+          out = []
+          light = Path('Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf').read_text()
+          out.append(f"light_parameters={light.count('float3 BoundsExtent;' + chr(10) + 'float3 LightDirection;')}")
+          out.append(f"light_uvw={light.count('const float3 UVW = SampleLocal / max(BoundsExtent, 1.0.xxx) * 0.5 + 0.5;')}")
+          out.append(f"light_accum={light.count('OpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * LightDistanceScale * IntervalLength;')}")
+          header = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h').read_text()
+          a = header.index('class FTimeThiefSmokeBuildLightVolumeCS')
+          b = header.index('class FTimeThiefSmokeBuildActiveBrickListCS', a)
+          block = header[a:b]
+          out.append(f"header_parameters={block.count('SHADER_PARAMETER(FVector3f, BoundsExtent)' + chr(10) + chr(9) + chr(9) + 'SHADER_PARAMETER(FVector3f, LightDirection)')}")
+          cpp = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp').read_text()
+          a = cpp.index('void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(')
+          b = cpp.index('void FTimeThiefSmokeViewExtension::AddBuildMacDivergencePass(', a)
+          block = cpp[a:b]
+          out.append(f"cpp_parameters={block.count('PassParameters->BoundsExtent = State.Volume.BoundsExtent;' + chr(10) + chr(9) + 'PassParameters->LightDirection')}")
+          Path('/tmp/light-boundary-diagnostic.txt').write_text('\n'.join(out) + '\n')
+          print('\n'.join(out))
           PY
-          test "$(git diff --name-only | wc -l)" -eq 3
-          grep -q 'NaturalBoundsExtent' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf
-          git diff --check
-          export GIT_AUTHOR_NAME=crapa36 GIT_COMMITTER_NAME=crapa36
-          export GIT_AUTHOR_EMAIL=50472938+crapa36@users.noreply.github.com
-          export GIT_COMMITTER_EMAIL=50472938+crapa36@users.noreply.github.com
-          git add Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp
-          git commit -m 'Preserve smoke boundary in light volume'
-          git push origin HEAD:SmokeOptimization
+      - uses: actions/upload-artifact@v4
+        with:
+          name: light-boundary-diagnostic
+          path: /tmp/light-boundary-diagnostic.txt
