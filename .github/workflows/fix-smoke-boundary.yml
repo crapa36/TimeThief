@@ -1,0 +1,70 @@
+name: Fix smooth smoke boundary
+
+on:
+  pull_request:
+    branches:
+      - SmokeOptimization
+    paths:
+      - .github/triggers/fix-smoke-boundary.txt
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Restore analytic boundary and conservative occupancy
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=46b1e6d1616baa25e7638fde5bae5f9e1a47b35b
+          EXT=Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeExtinction.ush
+          COMP=Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf
+          OCC=Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildRenderOccupancy.usf
+
+          test "$(git rev-parse HEAD)" = "$BASE"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          extinction = Path("Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeExtinction.ush")
+          text = extinction.read_text()
+          old = """\tconst FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Fields.z, Fields.w);\n\tconst float BoundaryNoise = (BoundaryNoiseSample - 0.5) * 0.045;\n\tconst float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(SimulationLocal, BoundsExtent, NaturalBoundsExtent, BoundaryNoise);\n\tconst float DensityNoise = lerp(1.0, lerp(0.74, 1.28, smoothstep(0.22, 0.82, BaseNoiseSample)), saturate(NoiseStrength));\n\tconst float DisplacedDominance = saturate(Fields.y / max(RawDensity, 0.0001));\n\treturn max(RawDensity * DensityNoise * lerp(1.0, 1.1, DisplacedDominance) * ObstacleOpen * BulletMasks.Hard * LifetimeAlpha * BoundaryMask, 0.0);\n"""
+          new = """\tconst FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(Fields.z, Fields.w);\n\tconst float DensityNoise = lerp(1.0, lerp(0.74, 1.28, smoothstep(0.22, 0.82, BaseNoiseSample)), saturate(NoiseStrength));\n\tconst float DisplacedDominance = saturate(Fields.y / max(RawDensity, 0.0001));\n\t// Keep the precomputed volume independent of the render silhouette. The boundary is\n\t// evaluated at the continuous ray sample in the composite shader.\n\treturn max(RawDensity * DensityNoise * lerp(1.0, 1.1, DisplacedDominance) * ObstacleOpen * BulletMasks.Hard * LifetimeAlpha, 0.0);\n"""
+          assert text.count(old) == 1
+          extinction.write_text(text.replace(old, new, 1))
+
+          composite = Path("Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf")
+          text = composite.read_text()
+          old = """\tconst float SharedBaseExtinction = SampleInterpolatedExtinction(Slot, Desc, VolumeUVW);\n\t++BoundaryEvaluationCount;\n\tif (SharedBaseExtinction <= 0.0001)\n\t{\n\t\treturn Sample;\n\t}\n\n\tfloat Density = SharedBaseExtinction;\n"""
+          new = """\tconst float SharedBaseExtinction = SampleInterpolatedExtinction(Slot, Desc, VolumeUVW);\n\tif (SharedBaseExtinction <= 0.0001)\n\t{\n\t\treturn Sample;\n\t}\n\n\t// Evaluate the smoke silhouette in continuous ray space instead of baking it at\n\t// simulation voxel centers. This preserves smooth ellipsoid and noise contours.\n\tconst float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));\n\tconst uint BoundaryNoiseOctaveStart = EvaluatedNoiseOctaveCount;\n\tconst float BoundaryMask = EvaluateBoundaryMaskLazy(\n\t\tDesc,\n\t\tSampleWorld,\n\t\tEllipsoidDistance,\n\t\tBoundaryFadeStart,\n\t\tEvaluatedNoiseOctaveCount,\n\t\tBoundaryEvaluationCount,\n\t\tBoundaryCoarseNoiseEvaluationCount,\n\t\tBoundaryFineNoiseEvaluationCount,\n\t\tBoundaryInteriorSkipCount,\n\t\tBoundaryExteriorRejectCount);\n\tEvaluatedBoundaryNoiseOctaveCount += EvaluatedNoiseOctaveCount - BoundaryNoiseOctaveStart;\n\tif (BoundaryMask <= 0.0001)\n\t{\n\t\treturn Sample;\n\t}\n\n\tfloat Density = SharedBaseExtinction * BoundaryMask;\n"""
+          assert text.count(old) == 1
+          composite.write_text(text.replace(old, new, 1))
+
+          occupancy = Path("Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildRenderOccupancy.usf")
+          text = occupancy.read_text()
+          old = """\tconst int3 MacroCoord = int3(DispatchThreadId);\n\tconst int3 StartCoord = MacroCoord * GridResolution / MacroGridResolution;\n\tconst int3 EndCoord = min(\n\t\t((MacroCoord + 1) * GridResolution + MacroGridResolution - 1) / MacroGridResolution,\n\t\tGridResolution);\n"""
+          new = """\tconst int3 MacroCoord = int3(DispatchThreadId);\n\t// Include a one-voxel halo so empty-space skipping cannot discard density that\n\t// contributes through trilinear filtering across a macro-cell boundary.\n\tconst int3 StartCoord = max(\n\t\tMacroCoord * GridResolution / MacroGridResolution - int3(1, 1, 1),\n\t\tint3(0, 0, 0));\n\tconst int3 EndCoord = min(\n\t\t((MacroCoord + 1) * GridResolution + MacroGridResolution - 1) / MacroGridResolution + int3(1, 1, 1),\n\t\tGridResolution);\n"""
+          assert text.count(old) == 1
+          occupancy.write_text(text.replace(old, new, 1))
+          PY
+
+          grep -q 'float Density = SharedBaseExtinction \* BoundaryMask;' "$COMP"
+          grep -q 'EvaluateBoundaryMaskLazy(' "$COMP"
+          ! grep -q 'LifetimeAlpha \* BoundaryMask' "$EXT"
+          grep -q 'one-voxel halo' "$OCC"
+          test "$(git diff --name-only | wc -l)" -eq 3
+          git diff --check
+
+          export GIT_AUTHOR_NAME='crapa36'
+          export GIT_AUTHOR_EMAIL='50472938+crapa36@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='crapa36'
+          export GIT_COMMITTER_EMAIL='50472938+crapa36@users.noreply.github.com'
+          git add "$EXT" "$COMP" "$OCC"
+          git commit -m 'Restore smooth smoke boundary rendering'
+          git push origin HEAD:SmokeOptimization
