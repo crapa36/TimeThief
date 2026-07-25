@@ -1,0 +1,86 @@
+name: Restore bullet wake evolution
+
+on:
+  pull_request:
+    branches:
+      - SmokeOptimization
+    paths:
+      - .github/triggers/restore-bullet-wake.txt
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Restore local motion and full-grid bullet decay
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=a95f9a0a778b5317e2bf19a48c50ae08b4683c85
+          CPP=Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp
+          ENTRY=Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeSimulateEntry.usf
+
+          git checkout --detach "$BASE"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          entry = Path("Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeSimulateEntry.usf")
+          text = entry.read_text()
+          old = """// Vorticity is handled by the dedicated vorticity pass. Keep the legacy
+// controls out of the simulate shader parameter layout so it matches C++.
+"""
+          new = """// Keep these controls out of the C++ parameter layout, but preserve the
+// baseline advection-stage surface motion alongside the dedicated vorticity pass.
+"""
+          assert old in text
+          text = text.replace(old, new, 1)
+          replacements = {
+              "#define VorticityStrength (0.0)": "#define VorticityStrength (1.0)",
+              "#define SelfWobbleTimeScale (0.0)": "#define SelfWobbleTimeScale (0.05)",
+              "#define SelfWobbleVelocityScale (0.0)": "#define SelfWobbleVelocityScale (0.25)",
+          }
+          for before, after in replacements.items():
+              assert text.count(before) == 1, before
+              text = text.replace(before, after, 1)
+          entry.write_text(text)
+
+          cpp = Path("Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp")
+          text = cpp.read_text()
+          old = """State.bUseSparseSimulationMaskThisFrame = ShouldUseSparseSimulationForGrid(State.AllocatedBrickGridSize) &&
+\t\t!bNeedsInitThisFrame &&
+\t\t(HasRenderableSparseState(State.SparseActiveBrickCount, State.bSparseActiveBrickCountReadbackPending) || bHasSimulationEvent);"""
+          new = """// Bullet cutout and sink fields must evolve across the complete grid while they decay.
+\t// Sparse brick dispatch exposes brick-aligned refill boundaries around small bullet wakes.
+\tState.bUseSparseSimulationMaskThisFrame = ShouldUseSparseSimulationForGrid(State.AllocatedBrickGridSize) &&
+\t\t!bNeedsInitThisFrame &&
+\t\t!bHasBulletStateForOccupancy &&
+\t\t(HasRenderableSparseState(State.SparseActiveBrickCount, State.bSparseActiveBrickCountReadbackPending) || bHasSimulationEvent);"""
+          assert text.count(old) == 1
+          text = text.replace(old, new, 1)
+          cpp.write_text(text)
+          PY
+
+          grep -q 'TStaticSamplerState<SF_Trilinear' "$CPP"
+          grep -q 'DensityIn.SampleLevel(VolumeSampler' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeSimulate.usf
+          grep -q 'BulletCutoutTexture.SampleLevel(VolumeSampler' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeSimulate.usf
+          grep -q '#define VorticityStrength (1.0)' "$ENTRY"
+          grep -q '#define SelfWobbleTimeScale (0.05)' "$ENTRY"
+          grep -q '#define SelfWobbleVelocityScale (0.25)' "$ENTRY"
+          grep -q '!bHasBulletStateForOccupancy' "$CPP"
+          git diff --check
+
+          export GIT_AUTHOR_NAME='crapa36'
+          export GIT_AUTHOR_EMAIL='50472938+crapa36@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='crapa36'
+          export GIT_COMMITTER_EMAIL='50472938+crapa36@users.noreply.github.com'
+          git add "$CPP" "$ENTRY"
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git commit -m 'Restore smooth bullet wake evolution'
+          git push --force origin HEAD:refs/heads/agent/bullet-wake-restoration-result
