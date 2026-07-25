@@ -18,7 +18,7 @@ jobs:
       - name: Inspect current and baseline smoke solver code
         shell: bash
         run: |
-          python3 - <<'PY'
+          python3 - <<'PY' > inspection.txt
           from pathlib import Path
           import re
           import subprocess
@@ -116,3 +116,8 @@ jobs:
                   if any(key in line for key in keys):
                       print(line)
           PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-jacobi-inspection
+          path: inspection.txt
+          if-no-files-found: error
