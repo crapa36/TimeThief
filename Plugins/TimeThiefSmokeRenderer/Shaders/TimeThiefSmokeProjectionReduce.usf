@@ -1,0 +1,261 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+int3 GridResolution;
+int3 BrickGridResolution;
+float3 CellSize;
+int SmokeBrickSize;
+uint bUseSparseSimulationMask;
+float ObstacleSdfSurfaceFeatherCm;
+
+Texture3D<float> DivergenceBeforeTexture;
+Texture3D<float> DivergenceAfterTexture;
+Texture3D<float> PressureResidualTexture;
+Texture3D<float4> ProjectedVelocityTexture;
+Texture3D<float> ObstacleTexture;
+Texture3D<float4> ObstacleVelocityTexture;
+Texture3D<float4> ObstacleFaceOpenTexture;
+Texture3D<uint> BrickOccupancyTexture;
+SamplerState VolumeSampler;
+RWStructuredBuffer<float4> OutTileResults;
+
+uint TileCount;
+StructuredBuffer<float4> TileResults;
+RWStructuredBuffer<float4> OutResult;
+
+groupshared float4 GroupValues[64][3];
+
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+void CombineValues(uint Index, inout float4 Destination, float4 Source)
+{
+	if (Index == 0u)
+	{
+		Destination.x += Source.x;
+		Destination.y += Source.y;
+		Destination.z = max(Destination.z, Source.z);
+		Destination.w += Source.w;
+	}
+	else if (Index == 1u)
+	{
+		Destination.x += Source.x;
+		Destination.y += Source.y;
+		Destination.z = max(Destination.z, Source.z);
+		Destination.w += Source.w;
+	}
+	else
+	{
+		Destination += Source;
+	}
+}
+
+[numthreads(4, 4, 4)]
+void ReduceTilesCS(
+	uint3 DispatchThreadId : SV_DispatchThreadID,
+	uint GroupIndex : SV_GroupIndex,
+	uint3 GroupId : SV_GroupID)
+{
+	float4 Values[3] =
+	{
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0)
+	};
+
+	if (all(DispatchThreadId < uint3(GridResolution)))
+	{
+		const int3 Coord = int3(DispatchThreadId);
+		const int4 LoadCoord = int4(Coord, 0);
+		const float3 UVW = TimeThiefSmokeVoxelUVW(DispatchThreadId, GridResolution);
+		const float Phi = ObstacleTexture.SampleLevel(VolumeSampler, UVW, 0.0);
+		const float Open = TimeThiefSmokeObstacleOpenFromSdf(Phi, ObstacleSdfSurfaceFeatherCm);
+		const bool bCurrentCellFluid = Phi > 0.0;
+		const bool bCurrentCellActive = IsSparseSimulationCellActive(DispatchThreadId);
+		const float3 Velocity = ProjectedVelocityTexture.Load(LoadCoord).xyz;
+		const float Speed = length(Velocity);
+
+		if (bCurrentCellActive)
+		{
+			const float DivergenceBefore = DivergenceBeforeTexture.Load(LoadCoord);
+			const float DivergenceAfter = DivergenceAfterTexture.Load(LoadCoord);
+			const float Residual = PressureResidualTexture.Load(LoadCoord);
+			if (Open > 0.01)
+			{
+				Values[0] = float4(
+					DivergenceBefore * DivergenceBefore,
+					DivergenceAfter * DivergenceAfter,
+					abs(DivergenceAfter),
+					Residual * Residual);
+				Values[1].x = DivergenceBefore * DivergenceBefore;
+				Values[1].w = 1.0;
+			}
+			Values[1].z = Speed;
+		}
+
+		const float3 FaceOpen = ObstacleFaceOpenTexture.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+		const float3 SolidVelocity = ObstacleVelocityTexture.SampleLevel(VolumeSampler, UVW, 0.0).xyz;
+		float FluxSquared = 0.0;
+		float FluxSurfaceWeight = 0.0;
+		if (Coord.x > 0)
+		{
+			const int3 Neighbor = Coord - int3(1, 0, 0);
+			const bool bNeighborCellActive = IsSparseSimulationCellActive(uint3(Neighbor));
+			const float3 NeighborUVW = TimeThiefSmokeVoxelUVW(uint3(Neighbor), GridResolution);
+			const float NeighborPhi = ObstacleTexture.SampleLevel(VolumeSampler, NeighborUVW, 0.0);
+			const bool bNeighborCellFluid = NeighborPhi > 0.0;
+			const bool bFluidSideActive =
+				(bCurrentCellFluid && bCurrentCellActive) ||
+				(bNeighborCellFluid && bNeighborCellActive);
+			const float BlockedFraction = saturate(1.0 - FaceOpen.x);
+			if (bCurrentCellFluid != bNeighborCellFluid &&
+				bFluidSideActive &&
+				BlockedFraction > 0.001)
+			{
+				const float NeighborVelocity = ProjectedVelocityTexture.Load(int4(Neighbor, 0)).x;
+				const float FluidFace = bCurrentCellFluid ? Velocity.x : NeighborVelocity;
+				const float SolidFace = 0.5 * (SolidVelocity.x + ObstacleVelocityTexture.SampleLevel(VolumeSampler, NeighborUVW, 0.0).x);
+				const float FaceWeight = BlockedFraction * CellSize.y * CellSize.z;
+				const float Flux = FluidFace - SolidFace;
+				FluxSquared += FaceWeight * Flux * Flux;
+				FluxSurfaceWeight += FaceWeight;
+			}
+		}
+		if (Coord.y > 0)
+		{
+			const int3 Neighbor = Coord - int3(0, 1, 0);
+			const bool bNeighborCellActive = IsSparseSimulationCellActive(uint3(Neighbor));
+			const float3 NeighborUVW = TimeThiefSmokeVoxelUVW(uint3(Neighbor), GridResolution);
+			const float NeighborPhi = ObstacleTexture.SampleLevel(VolumeSampler, NeighborUVW, 0.0);
+			const bool bNeighborCellFluid = NeighborPhi > 0.0;
+			const bool bFluidSideActive =
+				(bCurrentCellFluid && bCurrentCellActive) ||
+				(bNeighborCellFluid && bNeighborCellActive);
+			const float BlockedFraction = saturate(1.0 - FaceOpen.y);
+			if (bCurrentCellFluid != bNeighborCellFluid &&
+				bFluidSideActive &&
+				BlockedFraction > 0.001)
+			{
+				const float NeighborVelocity = ProjectedVelocityTexture.Load(int4(Neighbor, 0)).y;
+				const float FluidFace = bCurrentCellFluid ? Velocity.y : NeighborVelocity;
+				const float SolidFace = 0.5 * (SolidVelocity.y + ObstacleVelocityTexture.SampleLevel(VolumeSampler, NeighborUVW, 0.0).y);
+				const float FaceWeight = BlockedFraction * CellSize.x * CellSize.z;
+				const float Flux = FluidFace - SolidFace;
+				FluxSquared += FaceWeight * Flux * Flux;
+				FluxSurfaceWeight += FaceWeight;
+			}
+		}
+		if (Coord.z > 0)
+		{
+			const int3 Neighbor = Coord - int3(0, 0, 1);
+			const bool bNeighborCellActive = IsSparseSimulationCellActive(uint3(Neighbor));
+			const float3 NeighborUVW = TimeThiefSmokeVoxelUVW(uint3(Neighbor), GridResolution);
+			const float NeighborPhi = ObstacleTexture.SampleLevel(VolumeSampler, NeighborUVW, 0.0);
+			const bool bNeighborCellFluid = NeighborPhi > 0.0;
+			const bool bFluidSideActive =
+				(bCurrentCellFluid && bCurrentCellActive) ||
+				(bNeighborCellFluid && bNeighborCellActive);
+			const float BlockedFraction = saturate(1.0 - FaceOpen.z);
+			if (bCurrentCellFluid != bNeighborCellFluid &&
+				bFluidSideActive &&
+				BlockedFraction > 0.001)
+			{
+				const float NeighborVelocity = ProjectedVelocityTexture.Load(int4(Neighbor, 0)).z;
+				const float FluidFace = bCurrentCellFluid ? Velocity.z : NeighborVelocity;
+				const float SolidFace = 0.5 * (SolidVelocity.z + ObstacleVelocityTexture.SampleLevel(VolumeSampler, NeighborUVW, 0.0).z);
+				const float FaceWeight = BlockedFraction * CellSize.x * CellSize.y;
+				const float Flux = FluidFace - SolidFace;
+				FluxSquared += FaceWeight * Flux * Flux;
+				FluxSurfaceWeight += FaceWeight;
+			}
+		}
+		Values[1].y = FluxSquared;
+		Values[2].x = FluxSurfaceWeight;
+	}
+
+	[unroll]
+	for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+	{
+		GroupValues[GroupIndex][ValueIndex] = Values[ValueIndex];
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	for (uint Stride = 32u; Stride > 0u; Stride >>= 1u)
+	{
+		if (GroupIndex < Stride)
+		{
+			[unroll]
+			for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+			{
+				CombineValues(ValueIndex, GroupValues[GroupIndex][ValueIndex], GroupValues[GroupIndex + Stride][ValueIndex]);
+			}
+		}
+		GroupMemoryBarrierWithGroupSync();
+	}
+
+	if (GroupIndex == 0u)
+	{
+		const uint TileGridX = (GridResolution.x + 3) / 4;
+		const uint TileGridY = (GridResolution.y + 3) / 4;
+		const uint TileIndex = GroupId.x + GroupId.y * TileGridX + GroupId.z * TileGridX * TileGridY;
+		[unroll]
+		for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+		{
+			OutTileResults[TileIndex * 3u + ValueIndex] = GroupValues[0][ValueIndex];
+		}
+	}
+}
+
+[numthreads(64, 1, 1)]
+void ReduceFinalCS(uint GroupIndex : SV_GroupIndex)
+{
+	float4 Values[3] =
+	{
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0)
+	};
+	for (uint TileIndex = GroupIndex; TileIndex < TileCount; TileIndex += 64u)
+	{
+		[unroll]
+		for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+		{
+			CombineValues(ValueIndex, Values[ValueIndex], TileResults[TileIndex * 3u + ValueIndex]);
+		}
+	}
+	[unroll]
+	for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+	{
+		GroupValues[GroupIndex][ValueIndex] = Values[ValueIndex];
+	}
+	GroupMemoryBarrierWithGroupSync();
+	for (uint Stride = 32u; Stride > 0u; Stride >>= 1u)
+	{
+		if (GroupIndex < Stride)
+		{
+			[unroll]
+			for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+			{
+				CombineValues(ValueIndex, GroupValues[GroupIndex][ValueIndex], GroupValues[GroupIndex + Stride][ValueIndex]);
+			}
+		}
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0u)
+	{
+		[unroll]
+		for (uint ValueIndex = 0u; ValueIndex < 3u; ++ValueIndex)
+		{
+			OutResult[ValueIndex] = GroupValues[0][ValueIndex];
+		}
+	}
+}

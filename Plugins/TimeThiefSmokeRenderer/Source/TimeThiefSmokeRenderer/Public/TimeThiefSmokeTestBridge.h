@@ -128,6 +128,8 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeTestProbeResult
 	float DisplacedDensitySum = 0.0f;
 	FVector DensityCentroid = FVector::ZeroVector;
 	float MaxVelocity = 0.0f;
+	float VelocityL2 = 0.0f;
+	float KineticEnergy = 0.0f;
 	float BulletCutoutMax = 0.0f;
 	float BulletSinkMax = 0.0f;
 	uint32 ActiveDensityVoxels = 0;
@@ -138,6 +140,13 @@ struct TIMETHIEFSMOKERENDERER_API FTimeThiefSmokeTestProbeResult
 	float MaxCombinedDensity = 0.0f;
 	uint32 DensityClampViolationVoxels = 0;
 	uint32 SolidObstacleVoxels = 0;
+	float DivergenceL2BeforeProjection = 0.0f;
+	float DivergenceL2AfterProjection = 0.0f;
+	float DivergenceMaxAfterProjection = 0.0f;
+	float PressureResidualL2 = 0.0f;
+	float PressureRelativeResidual = 0.0f;
+	float ObstacleNormalFluxL2 = 0.0f;
+	float QualityCourant = 0.0f;
 };
 
 class TIMETHIEFSMOKERENDERER_API ITimeThiefSmokeTestSink

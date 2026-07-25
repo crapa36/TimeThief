@@ -1,7 +1,7 @@
 #include "/Engine/Public/Platform.ush"
 
-// Test-only serial reduction. It runs only for explicit capture_probe actions and
-// avoids transferring the complete 3D field to the CPU.
+// Test-only parallel reduction. A 4x4x4 group reduces one tile, then a
+// second pass reduces tile results without reading the 3D field on the CPU.
 
 int3 GridResolution;
 float3 BoundsExtent;
@@ -13,66 +13,146 @@ Texture3D<float4> VelocityTexture;
 Texture3D<float> BulletCutoutTexture;
 Texture3D<float> BulletSinkTexture;
 Texture3D<float> ObstacleTexture;
+RWStructuredBuffer<float4> OutTileResults;
+
+uint TileCount;
+StructuredBuffer<float4> TileResults;
 RWStructuredBuffer<float4> OutResult;
 
-[numthreads(1, 1, 1)]
-void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+groupshared float4 GroupValues[64][5];
+
+void CombineValues(uint Index, inout float4 Destination, float4 Source)
 {
-	float NaturalDensitySum = 0.0;
-	float DisplacedDensitySum = 0.0;
-	float3 WeightedLocalPosition = 0.0;
-	float TotalDensity = 0.0;
-	float MaxVelocity = 0.0;
-	float BulletCutoutMax = 0.0;
-	float BulletSinkMax = 0.0;
-	float ActiveDensityVoxels = 0.0;
-	float ActiveBulletVoxels = 0.0;
-	float DensityInsideObstacle = 0.0;
-	float MaxNaturalDensity = 0.0;
-	float MaxDisplacedDensity = 0.0;
-	float MaxCombinedDensity = 0.0;
-	float DensityClampViolationVoxels = 0.0;
-	float SolidObstacleVoxels = 0.0;
-
-	for (int Z = 0; Z < GridResolution.z; ++Z)
+	if (Index == 0u)
 	{
-		for (int Y = 0; Y < GridResolution.y; ++Y)
-		{
-			for (int X = 0; X < GridResolution.x; ++X)
-			{
-				const int4 Coord = int4(X, Y, Z, 0);
-				const float NaturalDensity = max(0.0, DensityTexture.Load(Coord));
-				const float DisplacedDensity = max(0.0, DisplacedDensityTexture.Load(Coord));
-				const float Density = NaturalDensity + DisplacedDensity;
-				const float3 Velocity = VelocityTexture.Load(Coord).xyz;
-				const float Cutout = max(0.0, BulletCutoutTexture.Load(Coord));
-				const float Sink = max(0.0, BulletSinkTexture.Load(Coord));
-				const float ObstacleSdf = ObstacleTexture.Load(Coord);
-				const float3 UVW = (float3(X, Y, Z) + 0.5) / float3(GridResolution);
-				const float3 LocalPosition = (UVW * 2.0 - 1.0) * BoundsExtent;
+		Destination += Source;
+	}
+	else if (Index == 1u)
+	{
+		Destination.x += Source.x;
+		Destination.y = max(Destination.y, Source.y);
+		Destination.z = max(Destination.z, Source.z);
+		Destination.w = max(Destination.w, Source.w);
+	}
+	else if (Index == 2u)
+	{
+		Destination += Source;
+	}
+	else if (Index == 3u)
+	{
+		Destination.xyz = max(Destination.xyz, Source.xyz);
+		Destination.w += Source.w;
+	}
+	else
+	{
+		Destination += Source;
+	}
+}
 
-				NaturalDensitySum += NaturalDensity;
-				DisplacedDensitySum += DisplacedDensity;
-				TotalDensity += Density;
-				WeightedLocalPosition += LocalPosition * Density;
-				MaxVelocity = max(MaxVelocity, length(Velocity));
-				BulletCutoutMax = max(BulletCutoutMax, Cutout);
-				BulletSinkMax = max(BulletSinkMax, Sink);
-				ActiveDensityVoxels += Density > 0.0001 ? 1.0 : 0.0;
-				ActiveBulletVoxels += max(Cutout, Sink) > 0.0001 ? 1.0 : 0.0;
-				DensityInsideObstacle += ObstacleSdf < 0.0 ? Density : 0.0;
-				SolidObstacleVoxels += ObstacleSdf < 0.0 ? 1.0 : 0.0;
-				MaxNaturalDensity = max(MaxNaturalDensity, NaturalDensity);
-				MaxDisplacedDensity = max(MaxDisplacedDensity, DisplacedDensity);
-				MaxCombinedDensity = max(MaxCombinedDensity, Density);
-				DensityClampViolationVoxels += Density > SmokeDensityMax + 0.0001 ? 1.0 : 0.0;
-			}
-		}
+[numthreads(4, 4, 4)]
+void ReduceTilesCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint GroupIndex : SV_GroupIndex, uint3 GroupId : SV_GroupID)
+{
+	float4 Values[5] =
+	{
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0)
+	};
+
+	if (all(DispatchThreadId < uint3(GridResolution)))
+	{
+		const int4 Coord = int4(DispatchThreadId, 0);
+		const float NaturalDensity = max(0.0, DensityTexture.Load(Coord));
+		const float DisplacedDensity = max(0.0, DisplacedDensityTexture.Load(Coord));
+		const float Density = NaturalDensity + DisplacedDensity;
+		const float3 Velocity = VelocityTexture.Load(Coord).xyz;
+		const float VelocitySquared = dot(Velocity, Velocity);
+		const float Cutout = max(0.0, BulletCutoutTexture.Load(Coord));
+		const float Sink = max(0.0, BulletSinkTexture.Load(Coord));
+		const float ObstacleSdf = ObstacleTexture.Load(Coord);
+		const float3 UVW = (float3(DispatchThreadId) + 0.5) / float3(GridResolution);
+		const float3 LocalPosition = (UVW * 2.0 - 1.0) * BoundsExtent;
+
+		Values[0] = float4(NaturalDensity, DisplacedDensity, LocalPosition.xy * Density);
+		Values[1] = float4(LocalPosition.z * Density, length(Velocity), Cutout, Sink);
+		Values[2] = float4(Density > 0.0001 ? 1.0 : 0.0, max(Cutout, Sink) > 0.0001 ? 1.0 : 0.0, ObstacleSdf < 0.0 ? Density : 0.0, Density);
+		Values[3] = float4(NaturalDensity, DisplacedDensity, Density, Density > SmokeDensityMax + 0.0001 ? 1.0 : 0.0);
+		Values[4] = float4(ObstacleSdf < 0.0 ? 1.0 : 0.0, VelocitySquared, 0.0, 0.0);
 	}
 
-	OutResult[0] = float4(NaturalDensitySum, DisplacedDensitySum, WeightedLocalPosition.xy);
-	OutResult[1] = float4(WeightedLocalPosition.z, MaxVelocity, BulletCutoutMax, BulletSinkMax);
-	OutResult[2] = float4(ActiveDensityVoxels, ActiveBulletVoxels, DensityInsideObstacle, TotalDensity);
-	OutResult[3] = float4(MaxNaturalDensity, MaxDisplacedDensity, MaxCombinedDensity, DensityClampViolationVoxels);
-	OutResult[4] = float4(SolidObstacleVoxels, 0.0, 0.0, 0.0);
+	[unroll]
+	for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+	{
+		GroupValues[GroupIndex][ValueIndex] = Values[ValueIndex];
+	}
+	GroupMemoryBarrierWithGroupSync();
+
+	for (uint Stride = 32u; Stride > 0u; Stride >>= 1u)
+	{
+		if (GroupIndex < Stride)
+		{
+			[unroll]
+			for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+			{
+				CombineValues(ValueIndex, GroupValues[GroupIndex][ValueIndex], GroupValues[GroupIndex + Stride][ValueIndex]);
+			}
+		}
+		GroupMemoryBarrierWithGroupSync();
+	}
+
+	if (GroupIndex == 0u)
+	{
+		const uint TileIndex = GroupId.x + GroupId.y * ((GridResolution.x + 3) / 4) + GroupId.z * ((GridResolution.x + 3) / 4) * ((GridResolution.y + 3) / 4);
+		[unroll]
+		for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+		{
+			OutTileResults[TileIndex * 5u + ValueIndex] = GroupValues[0][ValueIndex];
+		}
+	}
+}
+
+[numthreads(64, 1, 1)]
+void ReduceFinalCS(uint GroupIndex : SV_GroupIndex)
+{
+	float4 Values[5] =
+	{
+		float4(0.0, 0.0, 0.0, 0.0), float4(0.0, 0.0, 0.0, 0.0), float4(0.0, 0.0, 0.0, 0.0),
+		float4(0.0, 0.0, 0.0, 0.0), float4(0.0, 0.0, 0.0, 0.0)
+	};
+	for (uint TileIndex = GroupIndex; TileIndex < TileCount; TileIndex += 64u)
+	{
+		[unroll]
+		for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+		{
+			CombineValues(ValueIndex, Values[ValueIndex], TileResults[TileIndex * 5u + ValueIndex]);
+		}
+	}
+	[unroll]
+	for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+	{
+		GroupValues[GroupIndex][ValueIndex] = Values[ValueIndex];
+	}
+	GroupMemoryBarrierWithGroupSync();
+	for (uint Stride = 32u; Stride > 0u; Stride >>= 1u)
+	{
+		if (GroupIndex < Stride)
+		{
+			[unroll]
+			for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+			{
+				CombineValues(ValueIndex, GroupValues[GroupIndex][ValueIndex], GroupValues[GroupIndex + Stride][ValueIndex]);
+			}
+		}
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0u)
+	{
+		[unroll]
+		for (uint ValueIndex = 0u; ValueIndex < 5u; ++ValueIndex)
+		{
+			OutResult[ValueIndex] = GroupValues[0][ValueIndex];
+		}
+	}
 }

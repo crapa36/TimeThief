@@ -63,6 +63,8 @@ namespace
 		if (Name == TEXT("natural_density_sum")) OutValue = Result.NaturalDensitySum;
 		else if (Name == TEXT("displaced_density_sum") || Name == TEXT("density_sum")) OutValue = Result.DisplacedDensitySum;
 		else if (Name == TEXT("max_velocity")) OutValue = Result.MaxVelocity;
+		else if (Name == TEXT("velocity_l2")) OutValue = Result.VelocityL2;
+		else if (Name == TEXT("kinetic_energy")) OutValue = Result.KineticEnergy;
 		else if (Name == TEXT("bullet_cutout_max")) OutValue = Result.BulletCutoutMax;
 		else if (Name == TEXT("bullet_sink_max")) OutValue = Result.BulletSinkMax;
 		else if (Name == TEXT("active_density_voxels")) OutValue = Result.ActiveDensityVoxels;
@@ -73,6 +75,13 @@ namespace
 		else if (Name == TEXT("max_combined_density")) OutValue = Result.MaxCombinedDensity;
 		else if (Name == TEXT("density_clamp_violation_voxels")) OutValue = Result.DensityClampViolationVoxels;
 		else if (Name == TEXT("solid_obstacle_voxels")) OutValue = Result.SolidObstacleVoxels;
+		else if (Name == TEXT("divergence_l2_before_projection")) OutValue = Result.DivergenceL2BeforeProjection;
+		else if (Name == TEXT("divergence_l2_after_projection")) OutValue = Result.DivergenceL2AfterProjection;
+		else if (Name == TEXT("divergence_max_after_projection")) OutValue = Result.DivergenceMaxAfterProjection;
+		else if (Name == TEXT("pressure_residual_l2")) OutValue = Result.PressureResidualL2;
+		else if (Name == TEXT("pressure_relative_residual")) OutValue = Result.PressureRelativeResidual;
+		else if (Name == TEXT("obstacle_normal_flux_l2")) OutValue = Result.ObstacleNormalFluxL2;
+		else if (Name == TEXT("quality_courant")) OutValue = Result.QualityCourant;
 		else return false;
 		return true;
 	}
@@ -384,6 +393,8 @@ void FTimeThiefSmokeTestRecorder::WriteProbe(const FTimeThiefSmokeTestProbeResul
 	Json->SetNumberField(TEXT("displaced_density_sum"), Result.DisplacedDensitySum);
 	Json->SetField(TEXT("density_centroid"), VectorJson(Result.DensityCentroid));
 	Json->SetNumberField(TEXT("max_velocity"), Result.MaxVelocity);
+	Json->SetNumberField(TEXT("velocity_l2"), Result.VelocityL2);
+	Json->SetNumberField(TEXT("kinetic_energy"), Result.KineticEnergy);
 	Json->SetNumberField(TEXT("bullet_cutout_max"), Result.BulletCutoutMax);
 	Json->SetNumberField(TEXT("bullet_sink_max"), Result.BulletSinkMax);
 	Json->SetNumberField(TEXT("active_density_voxels"), Result.ActiveDensityVoxels);
@@ -394,6 +405,13 @@ void FTimeThiefSmokeTestRecorder::WriteProbe(const FTimeThiefSmokeTestProbeResul
 	Json->SetNumberField(TEXT("max_combined_density"), Result.MaxCombinedDensity);
 	Json->SetNumberField(TEXT("density_clamp_violation_voxels"), Result.DensityClampViolationVoxels);
 	Json->SetNumberField(TEXT("solid_obstacle_voxels"), Result.SolidObstacleVoxels);
+	Json->SetNumberField(TEXT("divergence_l2_before_projection"), Result.DivergenceL2BeforeProjection);
+	Json->SetNumberField(TEXT("divergence_l2_after_projection"), Result.DivergenceL2AfterProjection);
+	Json->SetNumberField(TEXT("divergence_max_after_projection"), Result.DivergenceMaxAfterProjection);
+	Json->SetNumberField(TEXT("pressure_residual_l2"), Result.PressureResidualL2);
+	Json->SetNumberField(TEXT("pressure_relative_residual"), Result.PressureRelativeResidual);
+	Json->SetNumberField(TEXT("obstacle_normal_flux_l2"), Result.ObstacleNormalFluxL2);
+	Json->SetNumberField(TEXT("quality_courant"), Result.QualityCourant);
 	WriteLine(ProbesArchive.Get(), JsonString(Json));
 	++Execution.ProbesCompleted;
 	ProbeResults.FindOrAdd(Result.Label).Add(Result.SmokeId, Result);
@@ -565,6 +583,87 @@ bool FTimeThiefSmokeTestRecorder::WriteResult(const FTimeThiefSmokeTestScenario&
 				continue;
 			}
 			if (!Comparison->TryGetStringField(TEXT("op"), Operator)) Operator = TEXT("gt");
+			if (Operator == TEXT("near"))
+			{
+				double MaxAbsoluteDelta = 0.0;
+				double MaxRelativeDelta = 0.0;
+				const bool bHasAbsoluteTolerance =
+					Comparison->TryGetNumberField(TEXT("max_absolute_delta"), MaxAbsoluteDelta);
+				const bool bHasRelativeTolerance =
+					Comparison->TryGetNumberField(TEXT("max_relative_delta"), MaxRelativeDelta);
+				if ((!bHasAbsoluteTolerance && !bHasRelativeTolerance) ||
+					MaxAbsoluteDelta < 0.0 ||
+					MaxRelativeDelta < 0.0)
+				{
+					ExpectationFailures.Add(FString::Printf(
+						TEXT("probe near comparison requires a non-negative absolute or relative tolerance: %s.%s vs %s.%s"),
+						*LeftLabel,
+						*Metric,
+						*RightLabel,
+						*Metric));
+					continue;
+				}
+
+				const TMap<int32, FTimeThiefSmokeTestProbeResult>* LeftResults = ProbeResults.Find(LeftLabel);
+				const TMap<int32, FTimeThiefSmokeTestProbeResult>* RightResults = ProbeResults.Find(RightLabel);
+				if (!LeftResults || !RightResults || LeftResults->IsEmpty() || LeftResults->Num() != RightResults->Num())
+				{
+					ExpectationFailures.Add(FString::Printf(
+						TEXT("probe near comparison requires matching smoke sets: %s vs %s"),
+						*LeftLabel,
+						*RightLabel));
+					continue;
+				}
+
+				bool bNearPassed = true;
+				for (const TPair<int32, FTimeThiefSmokeTestProbeResult>& LeftPair : *LeftResults)
+				{
+					const FTimeThiefSmokeTestProbeResult* RightResult = RightResults->Find(LeftPair.Key);
+					double LeftValue = 0.0;
+					double RightValue = 0.0;
+					if (!RightResult ||
+						!ProbeMetric(LeftPair.Value, Metric, LeftValue) ||
+						!ProbeMetric(*RightResult, Metric, RightValue))
+					{
+						ExpectationFailures.Add(FString::Printf(
+							TEXT("probe near comparison metric missing for smoke %d: %s.%s or %s.%s"),
+							LeftPair.Key,
+							*LeftLabel,
+							*Metric,
+							*RightLabel,
+							*Metric));
+						bNearPassed = false;
+						break;
+					}
+
+					const double AbsoluteDelta = FMath::Abs(LeftValue - RightValue);
+					const double Scale = FMath::Max(FMath::Abs(LeftValue), FMath::Abs(RightValue));
+					const double AllowedDelta = FMath::Max(
+						bHasAbsoluteTolerance ? MaxAbsoluteDelta : 0.0,
+						bHasRelativeTolerance ? MaxRelativeDelta * Scale : 0.0);
+					if (AbsoluteDelta > AllowedDelta)
+					{
+						ExpectationFailures.Add(FString::Printf(
+							TEXT("probe near comparison %s.%s vs %s.%s for smoke %d failed: %.6f vs %.6f, absolute delta %.6f > allowed %.6f"),
+							*LeftLabel,
+							*Metric,
+							*RightLabel,
+							*Metric,
+							LeftPair.Key,
+							LeftValue,
+							RightValue,
+							AbsoluteDelta,
+							AllowedDelta));
+						bNearPassed = false;
+					}
+				}
+				if (!bNearPassed)
+				{
+					continue;
+				}
+				continue;
+			}
+
 			double MinDelta = 0.0;
 			Comparison->TryGetNumberField(TEXT("min_delta"), MinDelta);
 			double LeftValue = 0.0;

@@ -32,6 +32,14 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TEXT("Half-resolution default remains a boolean console value"),
 		TimeThiefSmokeParameterDefaults::HalfResolution == 0 || TimeThiefSmokeParameterDefaults::HalfResolution == 1);
 	TestTrue(
+		TEXT("Render occupancy resolution aligns to compute thread groups"),
+		TimeThiefSmokeParameterDefaults::RenderOccupancyResolution > 0 &&
+		TimeThiefSmokeParameterDefaults::RenderOccupancyResolution % TimeThiefSmokeParameterDefaults::SmokeThreadGroupSize == 0);
+	TestTrue(
+		TEXT("Detail noise resolution aligns to compute thread groups"),
+		TimeThiefSmokeParameterDefaults::DetailNoiseResolution > 0 &&
+		TimeThiefSmokeParameterDefaults::DetailNoiseResolution % TimeThiefSmokeParameterDefaults::SmokeThreadGroupSize == 0);
+	TestTrue(
 		TEXT("Obstacle mask cache keeps at least one reusable entry"),
 		TimeThiefSmokeParameterDefaults::ObstacleMaskCacheMaxEntries > 0);
 	TestTrue(
