@@ -104,7 +104,7 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 		Mask &= Mask - 1u;
 	}
 
-	Velocity += SplatVelocity * max(DeltaSeconds, 0.0);
+	Velocity += SplatVelocity;
 	const float MaxSpeed = max(MaxSmokeVelocity, 1.0);
 	const float Speed = length(Velocity);
 	if (Speed > MaxSpeed)
