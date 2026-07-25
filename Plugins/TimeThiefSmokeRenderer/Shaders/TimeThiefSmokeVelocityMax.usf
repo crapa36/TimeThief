@@ -1,0 +1,53 @@
+#include "/Engine/Public/Platform.ush"
+
+int3 GridResolution;
+int3 GroupGridResolution;
+Texture3D<float4> VelocityTexture;
+StructuredBuffer<float> TileMaximums;
+RWStructuredBuffer<float> OutTileMaximums;
+RWStructuredBuffer<float> OutMaximum;
+
+groupshared float SharedMaximum[64];
+
+[numthreads(4, 4, 4)]
+void ReduceTilesCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint GroupIndex : SV_GroupIndex)
+{
+	float Value = 0.0;
+	if (all(DispatchThreadId < uint3(GridResolution)))
+	{
+		Value = length(VelocityTexture.Load(int4(int3(DispatchThreadId), 0)).xyz);
+	}
+	SharedMaximum[GroupIndex] = Value;
+	GroupMemoryBarrierWithGroupSync();
+	[unroll]
+	for (uint Stride = 32; Stride > 0; Stride >>= 1)
+	{
+		if (GroupIndex < Stride) SharedMaximum[GroupIndex] = max(SharedMaximum[GroupIndex], SharedMaximum[GroupIndex + Stride]);
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0)
+	{
+		const uint TileIndex = GroupId.x + GroupId.y * GroupGridResolution.x + GroupId.z * GroupGridResolution.x * GroupGridResolution.y;
+		OutTileMaximums[TileIndex] = SharedMaximum[0];
+	}
+}
+
+[numthreads(64, 1, 1)]
+void ReduceFinalCS(uint GroupIndex : SV_GroupIndex)
+{
+	float Value = 0.0;
+	const uint TileCount = (uint)(GroupGridResolution.x * GroupGridResolution.y * GroupGridResolution.z);
+	for (uint Index = GroupIndex; Index < TileCount; Index += 64)
+	{
+		Value = max(Value, TileMaximums[Index]);
+	}
+	SharedMaximum[GroupIndex] = Value;
+	GroupMemoryBarrierWithGroupSync();
+	[unroll]
+	for (uint Stride = 32; Stride > 0; Stride >>= 1)
+	{
+		if (GroupIndex < Stride) SharedMaximum[GroupIndex] = max(SharedMaximum[GroupIndex], SharedMaximum[GroupIndex + Stride]);
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0) OutMaximum[0] = SharedMaximum[0];
+}

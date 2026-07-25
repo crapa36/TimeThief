@@ -3,6 +3,7 @@
 
 TIME_THIEF_SMOKE_SIMULATE_PARAMETERS
 
+
 bool IsSparseSimulationCellActive(uint3 CellCoord)
 {
 	if (bUseSparseSimulationMask == 0u)
@@ -386,41 +387,25 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 	SourceDensityInjection *= NaturalBoundsMask;
 	SourceVelocityInjection *= NaturalBoundsMask;
 	Density += SourceDensityInjection * DeltaSeconds * 1.95 * BulletMasks.Source;
-	const float CloudBillow = 0.5 + 0.5 * sin(
-		dot(WorldPosition, float3(0.021, 0.017, 0.013)) +
-		sin(dot(WorldPosition, float3(0.011, 0.026, 0.019))) * 1.7);
-	const float ChunkNoise = TimeThiefSmokeValueNoise(WorldPosition * 0.018);
-	const float CloudCohesion = lerp(0.72, 1.38, saturate(CloudBillow * 0.58 + ChunkNoise * 0.42));
-	Density *= lerp(1.0, CloudCohesion, saturate(Density * 0.58));
 	const float NaturalVentilation = saturate(1.0 - NaturalBoundsMask);
 	const float TotalBeforeBoundary = max(Density + DisplacedDensity, 0.0001);
 	const float DisplacedDominance = saturate(DisplacedDensity / TotalBeforeBoundary);
 	const float BoundaryPreserve = saturate(ExplosionBoundaryPreserve + DisplacedDominance * 0.65);
 	const float NaturalBoundaryDamping = lerp(BoundaryDamping, max(BoundaryDamping, 0.82), ExplosionBoundaryPreserve);
 	const float DisplacedBoundaryDamping = lerp(BoundaryDamping, max(BoundaryDamping, 0.96), BoundaryPreserve);
-	Density *= NaturalBoundaryDamping;
-	DisplacedDensity *= DisplacedBoundaryDamping;
+	Density *= TimeThiefSmokeScaleReferenceMultiplier(NaturalBoundaryDamping, DeltaSeconds);
+	DisplacedDensity *= TimeThiefSmokeScaleReferenceMultiplier(DisplacedBoundaryDamping, DeltaSeconds);
 	const float NaturalVentilationDissipation = NaturalVentilation * NaturalVentilation * (4.0 + max(EffectiveDissipation, 0.0) + max(VelocityDamping, 0.0)) * (1.0 - ExplosionBoundaryPreserve * 0.9);
 	const float NaturalVentilationDecay = exp2(-NaturalVentilationDissipation * DeltaSeconds);
 	const float DisplacedVentilationDecay = lerp(NaturalVentilationDecay, 1.0, DisplacedDominance);
 	Density *= NaturalVentilationDecay;
 	DisplacedDensity *= DisplacedVentilationDecay;
 
-	const float NoiseA = TimeThiefSmokeHash13(WorldPosition * 0.006 + DeltaSeconds);
-	const float NoiseB = TimeThiefSmokeHash13(WorldPosition * 0.009 + 17.0);
-	const float SafeSelfWobbleTimeScale = max(SelfWobbleTimeScale, 0.0);
-	const float SafeSelfWobbleVelocityScale = max(SelfWobbleVelocityScale, 0.0);
-	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.16 * SafeSelfWobbleTimeScale);
-	const float TotalDensity = Density + DisplacedDensity;
-	const float SurfaceMotionMask = smoothstep(0.02, 0.20, TotalDensity) * (1.0 - smoothstep(1.20, 2.50, TotalDensity));
-	const float3 Swirl = CurlNoise * VorticityStrength * Density * 18.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
 	const float Damping = exp2(-max(VelocityDamping, 0.0) * DeltaSeconds);
-	AdvectedVelocity = AdvectedVelocity * Damping + Swirl + BulletImpulse * BulletMasks.Detail;
+	AdvectedVelocity = AdvectedVelocity * Damping + BulletImpulse * BulletMasks.Detail;
 	AdvectedVelocity += SourceVelocityInjection * DeltaSeconds * 2.0;
-	AdvectedVelocity += (NoiseA - NoiseB) * CurlNoise * VorticityStrength * TotalDensity * 4.0 * SafeSelfWobbleVelocityScale * SurfaceMotionMask;
 	const float VelocityVentilation = NaturalVentilation * (1.0 - DisplacedDominance * 0.75);
 	AdvectedVelocity *= exp2(-VelocityVentilation * VelocityVentilation * (4.0 + max(VelocityDamping, 0.0)) * DeltaSeconds);
-	AdvectedVelocity *= lerp(0.35, 1.0, BoundaryDamping);
 	AdvectedVelocity = ApplySimulationBoundsNoOutflow(LocalPosition, AdvectedVelocity);
 
 	const float OutputOpenMask = max(OpenMask, SourceObstacleOpen);

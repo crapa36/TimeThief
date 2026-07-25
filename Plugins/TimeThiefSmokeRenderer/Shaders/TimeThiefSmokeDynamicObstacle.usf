@@ -206,9 +206,9 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float3 InteriorEscape = SurfaceNormal * Inside * BoundaryStrength * max(80.0, SolidSpeed * 0.34) * SmokeInteractionMask;
 
 		DisplacedDensity += UpdatedTotalDensity * FrontCompression * InteractionMask * EventDeltaSeconds * 0.65;
-		Velocity += (NormalCorrection + BoundaryDrag) * InteractionMask;
-		Velocity += InteriorEscape;
-		Velocity += (BowWave + WakePull + ShearRoll + MovingAirflow) * InteractionMask * EventDeltaSeconds;
+		const float ConstraintAlpha = 1.0 - exp2(-12.0 * EventDeltaSeconds);
+		Velocity += (NormalCorrection + InteriorEscape) * InteractionMask * ConstraintAlpha;
+		Velocity += (BoundaryDrag + BowWave + WakePull + ShearRoll + MovingAirflow) * InteractionMask * EventDeltaSeconds;
 	}
 
 	NaturalDensity *= OpenMask;
