@@ -1,0 +1,38 @@
+name: Verify no smoke extinction bake
+
+on:
+  pull_request:
+    branches: [SmokeOptimization]
+    paths: [.github/triggers/verify-no-smoke-extinction-bake.txt]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Verify direct sampling render path
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=c6ae678b8ef9b8bbd191f4cfe4abdaa900c27e41
+          EXPECTED_HEAD=4cebd17248dbff33edcab529a1c3d7c64bddb59c
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test ! -e Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildExtinctionVolume.usf
+          test ! -e Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeExtinction.ush
+          if git grep -n -E 'FTimeThiefSmokeBuildExtinctionVolumeCS|AddBuildExtinctionVolumePass|ExtinctionTextures|ExtinctionTexture[0-9]|PreviousExtinctionTexture|TimeThiefSmokeExtinction' -- Plugins/TimeThiefSmokeRenderer; then
+            echo 'precomputed extinction references remain' >&2
+            exit 1
+          fi
+          grep -q 'float SampleObstacleTexture' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf
+          grep -q 'float Density = RawDensity \* DensityVisibility;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf
+          grep -q 'Texture3D<float4> PackedDenseFieldTexture;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf
+          grep -q 'Texture3D<float> ObstacleTexture;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf
+          ! grep -q 'Texture3D<float> ExtinctionTexture;' Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf
+          test "$(git diff --name-only "$BASE"..HEAD | wc -l)" -eq 8
+          git diff --check "$BASE"..HEAD
