@@ -1,0 +1,83 @@
+name: Diagnose extinction bake removal
+
+on:
+  pull_request:
+    branches: [SmokeOptimization]
+    paths: [.github/triggers/diagnose-remove-smoke-extinction-bake.txt]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Count patch targets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import subprocess
+          import traceback
+
+          result = {}
+          try:
+              result['head'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+              comp = Path('Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf').read_text()
+              result['comp_include'] = comp.count('#include "/TimeThiefSmokeShaders/TimeThiefSmokeExtinction.ush"\n')
+              result['comp_packed_decl'] = comp.count('Texture3D<float4> PackedDenseFieldTexture0;')
+              result['comp_extinction_decl'] = comp.count('Texture3D<float> ExtinctionTexture0;')
+              result['comp_light_decl'] = comp.count('Texture3D<float> LightOpticalDepthTexture0;')
+              result['comp_packed_sampler'] = comp.count('float4 SamplePackedDenseFieldTexture(')
+              result['comp_extinction_sampler'] = comp.count('float SampleExtinctionTexture(')
+              result['comp_light_sampler'] = comp.count('float SampleLightOpticalDepthTexture(')
+              result['comp_evaluate'] = comp.count('FTimeThiefSmokeMediumSample EvaluateSmokeMedium(')
+              result['comp_align'] = comp.count('float AlignStableRaySample(')
+
+              header = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h').read_text()
+              result['header_extinction_class'] = header.count('class FTimeThiefSmokeBuildExtinctionVolumeCS')
+              result['header_light_class'] = header.count('class FTimeThiefSmokeBuildLightVolumeCS')
+              result['header_active_class'] = header.count('class FTimeThiefSmokeBuildActiveBrickListCS')
+              result['header_composite_class'] = header.count('class FTimeThiefSmokeCompositeMultiPS')
+              result['header_temporal_class'] = header.count('class FTimeThiefSmokeTemporalResolvePS')
+              result['header_packed_param'] = header.count('\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture0)')
+              result['header_extinction_param'] = header.count('\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture0)')
+              result['header_light_param'] = header.count('\t\tSHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture0)')
+
+              shaders_cpp = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.cpp').read_text()
+              result['shader_registration'] = shaders_cpp.count('IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildExtinctionVolumeCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildExtinctionVolume.usf", "MainCS", SF_Compute);\n')
+
+              view_h = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.h').read_text()
+              result['view_h_textures'] = view_h.count('\t\tTRefCountPtr<IPooledRenderTarget> ExtinctionTextures[2];\n')
+              result['view_h_pass'] = view_h.count('\tvoid AddBuildExtinctionVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);\n')
+
+              view_cpp = Path('Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp').read_text()
+              patterns = {
+                  'view_cpp_warmup': '\t\tWarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildExtinctionVolumeCS>(ShaderMap));\n',
+                  'view_cpp_allocation': '''\t\tif (!State.ExtinctionTextures[TextureIndex].IsValid())\n\t\t{\n\t\t\tAllocatePooledTexture(ScalarDesc, State.ExtinctionTextures[TextureIndex], TEXT("TimeThiefSmoke.Extinction"));\n\t\t}\n''',
+                  'view_cpp_refs': '''\tstruct FMultiSmokeTextureRefs\n\t{\n\t\tFRDGTextureRef PackedDenseFieldTexture = nullptr;\n\t\tFRDGTextureRef PreviousPackedDenseFieldTexture = nullptr;\n\t\tFRDGTextureRef ExtinctionTexture = nullptr;\n\t\tFRDGTextureRef PreviousExtinctionTexture = nullptr;\n\t\tFRDGTextureRef LightOpticalDepthTexture = nullptr;\n\t\tFRDGTextureRef PreviousLightOpticalDepthTexture = nullptr;\n\t\tFRDGTextureRef RenderOccupancyTexture = nullptr;\n\t};\n''',
+                  'view_cpp_registration': '''\t\tTextureRefs.PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[State.CurrentPackedFieldIndex]);\n\t\tconst int32 PreviousIndex = State.bPackedFieldHistoryValid ? 1 - State.CurrentPackedFieldIndex : State.CurrentPackedFieldIndex;\n\t\tTextureRefs.PreviousPackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[PreviousIndex]);\n\t\tTextureRefs.ExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[State.CurrentPackedFieldIndex]);\n\t\tTextureRefs.PreviousExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[PreviousIndex]);\n\t\tTextureRefs.LightOpticalDepthTexture = GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[State.CurrentPackedFieldIndex]);\n''',
+                  'view_cpp_target_arrays': '''\tFRDGTextureRef* PackedDenseFieldTargets[] = { &PassParameters->PackedDenseFieldTexture0, &PassParameters->PackedDenseFieldTexture1, &PassParameters->PackedDenseFieldTexture2, &PassParameters->PackedDenseFieldTexture3, &PassParameters->PackedDenseFieldTexture4, &PassParameters->PackedDenseFieldTexture5, &PassParameters->PackedDenseFieldTexture6, &PassParameters->PackedDenseFieldTexture7 };\n\tFRDGTextureRef* PreviousPackedDenseFieldTargets[] = { &PassParameters->PreviousPackedDenseFieldTexture0, &PassParameters->PreviousPackedDenseFieldTexture1, &PassParameters->PreviousPackedDenseFieldTexture2, &PassParameters->PreviousPackedDenseFieldTexture3, &PassParameters->PreviousPackedDenseFieldTexture4, &PassParameters->PreviousPackedDenseFieldTexture5, &PassParameters->PreviousPackedDenseFieldTexture6, &PassParameters->PreviousPackedDenseFieldTexture7 };\n\tFRDGTextureRef* ExtinctionTargets[] = { &PassParameters->ExtinctionTexture0, &PassParameters->ExtinctionTexture1, &PassParameters->ExtinctionTexture2, &PassParameters->ExtinctionTexture3, &PassParameters->ExtinctionTexture4, &PassParameters->ExtinctionTexture5, &PassParameters->ExtinctionTexture6, &PassParameters->ExtinctionTexture7 };\n\tFRDGTextureRef* PreviousExtinctionTargets[] = { &PassParameters->PreviousExtinctionTexture0, &PassParameters->PreviousExtinctionTexture1, &PassParameters->PreviousExtinctionTexture2, &PassParameters->PreviousExtinctionTexture3, &PassParameters->PreviousExtinctionTexture4, &PassParameters->PreviousExtinctionTexture5, &PassParameters->PreviousExtinctionTexture6, &PassParameters->PreviousExtinctionTexture7 };\n''',
+                  'view_cpp_target_assignment': '''\t\t*PackedDenseFieldTargets[Slot] = TextureRefs.PackedDenseFieldTexture;\n\t\t*PreviousPackedDenseFieldTargets[Slot] = TextureRefs.PreviousPackedDenseFieldTexture;\n\t\t*ExtinctionTargets[Slot] = TextureRefs.ExtinctionTexture;\n\t\t*PreviousExtinctionTargets[Slot] = TextureRefs.PreviousExtinctionTexture;\n''',
+              }
+              for name, pattern in patterns.items():
+                  result[name] = view_cpp.count(pattern)
+              result['view_cpp_pass_calls'] = view_cpp.count('\t\tAddBuildExtinctionVolumePass(GraphBuilder, State);\n')
+              result['view_cpp_pass_definition'] = view_cpp.count('void FTimeThiefSmokeViewExtension::AddBuildExtinctionVolumePass(')
+              result['view_cpp_light_definition'] = view_cpp.count('void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(')
+              result['view_cpp_mac_definition'] = view_cpp.count('void FTimeThiefSmokeViewExtension::AddBuildMacDivergencePass(')
+          except Exception:
+              result['diagnostic_exception'] = traceback.format_exc()
+
+          Path('/tmp/extinction-bake-diagnostic.json').write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+          print(json.dumps(result, indent=2, ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extinction-bake-diagnostic
+          path: /tmp/extinction-bake-diagnostic.json
