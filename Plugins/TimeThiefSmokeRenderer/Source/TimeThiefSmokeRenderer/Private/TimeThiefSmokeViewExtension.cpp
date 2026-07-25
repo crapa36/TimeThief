@@ -1247,8 +1247,6 @@ void FTimeThiefSmokeViewExtension::SubmitFrame_RenderThread(FTimeThiefSmokeRende
 			State.PackedDenseFieldTextures[0].SafeRelease();
 			State.PackedDenseFieldTextures[1].SafeRelease();
 			State.RenderOccupancyTexture.SafeRelease();
-			State.ExtinctionTextures[0].SafeRelease();
-			State.ExtinctionTextures[1].SafeRelease();
 			State.LightOpticalDepthTextures[0].SafeRelease();
 			State.LightOpticalDepthTextures[1].SafeRelease();
 			State.VortexParticleBuffers[0].SafeRelease();
@@ -2267,8 +2265,7 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmoke_RenderThread(
 			State.DisplacedDensityTextures[State.CurrentDensityIndex].IsValid() &&
 			State.ObstacleSdfTexture.IsValid() &&
 			State.BrickOccupancyTexture.IsValid() &&
-			State.PackedDenseFieldTextures[State.CurrentPackedFieldIndex].IsValid() &&
-			State.ExtinctionTextures[State.CurrentPackedFieldIndex].IsValid())
+			State.PackedDenseFieldTextures[State.CurrentPackedFieldIndex].IsValid())
 		{
 			RenderStates.Add(&State);
 		}
