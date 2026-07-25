@@ -1,0 +1,355 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+int3 GridResolution;
+int3 FineGridResolution;
+int3 GroupGridResolution;
+float3 CellSize;
+float RelativeTolerance;
+int IterationIndex;
+
+Texture3D<float> DivergenceTexture;
+Texture3D<float> VectorA;
+Texture3D<float> VectorB;
+Texture3D<float> PressureTexture;
+Texture3D<float> RightHandSideTexture;
+Texture3D<float> FineTexture;
+Texture3D<float> CoarseTexture;
+Texture3D<float> ObstacleTexture;
+Texture3D<float4> ObstacleFaceOpenTexture;
+SamplerState VolumeSampler;
+StructuredBuffer<float> InputScalar0;
+StructuredBuffer<float> InputScalar1;
+StructuredBuffer<float4> SolverStateIn;
+StructuredBuffer<float> TileSums;
+StructuredBuffer<float2> MeanTileSums;
+
+RWTexture3D<float> OutVector;
+RWTexture3D<float> OutVectorA;
+RWTexture3D<float> OutVectorB;
+RWTexture3D<float> OutVectorC;
+RWTexture3D<float> OutVectorD;
+RWStructuredBuffer<float> OutTileSums;
+RWStructuredBuffer<float2> OutMeanTileSums;
+RWStructuredBuffer<float> OutScalar;
+RWStructuredBuffer<float4> OutSolverState;
+
+int3 ClampCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float3 CoordUVW(int3 Coord)
+{
+	return (float3(ClampCoord(Coord)) + 0.5) / max(float3(GridResolution), 1.0);
+}
+
+float4 LoadFaceOpen(int3 Coord)
+{
+	return ObstacleFaceOpenTexture.SampleLevel(VolumeSampler, CoordUVW(Coord), 0.0);
+}
+
+float LoadFluidOpen(int3 Coord)
+{
+	return LoadFaceOpen(Coord).w;
+}
+
+float LoadVector(Texture3D<float> Texture, int3 Coord)
+{
+	return Texture.Load(int4(ClampCoord(Coord), 0));
+}
+
+void LoadStencilWeights(
+	int3 Coord,
+	out float FaceX0,
+	out float FaceX1,
+	out float FaceY0,
+	out float FaceY1,
+	out float FaceZ0,
+	out float FaceZ1)
+{
+	const float4 CenterFaces = LoadFaceOpen(Coord);
+	FaceX0 = Coord.x <= 0 ? 0.0 : CenterFaces.x;
+	FaceY0 = Coord.y <= 0 ? 0.0 : CenterFaces.y;
+	FaceZ0 = Coord.z <= 0 ? 0.0 : CenterFaces.z;
+	FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : LoadFaceOpen(Coord + int3(1, 0, 0)).x;
+	FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 1, 0)).y;
+	FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 0, 1)).z;
+}
+
+float ApplyPressureOperator(Texture3D<float> InputTexture, int3 Coord)
+{
+	if (LoadFluidOpen(Coord) <= 0.01)
+	{
+		return 0.0;
+	}
+
+	float FaceX0, FaceX1, FaceY0, FaceY1, FaceZ0, FaceZ1;
+	LoadStencilWeights(Coord, FaceX0, FaceX1, FaceY0, FaceY1, FaceZ0, FaceZ1);
+	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
+	const float Center = LoadVector(InputTexture, Coord);
+	float Result = 0.0;
+	Result += (Center - LoadVector(InputTexture, Coord - int3(1, 0, 0))) * FaceX0 * InvCellSizeSq.x;
+	Result += (Center - LoadVector(InputTexture, Coord + int3(1, 0, 0))) * FaceX1 * InvCellSizeSq.x;
+	Result += (Center - LoadVector(InputTexture, Coord - int3(0, 1, 0))) * FaceY0 * InvCellSizeSq.y;
+	Result += (Center - LoadVector(InputTexture, Coord + int3(0, 1, 0))) * FaceY1 * InvCellSizeSq.y;
+	Result += (Center - LoadVector(InputTexture, Coord - int3(0, 0, 1))) * FaceZ0 * InvCellSizeSq.z;
+	Result += (Center - LoadVector(InputTexture, Coord + int3(0, 0, 1))) * FaceZ1 * InvCellSizeSq.z;
+	return Result;
+}
+
+float JacobiValue(Texture3D<float> CurrentPressure, Texture3D<float> Rhs, int3 Coord)
+{
+	if (LoadFluidOpen(Coord) <= 0.01)
+	{
+		return 0.0;
+	}
+	float FaceX0, FaceX1, FaceY0, FaceY1, FaceZ0, FaceZ1;
+	LoadStencilWeights(Coord, FaceX0, FaceX1, FaceY0, FaceY1, FaceZ0, FaceZ1);
+	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
+	float Diagonal = 0.0;
+	float NeighborSum = 0.0;
+#define TT_ACCUM(Offset, Face, AxisWeight) \
+	if ((Face) > 0.0001) { const float W = (Face) * (AxisWeight); Diagonal += W; NeighborSum += LoadVector(CurrentPressure, Coord + (Offset)) * W; }
+	TT_ACCUM(int3(-1, 0, 0), FaceX0, InvCellSizeSq.x)
+	TT_ACCUM(int3(1, 0, 0), FaceX1, InvCellSizeSq.x)
+	TT_ACCUM(int3(0, -1, 0), FaceY0, InvCellSizeSq.y)
+	TT_ACCUM(int3(0, 1, 0), FaceY1, InvCellSizeSq.y)
+	TT_ACCUM(int3(0, 0, -1), FaceZ0, InvCellSizeSq.z)
+	TT_ACCUM(int3(0, 0, 1), FaceZ1, InvCellSizeSq.z)
+#undef TT_ACCUM
+	return Diagonal > 0.000001 ? (LoadVector(Rhs, Coord) + NeighborSum) / Diagonal : 0.0;
+}
+
+[numthreads(4, 4, 4)]
+void InitializeCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const int3 Coord = int3(DispatchThreadId);
+	const float MeanRhs = InputScalar0[0];
+	const float Rhs = LoadFluidOpen(Coord) > 0.01 ? -DivergenceTexture.Load(int4(Coord, 0)) - MeanRhs : 0.0;
+	OutVectorA[DispatchThreadId] = 0.0;
+	OutVectorB[DispatchThreadId] = Rhs;
+	OutVectorC[DispatchThreadId] = 0.0;
+	OutVectorD[DispatchThreadId] = 0.0;
+}
+
+[numthreads(4, 4, 4)]
+void ApplyOperatorCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	OutVector[DispatchThreadId] = ApplyPressureOperator(VectorA, int3(DispatchThreadId));
+}
+
+[numthreads(4, 4, 4)]
+void JacobiSmoothCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	OutVector[DispatchThreadId] = JacobiValue(PressureTexture, RightHandSideTexture, int3(DispatchThreadId));
+}
+
+[numthreads(4, 4, 4)]
+void ResidualCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const int3 Coord = int3(DispatchThreadId);
+	OutVector[DispatchThreadId] = LoadFluidOpen(Coord) > 0.01
+		? RightHandSideTexture.Load(int4(Coord, 0)) - ApplyPressureOperator(PressureTexture, Coord)
+		: 0.0;
+}
+
+[numthreads(4, 4, 4)]
+void RestrictCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const int3 CoarseCoord = int3(DispatchThreadId);
+	const int3 FineBase = CoarseCoord * 2;
+	float Sum = 0.0;
+	float Weight = 0.0;
+	[unroll]
+	for (int Z = 0; Z < 2; ++Z)
+	{
+		[unroll]
+		for (int Y = 0; Y < 2; ++Y)
+		{
+			[unroll]
+			for (int X = 0; X < 2; ++X)
+			{
+				const int3 FineCoord = FineBase + int3(X, Y, Z);
+				const float Open = ObstacleFaceOpenTexture.SampleLevel(
+					VolumeSampler,
+					(float3(FineCoord) + 0.5) / max(float3(FineGridResolution), 1.0),
+					0.0).w;
+				if (all(FineCoord < FineGridResolution) && Open > 0.01)
+				{
+					Sum += FineTexture.Load(int4(FineCoord, 0)) * Open;
+					Weight += Open;
+				}
+			}
+		}
+	}
+	OutVector[DispatchThreadId] = Weight > 0.0 ? Sum / Weight : 0.0;
+}
+
+[numthreads(4, 4, 4)]
+void ProlongateAddCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const int3 Coord = int3(DispatchThreadId);
+	if (LoadFluidOpen(Coord) <= 0.01)
+	{
+		OutVector[DispatchThreadId] = 0.0;
+		return;
+	}
+	const float3 FineUVW = (float3(Coord) + 0.5) / max(float3(GridResolution), 1.0);
+	const float Correction = CoarseTexture.SampleLevel(VolumeSampler, FineUVW, 0.0);
+	OutVector[DispatchThreadId] = FineTexture.Load(int4(Coord, 0)) + Correction;
+}
+
+[numthreads(4, 4, 4)]
+void CopyCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	OutVector[DispatchThreadId] = VectorA.Load(int4(int3(DispatchThreadId), 0));
+}
+
+[numthreads(4, 4, 4)]
+void UpdateXRCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const int3 Coord = int3(DispatchThreadId);
+	const float Alpha = InputScalar0[0];
+	OutVectorA[DispatchThreadId] = VectorA.Load(int4(Coord, 0)) + Alpha * VectorB.Load(int4(Coord, 0));
+	OutVectorB[DispatchThreadId] = PressureTexture.Load(int4(Coord, 0)) - Alpha * RightHandSideTexture.Load(int4(Coord, 0));
+}
+
+[numthreads(4, 4, 4)]
+void UpdatePCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution))) return;
+	const int3 Coord = int3(DispatchThreadId);
+	const float Beta = InputScalar0[0];
+	OutVector[DispatchThreadId] = VectorA.Load(int4(Coord, 0)) + Beta * VectorB.Load(int4(Coord, 0));
+}
+
+groupshared float DotShared[64];
+groupshared float2 MeanShared[64];
+
+[numthreads(4, 4, 4)]
+void DotTilesCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint GroupIndex : SV_GroupIndex)
+{
+	float Value = 0.0;
+	if (all(DispatchThreadId < uint3(GridResolution)))
+	{
+		const int3 Coord = int3(DispatchThreadId);
+		if (LoadFluidOpen(Coord) > 0.01)
+		{
+			Value = VectorA.Load(int4(Coord, 0)) * VectorB.Load(int4(Coord, 0));
+		}
+	}
+	DotShared[GroupIndex] = Value;
+	GroupMemoryBarrierWithGroupSync();
+	[unroll]
+	for (uint Stride = 32; Stride > 0; Stride >>= 1)
+	{
+		if (GroupIndex < Stride) DotShared[GroupIndex] += DotShared[GroupIndex + Stride];
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0)
+	{
+		const uint TileIndex = GroupId.x + GroupId.y * GroupGridResolution.x + GroupId.z * GroupGridResolution.x * GroupGridResolution.y;
+		OutTileSums[TileIndex] = DotShared[0];
+	}
+}
+
+[numthreads(64, 1, 1)]
+void DotFinalCS(uint GroupIndex : SV_GroupIndex)
+{
+	float Sum = 0.0;
+	const uint TileCount = (uint)(GroupGridResolution.x * GroupGridResolution.y * GroupGridResolution.z);
+	for (uint Index = GroupIndex; Index < TileCount; Index += 64) Sum += TileSums[Index];
+	DotShared[GroupIndex] = Sum;
+	GroupMemoryBarrierWithGroupSync();
+	[unroll]
+	for (uint Stride = 32; Stride > 0; Stride >>= 1)
+	{
+		if (GroupIndex < Stride) DotShared[GroupIndex] += DotShared[GroupIndex + Stride];
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0) OutScalar[0] = DotShared[0];
+}
+
+[numthreads(4, 4, 4)]
+void MeanTilesCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_GroupID, uint GroupIndex : SV_GroupIndex)
+{
+	float2 Value = float2(0.0, 0.0);
+	if (all(DispatchThreadId < uint3(GridResolution)))
+	{
+		const int3 Coord = int3(DispatchThreadId);
+		const float Open = LoadFluidOpen(Coord);
+		if (Open > 0.01) Value = float2(-DivergenceTexture.Load(int4(Coord, 0)) * Open, Open);
+	}
+	MeanShared[GroupIndex] = Value;
+	GroupMemoryBarrierWithGroupSync();
+	[unroll]
+	for (uint Stride = 32; Stride > 0; Stride >>= 1)
+	{
+		if (GroupIndex < Stride) MeanShared[GroupIndex] += MeanShared[GroupIndex + Stride];
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0)
+	{
+		const uint TileIndex = GroupId.x + GroupId.y * GroupGridResolution.x + GroupId.z * GroupGridResolution.x * GroupGridResolution.y;
+		OutMeanTileSums[TileIndex] = MeanShared[0];
+	}
+}
+
+[numthreads(64, 1, 1)]
+void MeanFinalCS(uint GroupIndex : SV_GroupIndex)
+{
+	float2 Sum = float2(0.0, 0.0);
+	const uint TileCount = (uint)(GroupGridResolution.x * GroupGridResolution.y * GroupGridResolution.z);
+	for (uint Index = GroupIndex; Index < TileCount; Index += 64) Sum += MeanTileSums[Index];
+	MeanShared[GroupIndex] = Sum;
+	GroupMemoryBarrierWithGroupSync();
+	[unroll]
+	for (uint Stride = 32; Stride > 0; Stride >>= 1)
+	{
+		if (GroupIndex < Stride) MeanShared[GroupIndex] += MeanShared[GroupIndex + Stride];
+		GroupMemoryBarrierWithGroupSync();
+	}
+	if (GroupIndex == 0) OutScalar[0] = MeanShared[0].y > 0.0 ? MeanShared[0].x / MeanShared[0].y : 0.0;
+}
+
+[numthreads(1, 1, 1)]
+void InitializeStateCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	const float Rz = InputScalar0[0];
+	const float ResidualSq = max(InputScalar1[0], 0.0);
+	OutSolverState[0] = float4(Rz, max(ResidualSq, 1.0e-20), ResidualSq, ResidualSq <= 1.0e-20 ? 1.0 : 0.0);
+	OutSolverState[1] = float4(ResidualSq > 0.0 ? 1.0 : 0.0, 0.0, 0.0, 0.0);
+}
+
+[numthreads(1, 1, 1)]
+void ComputeAlphaCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	const float4 State0 = SolverStateIn[0];
+	const float Denominator = InputScalar0[0];
+	const float Alpha = State0.w > 0.5 || abs(Denominator) <= 1.0e-20 ? 0.0 : State0.x / Denominator;
+	OutScalar[0] = Alpha;
+}
+
+[numthreads(1, 1, 1)]
+void ComputeBetaCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	const float4 State0 = SolverStateIn[0];
+	const float4 State1 = SolverStateIn[1];
+	const float NewRz = InputScalar0[0];
+	const float NewResidualSq = max(InputScalar1[0], 0.0);
+	const float RelativeResidual = sqrt(NewResidualSq / max(State0.y, 1.0e-20));
+	const bool Converged = State0.w > 0.5 || RelativeResidual <= max(RelativeTolerance, 1.0e-8);
+	const float Beta = Converged || abs(State0.x) <= 1.0e-20 ? 0.0 : NewRz / State0.x;
+	OutScalar[0] = Beta;
+	OutSolverState[0] = float4(NewRz, State0.y, NewResidualSq, Converged ? 1.0 : 0.0);
+	OutSolverState[1] = float4(RelativeResidual, (float)(IterationIndex + 1), 0.0, Beta);
+}

@@ -80,6 +80,33 @@ float3 LoadSolidVelocity(int3 Coord)
 	return ObstacleVelocityTexture.SampleLevel(VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), 0.0).xyz;
 }
 
+
+float4 LoadPressureFaceOpen(int3 Coord)
+{
+	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float ComputeFirstJacobiPressure(int3 Coord, float Divergence)
+{
+	const float4 CenterFaces = LoadPressureFaceOpen(Coord);
+	if (CenterFaces.w <= 0.01)
+	{
+		return 0.0;
+	}
+	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
+	const float FaceX0 = Coord.x <= 0 ? 0.0 : CenterFaces.x;
+	const float FaceY0 = Coord.y <= 0 ? 0.0 : CenterFaces.y;
+	const float FaceZ0 = Coord.z <= 0 ? 0.0 : CenterFaces.z;
+	const float FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : LoadPressureFaceOpen(Coord + int3(1, 0, 0)).x;
+	const float FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : LoadPressureFaceOpen(Coord + int3(0, 1, 0)).y;
+	const float FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : LoadPressureFaceOpen(Coord + int3(0, 0, 1)).z;
+	const float Denominator =
+		(FaceX0 + FaceX1) * InvCellSizeSq.x +
+		(FaceY0 + FaceY1) * InvCellSizeSq.y +
+		(FaceZ0 + FaceZ1) * InvCellSizeSq.z;
+	return Denominator > 0.000001 ? -Divergence / Denominator : 0.0;
+}
+
 float ComputeUFace(int3 Coord)
 {
 	if (Coord.x <= 0)
@@ -172,6 +199,8 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		(V1 - V0) * InvCellSize.y +
 		(W1 - W0) * InvCellSize.z;
 
-	OutDivergence[CellCoord] = Divergence;
-	OutPressure[CellCoord] = 0.0;
+	// Match the old R16F divergence round-trip before the first Jacobi update.
+	const float StoredDivergence = f16tof32(f32tof16(Divergence));
+	OutDivergence[CellCoord] = StoredDivergence;
+	OutPressure[CellCoord] = ComputeFirstJacobiPressure(Coord, StoredDivergence);
 }

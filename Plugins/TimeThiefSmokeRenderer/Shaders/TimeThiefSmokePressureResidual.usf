@@ -1,0 +1,105 @@
+#include "/Engine/Public/Platform.ush"
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
+
+int3 GridResolution;
+int3 BrickGridResolution;
+float3 CellSize;
+int SmokeBrickSize;
+uint bUseSparseSimulationMask;
+float ObstacleSdfSurfaceFeatherCm;
+
+Texture3D<float> PressureIn;
+Texture3D<float> DivergenceIn;
+Texture3D<float> ObstacleTexture;
+Texture3D<float4> ObstacleFaceOpenTexture;
+Texture3D<uint> BrickOccupancyTexture;
+SamplerState VolumeSampler;
+RWTexture3D<float> OutResidual;
+
+bool IsSparseSimulationCellActive(uint3 CellCoord)
+{
+	if (bUseSparseSimulationMask == 0u)
+	{
+		return true;
+	}
+
+	const int SafeBrickSize = max(SmokeBrickSize, 1);
+	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
+	return BrickOccupancyTexture.Load(int4(BrickCoord, 0)) != 0u;
+}
+
+int3 ClampSmokeCoord(int3 Coord)
+{
+	return clamp(Coord, int3(0, 0, 0), GridResolution - 1);
+}
+
+float LoadPressure(int3 Coord)
+{
+	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+float4 LoadFaceOpen(int3 Coord)
+{
+	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0));
+}
+
+void AccumulateNeighbor(
+	int3 Coord,
+	int3 Offset,
+	float FaceOpen,
+	float AxisInvCellSizeSq,
+	inout float NeighborPressure,
+	inout float Diagonal)
+{
+	if (FaceOpen <= 0.0001)
+	{
+		return;
+	}
+
+	const float Weight = FaceOpen * AxisInvCellSizeSq;
+	NeighborPressure += LoadPressure(Coord + Offset) * Weight;
+	Diagonal += Weight;
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution)))
+	{
+		return;
+	}
+
+	const int3 Coord = int3(DispatchThreadId);
+	if (!IsSparseSimulationCellActive(DispatchThreadId))
+	{
+		OutResidual[DispatchThreadId] = 0.0;
+		return;
+	}
+	if (LoadFaceOpen(Coord).w <= 0.01)
+	{
+		OutResidual[DispatchThreadId] = 0.0;
+		return;
+	}
+
+	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
+	const float4 CenterFaces = LoadFaceOpen(Coord);
+	const float FaceX0 = Coord.x <= 0 ? 0.0 : CenterFaces.x;
+	const float FaceY0 = Coord.y <= 0 ? 0.0 : CenterFaces.y;
+	const float FaceZ0 = Coord.z <= 0 ? 0.0 : CenterFaces.z;
+	const float FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : LoadFaceOpen(Coord + int3(1, 0, 0)).x;
+	const float FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 1, 0)).y;
+	const float FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 0, 1)).z;
+
+	float NeighborPressure = 0.0;
+	float Diagonal = 0.0;
+	AccumulateNeighbor(Coord, int3(1, 0, 0), FaceX1, InvCellSizeSq.x, NeighborPressure, Diagonal);
+	AccumulateNeighbor(Coord, int3(-1, 0, 0), FaceX0, InvCellSizeSq.x, NeighborPressure, Diagonal);
+	AccumulateNeighbor(Coord, int3(0, 1, 0), FaceY1, InvCellSizeSq.y, NeighborPressure, Diagonal);
+	AccumulateNeighbor(Coord, int3(0, -1, 0), FaceY0, InvCellSizeSq.y, NeighborPressure, Diagonal);
+	AccumulateNeighbor(Coord, int3(0, 0, 1), FaceZ1, InvCellSizeSq.z, NeighborPressure, Diagonal);
+	AccumulateNeighbor(Coord, int3(0, 0, -1), FaceZ0, InvCellSizeSq.z, NeighborPressure, Diagonal);
+
+	const float AppliedOperator = max(Diagonal, 0.000001) * LoadPressure(Coord) - NeighborPressure;
+	const float RightHandSide = -DivergenceIn.Load(int4(Coord, 0));
+	OutResidual[DispatchThreadId] = RightHandSide - AppliedOperator;
+}

@@ -62,28 +62,9 @@ float LoadPressure(int3 Coord)
 	return PressureIn.Load(int4(ClampSmokeCoord(Coord), 0));
 }
 
-float LoadPhi(int3 Coord)
+float4 LoadFaceOpen(int3 Coord)
 {
-	const int3 SafeCoord = ClampSmokeCoord(Coord);
-	return ObstacleTexture.SampleLevel(VolumeSampler, TimeThiefSmokeVoxelUVW(uint3(SafeCoord.x, SafeCoord.y, SafeCoord.z), GridResolution), 0.0);
-}
-
-float LoadOpen(int3 Coord)
-{
-	return TimeThiefSmokeObstacleOpenFromSdf(LoadPhi(Coord), ObstacleSdfSurfaceFeatherCm);
-}
-
-float ComputeFaceOpen(float PhiA, float PhiB)
-{
-	if (PhiA <= 0.0 && PhiB <= 0.0)
-	{
-		return 0.0;
-	}
-	if (PhiA > 0.0 && PhiB > 0.0)
-	{
-		return 1.0;
-	}
-	return saturate(max(PhiA, PhiB) / max(abs(PhiA) + abs(PhiB), 0.0001));
+	return ObstacleFaceOpenTexture.Load(int4(ClampSmokeCoord(Coord), 0));
 }
 
 float AccumulateNeighborPressure(int3 Coord, int3 Offset, float Weight, float AxisInvCellSizeSq, inout float Denominator)
@@ -113,20 +94,21 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		return;
 	}
 
-	if (LoadOpen(Coord) <= 0.01)
+	const float4 CenterFaces = LoadFaceOpen(Coord);
+	if (CenterFaces.w <= 0.01)
 	{
 		OutPressure[CellCoord] = 0.0;
 		return;
 	}
 
 	const float3 InvCellSizeSq = 1.0 / max(CellSize * CellSize, 1.0);
-	const float CenterPhi = LoadPhi(Coord);
-	const float FaceX0 = Coord.x <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(1, 0, 0)));
-	const float FaceY0 = Coord.y <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(0, 1, 0)));
-	const float FaceZ0 = Coord.z <= 0 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord - int3(0, 0, 1)));
-	const float FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(1, 0, 0)));
-	const float FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(0, 1, 0)));
-	const float FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : ComputeFaceOpen(CenterPhi, LoadPhi(Coord + int3(0, 0, 1)));
+	const float FaceX0 = Coord.x <= 0 ? 0.0 : CenterFaces.x;
+	const float FaceY0 = Coord.y <= 0 ? 0.0 : CenterFaces.y;
+	const float FaceZ0 = Coord.z <= 0 ? 0.0 : CenterFaces.z;
+	const float FaceX1 = Coord.x >= GridResolution.x - 1 ? 0.0 : LoadFaceOpen(Coord + int3(1, 0, 0)).x;
+	const float FaceY1 = Coord.y >= GridResolution.y - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 1, 0)).y;
+	const float FaceZ1 = Coord.z >= GridResolution.z - 1 ? 0.0 : LoadFaceOpen(Coord + int3(0, 0, 1)).z;
+
 	float Denominator = 0.0;
 	const float NeighborPressure =
 		AccumulateNeighborPressure(Coord, int3(1, 0, 0), FaceX1, InvCellSizeSq.x, Denominator) +
@@ -135,8 +117,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		AccumulateNeighborPressure(Coord, int3(0, -1, 0), FaceY0, InvCellSizeSq.y, Denominator) +
 		AccumulateNeighborPressure(Coord, int3(0, 0, 1), FaceZ1, InvCellSizeSq.z, Denominator) +
 		AccumulateNeighborPressure(Coord, int3(0, 0, -1), FaceZ0, InvCellSizeSq.z, Denominator);
-	Denominator = max(Denominator, 0.000001);
-	const float Divergence = DivergenceIn.Load(int4(Coord, 0));
 
+	if (Denominator <= 0.000001)
+	{
+		OutPressure[CellCoord] = 0.0;
+		return;
+	}
+
+	const float Divergence = DivergenceIn.Load(int4(Coord, 0));
 	OutPressure[CellCoord] = (NeighborPressure - Divergence) / Denominator;
 }
