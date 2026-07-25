@@ -1,0 +1,22 @@
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeShaderParameters.ush"
+
+// Vorticity is handled by the dedicated vorticity pass. Keep the legacy
+// controls out of the simulate shader parameter layout so it matches C++.
+#undef TIME_THIEF_SMOKE_SIMULATION_CONTROLS
+#define TIME_THIEF_SMOKE_SIMULATION_CONTROLS \
+	TT_SMOKE_HLSL_PARAM_DELTA_SECONDS \
+	TT_SMOKE_HLSL_PARAM_INITIAL_DENSITY \
+	TT_SMOKE_HLSL_PARAM_AGE_SECONDS \
+	TT_SMOKE_HLSL_PARAM_DURATION_SECONDS \
+	TT_SMOKE_HLSL_PARAM_SMOKE_FADE_OUT_DURATION \
+	TT_SMOKE_HLSL_PARAM_NATURAL_BOUNDS_EXTENT \
+	TIME_THIEF_SMOKE_PLUME_CONTROLS \
+	TT_SMOKE_HLSL_PARAM_DENSITY_DISSIPATION \
+	TT_SMOKE_HLSL_PARAM_VELOCITY_DAMPING \
+	TT_SMOKE_HLSL_PARAM_SMOKE_DENSITY_MAX
+
+#define VorticityStrength (0.0)
+#define SelfWobbleTimeScale (0.0)
+#define SelfWobbleVelocityScale (0.0)
+
+#include "/TimeThiefSmokeShaders/TimeThiefSmokeSimulate.usf"
