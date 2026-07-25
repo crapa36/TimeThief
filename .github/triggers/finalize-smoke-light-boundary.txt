@@ -1,1 +1,1 @@
-finalize analytic light boundary
+finalize analytic light boundary diagnostic v2
