@@ -1,11 +1,9 @@
 name: Inspect smoke Jacobi cleanup
 
 on:
-  push:
+  pull_request:
     branches:
       - SmokeOptimization
-    paths:
-      - .github/workflows/inspect-smoke-jacobi.yml
 
 permissions:
   contents: read
