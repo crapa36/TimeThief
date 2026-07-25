@@ -1,0 +1,47 @@
+#include "/Engine/Public/Platform.ush"
+
+int3 GridResolution;
+int3 MacroGridResolution;
+float DensityThreshold;
+Texture3D<float4> PackedDenseFieldTexture;
+Texture3D<float4> PreviousPackedDenseFieldTexture;
+RWTexture3D<uint> OutRenderOccupancy;
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(MacroGridResolution)))
+	{
+		return;
+	}
+
+	const int3 MacroCoord = int3(DispatchThreadId);
+	const int3 StartCoord = MacroCoord * GridResolution / MacroGridResolution;
+	const int3 EndCoord = min(
+		((MacroCoord + 1) * GridResolution + MacroGridResolution - 1) / MacroGridResolution,
+		GridResolution);
+
+	uint Active = 0u;
+	for (int Z = StartCoord.z; Z < EndCoord.z && Active == 0u; ++Z)
+	{
+		for (int Y = StartCoord.y; Y < EndCoord.y && Active == 0u; ++Y)
+		{
+			for (int X = StartCoord.x; X < EndCoord.x; ++X)
+			{
+				const int4 Coord = int4(X, Y, Z, 0);
+				const float4 CurrentFields = PackedDenseFieldTexture.Load(Coord);
+				const float4 PreviousFields = PreviousPackedDenseFieldTexture.Load(Coord);
+				const float Density = max(
+					CurrentFields.x + CurrentFields.y,
+					PreviousFields.x + PreviousFields.y);
+				if (Density > DensityThreshold)
+				{
+					Active = 1u;
+					break;
+				}
+			}
+		}
+	}
+
+	OutRenderOccupancy[DispatchThreadId] = Active;
+}

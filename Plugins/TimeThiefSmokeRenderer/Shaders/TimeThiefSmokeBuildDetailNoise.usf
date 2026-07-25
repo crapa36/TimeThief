@@ -1,0 +1,92 @@
+#include "/Engine/Public/Platform.ush"
+
+int3 GridResolution;
+RWTexture3D<float4> OutDetailNoise;
+
+uint HashUint(uint Value)
+{
+	Value ^= Value >> 16;
+	Value *= 0x7feb352du;
+	Value ^= Value >> 15;
+	Value *= 0x846ca68bu;
+	Value ^= Value >> 16;
+	return Value;
+}
+
+float HashPeriodic(int3 Coord, int Period, uint Seed)
+{
+	const int3 Wrapped = (Coord % Period + Period) % Period;
+	uint Hash = Seed;
+	Hash = HashUint(Hash ^ (uint)Wrapped.x * 0x9e3779b9u);
+	Hash = HashUint(Hash ^ (uint)Wrapped.y * 0x85ebca6bu);
+	Hash = HashUint(Hash ^ (uint)Wrapped.z * 0xc2b2ae35u);
+	return (float)(Hash & 0x00ffffffu) / 16777215.0;
+}
+
+float PeriodicValueNoise(float3 P, int Period, uint Seed)
+{
+	const int3 Base = int3(floor(P));
+	const float3 Fraction = frac(P);
+	const float3 Smooth = Fraction * Fraction * (3.0 - 2.0 * Fraction);
+	float Values[8];
+	[unroll]
+	for (int Z = 0; Z <= 1; ++Z)
+	{
+		[unroll]
+		for (int Y = 0; Y <= 1; ++Y)
+		{
+			[unroll]
+			for (int X = 0; X <= 1; ++X)
+			{
+				Values[X + Y * 2 + Z * 4] = HashPeriodic(Base + int3(X, Y, Z), Period, Seed);
+			}
+		}
+	}
+	const float X00 = lerp(Values[0], Values[1], Smooth.x);
+	const float X10 = lerp(Values[2], Values[3], Smooth.x);
+	const float X01 = lerp(Values[4], Values[5], Smooth.x);
+	const float X11 = lerp(Values[6], Values[7], Smooth.x);
+	return lerp(lerp(X00, X10, Smooth.y), lerp(X01, X11, Smooth.y), Smooth.z);
+}
+
+float FractalNoise(float3 UnitPosition, uint Seed, int OctaveCount, bool bRidged)
+{
+	float Sum = 0.0;
+	float Weight = 0.5;
+	float Normalizer = 0.0;
+	int Period = 4;
+	[unroll]
+	for (int Octave = 0; Octave < 4; ++Octave)
+	{
+		if (Octave < OctaveCount)
+		{
+			float Noise = PeriodicValueNoise(UnitPosition * Period, Period, Seed + (uint)Octave * 1013u);
+			if (bRidged)
+			{
+				Noise = 1.0 - abs(Noise * 2.0 - 1.0);
+				Noise *= Noise;
+			}
+			Sum += Noise * Weight;
+			Normalizer += Weight;
+		}
+		Weight *= 0.5;
+		Period *= 2;
+	}
+	return Sum / max(Normalizer, 0.0001);
+}
+
+[numthreads(4, 4, 4)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	if (any(DispatchThreadId >= uint3(GridResolution)))
+	{
+		return;
+	}
+
+	const float3 UnitPosition = (float3(DispatchThreadId) + 0.5) / float3(GridResolution);
+	const float BaseFbm4 = FractalNoise(UnitPosition, 17u, 4, false);
+	const float RidgedFbm4 = FractalNoise(UnitPosition + float3(0.37, 0.19, 0.53), 271u, 4, true);
+	const float BaseFbm3 = FractalNoise(UnitPosition + float3(0.11, 0.67, 0.29), 911u, 3, false);
+	const float RidgedFbm2 = FractalNoise(UnitPosition + float3(0.73, 0.41, 0.07), 1597u, 2, true);
+	OutDetailNoise[DispatchThreadId] = float4(BaseFbm4, RidgedFbm4, BaseFbm3, RidgedFbm2);
+}
