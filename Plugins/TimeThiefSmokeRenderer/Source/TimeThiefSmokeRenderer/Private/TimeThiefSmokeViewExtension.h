@@ -59,7 +59,6 @@ private:
 		TRefCountPtr<IPooledRenderTarget> BrickOccupancyTexture;
 		TRefCountPtr<IPooledRenderTarget> PackedDenseFieldTextures[2];
 		TRefCountPtr<IPooledRenderTarget> RenderOccupancyTexture;
-		TRefCountPtr<IPooledRenderTarget> ExtinctionTextures[2];
 		TRefCountPtr<IPooledRenderTarget> LightOpticalDepthTextures[2];
 		TRefCountPtr<FRDGPooledBuffer> VortexParticleBuffers[2];
 		TRefCountPtr<FRDGPooledBuffer> ProjectionDiagnosticsBuffer;
@@ -192,7 +191,6 @@ private:
 	FRDGBufferRef AddBuildSparseBrickDispatchArgsPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, const FActiveBrickDispatchResources& ActiveBrickResources, uint32 GroupsPerBrick, uint32 MaxDispatchBrickCount);
 	void AddPackDenseFieldPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef BulletCutoutTexture, FRDGTextureRef BulletSinkTexture, bool bPackBulletChannels);
 	void AddBuildRenderOccupancyPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
-	void AddBuildExtinctionVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void AddBuildLightVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void SimulateSmoke(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, float DeltaSeconds, float EventDeltaSeconds, bool bIsFinalSimulationStep);
 	void AddInitPass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State, FRDGTextureRef DensityTexture, FRDGTextureRef DisplacedDensityTexture, FRDGTextureRef VelocityTexture);

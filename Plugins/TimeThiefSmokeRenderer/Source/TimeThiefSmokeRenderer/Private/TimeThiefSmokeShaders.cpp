@@ -18,7 +18,6 @@ IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeExpandBrickOccupancyCS, "/TimeThiefSmokeS
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokePackDenseFieldCS, "/TimeThiefSmokeShaders/TimeThiefSmokePackDenseField.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildRenderOccupancyCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildRenderOccupancy.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildDetailNoiseCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildDetailNoise.usf", "MainCS", SF_Compute);
-IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildExtinctionVolumeCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildExtinctionVolume.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildLightVolumeCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildLightVolume.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildActiveBrickListCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildActiveBrickList.usf", "MainCS", SF_Compute);
 IMPLEMENT_GLOBAL_SHADER(FTimeThiefSmokeBuildSparseScatterArgsCS, "/TimeThiefSmokeShaders/TimeThiefSmokeBuildSparseScatterArgs.usf", "MainCS", SF_Compute);

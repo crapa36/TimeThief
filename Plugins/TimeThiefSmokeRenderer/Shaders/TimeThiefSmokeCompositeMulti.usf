@@ -16,7 +16,6 @@
 #define TIME_THIEF_MAX_STABLE_STEPS 256
 #include "/Engine/Private/ScreenPass.ush"
 #include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
-#include "/TimeThiefSmokeShaders/TimeThiefSmokeExtinction.ush"
 
 struct FTimeThiefSmokeCompositeDescriptorShaderData
 {
@@ -41,6 +40,14 @@ struct FTimeThiefSmokeCompositeTileRangeShaderData
 
 Texture2D SceneColorTexture;
 Texture2D<float> SceneDepthTexture;
+Texture3D<float> ObstacleTexture0;
+Texture3D<float> ObstacleTexture1;
+Texture3D<float> ObstacleTexture2;
+Texture3D<float> ObstacleTexture3;
+Texture3D<float> ObstacleTexture4;
+Texture3D<float> ObstacleTexture5;
+Texture3D<float> ObstacleTexture6;
+Texture3D<float> ObstacleTexture7;
 Texture3D<float4> PackedDenseFieldTexture0;
 Texture3D<float4> PackedDenseFieldTexture1;
 Texture3D<float4> PackedDenseFieldTexture2;
@@ -57,22 +64,6 @@ Texture3D<float4> PreviousPackedDenseFieldTexture4;
 Texture3D<float4> PreviousPackedDenseFieldTexture5;
 Texture3D<float4> PreviousPackedDenseFieldTexture6;
 Texture3D<float4> PreviousPackedDenseFieldTexture7;
-Texture3D<float> ExtinctionTexture0;
-Texture3D<float> ExtinctionTexture1;
-Texture3D<float> ExtinctionTexture2;
-Texture3D<float> ExtinctionTexture3;
-Texture3D<float> ExtinctionTexture4;
-Texture3D<float> ExtinctionTexture5;
-Texture3D<float> ExtinctionTexture6;
-Texture3D<float> ExtinctionTexture7;
-Texture3D<float> PreviousExtinctionTexture0;
-Texture3D<float> PreviousExtinctionTexture1;
-Texture3D<float> PreviousExtinctionTexture2;
-Texture3D<float> PreviousExtinctionTexture3;
-Texture3D<float> PreviousExtinctionTexture4;
-Texture3D<float> PreviousExtinctionTexture5;
-Texture3D<float> PreviousExtinctionTexture6;
-Texture3D<float> PreviousExtinctionTexture7;
 Texture3D<float> LightOpticalDepthTexture0;
 Texture3D<float> LightOpticalDepthTexture1;
 Texture3D<float> LightOpticalDepthTexture2;
@@ -197,6 +188,22 @@ float4 SampleDetailNoise(float3 Position)
 }
 
 
+float SampleObstacleTexture(int Slot, float3 UVW)
+{
+	switch (Slot)
+	{
+	case 0: return ObstacleTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 1: return ObstacleTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 2: return ObstacleTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 3: return ObstacleTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 4: return ObstacleTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 5: return ObstacleTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 6: return ObstacleTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
+	case 7: return ObstacleTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
+	}
+	return 0.0;
+}
+
 float4 SamplePackedDenseFieldTexture(int Slot, float3 UVW)
 {
 	switch (Slot)
@@ -236,47 +243,6 @@ float4 SampleFieldSet(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Des
 	return SamplePackedDenseFieldTexture(Slot, UVW);
 #else
 	return lerp(SamplePreviousPackedDenseFieldTexture(Slot, UVW), SamplePackedDenseFieldTexture(Slot, UVW), saturate(Desc.BoundaryNoiseControls.w));
-#endif
-}
-
-float SampleExtinctionTexture(int Slot, float3 UVW)
-{
-	switch (Slot)
-	{
-	case 0: return ExtinctionTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 1: return ExtinctionTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 2: return ExtinctionTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 3: return ExtinctionTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 4: return ExtinctionTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 5: return ExtinctionTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 6: return ExtinctionTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 7: return ExtinctionTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
-	}
-	return 0.0;
-}
-
-float SamplePreviousExtinctionTexture(int Slot, float3 UVW)
-{
-	switch (Slot)
-	{
-	case 0: return PreviousExtinctionTexture0.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 1: return PreviousExtinctionTexture1.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 2: return PreviousExtinctionTexture2.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 3: return PreviousExtinctionTexture3.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 4: return PreviousExtinctionTexture4.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 5: return PreviousExtinctionTexture5.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 6: return PreviousExtinctionTexture6.SampleLevel(VolumeSampler, UVW, 0.0);
-	case 7: return PreviousExtinctionTexture7.SampleLevel(VolumeSampler, UVW, 0.0);
-	}
-	return 0.0;
-}
-
-float SampleInterpolatedExtinction(int Slot, FTimeThiefSmokeCompositeDescriptorShaderData Desc, float3 UVW)
-{
-#if TIME_THIEF_COMPOSITE_COST_MODE == 1
-	return SampleExtinctionTexture(Slot, UVW);
-#else
-	return lerp(SamplePreviousExtinctionTexture(Slot, UVW), SampleExtinctionTexture(Slot, UVW), saturate(Desc.BoundaryNoiseControls.w));
 #endif
 }
 
@@ -549,22 +515,15 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	return Sample;
 #endif
 
+	const float Obstacle = SampleObstacleTexture(Slot, VolumeUVW);
 	const FTimeThiefSmokeBulletOpenMasks BulletMasks = TimeThiefSmokeBulletOpenMasksFromValues(RawFields.z, RawFields.w);
-	const float AgeSeconds = Desc.FilamentAge.y;
-	const float RenderNoiseTimeScale = Desc.NoiseFilamentA.x;
-	const float RenderFilamentScale = Desc.NoiseFilamentA.y;
-	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
-	const float RenderFilamentContrast = max(Desc.NoiseFilamentA.w, 0.01);
-	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
-	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
-	const float SharedBaseExtinction = SampleInterpolatedExtinction(Slot, Desc, VolumeUVW);
-	if (SharedBaseExtinction <= 0.0001)
+	const float ObstacleOpen = TimeThiefSmokeObstacleOpenFromSdf(Obstacle, Desc.NaturalBoundsExtent_ObstacleFeather.w);
+	const float BaseVisibility = ObstacleOpen * BulletMasks.Hard * LifetimeAlpha;
+	if (BaseVisibility <= 0.0001)
 	{
 		return Sample;
 	}
 
-	// Evaluate the smoke silhouette in continuous ray space instead of baking it at
-	// simulation voxel centers. This preserves smooth ellipsoid and noise contours.
 	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
 	const uint BoundaryNoiseOctaveStart = EvaluatedNoiseOctaveCount;
 	const float BoundaryMask = EvaluateBoundaryMaskLazy(
@@ -584,10 +543,46 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 		return Sample;
 	}
 
-	float Density = SharedBaseExtinction * BoundaryMask;
+	const float AgeSeconds = Desc.FilamentAge.y;
+	const float DensityVisibility = BaseVisibility * BoundaryMask;
+	float Density = RawDensity * DensityVisibility;
+	if (Density <= 0.0001)
+	{
+		return Sample;
+	}
+
+	const float RenderNoiseScale = Desc.AnisotropyNoise.y;
+	const float RenderNoiseStrength = Desc.AnisotropyNoise.z;
+	const float RenderNoiseTimeScale = Desc.NoiseFilamentA.x;
+	const float RenderFilamentScale = Desc.NoiseFilamentA.y;
+	const float RenderFilamentStrength = Desc.NoiseFilamentA.z;
+	const float RenderFilamentContrast = max(Desc.NoiseFilamentA.w, 0.01);
+	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
+	const float StableRenderNoiseScale = max(RenderNoiseScale, 0.0);
 	const float StableRenderFilamentScale = max(RenderFilamentScale, 0.0);
+	const float FineNoiseMultiplier = 2.0;
 	const float FineFilamentMultiplier = 2.0;
+	const float DisplacedDominance = saturate(RawFields.y / max(RawDensity, 0.0001));
+	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
+	const float3 NoisePosition = SimulationLocal * BoundsExtent * StableRenderNoiseScale;
 	const bool bEvaluateRenderDetail = Density < Desc.BoundsExtent_DetailDensityCutoff.w;
+	float DensityNoise = 1.0;
+	if (bEvaluateRenderDetail)
+	{
+		const uint DensityNoiseOctaveStart = EvaluatedNoiseOctaveCount;
+#if TIME_THIEF_COMPOSITE_COST_MODE == 2
+		DensityNoise = 1.0;
+#else
+		DensityNoise = CompositeDensityNoise(
+			NoisePosition,
+			TimeNoise,
+			RenderNoiseStrength * lerp(1.0, 1.15, DisplacedDominance),
+			FineNoiseMultiplier,
+			EvaluatedNoiseOctaveCount);
+#endif
+		EvaluatedDensityNoiseOctaveCount += EvaluatedNoiseOctaveCount - DensityNoiseOctaveStart;
+	}
+
 	float FilamentGain = 1.0;
 	if (bEvaluateRenderDetail && RenderFilamentStrength > 0.001
 #if TIME_THIEF_COMPOSITE_COST_MODE == 2
@@ -625,7 +620,7 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	}
 
 	const float BulletEdgeDensityGain = lerp(1.0, 1.16, BulletMasks.Edge);
-	Density *= FilamentGain * BulletEdgeDensityGain;
+	Density *= DensityNoise * FilamentGain * BulletEdgeDensityGain;
 	Sample.ExtinctionCoefficient = max(Density * Desc.RenderBoundsExtent_Extinction.w * SimulationDistanceScale, 0.0);
 	Sample.ScatteringSource = SmokeColor * saturate(0.82 + Density * 0.85);
 	Sample.Density = Density;

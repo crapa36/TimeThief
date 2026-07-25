@@ -280,35 +280,12 @@ public:
 	END_SHADER_PARAMETER_STRUCT()
 };
 
-class FTimeThiefSmokeBuildExtinctionVolumeCS : public FGlobalShader
-{
-public:
-	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildExtinctionVolumeCS);
-	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildExtinctionVolumeCS, FGlobalShader);
-	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
-		SHADER_PARAMETER(FIntVector, GridResolution)
-		SHADER_PARAMETER(FVector3f, BoundsExtent)
-		SHADER_PARAMETER(FVector3f, NaturalBoundsExtent)
-		SHADER_PARAMETER(float, NoiseScale)
-		SHADER_PARAMETER(float, NoiseStrength)
-		SHADER_PARAMETER(float, NoiseTime)
-		SHADER_PARAMETER(float, LifetimeAlpha)
-		SHADER_PARAMETER(float, ObstacleFeather)
-		SHADER_PARAMETER(FMatrix44f, LocalToWorld)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, DetailNoiseTexture)
-		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
-		SHADER_PARAMETER_SAMPLER(SamplerState, DetailNoiseSampler)
-		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutExtinctionTexture)
-	END_SHADER_PARAMETER_STRUCT()
-};
-
 class FTimeThiefSmokeBuildLightVolumeCS : public FGlobalShader
 {
 public:
 	DECLARE_GLOBAL_SHADER(FTimeThiefSmokeBuildLightVolumeCS);
 	SHADER_USE_PARAMETER_STRUCT(FTimeThiefSmokeBuildLightVolumeCS, FGlobalShader);
+
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER(FIntVector, GridResolution)
 		SHADER_PARAMETER(FVector3f, BoundsExtent)
@@ -316,8 +293,15 @@ public:
 		SHADER_PARAMETER(FVector3f, LightDirection)
 		SHADER_PARAMETER(float, ShadowStepLength)
 		SHADER_PARAMETER(int32, ShadowStepCount)
+		SHADER_PARAMETER(float, NoiseScale)
+		SHADER_PARAMETER(float, NoiseStrength)
+		SHADER_PARAMETER(float, NoiseTime)
+		SHADER_PARAMETER(float, LifetimeAlpha)
+		SHADER_PARAMETER(float, ObstacleFeather)
+		SHADER_PARAMETER(FMatrix44f, LocalToWorld)
 		SHADER_PARAMETER(FMatrix44f, WorldToLocal)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture)
 		SHADER_PARAMETER_SAMPLER(SamplerState, VolumeSampler)
 		SHADER_PARAMETER_RDG_TEXTURE_UAV(RWTexture3D<float>, OutLightOpticalDepth)
 	END_SHADER_PARAMETER_STRUCT()
@@ -487,6 +471,14 @@ public:
 		SHADER_PARAMETER_RDG_BUFFER_UAV(RWBuffer<uint>, CompositeStepStats)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneColorTexture)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture2D, SceneDepthTexture)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture0)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture1)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture2)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture3)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture4)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture5)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture6)
+		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ObstacleTexture7)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture0)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture1)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PackedDenseFieldTexture2)
@@ -503,22 +495,6 @@ public:
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture5)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture6)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float4>, PreviousPackedDenseFieldTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, ExtinctionTexture7)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture0)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture1)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture2)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture3)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture4)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture5)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture6)
-		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, PreviousExtinctionTexture7)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture0)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture1)
 		SHADER_PARAMETER_RDG_TEXTURE(Texture3D<float>, LightOpticalDepthTexture2)

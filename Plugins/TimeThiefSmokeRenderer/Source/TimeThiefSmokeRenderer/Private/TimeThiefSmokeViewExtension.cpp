@@ -1493,7 +1493,6 @@ void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICo
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildActiveBrickListCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildSparseScatterArgsCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokePackDenseFieldCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildExtinctionVolumeCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildLightVolumeCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildMacDivergenceCS>(ShaderMap));
 		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokePressureResidualCS>(ShaderMap));
@@ -2097,10 +2096,9 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	PassParameters->InvViewProjection = InvViewProjection;
 	struct FMultiSmokeTextureRefs
 	{
+		FRDGTextureRef ObstacleTexture = nullptr;
 		FRDGTextureRef PackedDenseFieldTexture = nullptr;
 		FRDGTextureRef PreviousPackedDenseFieldTexture = nullptr;
-		FRDGTextureRef ExtinctionTexture = nullptr;
-		FRDGTextureRef PreviousExtinctionTexture = nullptr;
 		FRDGTextureRef LightOpticalDepthTexture = nullptr;
 		FRDGTextureRef PreviousLightOpticalDepthTexture = nullptr;
 		FRDGTextureRef RenderOccupancyTexture = nullptr;
@@ -2112,21 +2110,19 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	{
 		FRenderSmokeState& State = *RenderStates[SmokeSlot];
 		FMultiSmokeTextureRefs& TextureRefs = MultiSmokeTextures[SmokeSlot];
+		TextureRefs.ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);
 		TextureRefs.PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[State.CurrentPackedFieldIndex]);
 		const int32 PreviousIndex = State.bPackedFieldHistoryValid ? 1 - State.CurrentPackedFieldIndex : State.CurrentPackedFieldIndex;
 		TextureRefs.PreviousPackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[PreviousIndex]);
-		TextureRefs.ExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[State.CurrentPackedFieldIndex]);
-		TextureRefs.PreviousExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[PreviousIndex]);
 		TextureRefs.LightOpticalDepthTexture = GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[State.CurrentPackedFieldIndex]);
 		const int32 PreviousLightIndex = State.bLightVolumeHistoryValid ? PreviousIndex : State.CurrentPackedFieldIndex;
 		TextureRefs.PreviousLightOpticalDepthTexture = GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[PreviousLightIndex]);
 		TextureRefs.RenderOccupancyTexture = GraphBuilder.RegisterExternalTexture(State.RenderOccupancyTexture);
 	}
 
+	FRDGTextureRef* ObstacleTargets[] = { &PassParameters->ObstacleTexture0, &PassParameters->ObstacleTexture1, &PassParameters->ObstacleTexture2, &PassParameters->ObstacleTexture3, &PassParameters->ObstacleTexture4, &PassParameters->ObstacleTexture5, &PassParameters->ObstacleTexture6, &PassParameters->ObstacleTexture7 };
 	FRDGTextureRef* PackedDenseFieldTargets[] = { &PassParameters->PackedDenseFieldTexture0, &PassParameters->PackedDenseFieldTexture1, &PassParameters->PackedDenseFieldTexture2, &PassParameters->PackedDenseFieldTexture3, &PassParameters->PackedDenseFieldTexture4, &PassParameters->PackedDenseFieldTexture5, &PassParameters->PackedDenseFieldTexture6, &PassParameters->PackedDenseFieldTexture7 };
 	FRDGTextureRef* PreviousPackedDenseFieldTargets[] = { &PassParameters->PreviousPackedDenseFieldTexture0, &PassParameters->PreviousPackedDenseFieldTexture1, &PassParameters->PreviousPackedDenseFieldTexture2, &PassParameters->PreviousPackedDenseFieldTexture3, &PassParameters->PreviousPackedDenseFieldTexture4, &PassParameters->PreviousPackedDenseFieldTexture5, &PassParameters->PreviousPackedDenseFieldTexture6, &PassParameters->PreviousPackedDenseFieldTexture7 };
-	FRDGTextureRef* ExtinctionTargets[] = { &PassParameters->ExtinctionTexture0, &PassParameters->ExtinctionTexture1, &PassParameters->ExtinctionTexture2, &PassParameters->ExtinctionTexture3, &PassParameters->ExtinctionTexture4, &PassParameters->ExtinctionTexture5, &PassParameters->ExtinctionTexture6, &PassParameters->ExtinctionTexture7 };
-	FRDGTextureRef* PreviousExtinctionTargets[] = { &PassParameters->PreviousExtinctionTexture0, &PassParameters->PreviousExtinctionTexture1, &PassParameters->PreviousExtinctionTexture2, &PassParameters->PreviousExtinctionTexture3, &PassParameters->PreviousExtinctionTexture4, &PassParameters->PreviousExtinctionTexture5, &PassParameters->PreviousExtinctionTexture6, &PassParameters->PreviousExtinctionTexture7 };
 	FRDGTextureRef* LightOpticalDepthTargets[] = { &PassParameters->LightOpticalDepthTexture0, &PassParameters->LightOpticalDepthTexture1, &PassParameters->LightOpticalDepthTexture2, &PassParameters->LightOpticalDepthTexture3, &PassParameters->LightOpticalDepthTexture4, &PassParameters->LightOpticalDepthTexture5, &PassParameters->LightOpticalDepthTexture6, &PassParameters->LightOpticalDepthTexture7 };
 	FRDGTextureRef* PreviousLightOpticalDepthTargets[] = { &PassParameters->PreviousLightOpticalDepthTexture0, &PassParameters->PreviousLightOpticalDepthTexture1, &PassParameters->PreviousLightOpticalDepthTexture2, &PassParameters->PreviousLightOpticalDepthTexture3, &PassParameters->PreviousLightOpticalDepthTexture4, &PassParameters->PreviousLightOpticalDepthTexture5, &PassParameters->PreviousLightOpticalDepthTexture6, &PassParameters->PreviousLightOpticalDepthTexture7 };
 	FRDGTextureRef* RenderOccupancyTargets[] = { &PassParameters->RenderOccupancyTexture0, &PassParameters->RenderOccupancyTexture1, &PassParameters->RenderOccupancyTexture2, &PassParameters->RenderOccupancyTexture3, &PassParameters->RenderOccupancyTexture4, &PassParameters->RenderOccupancyTexture5, &PassParameters->RenderOccupancyTexture6, &PassParameters->RenderOccupancyTexture7 };
@@ -2134,10 +2130,9 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	for (int32 Slot = 0; Slot < TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots; ++Slot)
 	{
 		const FMultiSmokeTextureRefs& TextureRefs = MultiSmokeTextures[FMath::Min(Slot, MultiSmokeTextures.Num() - 1)];
+		*ObstacleTargets[Slot] = TextureRefs.ObstacleTexture;
 		*PackedDenseFieldTargets[Slot] = TextureRefs.PackedDenseFieldTexture;
 		*PreviousPackedDenseFieldTargets[Slot] = TextureRefs.PreviousPackedDenseFieldTexture;
-		*ExtinctionTargets[Slot] = TextureRefs.ExtinctionTexture;
-		*PreviousExtinctionTargets[Slot] = TextureRefs.PreviousExtinctionTexture;
 		*LightOpticalDepthTargets[Slot] = TextureRefs.LightOpticalDepthTexture;
 		*PreviousLightOpticalDepthTargets[Slot] = TextureRefs.PreviousLightOpticalDepthTexture;
 		*RenderOccupancyTargets[Slot] = TextureRefs.RenderOccupancyTexture;
@@ -2792,10 +2787,6 @@ void FTimeThiefSmokeViewExtension::EnsureResources(FRDGBuilder& GraphBuilder, FR
 		{
 			AllocatePooledTexture(VelocityDesc, State.VelocityTextures[TextureIndex], TEXT("TimeThiefSmoke.Velocity"));
 			State.bNeedsInit = true;
-		}
-		if (!State.ExtinctionTextures[TextureIndex].IsValid())
-		{
-			AllocatePooledTexture(ScalarDesc, State.ExtinctionTextures[TextureIndex], TEXT("TimeThiefSmoke.Extinction"));
 		}
 		if (!State.LightOpticalDepthTextures[TextureIndex].IsValid())
 		{
@@ -3946,7 +3937,6 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			BulletSinkConsumerTexture,
 			State.bBulletFieldsActive);
 		AddBuildRenderOccupancyPass(GraphBuilder, State);
-		AddBuildExtinctionVolumePass(GraphBuilder, State);
 		AddBuildLightVolumePass(GraphBuilder, State);
 		return;
 	}
@@ -3996,7 +3986,6 @@ void FTimeThiefSmokeViewExtension::SimulateSmoke(
 			BulletSinkConsumerTexture,
 			State.bBulletFieldsActive);
 		AddBuildRenderOccupancyPass(GraphBuilder, State);
-		AddBuildExtinctionVolumePass(GraphBuilder, State);
 		AddBuildLightVolumePass(GraphBuilder, State);
 	}
 
@@ -4721,47 +4710,17 @@ void FTimeThiefSmokeViewExtension::AddBuildRenderOccupancyPass(FRDGBuilder& Grap
 }
 
 
-void FTimeThiefSmokeViewExtension::AddBuildExtinctionVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State)
-{
-	const int32 Index = State.CurrentPackedFieldIndex;
-	if (!DetailNoiseTexture.IsValid() || !State.PackedDenseFieldTextures[Index].IsValid() || !State.ExtinctionTextures[Index].IsValid() || !State.ObstacleSdfTexture.IsValid()) return;
-	const float FadeDuration = FMath::Max(TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration, 0.001f);
-	const float FadeAlpha = FMath::Clamp((State.SimulationTimeSeconds - State.Volume.DurationSeconds) / FadeDuration, 0.0f, 1.0f);
-	TShaderMapRef<FTimeThiefSmokeBuildExtinctionVolumeCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
-	auto* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildExtinctionVolumeCS::FParameters>();
-	PassParameters->GridResolution = State.AllocatedGridSize;
-	PassParameters->BoundsExtent = State.Volume.BoundsExtent;
-	PassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;
-	PassParameters->NoiseScale = FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseScale, 0.0f);
-	PassParameters->NoiseStrength = FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseStrength, 0.0f);
-	PassParameters->NoiseTime = State.SimulationTimeSeconds * FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseTimeScale, 0.0f);
-	PassParameters->LifetimeAlpha = 1.0f - FadeAlpha * FadeAlpha * (3.0f - 2.0f * FadeAlpha);
-	PassParameters->ObstacleFeather = ResolveObstacleFeatherCm(State.Volume, State.AllocatedGridSize);
-	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
-	PassParameters->PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[Index]);
-	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);
-	PassParameters->DetailNoiseTexture = GraphBuilder.RegisterExternalTexture(DetailNoiseTexture);
-	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
-	PassParameters->DetailNoiseSampler = TStaticSamplerState<SF_Trilinear, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI();
-	PassParameters->OutExtinctionTexture = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[Index]));
-	SmokeTestGpuProfiler.AddPass(
-		GraphBuilder,
-		RDG_EVENT_NAME("TimeThiefSmoke.BuildExtinctionVolume SmokeId=%d", State.Volume.SmokeId),
-		ComputeShader,
-		PassParameters,
-		MakeGroupCount(State.AllocatedGridSize),
-		MakeSmokeTestGpuMetadata(TEXT("Composite.BuildExtinctionVolume"), State.Volume.SmokeId));
-}
-
 void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(FRDGBuilder& GraphBuilder, FRenderSmokeState& State)
 {
 	const int32 Index = State.CurrentPackedFieldIndex;
-	if (!State.ExtinctionTextures[Index].IsValid() || !State.LightOpticalDepthTextures[Index].IsValid())
+	if (!State.PackedDenseFieldTextures[Index].IsValid() || !State.ObstacleSdfTexture.IsValid() || !State.LightOpticalDepthTextures[Index].IsValid())
 	{
 		State.bLightVolumeValid = false;
 		State.bLightVolumeHistoryValid = false;
 		return;
 	}
+	const float FadeDuration = FMath::Max(TimeThiefSmokeParameterDefaults::SmokeFadeOutDuration, 0.001f);
+	const float FadeAlpha = FMath::Clamp((State.SimulationTimeSeconds - State.Volume.DurationSeconds) / FadeDuration, 0.0f, 1.0f);
 	State.bLightVolumeHistoryValid = State.bLightVolumeValid;
 	TShaderMapRef<FTimeThiefSmokeBuildLightVolumeCS> ComputeShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 	auto* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildLightVolumeCS::FParameters>();
@@ -4771,8 +4730,15 @@ void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(FRDGBuilder& GraphBui
 	PassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
 	PassParameters->ShadowStepLength = FMath::Max(TimeThiefSmokeParameterDefaults::CombinedShadowStepLength, 1.0f);
 	PassParameters->ShadowStepCount = FMath::Max(TimeThiefSmokeParameterDefaults::CombinedShadowStepCount, 1);
+	PassParameters->NoiseScale = FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseScale, 0.0f);
+	PassParameters->NoiseStrength = FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseStrength, 0.0f);
+	PassParameters->NoiseTime = State.SimulationTimeSeconds * FMath::Max(TimeThiefSmokeParameterDefaults::RenderNoiseTimeScale, 0.0f);
+	PassParameters->LifetimeAlpha = 1.0f - FadeAlpha * FadeAlpha * (3.0f - 2.0f * FadeAlpha);
+	PassParameters->ObstacleFeather = ResolveObstacleFeatherCm(State.Volume, State.AllocatedGridSize);
+	PassParameters->LocalToWorld = State.Volume.LocalToWorld.ToMatrixWithScale();
 	PassParameters->WorldToLocal = State.Volume.LocalToWorld.ToInverseMatrixWithScale();
-	PassParameters->ExtinctionTexture = GraphBuilder.RegisterExternalTexture(State.ExtinctionTextures[Index]);
+	PassParameters->PackedDenseFieldTexture = GraphBuilder.RegisterExternalTexture(State.PackedDenseFieldTextures[Index]);
+	PassParameters->ObstacleTexture = GraphBuilder.RegisterExternalTexture(State.ObstacleSdfTexture);
 	PassParameters->VolumeSampler = TStaticSamplerState<SF_Trilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI();
 	PassParameters->OutLightOpticalDepth = GraphBuilder.CreateUAV(GraphBuilder.RegisterExternalTexture(State.LightOpticalDepthTextures[Index]));
 	SmokeTestGpuProfiler.AddPass(
