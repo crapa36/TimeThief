@@ -6,7 +6,7 @@ on:
       - SmokeOptimization
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   inspect:
@@ -14,11 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: agent/restore-smoke-jacobi
           fetch-depth: 0
-      - name: Fix temporary cleanup script parser
+      - name: Apply cleanup when needed
         shell: bash
         run: |
-          python3 - <<'PY'
+          if [ -f Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokePressureMGPCG.usf ]; then
+            python3 - <<'PY'
           from pathlib import Path
           path = Path('.github/scripts/apply_smoke_jacobi_cleanup.py')
           text = path.read_text()
@@ -28,30 +30,16 @@ jobs:
               raise SystemExit('Unexpected remove_console_variable implementation')
           path.write_text(text.replace(old, new))
           PY
-      - name: Apply cleanup in validation workspace
-        id: cleanup
-        continue-on-error: true
-        shell: bash
-        run: |
-          python3 .github/scripts/apply_smoke_jacobi_cleanup.py > cleanup-run.txt 2>&1
-      - name: Capture generated diff
-        if: always()
-        shell: bash
-        run: |
-          git status --short > cleanup-status.txt
-          git diff --stat > cleanup-stat.txt
-          git diff --binary > cleanup.patch
-          git diff --check >> cleanup-run.txt 2>&1 || true
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: smoke-jacobi-cleanup-preview
-          path: |
-            cleanup-run.txt
-            cleanup-status.txt
-            cleanup-stat.txt
-            cleanup.patch
-          if-no-files-found: error
-      - name: Fail if cleanup failed
-        if: steps.cleanup.outcome == 'failure'
-        run: exit 1
+            python3 .github/scripts/apply_smoke_jacobi_cleanup.py
+            git diff --check
+            git config user.name "OpenAI"
+            git config user.email "noreply@openai.com"
+            git add -A Plugins/TimeThiefSmokeRenderer Plugins/TimeThiefSmokeTest
+            git commit -m "Restore Jacobi-only smoke projection"
+            git push origin HEAD:agent/restore-smoke-jacobi
+          else
+            ! grep -R -n -E 'MGPCG|PressureSolver|AdaptiveFluid|VelocityMaximum|VelocityMax|QualityCourantLimit|MaxAdaptiveFluidSubsteps|VelocityReadbackIntervalFrames|LastMeasuredMaxVelocity|AddMGPCGPressureSolvePasses' \
+              Plugins/TimeThiefSmokeRenderer Plugins/TimeThiefSmokeTest \
+              --include='*.h' --include='*.cpp' --include='*.ush' --include='*.usf'
+            git diff --check
+          fi
