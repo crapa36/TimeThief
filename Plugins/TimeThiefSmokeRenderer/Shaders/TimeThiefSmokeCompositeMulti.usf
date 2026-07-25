@@ -558,13 +558,33 @@ FTimeThiefSmokeMediumSample EvaluateSmokeMedium(
 	const float RenderFilamentWarpStrength = Desc.FilamentAge.x;
 	const float TimeNoise = AgeSeconds * RenderNoiseTimeScale;
 	const float SharedBaseExtinction = SampleInterpolatedExtinction(Slot, Desc, VolumeUVW);
-	++BoundaryEvaluationCount;
 	if (SharedBaseExtinction <= 0.0001)
 	{
 		return Sample;
 	}
 
-	float Density = SharedBaseExtinction;
+	// Evaluate the smoke silhouette in continuous ray space instead of baking it at
+	// simulation voxel centers. This preserves smooth ellipsoid and noise contours.
+	const float EllipsoidDistance = length(SimulationLocal / float3(1.0, 1.0, 0.86));
+	const uint BoundaryNoiseOctaveStart = EvaluatedNoiseOctaveCount;
+	const float BoundaryMask = EvaluateBoundaryMaskLazy(
+		Desc,
+		SampleWorld,
+		EllipsoidDistance,
+		BoundaryFadeStart,
+		EvaluatedNoiseOctaveCount,
+		BoundaryEvaluationCount,
+		BoundaryCoarseNoiseEvaluationCount,
+		BoundaryFineNoiseEvaluationCount,
+		BoundaryInteriorSkipCount,
+		BoundaryExteriorRejectCount);
+	EvaluatedBoundaryNoiseOctaveCount += EvaluatedNoiseOctaveCount - BoundaryNoiseOctaveStart;
+	if (BoundaryMask <= 0.0001)
+	{
+		return Sample;
+	}
+
+	float Density = SharedBaseExtinction * BoundaryMask;
 	const float StableRenderFilamentScale = max(RenderFilamentScale, 0.0);
 	const float FineFilamentMultiplier = 2.0;
 	const bool bEvaluateRenderDetail = Density < Desc.BoundsExtent_DetailDensityCutoff.w;

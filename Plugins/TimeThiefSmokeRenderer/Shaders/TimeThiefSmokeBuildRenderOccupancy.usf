@@ -16,9 +16,13 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	}
 
 	const int3 MacroCoord = int3(DispatchThreadId);
-	const int3 StartCoord = MacroCoord * GridResolution / MacroGridResolution;
+	// Include a one-voxel halo so empty-space skipping cannot discard density that
+	// contributes through trilinear filtering across a macro-cell boundary.
+	const int3 StartCoord = max(
+		MacroCoord * GridResolution / MacroGridResolution - int3(1, 1, 1),
+		int3(0, 0, 0));
 	const int3 EndCoord = min(
-		((MacroCoord + 1) * GridResolution + MacroGridResolution - 1) / MacroGridResolution,
+		((MacroCoord + 1) * GridResolution + MacroGridResolution - 1) / MacroGridResolution + int3(1, 1, 1),
 		GridResolution);
 
 	uint Active = 0u;
