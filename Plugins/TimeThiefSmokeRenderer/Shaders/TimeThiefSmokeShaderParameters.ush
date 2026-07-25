@@ -2,6 +2,12 @@
 
 #include "/TimeThiefSmokeShaders/TimeThiefSmokeCommon.ush"
 
+float TimeThiefSmokeScaleReferenceMultiplier(float ReferenceMultiplier, float DeltaSeconds)
+{
+	const float ReferenceStepCount = max(DeltaSeconds, 0.0) * 30.0;
+	return ReferenceStepCount > 0.0 ? pow(saturate(ReferenceMultiplier), ReferenceStepCount) : 1.0;
+}
+
 #define TT_SMOKE_HLSL_PARAM_GRID_RESOLUTION int3 GridResolution;
 #define TT_SMOKE_HLSL_PARAM_BRICK_GRID_RESOLUTION int3 BrickGridResolution;
 #define TT_SMOKE_HLSL_PARAM_SMOKE_BRICK_SIZE int SmokeBrickSize;
@@ -383,6 +389,7 @@
 	TT_SMOKE_HLSL_PARAM_OUT_VORTEX_BRICK_MASKS
 
 #define TIME_THIEF_SMOKE_SPLAT_VORTEX_PARTICLES_PARAMETERS \
+	TT_SMOKE_HLSL_PARAM_DELTA_SECONDS \
 	TT_SMOKE_HLSL_PARAM_VORTEX_PARTICLE_COUNT \
 	TT_SMOKE_HLSL_PARAM_MAX_VORTEX_PARTICLE_COUNT \
 	TT_SMOKE_HLSL_PARAM_VORTEX_PARTICLE_SPLAT_RADIUS \

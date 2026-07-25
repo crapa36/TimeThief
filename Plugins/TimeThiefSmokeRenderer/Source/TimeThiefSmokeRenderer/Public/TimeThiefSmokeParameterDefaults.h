@@ -43,7 +43,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 장애물 마스크
 
 	// 장애물 마스크 3D 텍스처 축 해상도. 높을수록 충돌 품질과 비용 증가.
-	constexpr int32 ObstacleMaskResolution = 16;
+	constexpr int32 ObstacleMaskResolution = 64;
 	// 장애물 검사 박스 최소 여유 거리(cm). 높을수록 얇은 장애물 검출 증가, 과차단 위험 증가.
 	constexpr float ObstacleMaskInflation = 1.0f;
 	// 장애물 마스크 복셀 검사 박스의 셀 반경 비율. 높을수록 누락 감소, 과차단 증가.
@@ -55,7 +55,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 장애물이 없는 영역에 기록할 SDF 거리(cm). 높을수록 유효 표면 거리 범위 증가.
 	constexpr float ObstacleFieldFarDistanceCm = 100000.0f;
 	// 장애물 SDF 표면 페더 폭(cm). 높을수록 경계가 부드럽고 차단 영역 증가.
-	constexpr float ObstacleSdfSurfaceFeatherCm = 32.0f;
+	constexpr float ObstacleSdfSurfaceFeatherCm = 24.0f;
+	// 장애물 SDF 표면 페더 폭의 셀 단위 배율. 높을수록 해상도별 경계 완화 범위 증가.
+	constexpr float ObstacleSdfSurfaceFeatherCells = 1.25f;
 	// 장애물 transform 위치 변경 감지 허용오차(cm). 높을수록 갱신 비용과 미세 이동 반응 감소.
 	constexpr float ObstacleTransformLocationToleranceCm = 0.1f;
 	// 장애물 transform 스케일 변경 감지 허용오차. 높을수록 갱신 비용과 미세 스케일 반응 감소.
@@ -65,32 +67,63 @@ namespace TimeThiefSmokeParameterDefaults
 
 	// 시뮬레이션 격자
 
+	// 연막 3D 격자 목표 복셀 크기(cm). 낮을수록 해상도와 품질 및 비용 증가.
+	constexpr float SmokeTargetVoxelSizeCm = 22.0f;
+	// 연막 3D 격자 목표 복셀 크기 최소값(cm). 낮을수록 허용 가능한 최고 해상도와 비용 증가.
+	constexpr float SmokeTargetVoxelSizeMinCm = 10.0f;
+	// 연막 3D 격자 목표 복셀 크기 최대값(cm). 높을수록 허용 가능한 최저 해상도와 디테일 손실 증가.
+	constexpr float SmokeTargetVoxelSizeMaxCm = 100.0f;
 	// 연막 3D 격자 기준 축 해상도. 높을수록 시뮬레이션 품질과 비용 증가.
-	constexpr int32 SmokeGridResolution = 16;
+	constexpr int32 SmokeGridResolution = 64;
 	// 시뮬레이션 그리드 최소 축 해상도. 낮을수록 비용 감소, 품질 감소.
-	constexpr int32 SmokeGridMinAxisResolution = 16;
+	constexpr int32 SmokeGridMinAxisResolution = 4;
 	// 시뮬레이션 그리드 최대 축 해상도. 높을수록 품질과 비용 증가.
-	constexpr int32 SmokeGridMaxAxisResolution = 32;
+	constexpr int32 SmokeGridMaxAxisResolution = 128;
 	// 컴퓨트 셰이더 스레드 그룹 한 변 크기. 셰이더 numthreads와 맞아야 함.
 	constexpr int32 SmokeThreadGroupSize = 4;
 	// 격자 재할당 축 정렬 단위. 높을수록 재할당 감소, 메모리 여유 증가.
-	constexpr int32 SmokeGridAllocationQuantum = 16;
+	constexpr int32 SmokeGridAllocationQuantum = SmokeThreadGroupSize;
 	// Jacobi 압력 반복 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterations = 1;
+	constexpr int32 PressureIterations = 40;
 	// 압력 반복 최소 횟수. 낮을수록 비용 감소, 발산 제거 품질 감소.
 	constexpr int32 PressureIterationsMin = 1;
 	// 압력 반복 최대 횟수. 높을수록 압력 품질과 비용 증가.
-	constexpr int32 PressureIterationsMax = 2;
+	constexpr int32 PressureIterationsMax = 80;
 	// 희소 브릭 한 변의 복셀 수. 높을수록 관리 비용 감소, 빈 공간 낭비 증가.
-	constexpr int32 SmokeBrickSize = 16;
+	constexpr int32 SmokeBrickSize = 8;
 	// sparse brick 최소 크기(voxel). 낮을수록 culling 정밀도와 비용 증가.
 	constexpr int32 SmokeBrickMinSize = 4;
 	// sparse brick 최대 크기(voxel). 높을수록 비용 감소, culling 정밀도 감소.
-	constexpr int32 SmokeBrickMaxSize = 32;
+	constexpr int32 SmokeBrickMaxSize = 16;
 	// 희소 아틀라스 활성 브릭 최대 개수. 높을수록 넓은 연막 지원과 VRAM 비용 증가.
-	constexpr int32 MaxActiveSmokeBricks = 32;
+	constexpr int32 MaxActiveSmokeBricks = 512;
+	// sparse simulation을 허용할 브릭 그리드 최소 축 크기. 낮을수록 작은 격자에도 sparse 경로 적용 증가.
+	constexpr int32 SparseMinBrickGridAxis = 4;
+	// sparse simulation을 허용할 최소 브릭 개수. 낮을수록 작은 격자에도 sparse 경로 적용 증가.
+	constexpr int32 SparseMinBrickCount = 64;
 	// 희소 브릭 활성화 최소 속도(cm/s). 높을수록 비용 감소, 약한 움직임 손실 증가.
 	constexpr float SparseVelocityActiveThreshold = 150.0f;
+	// 적응형 substep의 Courant 수 상한. 낮을수록 안정성과 substep 비용 증가.
+	constexpr float QualityCourantLimit = 1.0f;
+	// 유체 적응형 substep 최대 횟수. 높을수록 고속 흐름 안정성과 프레임 비용 증가.
+	constexpr int32 MaxAdaptiveFluidSubsteps = 4;
+
+	// 압력 솔버
+
+	// 압력 솔버 선택. 0은 Jacobi, 1은 multigrid-preconditioned conjugate gradient.
+	constexpr int32 PressureSolver = 1;
+	// MGPCG 최대 반복 횟수. 높을수록 압력 수렴 품질과 비용 증가.
+	constexpr int32 MGPCGMaxIterations = 16;
+	// MGPCG 하강 전 smoothing 반복 횟수. 높을수록 고주파 오차 제거와 비용 증가.
+	constexpr int32 MGPCGPreSmoothIterations = 2;
+	// MGPCG 상승 후 smoothing 반복 횟수. 높을수록 보간 오차 제거와 비용 증가.
+	constexpr int32 MGPCGPostSmoothIterations = 2;
+	// MGPCG coarse grid 반복 횟수. 높을수록 저주파 오차 제거와 비용 증가.
+	constexpr int32 MGPCGCoarseIterations = 12;
+	// MGPCG 상대 잔차 수렴 기준. 낮을수록 압력 정확도와 반복 비용 증가.
+	constexpr float MGPCGRelativeTolerance = 1.0e-4f;
+	// 최대 속도 GPU readback 간격(frame). 높을수록 readback 비용과 적응형 substep 반응 지연 증가.
+	constexpr int32 VelocityReadbackIntervalFrames = 4;
 
 	// 렌더링 raymarch
 
@@ -102,16 +135,33 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float RenderWorldStepLengthMaxCm = 200.0f;
 	// 반해상도 합성 기본 사용 여부. 켜면 raymarch 비용 감소, 업샘플 경계 오차 증가.
 	constexpr int32 HalfResolution = 1;
+	// 반해상도 연막 temporal reconstruction 기본 사용 여부. 켜면 시간적 안정성 증가, history 비용 증가.
+	constexpr int32 TemporalReconstruction = 1;
+	// temporal history 최대 가중치. 높을수록 안정성 증가, 잔상 위험 증가.
+	constexpr float TemporalHistoryWeight = 0.88f;
+	// temporal history 깊이 거부 거리(cm). 낮을수록 경계 잔상 감소, history 재사용 감소.
+	constexpr float TemporalDepthRejectionCm = 80.0f;
+	// temporal history 투과율 차이 거부 기준. 낮을수록 변화 반응 증가, 시간적 안정성 감소.
+	constexpr float TemporalTransmittanceRejection = 0.18f;
+	// temporal neighborhood clamp 확장량. 높을수록 history 보존 증가, ghosting 위험 증가.
+	constexpr float TemporalNeighborhoodClampExpansion = 0.08f;
 	// 멀티 연막 composite tile 한 변 크기(px). 높을수록 타일 관리 비용 감소, culling 정밀도 감소.
 	constexpr int32 CompositeTileSize = 32;
 	// 한 번에 합성할 연막 슬롯 최대 개수. 높을수록 겹친 연막 처리량과 비용 증가.
 	constexpr int32 MaxCompositeSmokeSlots = 8;
+	// 렌더 occupancy 매크로 셀 한 축의 기본 해상도. 높을수록 빈 공간 skip 정밀도와 구축 비용 증가.
+	constexpr int32 RenderOccupancyResolution = 4;
+	// 렌더 occupancy 활성화 최소 밀도. 높을수록 raymarch 비용 감소, 옅은 연막 누락 증가.
+	constexpr float RenderOccupancyDensityThreshold = 0.0001f;
+	// 렌더 디테일 노이즈 3D 텍스처 축 해상도. 높을수록 노이즈 품질과 생성 및 메모리 비용 증가.
+	constexpr int32 DetailNoiseResolution = 64;
 	// fullscreen composite 전환 화면 면적 비율. 낮을수록 fullscreen 경로를 더 빨리 사용.
 	constexpr float CompositeFullscreenAreaThreshold = 0.58f;
 	// scissor를 적용할 최소 절약 픽셀 수. 높을수록 작은 영역 최적화와 설정 비용 감소.
 	constexpr int32 CompositeScissorMinSavedPixels = 200000;
 	// 연막 screen rect 여유 픽셀(px). 높을수록 가장자리 누락 감소, 합성 면적 증가.
 	constexpr int32 CompositeScreenRectPadding = 8;
+
 	// 빛과 그림자
 
 	// 연막 흡수 계수. 높을수록 더 어둡고 불투명하게 보임.
@@ -167,7 +217,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
 	constexpr float RenderFilamentWarpStrength = 1.5f;
 	// 렌더 노이즈와 필라멘트 계산을 생략할 밀도 하한. 낮을수록 비용과 고밀도 내부 디테일 감소.
-	constexpr float RenderDetailDensityCutoff = 3.5;
+	constexpr float RenderDetailDensityCutoff = 3.5f;
 
 	// 이류와 감쇠
 
@@ -218,12 +268,13 @@ namespace TimeThiefSmokeParameterDefaults
 	constexpr float VortexDensityGradientScale = 4.0f;
 	// 와류 입자 업데이트 간격(초). 높을수록 비용 감소, 반응 지연 증가.
 	constexpr float VortexSubstepIntervalSeconds = 1.0f / 8.0f;
+
 	// 액터 wake와 공기 흐름
 
 	// 액터가 지나간 뒤쪽 wake 길이 배율. 높을수록 물리 영향 범위 증가.
-	constexpr float ActorWakeTrailLengthScale = 11.0f;
+	constexpr float ActorWakeTrailLengthScale = 12.0f;
 	// 액터 wake street lane 내부 반경 배율. 낮을수록 얇은 후류 생성.
-	constexpr float ActorWakeStreetLaneInnerRadiusScale = 0.28f;
+	constexpr float ActorWakeStreetLaneInnerRadiusScale = 0.5f;
 	// 액터 표면 회전 힘(cm/s). 높을수록 몸 표면을 타는 연기 회전 증가.
 	constexpr float ActorWakeSurfaceRollForce = 500.0f;
 	// 액터 표면 접선 힘 배율. 높을수록 몸 표면 방향으로 더 끌림.
@@ -245,7 +296,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 공기 상호작용 난류 힘(cm/s). 높을수록 액터 주변 난류 증가.
 	constexpr float AirInteractionCurlNoiseForce = 200.0f;
 	// 와류 confinement 힘 배율. 높을수록 회전 구조 복원력 증가.
-	constexpr float VorticityConfinementForceScale = 26.0f;
+	constexpr float VorticityConfinementForceScale = 25.0f;
 	// 난류 band 최소 힘(cm/s). 높을수록 약한 난류의 힘 하한 증가.
 	constexpr float TurbulenceBandMinForce = 180.0f;
 	// 난류 band 최대 힘(cm/s). 높을수록 강한 난류의 힘 상한 증가.
@@ -309,7 +360,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 후류
 
 	// 총알이 지우는 연막 반경(cm). 높을수록 구멍 크기 증가.
-	constexpr float BulletClearRadius = 32.0f;
+	constexpr float BulletClearRadius = 40.0f;
 	// 총알 구멍 반경 랜덤 최소 배율. 높을수록 가장 작은 구멍 크기 증가.
 	constexpr float BulletClearRadiusRandomMin = 0.95f;
 	// 총알 구멍 반경 랜덤 최대 배율. 높을수록 가장 큰 구멍 크기 증가.
@@ -317,9 +368,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 후류 강도 랜덤 최소 배율. 높을수록 가장 약한 후류 강도 증가.
 	constexpr float BulletWakeStrengthRandomMin = 0.9f;
 	// 총알 후류 강도 랜덤 최대 배율. 높을수록 가장 강한 후류 강도 증가.
-	constexpr float BulletWakeStrengthRandomMax = 1.0f;
+	constexpr float BulletWakeStrengthRandomMax = 1.8f;
 	// 총알 후류가 보이는 최대 시간(초). 높을수록 흔적 지속 증가.
-	constexpr float BulletWakeMaxVisibleLife = 0.2f;
+	constexpr float BulletWakeMaxVisibleLife = 0.5f;
 	// 총알 구멍이 풀리는 시간(초). 높을수록 구멍 복구가 느림.
 	constexpr float BulletWakeReleaseDuration = 1.5f;
 	// 총알 주변 공기 통로 유지 시간(초). 높을수록 통로 영향 지속 증가.
@@ -329,7 +380,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 진행 방향 속도 충격 강도(cm/s). 높을수록 wake 흐름 증가.
 	constexpr float BulletWakeImpulseStrength = 55.0f;
 	// 총알 구멍 가장자리 부드러움. 높을수록 경계가 부드럽고 넓어짐.
-	constexpr float BulletWakeCutoutFeather = 1.5f;
+	constexpr float BulletWakeCutoutFeather = 1.0f;
 	// 총알 wake 수명 최소값(초).
 	constexpr float BulletWakeMinLifeSeconds = 0.05f;
 	// 총알 구멍 feather 최소값.
