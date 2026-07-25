@@ -18,6 +18,19 @@ jobs:
         with:
           ref: agent/restore-smoke-jacobi
           fetch-depth: 0
+      - name: Fix temporary cleanup script parser
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/apply_smoke_jacobi_cleanup.py')
+          text = path.read_text()
+          old = '''    end = text.find("\\n\\t);", pos)\n    if end < 0:\n        raise RuntimeError(f"Missing console variable terminator: {variable_name}")\n    end += len("\\n\\t);")\n'''
+          new = '''    end = text.find("));", pos)\n    if end < 0:\n        raise RuntimeError(f"Missing console variable terminator: {variable_name}")\n    end += len("));")\n'''
+          if text.count(old) != 1:
+              raise SystemExit('Unexpected remove_console_variable implementation')
+          path.write_text(text.replace(old, new))
+          PY
       - name: Apply and validate cleanup
         run: python3 .github/scripts/apply_smoke_jacobi_cleanup.py
       - name: Review generated diff
