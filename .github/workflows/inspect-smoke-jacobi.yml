@@ -1,0 +1,120 @@
+name: Inspect smoke Jacobi cleanup
+
+on:
+  push:
+    branches:
+      - SmokeOptimization
+    paths:
+      - .github/workflows/inspect-smoke-jacobi.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Inspect current and baseline smoke solver code
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          BASE = '9af2a158b683877d79f623f9790a350701ba7941'
+          CPP = 'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp'
+          HEADER = 'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.h'
+          SHADERS_H = 'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.h'
+          DEFAULTS = 'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Public/TimeThiefSmokeParameterDefaults.h'
+
+          def git_show(ref, path):
+              return subprocess.check_output(['git', 'show', f'{ref}:{path}'], text=True)
+
+          def extract_function(text, qualified_name):
+              marker = qualified_name + '('
+              pos = text.find(marker)
+              if pos < 0:
+                  return None
+              start = text.rfind('\n', 0, pos) + 1
+              brace = text.find('{', pos)
+              if brace < 0:
+                  return None
+              depth = 0
+              i = brace
+              in_str = None
+              escape = False
+              line_comment = False
+              block_comment = False
+              while i < len(text):
+                  c = text[i]
+                  n = text[i + 1] if i + 1 < len(text) else ''
+                  if line_comment:
+                      if c == '\n': line_comment = False
+                  elif block_comment:
+                      if c == '*' and n == '/': block_comment = False; i += 1
+                  elif in_str:
+                      if escape: escape = False
+                      elif c == '\\': escape = True
+                      elif c == in_str: in_str = None
+                  else:
+                      if c == '/' and n == '/': line_comment = True; i += 1
+                      elif c == '/' and n == '*': block_comment = True; i += 1
+                      elif c in ('"', "'"): in_str = c
+                      elif c == '{': depth += 1
+                      elif c == '}':
+                          depth -= 1
+                          if depth == 0:
+                              return text[start:i + 1]
+                  i += 1
+              return None
+
+          current_cpp = Path(CPP).read_text()
+          base_cpp = git_show(BASE, CPP)
+
+          names = [
+              'FTimeThiefSmokeViewExtension::ConsumeVelocityMaximumReadback',
+              'FTimeThiefSmokeViewExtension::QueueVelocityMaximumReadback',
+              'FTimeThiefSmokeViewExtension::SimulateSmoke',
+              'FTimeThiefSmokeViewExtension::AddBuildMacDivergencePass',
+              'FTimeThiefSmokeViewExtension::AddMGPCGPressureSolvePasses',
+              'FTimeThiefSmokeViewExtension::AddPressureJacobiPass',
+              'FTimeThiefSmokeViewExtension::AddProjectMacToCollocatedVelocityPass',
+              'FTimeThiefSmokeViewExtension::AddPressureResidualPass',
+              'FTimeThiefSmokeViewExtension::AddProjectionDiagnosticsPass',
+          ]
+          for name in names:
+              print(f'\n===== CURRENT {name} =====')
+              print(extract_function(current_cpp, name) or '<missing>')
+              print(f'\n===== BASE {name} =====')
+              print(extract_function(base_cpp, name) or '<missing>')
+
+          terms = re.compile(r'MGPCG|PressureSolver|AdaptiveFluid|VelocityMaximum|LastMeasuredMaxVelocity|ProjectionDiagnostics|PressureResidual|ProjectionReduce|VelocityMax')
+          for path in [CPP, HEADER, SHADERS_H, DEFAULTS,
+                       'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeShaders.cpp',
+                       'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeRendererAutomationTests.cpp',
+                       'Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Public/TimeThiefSmokeTestBridge.h',
+                       'Plugins/TimeThiefSmokeTest/Source/TimeThiefSmokeTest/Private/TimeThiefSmokeTestRecorder.cpp']:
+              p = Path(path)
+              if not p.exists():
+                  continue
+              print(f'\n===== OCCURRENCES {path} =====')
+              for no, line in enumerate(p.read_text().splitlines(), 1):
+                  if terms.search(line):
+                      print(f'{no}: {line}')
+
+          print('\n===== BULLET DEFAULTS CURRENT VS BASE =====')
+          current_defaults = Path(DEFAULTS).read_text().splitlines()
+          base_defaults = git_show(BASE, DEFAULTS).splitlines()
+          keys = ('BulletClearRadius', 'BulletWakeStrengthRandom', 'BulletWakeMaxVisibleLife',
+                  'BulletWakeReleaseDuration', 'BulletWakeSink', 'BulletWakeImpulseStrength',
+                  'BulletWakeCutoutFeather', 'BulletWakeMinLifeSeconds', 'BulletWakeHoldCore')
+          for label, lines in [('CURRENT', current_defaults), ('BASE', base_defaults)]:
+              print(label)
+              for line in lines:
+                  if any(key in line for key in keys):
+                      print(line)
+          PY
