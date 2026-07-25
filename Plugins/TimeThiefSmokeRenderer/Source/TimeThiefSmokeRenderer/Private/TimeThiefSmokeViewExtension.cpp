@@ -4767,6 +4767,7 @@ void FTimeThiefSmokeViewExtension::AddBuildLightVolumePass(FRDGBuilder& GraphBui
 	auto* PassParameters = GraphBuilder.AllocParameters<FTimeThiefSmokeBuildLightVolumeCS::FParameters>();
 	PassParameters->GridResolution = State.AllocatedGridSize;
 	PassParameters->BoundsExtent = State.Volume.BoundsExtent;
+	PassParameters->NaturalBoundsExtent = State.Volume.NaturalBoundsExtent;
 	PassParameters->LightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
 	PassParameters->ShadowStepLength = FMath::Max(TimeThiefSmokeParameterDefaults::CombinedShadowStepLength, 1.0f);
 	PassParameters->ShadowStepCount = FMath::Max(TimeThiefSmokeParameterDefaults::CombinedShadowStepCount, 1);

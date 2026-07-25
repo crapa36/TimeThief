@@ -312,6 +312,7 @@ public:
 	BEGIN_SHADER_PARAMETER_STRUCT(FParameters, )
 		SHADER_PARAMETER(FIntVector, GridResolution)
 		SHADER_PARAMETER(FVector3f, BoundsExtent)
+		SHADER_PARAMETER(FVector3f, NaturalBoundsExtent)
 		SHADER_PARAMETER(FVector3f, LightDirection)
 		SHADER_PARAMETER(float, ShadowStepLength)
 		SHADER_PARAMETER(int32, ShadowStepCount)

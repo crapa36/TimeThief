@@ -3,6 +3,7 @@
 
 int3 GridResolution;
 float3 BoundsExtent;
+float3 NaturalBoundsExtent;
 float3 LightDirection;
 float ShadowStepLength;
 int ShadowStepCount;
@@ -49,10 +50,18 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 			const float IntervalLength = max(IntervalEnd - IntervalStart, 0.0);
 			const float Distance = (IntervalStart + IntervalEnd) * 0.5;
 			const float3 SampleLocal = LocalPosition + LocalLightDirection * Distance;
-			const float3 UVW = SampleLocal / max(BoundsExtent, 1.0.xxx) * 0.5 + 0.5;
+			const float3 SampleSimulationLocal = SampleLocal / max(BoundsExtent, 1.0.xxx);
+			const float3 UVW = SampleSimulationLocal * 0.5 + 0.5;
 			if (TimeThiefSmokeInsideUVW(UVW))
 			{
-				OpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * LightDistanceScale * IntervalLength;
+				// The shared extinction volume no longer contains the render silhouette. Keep
+				// the light field bounded by the same continuous ellipsoid used for rendering.
+				const float BoundaryMask = TimeThiefSmokeRenderBoundaryMask(
+					SampleSimulationLocal,
+					BoundsExtent,
+					NaturalBoundsExtent,
+					0.0);
+				OpticalDepth += max(ExtinctionTexture.SampleLevel(VolumeSampler, UVW, 0.0), 0.0) * BoundaryMask * LightDistanceScale * IntervalLength;
 			}
 		}
 	}
