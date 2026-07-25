@@ -1,0 +1,51 @@
+name: Remove smoke extinction bake v2
+
+on:
+  pull_request:
+    branches: [SmokeOptimization]
+    paths: [.github/triggers/remove-smoke-extinction-bake-v2.txt]
+
+permissions:
+  contents: write
+
+jobs:
+  remove-bake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Apply direct sampling path
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_HEAD=c6ae678b8ef9b8bbd191f4cfe4abdaa900c27e41
+          SOURCE_BRANCH=agent/remove-smoke-extinction-bake-trigger
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git fetch origin "$SOURCE_BRANCH"
+          git show "origin/$SOURCE_BRANCH:.github/workflows/remove-smoke-extinction-bake.yml" > /tmp/source-workflow.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/source-workflow.yml').read_text().splitlines()
+          start = next(i for i, line in enumerate(lines) if line.strip() == "python3 - <<'PY'")
+          end = next(i for i in range(start + 1, len(lines)) if lines[i].strip() == 'PY')
+          prefix = lines[start][:len(lines[start]) - len(lines[start].lstrip())]
+          script = []
+          for line in lines[start + 1:end]:
+              script.append(line[len(prefix):] if line.startswith(prefix) else line)
+          Path('/tmp/remove_extinction_bake.py').write_text('\n'.join(script) + '\n')
+          PY
+          python3 /tmp/remove_extinction_bake.py
+          git rm \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildExtinctionVolume.usf \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeExtinction.ush
+          git diff --check
+          git status --short
+          export GIT_AUTHOR_NAME='crapa36'
+          export GIT_AUTHOR_EMAIL='50472938+crapa36@users.noreply.github.com'
+          export GIT_COMMITTER_NAME='crapa36'
+          export GIT_COMMITTER_EMAIL='50472938+crapa36@users.noreply.github.com'
+          git add Plugins/TimeThiefSmokeRenderer
+          git commit -m 'Remove precomputed smoke extinction volume'
+          git push origin HEAD:SmokeOptimization
