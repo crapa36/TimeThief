@@ -16,19 +16,29 @@ jobs:
         with:
           fetch-depth: 0
       - name: Apply cleanup in validation workspace
-        run: python3 .github/scripts/apply_smoke_jacobi_cleanup.py
-      - name: Validate and capture diff
+        id: cleanup
+        continue-on-error: true
         shell: bash
         run: |
-          git diff --check
+          python3 .github/scripts/apply_smoke_jacobi_cleanup.py > cleanup-run.txt 2>&1
+      - name: Capture generated diff
+        if: always()
+        shell: bash
+        run: |
           git status --short > cleanup-status.txt
-          git diff --binary > cleanup.patch
           git diff --stat > cleanup-stat.txt
+          git diff --binary > cleanup.patch
+          git diff --check >> cleanup-run.txt 2>&1 || true
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: smoke-jacobi-cleanup-preview
           path: |
+            cleanup-run.txt
             cleanup-status.txt
             cleanup-stat.txt
             cleanup.patch
           if-no-files-found: error
+      - name: Fail if cleanup failed
+        if: steps.cleanup.outcome != 'success'
+        run: exit 1
