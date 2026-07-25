@@ -1,0 +1,62 @@
+name: Diagnose no smoke extinction bake
+
+on:
+  pull_request:
+    branches: [SmokeOptimization]
+    paths: [.github/triggers/diagnose-no-smoke-extinction-bake.txt]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Record verification values
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import subprocess
+
+          base = 'c6ae678b8ef9b8bbd191f4cfe4abdaa900c27e41'
+          root = Path('Plugins/TimeThiefSmokeRenderer')
+          comp = Path('Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf').read_text()
+          light = Path('Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeBuildLightVolume.usf').read_text()
+          grep = subprocess.run([
+              'git', 'grep', '-n', '-E',
+              'FTimeThiefSmokeBuildExtinctionVolumeCS|AddBuildExtinctionVolumePass|ExtinctionTextures|ExtinctionTexture[0-9]|PreviousExtinctionTexture|TimeThiefSmokeExtinction',
+              '--', 'Plugins/TimeThiefSmokeRenderer'
+          ], text=True, capture_output=True)
+          diff_names = subprocess.check_output(['git', 'diff', '--name-only', f'{base}..HEAD'], text=True).splitlines()
+          diff_check = subprocess.run(['git', 'diff', '--check', f'{base}..HEAD'], text=True, capture_output=True)
+          result = {
+              'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'build_extinction_exists': (root / 'Shaders/TimeThiefSmokeBuildExtinctionVolume.usf').exists(),
+              'extinction_helper_exists': (root / 'Shaders/TimeThiefSmokeExtinction.ush').exists(),
+              'forbidden_grep_returncode': grep.returncode,
+              'forbidden_grep_stdout': grep.stdout,
+              'forbidden_grep_stderr': grep.stderr,
+              'composite_obstacle_sampler': comp.count('float SampleObstacleTexture'),
+              'composite_density_visibility': comp.count('float Density = RawDensity * DensityVisibility;'),
+              'light_packed_field': light.count('Texture3D<float4> PackedDenseFieldTexture;'),
+              'light_obstacle_field': light.count('Texture3D<float> ObstacleTexture;'),
+              'light_extinction_input': light.count('Texture3D<float> ExtinctionTexture;'),
+              'diff_name_count': len(diff_names),
+              'diff_names': diff_names,
+              'diff_check_returncode': diff_check.returncode,
+              'diff_check_stdout': diff_check.stdout,
+              'diff_check_stderr': diff_check.stderr,
+          }
+          Path('/tmp/no-extinction-bake-diagnostic.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: no-extinction-bake-diagnostic
+          path: /tmp/no-extinction-bake-diagnostic.json
