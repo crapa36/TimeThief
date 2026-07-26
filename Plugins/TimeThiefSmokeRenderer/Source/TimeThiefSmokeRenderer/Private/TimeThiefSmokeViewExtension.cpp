@@ -1264,6 +1264,10 @@ void FTimeThiefSmokeViewExtension::Clear_RenderThread()
 void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICommandListImmediate& RHICmdList)
 {
 	check(IsInRenderingThread());
+	if (IsRunningCommandlet() || !FApp::CanEverRender())
+	{
+		return;
+	}
 
 	// Warmup texture configurations
 	const FIntVector Grid3D(32, 32, 32);
@@ -1339,43 +1343,46 @@ void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICo
 
 	TRefCountPtr<IPooledRenderTarget>& OccTarget = TempTextures.AddDefaulted_GetRef();
 	AllocatePooledTexture(BrickOccupancyDesc, OccTarget, TEXT("TimeThiefSmoke.Warmup.BrickOccupancy"));
+}
 
-	// Pre-compile compute shader pipeline states (PSOs) to prevent runtime hitching
-	auto ShaderMap = GetGlobalShaderMap(GMaxRHIFeatureLevel);
-	if (ShaderMap)
+void FTimeThiefSmokeViewExtension::WarmupComputePSOs_RenderThread(
+	FRHICommandListImmediate& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel)
 	{
-		auto WarmupComputeShader = [&](auto ShaderRef)
-		{
-			if (ShaderRef.IsValid())
-			{
-				PipelineStateCache::GetAndOrCreateComputePipelineState(RHICmdList, ShaderRef.GetComputeShader(), true);
-			}
-		};
+	check(IsInRenderingThread());
 
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeInitCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildObstacleFieldCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeApplyEventsCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeDynamicObstacleCS>(ShaderMap));
-		for (int32 CompileBulletFields = 0; CompileBulletFields <= 1; ++CompileBulletFields)
+	auto* ShaderMap = GetGlobalShaderMap(FeatureLevel);
+	auto WarmupComputeShader = [&](auto ShaderRef)
+	{
+		if (ShaderRef.IsValid())
 		{
-			FTimeThiefSmokeSimulateCS::FPermutationDomain PermutationVector;
-			PermutationVector.Set<FTimeThiefSmokeSimulateCS::FCompileBulletFieldsDim>(CompileBulletFields != 0);
-			WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSimulateCS>(ShaderMap, PermutationVector));
+			PipelineStateCache::GetAndOrCreateComputePipelineState(RHICmdList, ShaderRef.GetComputeShader(), true);
 		}
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeVorticityCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildCurlCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeUpdateVortexParticlesCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksReverseCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSplatVortexParticlesCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildBrickOccupancyCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildEventBrickMasksCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeExpandBrickOccupancyCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildActiveBrickListCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildSparseScatterArgsCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildMacDivergenceCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokePressureJacobiCS>(ShaderMap));
-		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeProjectMacToCollocatedVelocityCS>(ShaderMap));
+	};
+
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeInitCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildObstacleFieldCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeApplyEventsCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeDynamicObstacleCS>(ShaderMap));
+	for (int32 CompileBulletFields = 0; CompileBulletFields <= 1; ++CompileBulletFields)
+	{
+		FTimeThiefSmokeSimulateCS::FPermutationDomain PermutationVector;
+		PermutationVector.Set<FTimeThiefSmokeSimulateCS::FCompileBulletFieldsDim>(CompileBulletFields != 0);
+		WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSimulateCS>(ShaderMap, PermutationVector));
 	}
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeVorticityCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildCurlCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeUpdateVortexParticlesCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildVortexBrickMasksReverseCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeSplatVortexParticlesCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildBrickOccupancyCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildEventBrickMasksCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeExpandBrickOccupancyCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildActiveBrickListCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildSparseScatterArgsCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeBuildMacDivergenceCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokePressureJacobiCS>(ShaderMap));
+	WarmupComputeShader(TShaderMapRef<FTimeThiefSmokeProjectMacToCollocatedVelocityCS>(ShaderMap));
 }
 
 
@@ -1383,6 +1390,19 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 	FRDGBuilder& GraphBuilder,
 	FSceneViewFamily& ViewFamily)
 {
+	if (!bShaderPSOWarmupComplete)
+	{
+		bShaderPSOWarmupComplete = true;
+		const ERHIFeatureLevel::Type FeatureLevel = ViewFamily.GetFeatureLevel();
+		GraphBuilder.AddPass(
+			RDG_EVENT_NAME("TimeThiefSmoke.WarmupComputePSOs"),
+			ERDGPassFlags::NeverCull,
+			[this, FeatureLevel](FRHICommandListImmediate& RHICmdList)
+			{
+				WarmupComputePSOs_RenderThread(RHICmdList, FeatureLevel);
+			});
+	}
+
 	ConsumeSmokeTestProbeReadbacks();
 	SmokeTestGpuProfiler.PollResults_RenderThread();
 	ReleaseReadyRetiredSparseActiveBrickCountReadbacks();

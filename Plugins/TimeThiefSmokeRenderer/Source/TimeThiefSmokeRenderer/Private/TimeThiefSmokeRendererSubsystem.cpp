@@ -1,5 +1,6 @@
 #include "TimeThiefSmokeRendererSubsystem.h"
 
+#include "Misc/App.h"
 #include "RenderingThread.h"
 #include "TimeThiefSmokeTestBridge.h"
 #include "TimeThiefSmokeViewExtension.h"
@@ -7,6 +8,11 @@
 void UTimeThiefSmokeRendererSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (IsRunningCommandlet() || !FApp::CanEverRender())
+	{
+		return;
+	}
+
 	ViewExtension = FSceneViewExtensions::NewExtension<FTimeThiefSmokeViewExtension>();
 
 	TSharedPtr<FTimeThiefSmokeViewExtension, ESPMode::ThreadSafe> Extension = ViewExtension;

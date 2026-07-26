@@ -136,6 +136,7 @@ private:
 		bool bAllowOverrideOutput);
 
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
+	void WarmupComputePSOs_RenderThread(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel);
 	void EnsureObstacleFieldTextures(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void EnsureVortexParticleBuffers(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void ConsumeSparseActiveBrickCountReadback(FRenderSmokeState& State);
@@ -172,4 +173,5 @@ private:
 	TArray<FRetiredSparseActiveBrickCountReadback> RetiredSparseActiveBrickCountReadbacks;
 	TArray<FPendingSmokeTestProbeReadback> PendingSmokeTestProbeReadbacks;
 	FTimeThiefSmokeTestGpuProfiler SmokeTestGpuProfiler;
+	bool bShaderPSOWarmupComplete = false;
 };
