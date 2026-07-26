@@ -1,0 +1,58 @@
+name: Diagnose smoke actor collision
+
+on:
+  pull_request:
+    branches: [SmokeOptimization]
+    paths: [.github/triggers/diagnose-smoke-actor-collision.txt]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: SmokeOptimization
+          fetch-depth: 0
+      - name: Collect recent smoke collision history
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p diagnostic
+          CUTOFF='2026-07-25T14:17:42Z'
+          git rev-parse HEAD > diagnostic/head.txt
+          git log --since="$CUTOFF" --date=iso-strict --pretty=format:'%H%x09%ad%x09%an%x09%s' > diagnostic/recent_commits.tsv
+          git log --since="$CUTOFF" --date=iso-strict --pretty=format:'commit %H%nDate: %ad%nAuthor: %an%nSubject: %s' --name-status > diagnostic/recent_files.txt
+          git log --since="$CUTOFF" --date=iso-strict --pretty=format:'commit %H%nDate: %ad%nAuthor: %an%nSubject: %s' --name-status -- \
+            Source/TimeThief/Actors/TimeThiefSmokeVolume.cpp \
+            Source/TimeThief/Actors/TimeThiefSmokeVolume.h \
+            Source/TimeThief/Smoke \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeDynamicObstacle.usf \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeUploadObstacleMask.usf \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCommon.ush \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeRendererSubsystem.cpp \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.h \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Public/TimeThiefSmokeRendererTypes.h \
+            > diagnostic/collision_path_commits.txt
+          git log --since="$CUTOFF" --date=iso-strict --pretty=format:'commit %H%nDate: %ad%nAuthor: %an%nSubject: %s' -p -- \
+            Source/TimeThief/Actors/TimeThiefSmokeVolume.cpp \
+            Source/TimeThief/Actors/TimeThiefSmokeVolume.h \
+            Source/TimeThief/Smoke \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeDynamicObstacle.usf \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeUploadObstacleMask.usf \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCommon.ush \
+            Plugins/TimeThiefSmokeRenderer/Shaders/TimeThiefSmokeCompositeMulti.usf \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeRendererSubsystem.cpp \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.cpp \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Private/TimeThiefSmokeViewExtension.h \
+            Plugins/TimeThiefSmokeRenderer/Source/TimeThiefSmokeRenderer/Public/TimeThiefSmokeRendererTypes.h \
+            > diagnostic/collision_path_patches.txt
+          git diff --check 9af2a158b683877d79f623f9790a350701ba7941..HEAD > diagnostic/diff_check.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-actor-collision-diagnostic
+          path: diagnostic
