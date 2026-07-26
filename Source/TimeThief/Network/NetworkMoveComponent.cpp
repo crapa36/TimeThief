@@ -51,6 +51,11 @@ void UNetworkMoveComponent::BeginPlay()
 	if (Owner)
 	{
 		NetworkEntityComponent = Owner->FindComponentByClass<UNetworkEntityComponent>();
+		if (NetworkEntityComponent)
+		{
+			NetworkEntityComponent->OnControlTypeChanged.AddUObject(this, &UNetworkMoveComponent::HandleControlTypeChanged);
+			HandleControlTypeChanged(NetworkEntityComponent->GetControlType());
+		}
 	}
 	
 	if (UWorld* World = GetWorld())
@@ -63,6 +68,10 @@ void UNetworkMoveComponent::BeginPlay()
 	
 }
 
+void UNetworkMoveComponent::HandleControlTypeChanged(ENetworkControlType ControlType)
+{
+	SetComponentTickEnabled(ControlType != ENetworkControlType::None);
+}
 
 // Called every frame
 void UNetworkMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -98,6 +107,7 @@ void UNetworkMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		break;
 		
 	default:
+		SetComponentTickEnabled(false);
 		break;
 		
 	}
@@ -126,7 +136,7 @@ void UNetworkMoveComponent::ApplyNetworkState(const FNetworkEntityState& EntityS
 	{
 		return;
 	}
-	
+
 	const FVector CurrentPosition = Movable->GetNetworkLocation();
 	const float CurrentCharYaw = Movable->GetNetworkCharYaw();
 	const float CurrentAimYaw = Movable->GetNetworkAimYaw();

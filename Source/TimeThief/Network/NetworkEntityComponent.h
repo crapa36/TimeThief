@@ -7,6 +7,7 @@
 
 #include "NetworkEntityComponent.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnNetworkControlTypeChanged, ENetworkControlType);
 
 UCLASS(ClassGroup=(Network), meta=(BlueprintSpawnableComponent))
 class TIMETHIEF_API UNetworkEntityComponent : public UActorComponent
@@ -20,7 +21,8 @@ public:
 	void SetEntityId(uint32 InEntityId) { EntityId = InEntityId; }
 
 	ENetworkControlType GetControlType() const { return ControlType; }
-	void SetControlType(ENetworkControlType InControlType) { ControlType = InControlType; }
+	void SetControlType(ENetworkControlType InControlType);
+	FOnNetworkControlTypeChanged OnControlTypeChanged;
 	
 	bool IsValidEntity() const { return EntityId != 0; }
 	

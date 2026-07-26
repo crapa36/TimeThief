@@ -6,6 +6,7 @@
 
 
 enum class ENetworkActionPhase : uint8;
+enum class ENetworkControlType : uint8;
 struct FNetworkActionEvent;
 class IMovableNetworkEntityInterface;
 struct FMoveSyncData;
@@ -62,6 +63,7 @@ public:
 	bool IsCloseEnoughAimPitch(float CurrentAimPitch) const;
 	
 private:
+	void HandleControlTypeChanged(ENetworkControlType ControlType);
 	void TickLocal(float DeltaTime);
 	void TickRemote(float DeltaTime);
 	void TickServer(float DeltaTime);

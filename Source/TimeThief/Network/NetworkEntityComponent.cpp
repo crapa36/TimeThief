@@ -8,6 +8,17 @@ UNetworkEntityComponent::UNetworkEntityComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
+void UNetworkEntityComponent::SetControlType(ENetworkControlType InControlType)
+{
+	if (ControlType == InControlType)
+	{
+		return;
+	}
+
+	ControlType = InControlType;
+	OnControlTypeChanged.Broadcast(ControlType);
+}
+
 bool UNetworkEntityComponent::CanSendInput() const
 {
 	return ControlType == ENetworkControlType::Local;
@@ -21,5 +32,5 @@ bool UNetworkEntityComponent::ShouldApplyNetworkState() const
 void UNetworkEntityComponent::ResetNetworkEntity()
 {
 	EntityId = 0;
-	ControlType = ENetworkControlType::None;
+	SetControlType(ENetworkControlType::None);
 }
