@@ -2,6 +2,7 @@
 
 #include "Actors/TimeThiefSmokeVolume.h"
 #include "Camera/CameraActor.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/PlatformMisc.h"
@@ -434,10 +435,26 @@ bool UTimeThiefSmokeTestWorldSubsystem::ExecuteAction(const FTimeThiefSmokeTestA
 	case ETimeThiefSmokeTestActionType::StartMeasurement:
 		bMeasurementWasRequested = true;
 		FTimeThiefSmokeTestBridge::SetMeasurementActive(true);
+		if (FParse::Param(FCommandLine::Get(), TEXT("SmokeTestCsvProfile")) && GEngine)
+		{
+			GEngine->Exec(GetWorld(), TEXT("csvprofile start"));
+		}
 		return true;
 
 	case ETimeThiefSmokeTestActionType::StopMeasurement:
 		FTimeThiefSmokeTestBridge::SetMeasurementActive(false);
+		if (FParse::Param(FCommandLine::Get(), TEXT("SmokeTestCsvProfile")) && GEngine)
+		{
+			GEngine->Exec(GetWorld(), TEXT("csvprofile stop"));
+		}
+		if (FParse::Param(FCommandLine::Get(), TEXT("SmokeTestRhiMemoryDump")) && GEngine)
+		{
+			GEngine->Exec(GetWorld(), TEXT("rhi.DumpResourceMemory all Transient=all -csvfile"));
+		}
+		if (FParse::Param(FCommandLine::Get(), TEXT("SmokeTestDumpTicks")) && GEngine)
+		{
+			GEngine->Exec(GetWorld(), TEXT("dumpticks"));
+		}
 		return true;
 
 	case ETimeThiefSmokeTestActionType::CaptureProbe:

@@ -64,7 +64,10 @@
 		},
 		{
 			"Name": "TimeThiefSmokeTest",
-			"Enabled": true
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "DLSS",

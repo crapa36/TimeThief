@@ -1,0 +1,15 @@
+{
+  "name": "SmokeVramIdleMain",
+  "seed": 8401,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 5.0,
+  "actions": [
+    { "id": "camera", "time": 0.1, "type": "move_camera", "position": [-900.0, 0.0, 220.0], "rotation": [-10.0, 0.0, 0.0] },
+    { "id": "measure", "time": 0.6, "type": "start_measurement" },
+    { "id": "stop", "time": 4.5, "type": "stop_measurement" }
+  ],
+  "expectations": {
+    "smokes_spawned": 0,
+    "missing_smoke_ids": 0
+  }
+}

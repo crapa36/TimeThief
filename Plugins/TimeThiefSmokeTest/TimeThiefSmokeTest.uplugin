@@ -5,7 +5,7 @@
 	"FriendlyName": "TimeThief Smoke Test",
 	"Description": "Deterministic runtime scenario tests for the TimeThief smoke renderer.",
 	"Category": "Testing",
-	"CanContainContent": true,
+	"CanContainContent": false,
 	"Installed": false,
 	"Plugins": [
 		{
@@ -17,7 +17,10 @@
 		{
 			"Name": "TimeThiefSmokeTest",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"TargetAllowList": [
+				"Editor"
+			]
 		}
 	]
 }
