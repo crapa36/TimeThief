@@ -4,6 +4,7 @@
 #include "InteractionActorBase.h"
 #include "ChestActor.generated.h"
 
+class UTimelineComponent;
 class UAnimSequenceBase;
 class UNiagaraSystem;
 class USkeletalMeshComponent;
@@ -29,17 +30,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Chest")
 	void OpenChest();
-	
+
 protected:
 	void ResetToClosedPose();
 	void UpdateInteractionWidgetLocation();
 	void PlayRewardBurstFX();
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UAnimSequenceBase> OpenAnimation;
+	
+	UFUNCTION()
+	void HandleTimelineProgress(float Value);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chest", meta = (AllowPrivateAccess = "true"))
 	float InteractionWidgetHeightOffset = 20.0f;
@@ -59,4 +57,18 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Chest|VFX", meta = (AllowPrivateAccess = "true"))
 	bool bRewardBurstFXPlayed = false;
 	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UStaticMeshComponent> LidMesh;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UTimelineComponent> ChestTimelineComponent;
+	
+	UPROPERTY(EditAnywhere, Category="Chest|Timeline")
+	FRotator StartRotation = FRotator::ZeroRotator;
+	
+	UPROPERTY(EditAnywhere, Category="Chest|Timeline")
+	FRotator TargetRotation = FRotator::ZeroRotator;
+	
+	UPROPERTY(EditAnywhere, Category="Chest|Timeline")
+	TObjectPtr<UCurveFloat> OpenCurve = nullptr;
 };

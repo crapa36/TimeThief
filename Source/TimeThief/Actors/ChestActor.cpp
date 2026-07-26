@@ -1,7 +1,4 @@
-﻿
-
-
-#include "ChestActor.h"
+﻿#include "ChestActor.h"
 
 #include "Animation/AnimSequenceBase.h"
 #include "ChannelCommons.h"
@@ -12,6 +9,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Components/TimelineComponent.h"
 #include "Network/NetworkGameInstanceSubsystem.h"
 
 
@@ -20,23 +18,23 @@ AChestActor::AChestActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	if (MeshComponent)
-	{
-		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		MeshComponent->SetHiddenInGame(true);
-	}
+	ChestTimelineComponent = CreateDefaultSubobject<UTimelineComponent>(TEXT("ChestTimelineComponent"));
 
-	SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SkeletalMeshComponent"));
-	SkeletalMeshComponent->SetupAttachment(RootComponent);
-	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Block);
-	SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	LidMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LidMesh"));
+	LidMesh->SetupAttachment(MeshComponent);
 }
 
 // Called when the game starts or when spawned
 void AChestActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (ChestTimelineComponent && OpenCurve)
+	{
+		FOnTimelineFloat TimelineProgress;
+		TimelineProgress.BindUFunction(this, FName("HandleTimelineProgress"));
+		ChestTimelineComponent->AddInterpFloat(OpenCurve, TimelineProgress);
+	}
 
 	ResetToClosedPose();
 	UpdateInteractionWidgetLocation();
@@ -78,47 +76,32 @@ void AChestActor::OpenChest()
 		InteractionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	if (!SkeletalMeshComponent || !OpenAnimation)
+	if (ChestTimelineComponent && OpenCurve)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Chest] OpenChest skipped animation. Actor=%s, HasMesh=%s, HasAnimation=%s"),
-			*GetNameSafe(this),
-			SkeletalMeshComponent ? TEXT("true") : TEXT("false"),
-			OpenAnimation ? TEXT("true") : TEXT("false"));
-		return;
+		ChestTimelineComponent->PlayFromStart();
 	}
-
-	SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	SkeletalMeshComponent->SetCollisionResponseToChannel(ECC_InteractTrace, ECR_Ignore);
-	SkeletalMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	SkeletalMeshComponent->bPauseAnims = false;
-	SkeletalMeshComponent->bNoSkeletonUpdate = false;
-	SkeletalMeshComponent->PlayAnimation(OpenAnimation, false);
 }
 
 void AChestActor::ResetToClosedPose()
 {
-	if (!SkeletalMeshComponent || !OpenAnimation)
+	if (ChestTimelineComponent && OpenCurve)
 	{
-		return;
+		ChestTimelineComponent->Stop();
+
+		ChestTimelineComponent->SetPlaybackPosition(0.0f, false);
 	}
 
-	SkeletalMeshComponent->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	SkeletalMeshComponent->bPauseAnims = false;
-	SkeletalMeshComponent->bNoSkeletonUpdate = false;
-	SkeletalMeshComponent->PlayAnimation(OpenAnimation, false);
-	SkeletalMeshComponent->SetPosition(0.0f, false);
-	SkeletalMeshComponent->bPauseAnims = true;
-	SkeletalMeshComponent->RefreshBoneTransforms();
+	HandleTimelineProgress(0.0f);
 }
 
 void AChestActor::UpdateInteractionWidgetLocation()
 {
-	if (!InteractionWidgetComponent || !SkeletalMeshComponent)
+	if (!InteractionWidgetComponent || !MeshComponent)
 	{
 		return;
 	}
 
-	const float WidgetHeight = SkeletalMeshComponent->Bounds.BoxExtent.Z + InteractionWidgetHeightOffset;
+	const float WidgetHeight = MeshComponent->Bounds.BoxExtent.Z + InteractionWidgetHeightOffset;
 	InteractionWidgetComponent->SetRelativeLocation(FVector{0.0f, 0.0f, WidgetHeight});
 }
 
@@ -145,3 +128,11 @@ void AChestActor::PlayRewardBurstFX()
 	}
 }
 
+void AChestActor::HandleTimelineProgress(float Value)
+{
+	if (LidMesh)
+	{
+		FRotator NewLocation = FMath::Lerp(StartRotation, TargetRotation, Value);
+		LidMesh->SetRelativeRotation(NewLocation);
+	}
+}
