@@ -3679,6 +3679,24 @@ void UNetworkGameInstanceSubsystem::RequestItemReq(uint32 ItemId, int32 Amount)
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ItemReq to server. ItemId=%u, Amount=%d"), ItemId, Amount);
 }
 
+void UNetworkGameInstanceSubsystem::RequestItemReqAll(uint32 ItemId, int32 Amount)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request all items: Not connected to server"));
+		return;
+	}
+
+	se::test::C_ItemReqAll Request;
+	Request.set_item_id(ItemId);
+	Request.set_quantity(Amount);
+
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_ItemReqAll to server. ItemId=%u, Amount=%d"), ItemId, Amount);
+}
+
 void UNetworkGameInstanceSubsystem::RequestMoneyReq(int32 Amount)
 {
 	if (bIsConnected == false || GameSession == nullptr)

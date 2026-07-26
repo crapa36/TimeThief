@@ -302,6 +302,7 @@ public:
 	void RequestSpawnChest(FVector Pos);
 	void RequestSpawnStore(FVector Pos);
 	void RequestItemReq(uint32 ItemId, int32 Amount);
+	void RequestItemReqAll(uint32 ItemId, int32 Amount);
 	void RequestMoneyReq(int32 Amount);
 	void RequestHealthReq(int32 Health);
 	void RequestMaxHealthReq(int32 MaxHealth);
