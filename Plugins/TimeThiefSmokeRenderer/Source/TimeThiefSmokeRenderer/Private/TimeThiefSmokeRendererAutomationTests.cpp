@@ -37,7 +37,9 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Self-shadow sample threshold skips only tiny contributions"),
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight > 0.0f &&
-		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight <= TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
+		TimeThiefSmokeParameterDefaults::SelfShadowFullRateSampleWeight >= TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight &&
+		TimeThiefSmokeParameterDefaults::SelfShadowFullRateSampleWeight <= 1.0f &&
+		TimeThiefSmokeParameterDefaults::SelfShadowLowContributionStride >= 1);
 	TestTrue(
 		TEXT("Combined shadow defaults stay inside runtime clamp limits"),
 		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount >= TimeThiefSmokeParameterDefaults::CombinedShadowStepCountMin &&
@@ -47,7 +49,12 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Render detail cutoff remains inside the simulated density range"),
 		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff > 0.0f &&
-		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff <= TimeThiefSmokeParameterDefaults::SmokeDensityMax);
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff <= TimeThiefSmokeParameterDefaults::SmokeDensityMax &&
+		TimeThiefSmokeParameterDefaults::RenderDetailMinDensity >= 0.0f &&
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityFadeEnd > TimeThiefSmokeParameterDefaults::RenderDetailMinDensity &&
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityFadeEnd < TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff &&
+		TimeThiefSmokeParameterDefaults::RenderDetailCullDistanceCm > TimeThiefSmokeParameterDefaults::RenderDetailFullDistanceCm &&
+		TimeThiefSmokeParameterDefaults::RenderDetailFullScreenFraction > TimeThiefSmokeParameterDefaults::RenderDetailMinScreenFraction);
 	TestTrue(
 		TEXT("Render transmittance early-out stays in normalized range"),
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut > 0.0f &&

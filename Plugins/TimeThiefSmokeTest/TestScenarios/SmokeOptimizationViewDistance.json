@@ -1,0 +1,34 @@
+{
+  "name": "SmokeOptimizationViewDistance",
+  "seed": 8401,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 5.2,
+  "actions": [
+    { "id": "spawn", "time": 0.0, "type": "detonate_smoke", "entity": "smoke", "position": [0.0, 0.0, 0.0] },
+    { "id": "camera_far", "time": 0.1, "type": "move_camera", "position": [-6000.0, 0.0, 500.0], "rotation": [-5.0, 0.0, 0.0] },
+    { "id": "phase_far", "time": 0.6, "type": "set_phase", "name": "far" },
+    { "id": "measure", "time": 0.6, "type": "start_measurement" },
+    { "id": "capture_far", "time": 1.1, "type": "capture_screenshot", "label": "01_far" },
+    { "id": "camera_medium", "time": 1.4, "type": "move_camera", "position": [-3000.0, 0.0, 320.0], "rotation": [-6.0, 0.0, 0.0] },
+    { "id": "phase_medium", "time": 1.4, "type": "set_phase", "name": "medium" },
+    { "id": "capture_medium", "time": 2.2, "type": "capture_screenshot", "label": "02_medium" },
+    { "id": "camera_near", "time": 2.5, "type": "move_camera", "position": [-900.0, 0.0, 220.0], "rotation": [-10.0, 0.0, 0.0] },
+    { "id": "phase_near", "time": 2.5, "type": "set_phase", "name": "near" },
+    { "id": "capture_near", "time": 3.3, "type": "capture_screenshot", "label": "03_near" },
+    { "id": "camera_inside", "time": 3.6, "type": "move_camera", "position": [0.0, 0.0, 100.0], "rotation": [0.0, 0.0, 0.0] },
+    { "id": "phase_inside", "time": 3.6, "type": "set_phase", "name": "inside" },
+    { "id": "capture_inside", "time": 4.4, "type": "capture_screenshot", "label": "04_inside" },
+    { "id": "probe", "time": 4.6, "type": "capture_probe", "label": "final", "smokes": ["smoke"] },
+    { "id": "stop", "time": 4.9, "type": "stop_measurement" }
+  ],
+  "expectations": {
+    "smokes_spawned": 1,
+    "smokes_registered": 1,
+    "rendered_unique_smokes": 1,
+    "missing_smoke_ids": 0,
+    "probe": {
+      "final": { "active_density_voxels_min": 1, "density_clamp_violation_voxels_max": 0 }
+    },
+    "pass_executed": ["Simulation.Advection", "Composite.Raymarch"]
+  }
+}

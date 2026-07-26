@@ -33,7 +33,6 @@ void MainPS(
 	const int2 DirectCoord = clamp(int2(floor(ScreenUV * HalfResSize)), int2(0, 0), int2(HalfResSize) - 1);
 	float4 ResolvedSmoke = HalfResSmokeTexture.Load(int3(DirectCoord, 0));
 #else
-	const float SceneDeviceZ = LoadSceneDeviceZ(SvPosition.xy);
 	const float2 HalfResTexel = ScreenUV * HalfResSize - 0.5;
 	const int2 MaxHalfResCoord = int2(HalfResSize) - 1;
 	const int2 Coord00 = clamp(int2(floor(HalfResTexel)), int2(0, 0), MaxHalfResCoord);
@@ -47,47 +46,67 @@ void MainPS(
 	const float W01 = (1.0 - Frac.x) * Frac.y;
 	const float W11 = Frac.x * Frac.y;
 
-	const float2 FullResOrigin = float2(ViewRect.xy);
-	const float2 Pos00 = FullResOrigin + (float2(Coord00) + 0.5) * 2.0;
-	const float2 Pos10 = FullResOrigin + (float2(Coord10) + 0.5) * 2.0;
-	const float2 Pos01 = FullResOrigin + (float2(Coord01) + 0.5) * 2.0;
-	const float2 Pos11 = FullResOrigin + (float2(Coord11) + 0.5) * 2.0;
+	const float4 Smoke00 = HalfResSmokeTexture.Load(int3(Coord00, 0));
+	const float4 Smoke10 = HalfResSmokeTexture.Load(int3(Coord10, 0));
+	const float4 Smoke01 = HalfResSmokeTexture.Load(int3(Coord01, 0));
+	const float4 Smoke11 = HalfResSmokeTexture.Load(int3(Coord11, 0));
+	const float SmokeSignal00 = max(max(max(abs(Smoke00.r), abs(Smoke00.g)), abs(Smoke00.b)), abs(1.0 - Smoke00.a));
+	const float SmokeSignal10 = max(max(max(abs(Smoke10.r), abs(Smoke10.g)), abs(Smoke10.b)), abs(1.0 - Smoke10.a));
+	const float SmokeSignal01 = max(max(max(abs(Smoke01.r), abs(Smoke01.g)), abs(Smoke01.b)), abs(1.0 - Smoke01.a));
+	const float SmokeSignal11 = max(max(max(abs(Smoke11.r), abs(Smoke11.g)), abs(Smoke11.b)), abs(1.0 - Smoke11.a));
+	const float MaxSmokeSignal = max(max(SmokeSignal00, SmokeSignal10), max(SmokeSignal01, SmokeSignal11));
 
-	const float Diff00 = SceneDeviceZ - LoadSceneDeviceZ(Pos00);
-	const float Diff10 = SceneDeviceZ - LoadSceneDeviceZ(Pos10);
-	const float Diff01 = SceneDeviceZ - LoadSceneDeviceZ(Pos01);
-	const float Diff11 = SceneDeviceZ - LoadSceneDeviceZ(Pos11);
-
-	float FinalW00 = W00 / (1.0 + Diff00 * Diff00 * BilateralDepthSensitivity);
-	float FinalW10 = W10 / (1.0 + Diff10 * Diff10 * BilateralDepthSensitivity);
-	float FinalW01 = W01 / (1.0 + Diff01 * Diff01 * BilateralDepthSensitivity);
-	float FinalW11 = W11 / (1.0 + Diff11 * Diff11 * BilateralDepthSensitivity);
-	const float SumWeight = FinalW00 + FinalW10 + FinalW01 + FinalW11;
-	if (SumWeight > 0.00001)
+	float4 ResolvedSmoke;
+	if (MaxSmokeSignal <= 0.000001)
 	{
-		const float InvSumWeight = rcp(SumWeight);
-		FinalW00 *= InvSumWeight;
-		FinalW10 *= InvSumWeight;
-		FinalW01 *= InvSumWeight;
-		FinalW11 *= InvSumWeight;
+		ResolvedSmoke = float4(0.0, 0.0, 0.0, 1.0);
 	}
 	else
 	{
-		FinalW00 = W00;
-		FinalW10 = W10;
-		FinalW01 = W01;
-		FinalW11 = W11;
-	}
+		const float SceneDeviceZ = LoadSceneDeviceZ(SvPosition.xy);
+		const float2 FullResOrigin = float2(ViewRect.xy);
+		const float2 Pos00 = FullResOrigin + (float2(Coord00) + 0.5) * 2.0;
+		const float2 Pos10 = FullResOrigin + (float2(Coord10) + 0.5) * 2.0;
+		const float2 Pos01 = FullResOrigin + (float2(Coord01) + 0.5) * 2.0;
+		const float2 Pos11 = FullResOrigin + (float2(Coord11) + 0.5) * 2.0;
 
-	const float4 UpsampledSmoke =
-		HalfResSmokeTexture.Load(int3(Coord00, 0)) * FinalW00 +
-		HalfResSmokeTexture.Load(int3(Coord10, 0)) * FinalW10 +
-		HalfResSmokeTexture.Load(int3(Coord01, 0)) * FinalW01 +
-		HalfResSmokeTexture.Load(int3(Coord11, 0)) * FinalW11;
-	const int2 CenterCoord = clamp(int2(round(HalfResTexel)), int2(0, 0), MaxHalfResCoord);
-	const float4 CenterSmoke = HalfResSmokeTexture.Load(int3(CenterCoord, 0));
-	const float DetailStrength = 0.25;
-	float4 ResolvedSmoke = UpsampledSmoke + (CenterSmoke - UpsampledSmoke) * DetailStrength;
+		const float Diff00 = SceneDeviceZ - LoadSceneDeviceZ(Pos00);
+		const float Diff10 = SceneDeviceZ - LoadSceneDeviceZ(Pos10);
+		const float Diff01 = SceneDeviceZ - LoadSceneDeviceZ(Pos01);
+		const float Diff11 = SceneDeviceZ - LoadSceneDeviceZ(Pos11);
+
+		float FinalW00 = W00 / (1.0 + Diff00 * Diff00 * BilateralDepthSensitivity);
+		float FinalW10 = W10 / (1.0 + Diff10 * Diff10 * BilateralDepthSensitivity);
+		float FinalW01 = W01 / (1.0 + Diff01 * Diff01 * BilateralDepthSensitivity);
+		float FinalW11 = W11 / (1.0 + Diff11 * Diff11 * BilateralDepthSensitivity);
+		const float SumWeight = FinalW00 + FinalW10 + FinalW01 + FinalW11;
+		if (SumWeight > 0.00001)
+		{
+			const float InvSumWeight = rcp(SumWeight);
+			FinalW00 *= InvSumWeight;
+			FinalW10 *= InvSumWeight;
+			FinalW01 *= InvSumWeight;
+			FinalW11 *= InvSumWeight;
+		}
+		else
+		{
+			FinalW00 = W00;
+			FinalW10 = W10;
+			FinalW01 = W01;
+			FinalW11 = W11;
+		}
+
+		const float4 UpsampledSmoke =
+			Smoke00 * FinalW00 +
+			Smoke10 * FinalW10 +
+			Smoke01 * FinalW01 +
+			Smoke11 * FinalW11;
+		const float4 CenterSmoke = Frac.y < 0.5
+			? (Frac.x < 0.5 ? Smoke00 : Smoke10)
+			: (Frac.x < 0.5 ? Smoke01 : Smoke11);
+		const float DetailStrength = 0.25;
+		ResolvedSmoke = UpsampledSmoke + (CenterSmoke - UpsampledSmoke) * DetailStrength;
+	}
 #endif
 	ResolvedSmoke.rgb = max(ResolvedSmoke.rgb, 0.0);
 	ResolvedSmoke.a = saturate(ResolvedSmoke.a);

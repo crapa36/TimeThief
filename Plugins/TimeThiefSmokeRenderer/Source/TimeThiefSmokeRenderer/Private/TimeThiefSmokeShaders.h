@@ -42,6 +42,7 @@ struct FTimeThiefSmokeCompositeDescriptorShaderData
 	FVector4f FilamentAge = FVector4f::Zero();
 	FVector4f NaturalBoundsExtent_ObstacleFeather = FVector4f::Zero();
 	FVector4f BoundaryNoiseControls = FVector4f::Zero();
+	FVector4f DetailLodControls = FVector4f::Zero();
 };
 
 struct FTimeThiefSmokeCompositeTileRangeShaderData
@@ -357,6 +358,8 @@ public:
 		SHADER_PARAMETER(FVector3f, CombinedShadowLightDirection)
 		SHADER_PARAMETER(int32, CombinedShadowStepCount)
 		SHADER_PARAMETER(float, SelfShadowMinSampleWeight)
+		SHADER_PARAMETER(float, SelfShadowFullRateSampleWeight)
+		SHADER_PARAMETER(int32, SelfShadowLowContributionStride)
 		SHADER_PARAMETER(int32, CompositeDebugMode)
 		SHADER_PARAMETER(FMatrix44f, InvViewProjection)
 		SHADER_PARAMETER_RDG_BUFFER_SRV(StructuredBuffer<FTimeThiefSmokeCompositeDescriptorShaderData>, CompositeSmokeDescriptors)
