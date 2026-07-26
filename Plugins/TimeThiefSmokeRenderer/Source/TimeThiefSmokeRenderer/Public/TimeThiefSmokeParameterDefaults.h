@@ -161,9 +161,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
 	constexpr float RenderBoundaryNoiseStrength = 0.16f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
-	constexpr float RenderFilamentScale = 0.015f;
+	constexpr float RenderFilamentScale = 0.01f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 1.5f;
+	constexpr float RenderFilamentStrength = 1.4f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
 	constexpr float RenderFilamentContrast = 1.0f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
