@@ -58,12 +58,21 @@ public:
 	
 	UFUNCTION(Exec)
 	void TestMoneyReq(int32 Amount);
+
+	UFUNCTION(Exec)
+	void TestMoneyReqAll(int32 Amount);
 	
 	UFUNCTION(Exec)
 	void TestHealthReq(int32 Health);
+
+	UFUNCTION(Exec)
+	void TestHealthReqAll(int32 Health);
 	
 	UFUNCTION(Exec)
 	void TestMaxHealthReq(int32 MaxHealth);
+
+	UFUNCTION(Exec)
+	void TestMaxHealthReqAll(int32 MaxHealth);
 	
 	UFUNCTION(Exec)
 	void TestZoneStop();

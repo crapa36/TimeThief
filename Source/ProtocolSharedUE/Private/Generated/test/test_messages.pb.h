@@ -53,6 +53,9 @@ namespace test {
 class C_HealthReq;
 struct C_HealthReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_HealthReqDefaultTypeInternal _C_HealthReq_default_instance_;
+class C_HealthReqAll;
+struct C_HealthReqAllDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern C_HealthReqAllDefaultTypeInternal _C_HealthReqAll_default_instance_;
 class C_ItemReq;
 struct C_ItemReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_ItemReqDefaultTypeInternal _C_ItemReq_default_instance_;
@@ -62,9 +65,15 @@ PROTOCOLSHAREDUE_API extern C_ItemReqAllDefaultTypeInternal _C_ItemReqAll_defaul
 class C_MaxHealthReq;
 struct C_MaxHealthReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_MaxHealthReqDefaultTypeInternal _C_MaxHealthReq_default_instance_;
+class C_MaxHealthReqAll;
+struct C_MaxHealthReqAllDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern C_MaxHealthReqAllDefaultTypeInternal _C_MaxHealthReqAll_default_instance_;
 class C_MoneyReq;
 struct C_MoneyReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_MoneyReqDefaultTypeInternal _C_MoneyReq_default_instance_;
+class C_MoneyReqAll;
+struct C_MoneyReqAllDefaultTypeInternal;
+PROTOCOLSHAREDUE_API extern C_MoneyReqAllDefaultTypeInternal _C_MoneyReqAll_default_instance_;
 class C_SpawnChestReq;
 struct C_SpawnChestReqDefaultTypeInternal;
 PROTOCOLSHAREDUE_API extern C_SpawnChestReqDefaultTypeInternal _C_SpawnChestReq_default_instance_;
@@ -105,10 +114,13 @@ PROTOCOLSHAREDUE_API extern N_ZoneStopDefaultTypeInternal _N_ZoneStop_default_in
 }  // namespace se
 PROTOBUF_NAMESPACE_OPEN
 template<> PROTOCOLSHAREDUE_API ::se::test::C_HealthReq* Arena::CreateMaybeMessage<::se::test::C_HealthReq>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::test::C_HealthReqAll* Arena::CreateMaybeMessage<::se::test::C_HealthReqAll>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_ItemReq* Arena::CreateMaybeMessage<::se::test::C_ItemReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_ItemReqAll* Arena::CreateMaybeMessage<::se::test::C_ItemReqAll>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_MaxHealthReq* Arena::CreateMaybeMessage<::se::test::C_MaxHealthReq>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::test::C_MaxHealthReqAll* Arena::CreateMaybeMessage<::se::test::C_MaxHealthReqAll>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_MoneyReq* Arena::CreateMaybeMessage<::se::test::C_MoneyReq>(Arena*);
+template<> PROTOCOLSHAREDUE_API ::se::test::C_MoneyReqAll* Arena::CreateMaybeMessage<::se::test::C_MoneyReqAll>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_SpawnChestReq* Arena::CreateMaybeMessage<::se::test::C_SpawnChestReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_SpawnMonsterReq* Arena::CreateMaybeMessage<::se::test::C_SpawnMonsterReq>(Arena*);
 template<> PROTOCOLSHAREDUE_API ::se::test::C_SpawnStoreReq* Arena::CreateMaybeMessage<::se::test::C_SpawnStoreReq>(Arena*);
@@ -1371,6 +1383,450 @@ class PROTOCOLSHAREDUE_API C_ItemReqAll final :
 };
 // -------------------------------------------------------------------
 
+class PROTOCOLSHAREDUE_API C_MoneyReqAll final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.test.C_MoneyReqAll) */ {
+ public:
+  inline C_MoneyReqAll() : C_MoneyReqAll(nullptr) {}
+  ~C_MoneyReqAll() override;
+  explicit PROTOBUF_CONSTEXPR C_MoneyReqAll(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  C_MoneyReqAll(const C_MoneyReqAll& from);
+  C_MoneyReqAll(C_MoneyReqAll&& from) noexcept
+    : C_MoneyReqAll() {
+    *this = ::std::move(from);
+  }
+
+  inline C_MoneyReqAll& operator=(const C_MoneyReqAll& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline C_MoneyReqAll& operator=(C_MoneyReqAll&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const C_MoneyReqAll& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const C_MoneyReqAll* internal_default_instance() {
+    return reinterpret_cast<const C_MoneyReqAll*>(
+               &_C_MoneyReqAll_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    8;
+
+  friend void swap(C_MoneyReqAll& a, C_MoneyReqAll& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(C_MoneyReqAll* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(C_MoneyReqAll* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  C_MoneyReqAll* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_MoneyReqAll>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const C_MoneyReqAll& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const C_MoneyReqAll& from) {
+    C_MoneyReqAll::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(C_MoneyReqAll* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.test.C_MoneyReqAll";
+  }
+  protected:
+  explicit C_MoneyReqAll(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kAmountFieldNumber = 1,
+  };
+  // int32 amount = 1;
+  void clear_amount();
+  int32_t amount() const;
+  void set_amount(int32_t value);
+  private:
+  int32_t _internal_amount() const;
+  void _internal_set_amount(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.test.C_MoneyReqAll)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    int32_t amount_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_test_2ftest_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API C_HealthReqAll final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.test.C_HealthReqAll) */ {
+ public:
+  inline C_HealthReqAll() : C_HealthReqAll(nullptr) {}
+  ~C_HealthReqAll() override;
+  explicit PROTOBUF_CONSTEXPR C_HealthReqAll(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  C_HealthReqAll(const C_HealthReqAll& from);
+  C_HealthReqAll(C_HealthReqAll&& from) noexcept
+    : C_HealthReqAll() {
+    *this = ::std::move(from);
+  }
+
+  inline C_HealthReqAll& operator=(const C_HealthReqAll& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline C_HealthReqAll& operator=(C_HealthReqAll&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const C_HealthReqAll& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const C_HealthReqAll* internal_default_instance() {
+    return reinterpret_cast<const C_HealthReqAll*>(
+               &_C_HealthReqAll_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    9;
+
+  friend void swap(C_HealthReqAll& a, C_HealthReqAll& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(C_HealthReqAll* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(C_HealthReqAll* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  C_HealthReqAll* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_HealthReqAll>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const C_HealthReqAll& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const C_HealthReqAll& from) {
+    C_HealthReqAll::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(C_HealthReqAll* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.test.C_HealthReqAll";
+  }
+  protected:
+  explicit C_HealthReqAll(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kHealthFieldNumber = 1,
+  };
+  // int32 health = 1;
+  void clear_health();
+  int32_t health() const;
+  void set_health(int32_t value);
+  private:
+  int32_t _internal_health() const;
+  void _internal_set_health(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.test.C_HealthReqAll)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    int32_t health_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_test_2ftest_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
+class PROTOCOLSHAREDUE_API C_MaxHealthReqAll final :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.test.C_MaxHealthReqAll) */ {
+ public:
+  inline C_MaxHealthReqAll() : C_MaxHealthReqAll(nullptr) {}
+  ~C_MaxHealthReqAll() override;
+  explicit PROTOBUF_CONSTEXPR C_MaxHealthReqAll(::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized);
+
+  C_MaxHealthReqAll(const C_MaxHealthReqAll& from);
+  C_MaxHealthReqAll(C_MaxHealthReqAll&& from) noexcept
+    : C_MaxHealthReqAll() {
+    *this = ::std::move(from);
+  }
+
+  inline C_MaxHealthReqAll& operator=(const C_MaxHealthReqAll& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline C_MaxHealthReqAll& operator=(C_MaxHealthReqAll&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetOwningArena() == from.GetOwningArena()
+  #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
+        && GetOwningArena() != nullptr
+  #endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const C_MaxHealthReqAll& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const C_MaxHealthReqAll* internal_default_instance() {
+    return reinterpret_cast<const C_MaxHealthReqAll*>(
+               &_C_MaxHealthReqAll_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    10;
+
+  friend void swap(C_MaxHealthReqAll& a, C_MaxHealthReqAll& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(C_MaxHealthReqAll* other) {
+    if (other == this) return;
+  #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() != nullptr &&
+        GetOwningArena() == other->GetOwningArena()) {
+   #else  // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetOwningArena() == other->GetOwningArena()) {
+  #endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(C_MaxHealthReqAll* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetOwningArena() == other->GetOwningArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  C_MaxHealthReqAll* New(::PROTOBUF_NAMESPACE_ID::Arena* arena = nullptr) const final {
+    return CreateMaybeMessage<C_MaxHealthReqAll>(arena);
+  }
+  using ::PROTOBUF_NAMESPACE_ID::Message::CopyFrom;
+  void CopyFrom(const C_MaxHealthReqAll& from);
+  using ::PROTOBUF_NAMESPACE_ID::Message::MergeFrom;
+  void MergeFrom( const C_MaxHealthReqAll& from) {
+    C_MaxHealthReqAll::MergeImpl(*this, from);
+  }
+  private:
+  static void MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg);
+  public:
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  uint8_t* _InternalSerialize(
+      uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::PROTOBUF_NAMESPACE_ID::Arena* arena, bool is_message_owned);
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(C_MaxHealthReqAll* other);
+
+  private:
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "se.test.C_MaxHealthReqAll";
+  }
+  protected:
+  explicit C_MaxHealthReqAll(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                       bool is_message_owned = false);
+  public:
+
+  static const ClassData _class_data_;
+  const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*GetClassData() const final;
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kMaxHealthFieldNumber = 1,
+  };
+  // int32 max_health = 1;
+  void clear_max_health();
+  int32_t max_health() const;
+  void set_max_health(int32_t value);
+  private:
+  int32_t _internal_max_health() const;
+  void _internal_set_max_health(int32_t value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:se.test.C_MaxHealthReqAll)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  struct Impl_ {
+    int32_t max_health_;
+    mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_test_2ftest_5fmessages_2eproto;
+};
+// -------------------------------------------------------------------
+
 class PROTOCOLSHAREDUE_API C_TPAllReq final :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:se.test.C_TPAllReq) */ {
  public:
@@ -1419,7 +1875,7 @@ class PROTOCOLSHAREDUE_API C_TPAllReq final :
                &_C_TPAllReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    11;
 
   friend void swap(C_TPAllReq& a, C_TPAllReq& b) {
     a.Swap(&b);
@@ -1576,7 +2032,7 @@ class PROTOCOLSHAREDUE_API N_TPPos final :
                &_N_TPPos_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    12;
 
   friend void swap(N_TPPos& a, N_TPPos& b) {
     a.Swap(&b);
@@ -1732,7 +2188,7 @@ class PROTOCOLSHAREDUE_API C_ZoneStopReq final :
                &_C_ZoneStopReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    13;
 
   friend void swap(C_ZoneStopReq& a, C_ZoneStopReq& b) {
     a.Swap(&b);
@@ -1850,7 +2306,7 @@ class PROTOCOLSHAREDUE_API C_ZoneStartReq final :
                &_C_ZoneStartReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    14;
 
   friend void swap(C_ZoneStartReq& a, C_ZoneStartReq& b) {
     a.Swap(&b);
@@ -1968,7 +2424,7 @@ class PROTOCOLSHAREDUE_API C_ZoneResetReq final :
                &_C_ZoneResetReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    12;
+    15;
 
   friend void swap(C_ZoneResetReq& a, C_ZoneResetReq& b) {
     a.Swap(&b);
@@ -2086,7 +2542,7 @@ class PROTOCOLSHAREDUE_API C_ZoneDamageOffReq final :
                &_C_ZoneDamageOffReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    16;
 
   friend void swap(C_ZoneDamageOffReq& a, C_ZoneDamageOffReq& b) {
     a.Swap(&b);
@@ -2204,7 +2660,7 @@ class PROTOCOLSHAREDUE_API C_ZoneDamageOnReq final :
                &_C_ZoneDamageOnReq_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    17;
 
   friend void swap(C_ZoneDamageOnReq& a, C_ZoneDamageOnReq& b) {
     a.Swap(&b);
@@ -2322,7 +2778,7 @@ class PROTOCOLSHAREDUE_API N_ZoneStop final :
                &_N_ZoneStop_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    18;
 
   friend void swap(N_ZoneStop& a, N_ZoneStop& b) {
     a.Swap(&b);
@@ -2440,7 +2896,7 @@ class PROTOCOLSHAREDUE_API N_ZoneStart final :
                &_N_ZoneStart_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    19;
 
   friend void swap(N_ZoneStart& a, N_ZoneStart& b) {
     a.Swap(&b);
@@ -2965,6 +3421,78 @@ inline void C_ItemReqAll::set_quantity(int32_t value) {
 
 // -------------------------------------------------------------------
 
+// C_MoneyReqAll
+
+// int32 amount = 1;
+inline void C_MoneyReqAll::clear_amount() {
+  _impl_.amount_ = 0;
+}
+inline int32_t C_MoneyReqAll::_internal_amount() const {
+  return _impl_.amount_;
+}
+inline int32_t C_MoneyReqAll::amount() const {
+  // @@protoc_insertion_point(field_get:se.test.C_MoneyReqAll.amount)
+  return _internal_amount();
+}
+inline void C_MoneyReqAll::_internal_set_amount(int32_t value) {
+
+  _impl_.amount_ = value;
+}
+inline void C_MoneyReqAll::set_amount(int32_t value) {
+  _internal_set_amount(value);
+  // @@protoc_insertion_point(field_set:se.test.C_MoneyReqAll.amount)
+}
+
+// -------------------------------------------------------------------
+
+// C_HealthReqAll
+
+// int32 health = 1;
+inline void C_HealthReqAll::clear_health() {
+  _impl_.health_ = 0;
+}
+inline int32_t C_HealthReqAll::_internal_health() const {
+  return _impl_.health_;
+}
+inline int32_t C_HealthReqAll::health() const {
+  // @@protoc_insertion_point(field_get:se.test.C_HealthReqAll.health)
+  return _internal_health();
+}
+inline void C_HealthReqAll::_internal_set_health(int32_t value) {
+
+  _impl_.health_ = value;
+}
+inline void C_HealthReqAll::set_health(int32_t value) {
+  _internal_set_health(value);
+  // @@protoc_insertion_point(field_set:se.test.C_HealthReqAll.health)
+}
+
+// -------------------------------------------------------------------
+
+// C_MaxHealthReqAll
+
+// int32 max_health = 1;
+inline void C_MaxHealthReqAll::clear_max_health() {
+  _impl_.max_health_ = 0;
+}
+inline int32_t C_MaxHealthReqAll::_internal_max_health() const {
+  return _impl_.max_health_;
+}
+inline int32_t C_MaxHealthReqAll::max_health() const {
+  // @@protoc_insertion_point(field_get:se.test.C_MaxHealthReqAll.max_health)
+  return _internal_max_health();
+}
+inline void C_MaxHealthReqAll::_internal_set_max_health(int32_t value) {
+
+  _impl_.max_health_ = value;
+}
+inline void C_MaxHealthReqAll::set_max_health(int32_t value) {
+  _internal_set_max_health(value);
+  // @@protoc_insertion_point(field_set:se.test.C_MaxHealthReqAll.max_health)
+}
+
+// -------------------------------------------------------------------
+
 // C_TPAllReq
 
 // .se.common.Vector3 position = 1;
@@ -3172,6 +3700,12 @@ inline void N_TPPos::set_allocated_position(::se::common::Vector3* position) {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

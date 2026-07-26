@@ -304,8 +304,11 @@ public:
 	void RequestItemReq(uint32 ItemId, int32 Amount);
 	void RequestItemReqAll(uint32 ItemId, int32 Amount);
 	void RequestMoneyReq(int32 Amount);
+	void RequestMoneyReqAll(int32 Amount);
 	void RequestHealthReq(int32 Health);
+	void RequestHealthReqAll(int32 Health);
 	void RequestMaxHealthReq(int32 MaxHealth);
+	void RequestMaxHealthReqAll(int32 MaxHealth);
 	void RequestTPAll(FVector Pos);
 	void RequestZoneStop();
 	void RequestZoneStart();

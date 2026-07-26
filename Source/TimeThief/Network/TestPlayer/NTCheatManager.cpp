@@ -190,6 +190,22 @@ void UNTCheatManager::TestMoneyReq(int32 Amount)
 	}
 }
 
+void UNTCheatManager::TestMoneyReqAll(int32 Amount)
+{
+	if (Amount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cheat] Invalid Amount: %d"), Amount);
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Cheat] TestMoneyReqAll: Amount=%d"), Amount);
+
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+	{
+		NGIS->RequestMoneyReqAll(Amount);
+	}
+}
+
 void UNTCheatManager::TestHealthReq(int32 Health)
 {
 	if (Health <= 0)
@@ -206,6 +222,22 @@ void UNTCheatManager::TestHealthReq(int32 Health)
 	}
 }
 
+void UNTCheatManager::TestHealthReqAll(int32 Health)
+{
+	if (Health <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cheat] Invalid Health: %d"), Health);
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Cheat] TestHealthReqAll: Health=%d"), Health);
+
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+	{
+		NGIS->RequestHealthReqAll(Health);
+	}
+}
+
 void UNTCheatManager::TestMaxHealthReq(int32 MaxHealth)
 {
 	if (MaxHealth <= 0)
@@ -219,6 +251,22 @@ void UNTCheatManager::TestMaxHealthReq(int32 MaxHealth)
 	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
 	{
 		NGIS->RequestMaxHealthReq(MaxHealth);
+	}
+}
+
+void UNTCheatManager::TestMaxHealthReqAll(int32 MaxHealth)
+{
+	if (MaxHealth <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cheat] Invalid MaxHealth: %d"), MaxHealth);
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Cheat] TestMaxHealthReqAll: MaxHealth=%d"), MaxHealth);
+
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+	{
+		NGIS->RequestMaxHealthReqAll(MaxHealth);
 	}
 }
 

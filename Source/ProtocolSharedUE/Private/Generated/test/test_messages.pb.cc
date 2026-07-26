@@ -129,6 +129,45 @@ struct C_ItemReqAllDefaultTypeInternal {
   };
 };
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_ItemReqAllDefaultTypeInternal _C_ItemReqAll_default_instance_;
+PROTOBUF_CONSTEXPR C_MoneyReqAll::C_MoneyReqAll(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.amount_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_MoneyReqAllDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_MoneyReqAllDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_MoneyReqAllDefaultTypeInternal() {}
+  union {
+    C_MoneyReqAll _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_MoneyReqAllDefaultTypeInternal _C_MoneyReqAll_default_instance_;
+PROTOBUF_CONSTEXPR C_HealthReqAll::C_HealthReqAll(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.health_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_HealthReqAllDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_HealthReqAllDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_HealthReqAllDefaultTypeInternal() {}
+  union {
+    C_HealthReqAll _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_HealthReqAllDefaultTypeInternal _C_HealthReqAll_default_instance_;
+PROTOBUF_CONSTEXPR C_MaxHealthReqAll::C_MaxHealthReqAll(
+    ::_pbi::ConstantInitialized): _impl_{
+    /*decltype(_impl_.max_health_)*/0
+  , /*decltype(_impl_._cached_size_)*/{}} {}
+struct C_MaxHealthReqAllDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR C_MaxHealthReqAllDefaultTypeInternal()
+      : _instance(::_pbi::ConstantInitialized{}) {}
+  ~C_MaxHealthReqAllDefaultTypeInternal() {}
+  union {
+    C_MaxHealthReqAll _instance;
+  };
+};
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 C_MaxHealthReqAllDefaultTypeInternal _C_MaxHealthReqAll_default_instance_;
 PROTOBUF_CONSTEXPR C_TPAllReq::C_TPAllReq(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.position_)*/nullptr
@@ -234,7 +273,7 @@ struct N_ZoneStartDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 N_ZoneStartDefaultTypeInternal _N_ZoneStart_default_instance_;
 }  // namespace test
 }  // namespace se
-static ::_pb::Metadata file_level_metadata_test_2ftest_5fmessages_2eproto[17];
+static ::_pb::Metadata file_level_metadata_test_2ftest_5fmessages_2eproto[20];
 static constexpr ::_pb::EnumDescriptor const** file_level_enum_descriptors_test_2ftest_5fmessages_2eproto = nullptr;
 static constexpr ::_pb::ServiceDescriptor const** file_level_service_descriptors_test_2ftest_5fmessages_2eproto = nullptr;
 
@@ -298,6 +337,27 @@ const uint32_t TableStruct_test_2ftest_5fmessages_2eproto::offsets[] PROTOBUF_SE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::se::test::C_ItemReqAll, _impl_.item_id_),
   PROTOBUF_FIELD_OFFSET(::se::test::C_ItemReqAll, _impl_.quantity_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_MoneyReqAll, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_MoneyReqAll, _impl_.amount_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_HealthReqAll, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_HealthReqAll, _impl_.health_),
+  ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_MaxHealthReqAll, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  ~0u,  // no _inlined_string_donated_
+  PROTOBUF_FIELD_OFFSET(::se::test::C_MaxHealthReqAll, _impl_.max_health_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::se::test::C_TPAllReq, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -364,15 +424,18 @@ static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protode
   { 37, -1, -1, sizeof(::se::test::C_HealthReq)},
   { 44, -1, -1, sizeof(::se::test::C_MaxHealthReq)},
   { 51, -1, -1, sizeof(::se::test::C_ItemReqAll)},
-  { 59, -1, -1, sizeof(::se::test::C_TPAllReq)},
-  { 66, -1, -1, sizeof(::se::test::N_TPPos)},
-  { 73, -1, -1, sizeof(::se::test::C_ZoneStopReq)},
-  { 79, -1, -1, sizeof(::se::test::C_ZoneStartReq)},
-  { 85, -1, -1, sizeof(::se::test::C_ZoneResetReq)},
-  { 91, -1, -1, sizeof(::se::test::C_ZoneDamageOffReq)},
-  { 97, -1, -1, sizeof(::se::test::C_ZoneDamageOnReq)},
-  { 103, -1, -1, sizeof(::se::test::N_ZoneStop)},
-  { 109, -1, -1, sizeof(::se::test::N_ZoneStart)},
+  { 59, -1, -1, sizeof(::se::test::C_MoneyReqAll)},
+  { 66, -1, -1, sizeof(::se::test::C_HealthReqAll)},
+  { 73, -1, -1, sizeof(::se::test::C_MaxHealthReqAll)},
+  { 80, -1, -1, sizeof(::se::test::C_TPAllReq)},
+  { 87, -1, -1, sizeof(::se::test::N_TPPos)},
+  { 94, -1, -1, sizeof(::se::test::C_ZoneStopReq)},
+  { 100, -1, -1, sizeof(::se::test::C_ZoneStartReq)},
+  { 106, -1, -1, sizeof(::se::test::C_ZoneResetReq)},
+  { 112, -1, -1, sizeof(::se::test::C_ZoneDamageOffReq)},
+  { 118, -1, -1, sizeof(::se::test::C_ZoneDamageOnReq)},
+  { 124, -1, -1, sizeof(::se::test::N_ZoneStop)},
+  { 130, -1, -1, sizeof(::se::test::N_ZoneStart)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -384,6 +447,9 @@ static const ::_pb::Message* const file_default_instances[] = {
   &::se::test::_C_HealthReq_default_instance_._instance,
   &::se::test::_C_MaxHealthReq_default_instance_._instance,
   &::se::test::_C_ItemReqAll_default_instance_._instance,
+  &::se::test::_C_MoneyReqAll_default_instance_._instance,
+  &::se::test::_C_HealthReqAll_default_instance_._instance,
+  &::se::test::_C_MaxHealthReqAll_default_instance_._instance,
   &::se::test::_C_TPAllReq_default_instance_._instance,
   &::se::test::_N_TPPos_default_instance_._instance,
   &::se::test::_C_ZoneStopReq_default_instance_._instance,
@@ -412,16 +478,20 @@ const char descriptor_table_protodef_test_2ftest_5fmessages_2eproto[] PROTOBUF_S
   "F\220\265\030\001\230\265\030\t\"3\n\016C_MaxHealthReq\022\022\n\nmax_healt"
   "h\030\001 \001(\005:\r\210\265\030\265F\220\265\030\001\230\265\030\t\"@\n\014C_ItemReqAll\022\017"
   "\n\007item_id\030\001 \001(\r\022\020\n\010quantity\030\002 \001(\005:\r\210\265\030\266F"
-  "\220\265\030\001\230\265\030\t\"A\n\nC_TPAllReq\022$\n\010position\030\001 \001(\013"
-  "2\022.se.common.Vector3:\r\210\265\030\274F\220\265\030\001\230\265\030\t\">\n\007N"
-  "_TPPos\022$\n\010position\030\001 \001(\0132\022.se.common.Vec"
-  "tor3:\r\210\265\030\275F\220\265\030\002\230\265\030\t\"\036\n\rC_ZoneStopReq:\r\210\265"
-  "\030\202G\220\265\030\001\230\265\030\t\"\037\n\016C_ZoneStartReq:\r\210\265\030\203G\220\265\030\001"
-  "\230\265\030\t\"\037\n\016C_ZoneResetReq:\r\210\265\030\204G\220\265\030\001\230\265\030\t\"#\n"
-  "\022C_ZoneDamageOffReq:\r\210\265\030\205G\220\265\030\001\230\265\030\t\"\"\n\021C_"
-  "ZoneDamageOnReq:\r\210\265\030\206G\220\265\030\001\230\265\030\t\"\033\n\nN_Zone"
-  "Stop:\r\210\265\030\207G\220\265\030\002\230\265\030\t\"\034\n\013N_ZoneStart:\r\210\265\030\210"
-  "G\220\265\030\002\230\265\030\tb\006proto3"
+  "\220\265\030\001\230\265\030\t\".\n\rC_MoneyReqAll\022\016\n\006amount\030\001 \001("
+  "\005:\r\210\265\030\267F\220\265\030\001\230\265\030\t\"/\n\016C_HealthReqAll\022\016\n\006he"
+  "alth\030\001 \001(\005:\r\210\265\030\270F\220\265\030\001\230\265\030\t\"6\n\021C_MaxHealth"
+  "ReqAll\022\022\n\nmax_health\030\001 \001(\005:\r\210\265\030\271F\220\265\030\001\230\265\030"
+  "\t\"A\n\nC_TPAllReq\022$\n\010position\030\001 \001(\0132\022.se.c"
+  "ommon.Vector3:\r\210\265\030\274F\220\265\030\001\230\265\030\t\">\n\007N_TPPos\022"
+  "$\n\010position\030\001 \001(\0132\022.se.common.Vector3:\r\210"
+  "\265\030\275F\220\265\030\002\230\265\030\t\"\036\n\rC_ZoneStopReq:\r\210\265\030\202G\220\265\030\001"
+  "\230\265\030\t\"\037\n\016C_ZoneStartReq:\r\210\265\030\203G\220\265\030\001\230\265\030\t\"\037\n"
+  "\016C_ZoneResetReq:\r\210\265\030\204G\220\265\030\001\230\265\030\t\"#\n\022C_Zone"
+  "DamageOffReq:\r\210\265\030\205G\220\265\030\001\230\265\030\t\"\"\n\021C_ZoneDam"
+  "ageOnReq:\r\210\265\030\206G\220\265\030\001\230\265\030\t\"\033\n\nN_ZoneStop:\r\210"
+  "\265\030\207G\220\265\030\002\230\265\030\t\"\034\n\013N_ZoneStart:\r\210\265\030\210G\220\265\030\002\230\265"
+  "\030\tb\006proto3"
   ;
 static const ::_pbi::DescriptorTable* const descriptor_table_test_2ftest_5fmessages_2eproto_deps[3] = {
   &::descriptor_table_common_2fcommon_5fenums_2eproto,
@@ -430,9 +500,9 @@ static const ::_pbi::DescriptorTable* const descriptor_table_test_2ftest_5fmessa
 };
 static ::_pbi::once_flag descriptor_table_test_2ftest_5fmessages_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_test_2ftest_5fmessages_2eproto = {
-    false, false, 1017, descriptor_table_protodef_test_2ftest_5fmessages_2eproto,
+    false, false, 1170, descriptor_table_protodef_test_2ftest_5fmessages_2eproto,
     "test/test_messages.proto",
-    &descriptor_table_test_2ftest_5fmessages_2eproto_once, descriptor_table_test_2ftest_5fmessages_2eproto_deps, 3, 17,
+    &descriptor_table_test_2ftest_5fmessages_2eproto_once, descriptor_table_test_2ftest_5fmessages_2eproto_deps, 3, 20,
     schemas, file_default_instances, TableStruct_test_2ftest_5fmessages_2eproto::offsets,
     file_level_metadata_test_2ftest_5fmessages_2eproto, file_level_enum_descriptors_test_2ftest_5fmessages_2eproto,
     file_level_service_descriptors_test_2ftest_5fmessages_2eproto,
@@ -2032,6 +2102,540 @@ void C_ItemReqAll::InternalSwap(C_ItemReqAll* other) {
 
 // ===================================================================
 
+class C_MoneyReqAll::_Internal {
+ public:
+};
+
+C_MoneyReqAll::C_MoneyReqAll(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.test.C_MoneyReqAll)
+}
+C_MoneyReqAll::C_MoneyReqAll(const C_MoneyReqAll& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_MoneyReqAll* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.amount_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _this->_impl_.amount_ = from._impl_.amount_;
+  // @@protoc_insertion_point(copy_constructor:se.test.C_MoneyReqAll)
+}
+
+inline void C_MoneyReqAll::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.amount_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_MoneyReqAll::~C_MoneyReqAll() {
+  // @@protoc_insertion_point(destructor:se.test.C_MoneyReqAll)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_MoneyReqAll::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void C_MoneyReqAll::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_MoneyReqAll::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.test.C_MoneyReqAll)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.amount_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_MoneyReqAll::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // int32 amount = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.amount_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_MoneyReqAll::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.test.C_MoneyReqAll)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // int32 amount = 1;
+  if (this->_internal_amount() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_amount(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.test.C_MoneyReqAll)
+  return target;
+}
+
+size_t C_MoneyReqAll::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.test.C_MoneyReqAll)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // int32 amount = 1;
+  if (this->_internal_amount() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_amount());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_MoneyReqAll::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_MoneyReqAll::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_MoneyReqAll::GetClassData() const { return &_class_data_; }
+
+
+void C_MoneyReqAll::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_MoneyReqAll*>(&to_msg);
+  auto& from = static_cast<const C_MoneyReqAll&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.test.C_MoneyReqAll)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_amount() != 0) {
+    _this->_internal_set_amount(from._internal_amount());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_MoneyReqAll::CopyFrom(const C_MoneyReqAll& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.test.C_MoneyReqAll)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_MoneyReqAll::IsInitialized() const {
+  return true;
+}
+
+void C_MoneyReqAll::InternalSwap(C_MoneyReqAll* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.amount_, other->_impl_.amount_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_MoneyReqAll::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
+      file_level_metadata_test_2ftest_5fmessages_2eproto[8]);
+}
+
+// ===================================================================
+
+class C_HealthReqAll::_Internal {
+ public:
+};
+
+C_HealthReqAll::C_HealthReqAll(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.test.C_HealthReqAll)
+}
+C_HealthReqAll::C_HealthReqAll(const C_HealthReqAll& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_HealthReqAll* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.health_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _this->_impl_.health_ = from._impl_.health_;
+  // @@protoc_insertion_point(copy_constructor:se.test.C_HealthReqAll)
+}
+
+inline void C_HealthReqAll::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.health_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_HealthReqAll::~C_HealthReqAll() {
+  // @@protoc_insertion_point(destructor:se.test.C_HealthReqAll)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_HealthReqAll::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void C_HealthReqAll::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_HealthReqAll::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.test.C_HealthReqAll)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.health_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_HealthReqAll::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // int32 health = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_HealthReqAll::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.test.C_HealthReqAll)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // int32 health = 1;
+  if (this->_internal_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_health(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.test.C_HealthReqAll)
+  return target;
+}
+
+size_t C_HealthReqAll::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.test.C_HealthReqAll)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // int32 health = 1;
+  if (this->_internal_health() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_health());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_HealthReqAll::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_HealthReqAll::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_HealthReqAll::GetClassData() const { return &_class_data_; }
+
+
+void C_HealthReqAll::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_HealthReqAll*>(&to_msg);
+  auto& from = static_cast<const C_HealthReqAll&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.test.C_HealthReqAll)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_health() != 0) {
+    _this->_internal_set_health(from._internal_health());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_HealthReqAll::CopyFrom(const C_HealthReqAll& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.test.C_HealthReqAll)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_HealthReqAll::IsInitialized() const {
+  return true;
+}
+
+void C_HealthReqAll::InternalSwap(C_HealthReqAll* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.health_, other->_impl_.health_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_HealthReqAll::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
+      file_level_metadata_test_2ftest_5fmessages_2eproto[9]);
+}
+
+// ===================================================================
+
+class C_MaxHealthReqAll::_Internal {
+ public:
+};
+
+C_MaxHealthReqAll::C_MaxHealthReqAll(::PROTOBUF_NAMESPACE_ID::Arena* arena,
+                         bool is_message_owned)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena, is_message_owned) {
+  SharedCtor(arena, is_message_owned);
+  // @@protoc_insertion_point(arena_constructor:se.test.C_MaxHealthReqAll)
+}
+C_MaxHealthReqAll::C_MaxHealthReqAll(const C_MaxHealthReqAll& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message() {
+  C_MaxHealthReqAll* const _this = this; (void)_this;
+  new (&_impl_) Impl_{
+      decltype(_impl_.max_health_){}
+    , /*decltype(_impl_._cached_size_)*/{}};
+
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  _this->_impl_.max_health_ = from._impl_.max_health_;
+  // @@protoc_insertion_point(copy_constructor:se.test.C_MaxHealthReqAll)
+}
+
+inline void C_MaxHealthReqAll::SharedCtor(
+    ::_pb::Arena* arena, bool is_message_owned) {
+  (void)arena;
+  (void)is_message_owned;
+  new (&_impl_) Impl_{
+      decltype(_impl_.max_health_){0}
+    , /*decltype(_impl_._cached_size_)*/{}
+  };
+}
+
+C_MaxHealthReqAll::~C_MaxHealthReqAll() {
+  // @@protoc_insertion_point(destructor:se.test.C_MaxHealthReqAll)
+  if (auto *arena = _internal_metadata_.DeleteReturnArena<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>()) {
+  (void)arena;
+    return;
+  }
+  SharedDtor();
+}
+
+inline void C_MaxHealthReqAll::SharedDtor() {
+  GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
+}
+
+void C_MaxHealthReqAll::SetCachedSize(int size) const {
+  _impl_._cached_size_.Set(size);
+}
+
+void C_MaxHealthReqAll::Clear() {
+// @@protoc_insertion_point(message_clear_start:se.test.C_MaxHealthReqAll)
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.max_health_ = 0;
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* C_MaxHealthReqAll::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    uint32_t tag;
+    ptr = ::_pbi::ReadTag(ptr, &tag);
+    switch (tag >> 3) {
+      // int32 max_health = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 8)) {
+          _impl_.max_health_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
+          CHK_(ptr);
+        } else
+          goto handle_unusual;
+        continue;
+      default:
+        goto handle_unusual;
+    }  // switch
+  handle_unusual:
+    if ((tag == 0) || ((tag & 7) == 4)) {
+      CHK_(ptr);
+      ctx->SetLastTag(tag);
+      goto message_done;
+    }
+    ptr = UnknownFieldParse(
+        tag,
+        _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+        ptr, ctx);
+    CHK_(ptr != nullptr);
+  }  // while
+message_done:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto message_done;
+#undef CHK_
+}
+
+uint8_t* C_MaxHealthReqAll::_InternalSerialize(
+    uint8_t* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:se.test.C_MaxHealthReqAll)
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // int32 max_health = 1;
+  if (this->_internal_max_health() != 0) {
+    target = stream->EnsureSpace(target);
+    target = ::_pbi::WireFormatLite::WriteInt32ToArray(1, this->_internal_max_health(), target);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:se.test.C_MaxHealthReqAll)
+  return target;
+}
+
+size_t C_MaxHealthReqAll::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:se.test.C_MaxHealthReqAll)
+  size_t total_size = 0;
+
+  uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // int32 max_health = 1;
+  if (this->_internal_max_health() != 0) {
+    total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(this->_internal_max_health());
+  }
+
+  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+}
+
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData C_MaxHealthReqAll::_class_data_ = {
+    ::PROTOBUF_NAMESPACE_ID::Message::CopyWithSourceCheck,
+    C_MaxHealthReqAll::MergeImpl
+};
+const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_MaxHealthReqAll::GetClassData() const { return &_class_data_; }
+
+
+void C_MaxHealthReqAll::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOBUF_NAMESPACE_ID::Message& from_msg) {
+  auto* const _this = static_cast<C_MaxHealthReqAll*>(&to_msg);
+  auto& from = static_cast<const C_MaxHealthReqAll&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:se.test.C_MaxHealthReqAll)
+  GOOGLE_DCHECK_NE(&from, _this);
+  uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_max_health() != 0) {
+    _this->_internal_set_max_health(from._internal_max_health());
+  }
+  _this->_internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void C_MaxHealthReqAll::CopyFrom(const C_MaxHealthReqAll& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:se.test.C_MaxHealthReqAll)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool C_MaxHealthReqAll::IsInitialized() const {
+  return true;
+}
+
+void C_MaxHealthReqAll::InternalSwap(C_MaxHealthReqAll* other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_.max_health_, other->_impl_.max_health_);
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata C_MaxHealthReqAll::GetMetadata() const {
+  return ::_pbi::AssignDescriptors(
+      &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
+      file_level_metadata_test_2ftest_5fmessages_2eproto[10]);
+}
+
+// ===================================================================
+
 class C_TPAllReq::_Internal {
  public:
   static const ::se::common::Vector3& position(const C_TPAllReq* msg);
@@ -2226,7 +2830,7 @@ void C_TPAllReq::InternalSwap(C_TPAllReq* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata C_TPAllReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[8]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[11]);
 }
 
 // ===================================================================
@@ -2425,7 +3029,7 @@ void N_TPPos::InternalSwap(N_TPPos* other) {
 ::PROTOBUF_NAMESPACE_ID::Metadata N_TPPos::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[9]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[12]);
 }
 
 // ===================================================================
@@ -2465,7 +3069,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneStopReq::GetClassData() 
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneStopReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[10]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[13]);
 }
 
 // ===================================================================
@@ -2505,7 +3109,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneStartReq::GetClassData()
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneStartReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[11]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[14]);
 }
 
 // ===================================================================
@@ -2545,7 +3149,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneResetReq::GetClassData()
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneResetReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[12]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[15]);
 }
 
 // ===================================================================
@@ -2585,7 +3189,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneDamageOffReq::GetClassDa
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneDamageOffReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[13]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[16]);
 }
 
 // ===================================================================
@@ -2625,7 +3229,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*C_ZoneDamageOnReq::GetClassDat
 ::PROTOBUF_NAMESPACE_ID::Metadata C_ZoneDamageOnReq::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[14]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[17]);
 }
 
 // ===================================================================
@@ -2665,7 +3269,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_ZoneStop::GetClassData() con
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ZoneStop::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[15]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[18]);
 }
 
 // ===================================================================
@@ -2705,7 +3309,7 @@ const ::PROTOBUF_NAMESPACE_ID::Message::ClassData*N_ZoneStart::GetClassData() co
 ::PROTOBUF_NAMESPACE_ID::Metadata N_ZoneStart::GetMetadata() const {
   return ::_pbi::AssignDescriptors(
       &descriptor_table_test_2ftest_5fmessages_2eproto_getter, &descriptor_table_test_2ftest_5fmessages_2eproto_once,
-      file_level_metadata_test_2ftest_5fmessages_2eproto[16]);
+      file_level_metadata_test_2ftest_5fmessages_2eproto[19]);
 }
 
 // @@protoc_insertion_point(namespace_scope)
@@ -2743,6 +3347,18 @@ Arena::CreateMaybeMessage< ::se::test::C_MaxHealthReq >(Arena* arena) {
 template<> PROTOBUF_NOINLINE ::se::test::C_ItemReqAll*
 Arena::CreateMaybeMessage< ::se::test::C_ItemReqAll >(Arena* arena) {
   return Arena::CreateMessageInternal< ::se::test::C_ItemReqAll >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::test::C_MoneyReqAll*
+Arena::CreateMaybeMessage< ::se::test::C_MoneyReqAll >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::test::C_MoneyReqAll >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::test::C_HealthReqAll*
+Arena::CreateMaybeMessage< ::se::test::C_HealthReqAll >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::test::C_HealthReqAll >(arena);
+}
+template<> PROTOBUF_NOINLINE ::se::test::C_MaxHealthReqAll*
+Arena::CreateMaybeMessage< ::se::test::C_MaxHealthReqAll >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::se::test::C_MaxHealthReqAll >(arena);
 }
 template<> PROTOBUF_NOINLINE ::se::test::C_TPAllReq*
 Arena::CreateMaybeMessage< ::se::test::C_TPAllReq >(Arena* arena) {
