@@ -61,6 +61,7 @@ protected:
 
 	void ShowMainMenu();
 	void HideMainMenu();
+	void TogglePauseMenuWidget();
 	void ShowGameResult(int32 Rank, int32 Score, const FString& KillerName);
 	void HideGameResult();
 	void ApplyDLSSSuperResolutionSetting();
@@ -81,6 +82,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "UI|MainMenu")
 	TSubclassOf<UMainMenuWidget> MainMenuWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI|PauseMenu")
+	TSubclassOf<UUserWidget> PauseMenuWidgetClass;
 
 	UPROPERTY(EditAnywhere, Category = "UI|GameResult")
 	TSubclassOf<UGameResultWidget> GameResultWidgetClass;
@@ -105,6 +109,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UMainMenuWidget> MainMenuWidget;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> PauseMenuWidget;
 
 	UPROPERTY()
 	TObjectPtr<UGameResultWidget> GameResultWidget;

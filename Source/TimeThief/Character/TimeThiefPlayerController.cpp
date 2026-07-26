@@ -221,6 +221,35 @@ void ATimeThiefPlayerController::HideMainMenu()
 	SetInputMode(FInputModeGameOnly{});
 }
 
+void ATimeThiefPlayerController::TogglePauseMenuWidget()
+{
+	if (PauseMenuWidget)
+	{
+		PauseMenuWidget->RemoveFromParent();
+		PauseMenuWidget = nullptr;
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly{});
+		return;
+	}
+
+	if (!PauseMenuWidgetClass)
+	{
+		return;
+	}
+
+	PauseMenuWidget = CreateWidget<UUserWidget>(this, PauseMenuWidgetClass);
+	if (!PauseMenuWidget)
+	{
+		return;
+	}
+
+	PauseMenuWidget->AddToViewport(20);
+	bShowMouseCursor = true;
+	FInputModeGameAndUI InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
 void ATimeThiefPlayerController::ShowGameResult(int32 Rank, int32 Score, const FString& KillerName)
 {
 	if (!IsLocalPlayerController())
@@ -448,6 +477,18 @@ bool ATimeThiefPlayerController::CloseVisibleWidget()
 	if (MainHUDWidget && MainHUDWidget->HideControlGuideWidget())
 	{
 		bClosedAnyWidget = true;
+	}
+
+	if (!bClosedAnyWidget && PauseMenuWidget)
+	{
+		TogglePauseMenuWidget();
+		return true;
+	}
+
+	if (!bClosedAnyWidget && !MainMenuWidget && !GameResultWidget)
+	{
+		TogglePauseMenuWidget();
+		bClosedAnyWidget = PauseMenuWidget != nullptr;
 	}
 
 	return bClosedAnyWidget;
