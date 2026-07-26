@@ -1,0 +1,63 @@
+name: Export all smoke logic
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.head_ref == 'agent/explain-all-smoke-logic'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Export exact SmokeOptimization source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin SmokeOptimization
+          git checkout --detach origin/SmokeOptimization
+
+          mkdir -p smoke-logic/source smoke-logic/reports
+
+          {
+            git ls-files 'Plugins/TimeThiefSmokeRenderer/**'
+            git ls-files 'Plugins/TimeThiefSmokeTest/**'
+            git ls-files 'Source/TimeThief/**' | grep -Ei 'smoke|throwable|rocket|shotgun|weapon|projectile' || true
+            git ls-files 'Scripts/**' | grep -Ei 'smoke' || true
+            git grep -l -I -E 'TimeThiefSmoke|SmokeVolume|SmokeRenderer|SmokeEvent|SmokeObstacle|BulletWake|BulletCutout|ObstacleField|ExplosionShock' -- \
+              '*.h' '*.cpp' '*.usf' '*.ush' '*.cs' '*.json' '*.uplugin' '*.uproject' '*.ini' '*.py' || true
+          } | sort -u | grep -E '\.(h|hpp|cpp|c|usf|ush|cs|json|uplugin|uproject|ini|py|md|txt)$' > smoke-logic/reports/manifest-paths.txt
+
+          while IFS= read -r path; do
+            [ -f "$path" ] || continue
+            mkdir -p "smoke-logic/source/$(dirname "$path")"
+            cp "$path" "smoke-logic/source/$path"
+          done < smoke-logic/reports/manifest-paths.txt
+
+          {
+            echo "HEAD=$(git rev-parse HEAD)"
+            echo "BRANCH=SmokeOptimization"
+            echo "FILE_COUNT=$(wc -l < smoke-logic/reports/manifest-paths.txt)"
+            echo
+            while IFS= read -r path; do
+              [ -f "$path" ] || continue
+              printf '%8s  %s  %s\n' "$(wc -l < "$path")" "$(sha256sum "$path" | cut -d' ' -f1)" "$path"
+            done < smoke-logic/reports/manifest-paths.txt
+          } > smoke-logic/reports/manifest-details.txt
+
+          git grep -n -I -E 'Register|Unregister|Submit|Enqueue|Add.*Pass|BeginPlay|Tick|EndPlay|OnRep|Overlap|Hit|Explosion|Bullet|Obstacle|Density|Velocity|Pressure|Divergence|Vorticity|Temporal|Composite|Ray|Lifetime|Fade|Destroy' -- \
+            $(cat smoke-logic/reports/manifest-paths.txt) > smoke-logic/reports/symbol-and-call-index.txt || true
+
+          git log --date=iso-strict --pretty=format:'%H%x09%ad%x09%s' -- $(cat smoke-logic/reports/manifest-paths.txt) > smoke-logic/reports/history.txt
+
+          tar -czf smoke-logic.tar.gz smoke-logic
+      - uses: actions/upload-artifact@v4
+        with:
+          name: all-smoke-logic
+          path: smoke-logic.tar.gz
+          if-no-files-found: error
