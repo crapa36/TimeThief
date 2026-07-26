@@ -3725,6 +3725,23 @@ void UNetworkGameInstanceSubsystem::RequestMoneyReq(int32 Amount)
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MoneyReq to server. Amount=%d"), Amount);
 }
 
+void UNetworkGameInstanceSubsystem::RequestMoneyReqAll(int32 Amount)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request money for all players: Not connected to server"));
+		return;
+	}
+
+	se::test::C_MoneyReqAll Request;
+	Request.set_amount(Amount);
+
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MoneyReqAll to server. Amount=%d"), Amount);
+}
+
 void UNetworkGameInstanceSubsystem::RequestHealthReq(int32 Health)
 {
 	if (bIsConnected == false || GameSession == nullptr)
@@ -3742,6 +3759,23 @@ void UNetworkGameInstanceSubsystem::RequestHealthReq(int32 Health)
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_HealthReq to server. Health=%d"), Health);
 }
 
+void UNetworkGameInstanceSubsystem::RequestHealthReqAll(int32 Health)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request health for all players: Not connected to server"));
+		return;
+	}
+
+	se::test::C_HealthReqAll Request;
+	Request.set_health(Health);
+
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_HealthReqAll to server. Health=%d"), Health);
+}
+
 void UNetworkGameInstanceSubsystem::RequestMaxHealthReq(int32 MaxHealth)
 {
 	if (bIsConnected == false || GameSession == nullptr)
@@ -3757,6 +3791,23 @@ void UNetworkGameInstanceSubsystem::RequestMaxHealthReq(int32 MaxHealth)
 	SendPacket(SendBuffer);
 	
 	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MaxHealthReq to server. MaxHealth=%d"), MaxHealth);
+}
+
+void UNetworkGameInstanceSubsystem::RequestMaxHealthReqAll(int32 MaxHealth)
+{
+	if (bIsConnected == false || GameSession == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Network] Cannot request max health for all players: Not connected to server"));
+		return;
+	}
+
+	se::test::C_MaxHealthReqAll Request;
+	Request.set_max_health(MaxHealth);
+
+	auto SendBuffer = ClientPacketHandler::MakeSendBuffer(Request);
+	SendPacket(SendBuffer);
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Sent C_MaxHealthReqAll to server. MaxHealth=%d"), MaxHealth);
 }
 
 void UNetworkGameInstanceSubsystem::RequestTPAll(FVector Pos)
