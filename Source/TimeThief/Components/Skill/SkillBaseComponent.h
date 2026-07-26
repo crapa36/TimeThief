@@ -28,6 +28,7 @@ public:
 	bool CanActivate() const;
 	uint32 GetSkillId() const { return SkillId; }
 	float GetRemainingCoolTime() const;
+	float GetCooldownPercent() const;
 	void ApplyServerCooldownMs(uint32 RemainingCooldownMs);
 
 protected:

@@ -38,6 +38,11 @@ float USkillBaseComponent::GetRemainingCoolTime() const
 	return FMath::Max(0.0f, CooldownEndTimeSeconds - World->GetTimeSeconds());
 }
 
+float USkillBaseComponent::GetCooldownPercent() const
+{
+	return CoolTime > 0.0f ? FMath::Clamp(GetRemainingCoolTime() / CoolTime, 0.0f, 1.0f) : 0.0f;
+}
+
 void USkillBaseComponent::ApplyServerCooldownMs(uint32 RemainingCooldownMs)
 {
 	StartCooldown(static_cast<float>(RemainingCooldownMs) / 1000.0f);

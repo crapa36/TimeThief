@@ -4,6 +4,7 @@
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Skill/SavePointSkillComponent.h"
 #include "Components/Skill/TimeThiefSkillComponent.h"
 #include "Components/TimeThiefHealthComponent.h"
 #include "Components/Combat/TimeThiefPlayerCombatComponent.h"
@@ -56,6 +57,8 @@ void UTimeThiefHUDWidget::NativeConstruct()
 	LastWireCooldownPercent = -1.0f;
 	LastSkillSlot1CooldownPercent = -1.0f;
 	LastSkillSlot2CooldownPercent = -1.0f;
+	LastSavePointCooldownPercent = -1.0f;
+	LastSavePointIconOpacity = -1.0f;
 	LastSkillSlot1CooldownSeconds = -1;
 	LastSkillSlot2CooldownSeconds = -1;
 
@@ -84,6 +87,17 @@ void UTimeThiefHUDWidget::NativeConstruct()
 	if (SkillSlot2_Cooldown_Text)
 	{
 		SkillSlot2_Cooldown_Text->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (SavePoint_Icon)
+	{
+		SavePoint_Icon->SetVisibility(ESlateVisibility::HitTestInvisible);
+		SavePoint_Icon->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.35f));
+	}
+	if (SavePoint_Cooldown_ProgressBar)
+	{
+		SavePoint_Cooldown_ProgressBar->SetVisibility(ESlateVisibility::HitTestInvisible);
+		SavePoint_Cooldown_ProgressBar->SetPercent(0.0f);
+		SavePoint_Cooldown_ProgressBar->SetFillColorAndOpacity(FLinearColor::White);
 	}
 
 	EnsureControlGuideWidget();
@@ -131,6 +145,7 @@ void UTimeThiefHUDWidget::NativeDestruct()
 	CachedWeapon.Reset();
 	CachedWireComponent.Reset();
 	CachedSkillComponent.Reset();
+	CachedSavePointSkillComponent.Reset();
 
 	if (SpawnedControlGuideWidget)
 	{
@@ -150,6 +165,7 @@ void UTimeThiefHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 		UpdateCrosshairInvalidation();
 		UpdateWireCooldownDisplay();
 		UpdateSkillCooldownDisplay();
+		UpdateSavePointCooldownDisplay();
 	}
 }
 
@@ -261,6 +277,7 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	CachedCombatComponent = InCharacter->GetPlayerCombatComponent();
 	CachedWireComponent = InCharacter->GetWireComponent();
 	CachedSkillComponent = InCharacter->FindComponentByClass<UTimeThiefSkillComponent>();
+	CachedSavePointSkillComponent = InCharacter->GetSavePointSkillComponent();
 	CachedTimePointSystemComponent = InCharacter->GetComponentByClass<UTimePointSystemComponent>();
 	
 	if (CachedHealthComponent.IsValid())
@@ -297,6 +314,7 @@ void UTimeThiefHUDWidget::InitializeHUD(ATimeThiefPlayerCharacter* InCharacter)
 	}
 	UpdateSkillSlotsDisplay();
 	UpdateSkillCooldownDisplay();
+	UpdateSavePointCooldownDisplay();
 }
 
 void UTimeThiefHUDWidget::OnHealthUpdated(const UTimeThiefHealthComponent* HealthComponent, float OldHealth, float CurrHealth, AActor* Instigator)
@@ -636,6 +654,33 @@ void UTimeThiefHUDWidget::UpdateSkillCooldownSlotDisplay(
 		{
 			CooldownText->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
+	}
+}
+
+void UTimeThiefHUDWidget::UpdateSavePointCooldownDisplay()
+{
+	const float CooldownRemaining = CachedSavePointSkillComponent.IsValid()
+		? CachedSavePointSkillComponent->GetRemainingCoolTime()
+		: 0.0f;
+	const bool bCoolingDown = CooldownRemaining > 0.0f;
+	const float CooldownProgress = bCoolingDown
+		? 1.0f - CachedSavePointSkillComponent->GetCooldownPercent()
+		: 1.0f;
+
+	if (SavePoint_Cooldown_ProgressBar)
+	{
+		if (!FMath::IsNearlyEqual(LastSavePointCooldownPercent, CooldownProgress, KINDA_SMALL_NUMBER))
+		{
+			SavePoint_Cooldown_ProgressBar->SetPercent(CooldownProgress);
+			LastSavePointCooldownPercent = CooldownProgress;
+		}
+	}
+
+	const float IconOpacity = bCoolingDown ? 0.35f : 1.0f;
+	if (SavePoint_Icon && !FMath::IsNearlyEqual(LastSavePointIconOpacity, IconOpacity, KINDA_SMALL_NUMBER))
+	{
+		SavePoint_Icon->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, IconOpacity));
+		LastSavePointIconOpacity = IconOpacity;
 	}
 }
 

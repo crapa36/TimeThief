@@ -16,6 +16,7 @@ class UTimeThiefPlayerCombatComponent;
 class UTimeThiefSkillComponent;
 class UTimeThiefWeaponComponentBase;
 class UTimeThiefWireComponent;
+class USavePointSkillComponent;
 
 UCLASS(Abstract)
 class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
@@ -63,6 +64,12 @@ class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> SkillSlot2_Cooldown_Text;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UImage> SavePoint_Icon;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> SavePoint_Cooldown_ProgressBar;
 	
 public:
 	UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer);
@@ -123,6 +130,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
 	TWeakObjectPtr<UTimeThiefSkillComponent> CachedSkillComponent;
 
+	UPROPERTY(BlueprintReadOnly, Category = "TimeThief|HUD")
+	TWeakObjectPtr<USavePointSkillComponent> CachedSavePointSkillComponent;
+
 	UPROPERTY()
 	TWeakObjectPtr<UTimePointSystemComponent> CachedTimePointSystemComponent;
 	
@@ -148,6 +158,7 @@ private:
 	void UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget);
 	void UpdateSkillCooldownDisplay();
 	void UpdateSkillCooldownSlotDisplay(uint32 SlotIndex, UProgressBar* CooldownProgressBar, UTextBlock* CooldownText, float& LastCooldownPercent, int32& LastCooldownSeconds);
+	void UpdateSavePointCooldownDisplay();
 	UTexture2D* ResolveSkillIcon(int32 SkillId) const;
 	
 	TWeakObjectPtr<UTimeThiefWeaponComponentBase> CachedWeapon;
@@ -161,6 +172,8 @@ private:
 	float LastWireCooldownPercent = -1.0f;
 	float LastSkillSlot1CooldownPercent = -1.0f;
 	float LastSkillSlot2CooldownPercent = -1.0f;
+	float LastSavePointCooldownPercent = -1.0f;
+	float LastSavePointIconOpacity = -1.0f;
 	int32 LastSkillSlot1CooldownSeconds = -1;
 	int32 LastSkillSlot2CooldownSeconds = -1;
 };
