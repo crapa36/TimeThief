@@ -182,7 +182,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 초당 밀도 자연 감소율. 높을수록 연막이 빨리 옅어짐.
 	constexpr float DensityDissipation = 0.02f;
 	// 초당 속도 감쇠율. 높을수록 움직임이 빨리 안정됨.
-	constexpr float VelocityDamping = 0.4f;
+	constexpr float VelocityDamping = 0.2f;
 
 	// 와류와 흔들림
 
@@ -317,7 +317,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 총알 후류
 
 	// 총알이 지우는 연막 반경(cm). 높을수록 구멍 크기 증가.
-	constexpr float BulletClearRadius = 36.0f;
+	constexpr float BulletClearRadius = 32.0f;
 	// 총알 구멍 반경 랜덤 최소 배율. 높을수록 가장 작은 구멍 크기 증가.
 	constexpr float BulletClearRadiusRandomMin = 0.95f;
 	// 총알 구멍 반경 랜덤 최대 배율. 높을수록 가장 큰 구멍 크기 증가.
@@ -352,9 +352,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 폭발 이벤트 안전 최소 반경(cm). 실제 영향 반경은 게임/네트워크에서 전달된 값을 사용한다.
 	constexpr float ExplosionShockRadius = 1.0f;
 	// 폭발 속도 충격 유지 시간(초). 높을수록 충격 지속 증가.
-	constexpr float ExplosionImpulseDuration = 0.8f;
+	constexpr float ExplosionImpulseDuration = 1.0f;
 	// 폭발 반경 대비 외부 공기장 영향 반경 배율. 높을수록 폭발 반경 밖 연막 밀림 범위 증가.
-	constexpr float ExplosionInfluenceRadiusScale = 1.4f;
+	constexpr float ExplosionInfluenceRadiusScale = 1.5f;
 	// 폭발 바깥 방향 속도 강도(cm/s). 높을수록 연막 밀림 증가.
 	constexpr float ExplosionOutwardStrength = 800.0f;
 
