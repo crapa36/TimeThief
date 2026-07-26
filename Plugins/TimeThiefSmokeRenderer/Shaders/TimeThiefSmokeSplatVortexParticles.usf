@@ -89,35 +89,19 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float SafeCore = clamp(VortexParticleCoreRadius, 1.0, SafeRadius);
 	float3 SplatVelocity = float3(0.0, 0.0, 0.0);
 
-	if (bUseVortexBrickBins != 0)
+	const uint3 MaxBrickCoord = uint3(max(BrickGridResolution - int3(1, 1, 1), int3(0, 0, 0)));
+	const uint3 BrickCoord = min(DispatchThreadId / max((uint)SmokeBrickSize, 1u), MaxBrickCoord);
+	uint Mask = VortexBrickMasks[FlattenBrickCoord(BrickCoord)];
+	[loop]
+	while (Mask != 0u)
 	{
-		const uint3 MaxBrickCoord = uint3(max(BrickGridResolution - int3(1, 1, 1), int3(0, 0, 0)));
-		const uint3 BrickCoord = min(DispatchThreadId / max((uint)SmokeBrickSize, 1u), MaxBrickCoord);
-		const uint4 Mask = VortexBrickMasks[FlattenBrickCoord(BrickCoord)];
-		[unroll]
-		for (int WordIndex = 0; WordIndex < 4; ++WordIndex)
-		{
-			uint Word = WordIndex == 0 ? Mask.x : (WordIndex == 1 ? Mask.y : (WordIndex == 2 ? Mask.z : Mask.w));
-			[loop]
-			while (Word != 0u)
-			{
-				const uint BitIndex = firstbitlow(Word);
-				const int ParticleIndex = WordIndex * 32 + (int)BitIndex;
-				if (ParticleIndex < min(VortexParticleCount, MaxVortexParticleCount))
-				{
-					AccumulateVortexParticle(ParticleIndex, LocalPosition, Density, BulletMasks, SafeRadius, SafeCore, SplatVelocity);
-				}
-				Word &= Word - 1u;
-			}
-		}
-	}
-	else
-	{
-		[loop]
-		for (int ParticleIndex = 0; ParticleIndex < min(VortexParticleCount, MaxVortexParticleCount); ++ParticleIndex)
+		const uint BitIndex = firstbitlow(Mask);
+		const int ParticleIndex = (int)BitIndex;
+		if (ParticleIndex < min(min(VortexParticleCount, MaxVortexParticleCount), 32))
 		{
 			AccumulateVortexParticle(ParticleIndex, LocalPosition, Density, BulletMasks, SafeRadius, SafeCore, SplatVelocity);
 		}
+		Mask &= Mask - 1u;
 	}
 
 	Velocity += SplatVelocity;

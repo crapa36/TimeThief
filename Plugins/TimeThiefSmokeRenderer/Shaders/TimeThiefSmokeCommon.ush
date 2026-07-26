@@ -8,6 +8,7 @@ struct FTimeThiefSmokeEventShaderData
 	float4 Rotation;
 	float4 TypeShapeAgeSeed;
 	float4 PreviousPositionSpeed;
+	float4 ExplosionParameters;
 };
 
 struct FTimeThiefSmokeVortexParticleShaderData
@@ -25,6 +26,42 @@ struct FTimeThiefSmokeBulletOpenMasks
 	float Detail;
 	float Edge;
 };
+
+uint TimeThiefSmokeLowEventBitMask(int BitCount)
+{
+	if (BitCount <= 0)
+	{
+		return 0u;
+	}
+	return BitCount >= 32 ? 0xffffffffu : (1u << BitCount) - 1u;
+}
+
+uint4 TimeThiefSmokeValidEventMask(int EventCount)
+{
+	const int SafeEventCount = clamp(EventCount, 0, 128);
+	return uint4(
+		TimeThiefSmokeLowEventBitMask(SafeEventCount),
+		TimeThiefSmokeLowEventBitMask(SafeEventCount - 32),
+		TimeThiefSmokeLowEventBitMask(SafeEventCount - 64),
+		TimeThiefSmokeLowEventBitMask(SafeEventCount - 96));
+}
+
+int TimeThiefSmokePopLowestEventIndex(inout uint4 Mask, inout uint WordIndex)
+{
+	[loop]
+	while (WordIndex < 4u)
+	{
+		const uint Word = Mask[WordIndex];
+		if (Word != 0u)
+		{
+			const int BitIndex = firstbitlow(Word);
+			Mask[WordIndex] = Word & (Word - 1u);
+			return int(WordIndex * 32u) + BitIndex;
+		}
+		++WordIndex;
+	}
+	return -1;
+}
 
 float TimeThiefSmokeHash13(float3 P)
 {
@@ -353,7 +390,8 @@ float TimeThiefSmokeBulletWakeInfluenceRadius(FTimeThiefSmokeEventShaderData Eve
 float TimeThiefSmokeExplosionInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
 {
 	const float Radius = max(Event.PositionRadius.w, 1.0);
-	return Radius * 1.55;
+	const float RadiusScale = max(Event.ExplosionParameters.x, 1.0);
+	return Radius * RadiusScale;
 }
 
 float TimeThiefSmokePlumeSourceInfluenceRadius(FTimeThiefSmokeEventShaderData Event)
@@ -549,4 +587,20 @@ FTimeThiefSmokeBulletOpenMasks TimeThiefSmokeBulletOpenMasksFromValues(float Cut
 	Masks.Detail = TimeThiefSmokeBulletDetailOpenFromValues(Cutout, Sink);
 	Masks.Edge = TimeThiefSmokeBulletEdgeMaskFromValues(Cutout, Sink);
 	return Masks;
+}
+
+void TimeThiefSmokeClampDensityChannels(
+	inout float NaturalDensity,
+	inout float DisplacedDensity,
+	float MaxTotalDensity)
+{
+	NaturalDensity = max(NaturalDensity, 0.0);
+	DisplacedDensity = max(DisplacedDensity, 0.0);
+	const float TotalDensity = NaturalDensity + DisplacedDensity;
+	if (TotalDensity > MaxTotalDensity)
+	{
+		const float DensityScale = max(MaxTotalDensity, 0.0) / max(TotalDensity, 0.0001);
+		NaturalDensity *= DensityScale;
+		DisplacedDensity *= DensityScale;
+	}
 }

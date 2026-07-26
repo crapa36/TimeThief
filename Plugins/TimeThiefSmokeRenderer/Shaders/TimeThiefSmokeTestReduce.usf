@@ -1,0 +1,78 @@
+#include "/Engine/Public/Platform.ush"
+
+// Test-only serial reduction. It runs only for explicit capture_probe actions and
+// avoids transferring the complete 3D field to the CPU.
+
+int3 GridResolution;
+float3 BoundsExtent;
+float SmokeDensityMax;
+
+Texture3D<float> DensityTexture;
+Texture3D<float> DisplacedDensityTexture;
+Texture3D<float4> VelocityTexture;
+Texture3D<float> BulletCutoutTexture;
+Texture3D<float> BulletSinkTexture;
+Texture3D<float> ObstacleTexture;
+RWStructuredBuffer<float4> OutResult;
+
+[numthreads(1, 1, 1)]
+void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+	float NaturalDensitySum = 0.0;
+	float DisplacedDensitySum = 0.0;
+	float3 WeightedLocalPosition = 0.0;
+	float TotalDensity = 0.0;
+	float MaxVelocity = 0.0;
+	float BulletCutoutMax = 0.0;
+	float BulletSinkMax = 0.0;
+	float ActiveDensityVoxels = 0.0;
+	float ActiveBulletVoxels = 0.0;
+	float DensityInsideObstacle = 0.0;
+	float MaxNaturalDensity = 0.0;
+	float MaxDisplacedDensity = 0.0;
+	float MaxCombinedDensity = 0.0;
+	float DensityClampViolationVoxels = 0.0;
+	float SolidObstacleVoxels = 0.0;
+
+	for (int Z = 0; Z < GridResolution.z; ++Z)
+	{
+		for (int Y = 0; Y < GridResolution.y; ++Y)
+		{
+			for (int X = 0; X < GridResolution.x; ++X)
+			{
+				const int4 Coord = int4(X, Y, Z, 0);
+				const float NaturalDensity = max(0.0, DensityTexture.Load(Coord));
+				const float DisplacedDensity = max(0.0, DisplacedDensityTexture.Load(Coord));
+				const float Density = NaturalDensity + DisplacedDensity;
+				const float3 Velocity = VelocityTexture.Load(Coord).xyz;
+				const float Cutout = max(0.0, BulletCutoutTexture.Load(Coord));
+				const float Sink = max(0.0, BulletSinkTexture.Load(Coord));
+				const float ObstacleSdf = ObstacleTexture.Load(Coord);
+				const float3 UVW = (float3(X, Y, Z) + 0.5) / float3(GridResolution);
+				const float3 LocalPosition = (UVW * 2.0 - 1.0) * BoundsExtent;
+
+				NaturalDensitySum += NaturalDensity;
+				DisplacedDensitySum += DisplacedDensity;
+				TotalDensity += Density;
+				WeightedLocalPosition += LocalPosition * Density;
+				MaxVelocity = max(MaxVelocity, length(Velocity));
+				BulletCutoutMax = max(BulletCutoutMax, Cutout);
+				BulletSinkMax = max(BulletSinkMax, Sink);
+				ActiveDensityVoxels += Density > 0.0001 ? 1.0 : 0.0;
+				ActiveBulletVoxels += max(Cutout, Sink) > 0.0001 ? 1.0 : 0.0;
+				DensityInsideObstacle += ObstacleSdf < 0.0 ? Density : 0.0;
+				SolidObstacleVoxels += ObstacleSdf < 0.0 ? 1.0 : 0.0;
+				MaxNaturalDensity = max(MaxNaturalDensity, NaturalDensity);
+				MaxDisplacedDensity = max(MaxDisplacedDensity, DisplacedDensity);
+				MaxCombinedDensity = max(MaxCombinedDensity, Density);
+				DensityClampViolationVoxels += Density > SmokeDensityMax + 0.0001 ? 1.0 : 0.0;
+			}
+		}
+	}
+
+	OutResult[0] = float4(NaturalDensitySum, DisplacedDensitySum, WeightedLocalPosition.xy);
+	OutResult[1] = float4(WeightedLocalPosition.z, MaxVelocity, BulletCutoutMax, BulletSinkMax);
+	OutResult[2] = float4(ActiveDensityVoxels, ActiveBulletVoxels, DensityInsideObstacle, TotalDensity);
+	OutResult[3] = float4(MaxNaturalDensity, MaxDisplacedDensity, MaxCombinedDensity, DensityClampViolationVoxels);
+	OutResult[4] = float4(SolidObstacleVoxels, 0.0, 0.0, 0.0);
+}

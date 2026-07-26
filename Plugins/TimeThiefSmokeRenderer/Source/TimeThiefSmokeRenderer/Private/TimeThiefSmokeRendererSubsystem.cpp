@@ -1,11 +1,18 @@
 #include "TimeThiefSmokeRendererSubsystem.h"
 
+#include "Misc/App.h"
 #include "RenderingThread.h"
+#include "TimeThiefSmokeTestBridge.h"
 #include "TimeThiefSmokeViewExtension.h"
 
 void UTimeThiefSmokeRendererSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (IsRunningCommandlet() || !FApp::CanEverRender())
+	{
+		return;
+	}
+
 	ViewExtension = FSceneViewExtensions::NewExtension<FTimeThiefSmokeViewExtension>();
 
 	TSharedPtr<FTimeThiefSmokeViewExtension, ESPMode::ThreadSafe> Extension = ViewExtension;
@@ -46,6 +53,18 @@ void UTimeThiefSmokeRendererSubsystem::SubmitFrame(FTimeThiefSmokeRendererFrame 
 	ENQUEUE_RENDER_COMMAND(TimeThiefSmokeSubmitFrame)(
 		[Extension, RenderFrame = MoveTemp(Frame)](FRHICommandListImmediate& RHICmdList) mutable
 		{
+			if (FTimeThiefSmokeTestBridge::IsActive())
+			{
+				FTimeThiefSmokeTestEvent Event;
+				Event.Type = TEXT("renderer_frame_received");
+				Event.Count = RenderFrame.Events.Num();
+				Event.FrameId = GFrameCounter;
+				for (const FTimeThiefSmokeRendererVolume& Volume : RenderFrame.Volumes)
+				{
+					Event.SmokeIds.Add(Volume.SmokeId);
+				}
+				FTimeThiefSmokeTestBridge::Emit(Event);
+			}
 			Extension->SubmitFrame_RenderThread(MoveTemp(RenderFrame));
 		});
 }
