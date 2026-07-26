@@ -969,8 +969,20 @@ void UNetworkGameInstanceSubsystem::HandleEntityDespawn(const se::room::N_Entity
 
 void UNetworkGameInstanceSubsystem::HandleRoomSetupEnd(const se::room::S_RoomSetupEnd& Pkt)
 {
-	// TODO: Room Setup이 끝났다는 패킷이 오면 Server의 Room Setting에 관한 요청이 모두 종료 된 것
-	//		 이에 대해 처리를 다 완수 하였으면 게임 시작 준비가 되었음을 서버에 알려야 함
+	check(IsInGameThread());
+	(void)Pkt;
+
+	bReceivedRoomSetupEnd = true;
+
+	if (PendingEntitySpawnIndex >= PendingEntitySpawnInfos.Num())
+	{
+		bReceivedEntitiesSpawn = true;
+		TryApplyPendingPlayerInitSetup();
+		TrySendLoadingComplete();
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Network] Room setup end received. PendingEntitySpawns=%d"),
+		PendingEntitySpawnInfos.Num() - PendingEntitySpawnIndex);
 }
 
 void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_EntitiesSpawn& Pkt)
@@ -979,44 +991,48 @@ void UNetworkGameInstanceSubsystem::HandleEntitiesSpawn(const se::room::N_Entiti
 	
 	if (Pkt.infos_size() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[Network] No room infos in room objects"));
-		bReceivedEntitiesSpawn = true;
-		TryApplyPendingPlayerInitSetup();
-		TrySendLoadingComplete();
+		UE_LOG(LogTemp, Log, TEXT("[Network] Empty entity spawn chunk received"));
 		return;
 	}
 	
-	StartPendingEntitySpawn(Pkt);
+	QueuePendingEntitySpawn(Pkt);
 }
 
-void UNetworkGameInstanceSubsystem::StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt)
+void UNetworkGameInstanceSubsystem::QueuePendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt)
 {
-	CancelPendingEntitySpawn();
-	RemoveEntitiesByObjectType(se::common::OBJ_STORE);
+	if (!bStartedInitialEntitiesSpawn)
+	{
+		RemoveEntitiesByObjectType(se::common::OBJ_STORE);
+		bStartedInitialEntitiesSpawn = true;
+	}
 
-	PendingEntitySpawnInfos.Reserve(Pkt.infos_size());
+	PendingEntitySpawnInfos.Reserve(PendingEntitySpawnInfos.Num() + Pkt.infos_size());
 	for (const auto& Info : Pkt.infos())
 	{
 		PendingEntitySpawnInfos.Add(Info);
 	}
 
 	bReceivedEntitiesSpawn = false;
-	PendingEntitySpawnIndex = 0;
 
-	UE_LOG(LogTemp, Log, TEXT("[Network] Entity batch spawn queued. Count=%d"), PendingEntitySpawnInfos.Num());
+	UE_LOG(LogTemp, Log, TEXT("[Network] Entity spawn chunk queued. ChunkCount=%d, PendingCount=%d"),
+		Pkt.infos_size(),
+		PendingEntitySpawnInfos.Num() - PendingEntitySpawnIndex);
 
 	ProcessPendingEntitySpawn();
 
-	if (PendingEntitySpawnInfos.Num() > 0)
+	if (PendingEntitySpawnIndex < PendingEntitySpawnInfos.Num())
 	{
 		if (UWorld* World = GetWorld())
 		{
-			World->GetTimerManager().SetTimer(
-				EntitySpawnProcessingTimer,
-				this,
-				&UNetworkGameInstanceSubsystem::ProcessPendingEntitySpawn,
-				EntitySpawnBatchIntervalSeconds,
-				true);
+			if (!World->GetTimerManager().IsTimerActive(EntitySpawnProcessingTimer))
+			{
+				World->GetTimerManager().SetTimer(
+					EntitySpawnProcessingTimer,
+					this,
+					&UNetworkGameInstanceSubsystem::ProcessPendingEntitySpawn,
+					EntitySpawnBatchIntervalSeconds,
+					true);
+			}
 		}
 	}
 }
@@ -1054,11 +1070,14 @@ void UNetworkGameInstanceSubsystem::FinishPendingEntitySpawn()
 	PendingEntitySpawnInfos.Empty();
 	PendingEntitySpawnIndex = 0;
 
-	bReceivedEntitiesSpawn = true;
 	UE_LOG(LogTemp, Log, TEXT("[Network] Entity batch spawn complete. Count=%d"), SpawnCount);
 
-	TryApplyPendingPlayerInitSetup();
-	TrySendLoadingComplete();
+	if (bReceivedRoomSetupEnd)
+	{
+		bReceivedEntitiesSpawn = true;
+		TryApplyPendingPlayerInitSetup();
+		TrySendLoadingComplete();
+	}
 }
 
 void UNetworkGameInstanceSubsystem::CancelPendingEntitySpawn()
@@ -3383,6 +3402,8 @@ void UNetworkGameInstanceSubsystem::ResetLoadingGate()
 
 	bReceivedRoomEnterRes = false;
 	bReceivedEntitiesSpawn = false;
+	bReceivedRoomSetupEnd = false;
+	bStartedInitialEntitiesSpawn = false;
 	bReceivedPlayerInitSetup = false;
 	bSentLoadingComplete = false;
 }
@@ -3451,6 +3472,9 @@ void UNetworkGameInstanceSubsystem::TrySendLoadingComplete()
 		return;
 
 	if (!bReceivedEntitiesSpawn)
+		return;
+
+	if (!bReceivedRoomSetupEnd)
 		return;
 
 	if (!bReceivedPlayerInitSetup)

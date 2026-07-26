@@ -230,7 +230,7 @@ public:
 	
 private:
 	uint32 HandleSpawnInfo(const se::room::SpawnInfo& Info);
-	void StartPendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt);
+	void QueuePendingEntitySpawn(const se::room::N_EntitiesSpawn& Pkt);
 	void ProcessPendingEntitySpawn();
 	void FinishPendingEntitySpawn();
 	void CancelPendingEntitySpawn();
@@ -377,6 +377,8 @@ private:
 private:
 	bool bReceivedRoomEnterRes = false;
 	bool bReceivedEntitiesSpawn = false;
+	bool bReceivedRoomSetupEnd = false;
+	bool bStartedInitialEntitiesSpawn = false;
 	bool bReceivedPlayerInitSetup = false;
 	bool bSentLoadingComplete = false;
 	bool bRoomStateCleared = true;
