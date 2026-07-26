@@ -152,6 +152,28 @@ void UNTCheatManager::TestItemReq(int32 ItemId, int32 Amount)
 	}
 }
 
+void UNTCheatManager::TestItemReqAll(int32 ItemId, int32 Amount)
+{
+	if (ItemId < 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cheat] Invalid ItemId: %d"), ItemId);
+		return;
+	}
+
+	if (Amount <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Cheat] Invalid Amount: %d"), Amount);
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Cheat] TestItemReqAll: ItemId=%d Amount=%d"), ItemId, Amount);
+
+	if (auto* NGIS = UNetworkGameInstanceSubsystem::Get(GetWorld()))
+	{
+		NGIS->RequestItemReqAll(ItemId, Amount);
+	}
+}
+
 void UNTCheatManager::TestMoneyReq(int32 Amount)
 {
 	if (Amount <= 0)

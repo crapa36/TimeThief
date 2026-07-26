@@ -52,6 +52,9 @@ public:
 	
 	UFUNCTION(Exec)
 	void TestItemReq(int32 ItemId, int32 Amount);
+
+	UFUNCTION(Exec)
+	void TestItemReqAll(int32 ItemId, int32 Amount);
 	
 	UFUNCTION(Exec)
 	void TestMoneyReq(int32 Amount);
