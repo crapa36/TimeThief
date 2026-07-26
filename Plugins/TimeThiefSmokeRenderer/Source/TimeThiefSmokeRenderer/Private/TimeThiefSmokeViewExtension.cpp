@@ -1739,6 +1739,9 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	int32 BulletFieldActiveSmokeCount = 0;
 	int32 EstimatedFullRaySteps = 0;
 	float MinimumTargetStepLength = RenderWorldStepLength;
+	const FVector CameraWorldPosition = View.ViewMatrices.GetViewOrigin();
+	const double ViewArea = static_cast<double>(FMath::Max(1, CurrentSceneColor.ViewRect.Width())) *
+		static_cast<double>(FMath::Max(1, CurrentSceneColor.ViewRect.Height()));
 
 	for (int32 SmokeSlot = 0; SmokeSlot < SmokeCount; ++SmokeSlot)
 	{
@@ -1780,6 +1783,31 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 			FMath::Max(0.0f, TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength),
 			static_cast<float>(State.Volume.SmokeId),
 			State.RenderInterpolationAlpha);
+		const FTransform LocalToWorld = ToDoubleTransform(State.Volume.LocalToWorld);
+		const FVector LocalCameraPosition = LocalToWorld.InverseTransformPosition(CameraWorldPosition);
+		const FVector OutsideDistance = (LocalCameraPosition.GetAbs() - FVector(State.Volume.RenderBoundsExtent)).ComponentMax(FVector::ZeroVector);
+		const float SurfaceDistance = OutsideDistance.Size();
+		const float DistanceDetailWeight = 1.0f - FMath::SmoothStep(
+			TimeThiefSmokeParameterDefaults::RenderDetailFullDistanceCm,
+			TimeThiefSmokeParameterDefaults::RenderDetailCullDistanceCm,
+			SurfaceDistance);
+		const FIntRect& ScreenRect = RenderRects[SmokeSlot];
+		const float ScreenFraction = FMath::Clamp(
+			static_cast<float>(
+				static_cast<double>(FMath::Max(0, ScreenRect.Width())) *
+				static_cast<double>(FMath::Max(0, ScreenRect.Height())) /
+				ViewArea),
+			0.0f,
+			1.0f);
+		const float ScreenDetailWeight = FMath::SmoothStep(
+			TimeThiefSmokeParameterDefaults::RenderDetailMinScreenFraction,
+			TimeThiefSmokeParameterDefaults::RenderDetailFullScreenFraction,
+			ScreenFraction);
+		Descriptor.DetailLodControls = FVector4f(
+			TimeThiefSmokeParameterDefaults::RenderDetailMinDensity,
+			TimeThiefSmokeParameterDefaults::RenderDetailDensityFadeEnd,
+			FMath::Max(DistanceDetailWeight, ScreenDetailWeight),
+			0.0f);
 		const bool bHasBulletFields =
 			State.bBulletFieldsActive &&
 			State.BulletCutoutTextures[State.CurrentBulletFieldIndex].IsValid() &&
@@ -1864,6 +1892,8 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	PassParameters->CombinedShadowLightDirection = TimeThiefSmokeParameterDefaults::GetSelfShadowLightDirection();
 	PassParameters->CombinedShadowStepCount = CombinedShadowStepCount;
 	PassParameters->SelfShadowMinSampleWeight = FMath::Clamp(TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight, 0.0f, 1.0f);
+	PassParameters->SelfShadowFullRateSampleWeight = FMath::Clamp(TimeThiefSmokeParameterDefaults::SelfShadowFullRateSampleWeight, 0.0f, 1.0f);
+	PassParameters->SelfShadowLowContributionStride = FMath::Max(TimeThiefSmokeParameterDefaults::SelfShadowLowContributionStride, 1);
 	PassParameters->CompositeDebugMode = CompositeDebugMode;
 	PassParameters->InvViewProjection = InvViewProjection;
 	struct FMultiSmokeTextureRefs
@@ -1942,7 +1972,6 @@ FScreenPassTexture FTimeThiefSmokeViewExtension::CompositeSmokeMulti_RenderThrea
 	CompositeMetadata.bSingleSmokeShader = bUseSingleSmokeShader;
 	CompositeMetadata.CameraInsideSmokeCount = 0;
 	CompositeMetadata.NearestSmokeSurfaceDistance = TNumericLimits<float>::Max();
-	const FVector CameraWorldPosition = View.ViewMatrices.GetViewOrigin();
 	for (const FRenderSmokeState* State : RenderStates)
 	{
 		if (!State)

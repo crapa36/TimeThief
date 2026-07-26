@@ -1,0 +1,37 @@
+{
+  "name": "SmokeRealismBullet",
+  "seed": 8401,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 3.4,
+  "actions": [
+    { "id": "spawn", "time": 0.0, "type": "detonate_smoke", "entity": "smoke", "position": [0.0, 0.0, 0.0] },
+    { "id": "camera", "time": 0.1, "type": "move_camera", "position": [-900.0, 0.0, 220.0], "rotation": [-10.0, 0.0, 0.0] },
+    { "id": "measure", "time": 0.6, "type": "start_measurement" },
+    { "id": "view_pre", "time": 1.6, "type": "capture_screenshot", "label": "01_pre" },
+    { "id": "probe_pre", "time": 1.6, "type": "capture_probe", "label": "pre", "smokes": ["smoke"] },
+    { "id": "bullet", "time": 1.8, "type": "fire_bullet", "start": [-900.0, 0.0, 120.0], "end": [900.0, 0.0, 120.0], "strength": 1.0, "seed": 101 },
+    { "id": "view_early", "time": 1.85, "type": "capture_screenshot", "label": "02_early" },
+    { "id": "view_peak", "time": 1.9, "type": "capture_screenshot", "label": "03_peak" },
+    { "id": "probe_peak", "time": 1.9, "type": "capture_probe", "label": "peak", "smokes": ["smoke"] },
+    { "id": "view_release", "time": 2.25, "type": "capture_screenshot", "label": "04_release" },
+    { "id": "view_late", "time": 2.9, "type": "capture_screenshot", "label": "05_late" },
+    { "id": "probe_late", "time": 2.9, "type": "capture_probe", "label": "late", "smokes": ["smoke"] },
+    { "id": "stop", "time": 3.1, "type": "stop_measurement" }
+  ],
+  "expectations": {
+    "smokes_spawned": 1,
+    "smokes_registered": 1,
+    "bullets_fired": 1,
+    "bullet_intersections": 1,
+    "accepted_bullet_events": 1,
+    "rejected_bullet_events": 0,
+    "bullet_field_activations_min": 1,
+    "missing_smoke_ids": 0,
+    "probe": {
+      "pre": { "active_density_voxels_min": 1, "active_bullet_voxels_max": 0 },
+      "peak": { "active_bullet_voxels_min": 1, "bullet_sink_max_min": 0.01 },
+      "late": { "active_density_voxels_min": 1, "density_clamp_violation_voxels_max": 0 }
+    },
+    "pass_executed": ["Events.BuildMasks", "Simulation.Advection", "Composite.Raymarch"]
+  }
+}

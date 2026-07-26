@@ -1,0 +1,33 @@
+{
+  "name": "SmokeRealismActor",
+  "seed": 8401,
+  "warmup_seconds": 0.5,
+  "duration_seconds": 5.8,
+  "actions": [
+    { "id": "spawn", "time": 0.0, "type": "detonate_smoke", "entity": "smoke", "position": [0.0, 0.0, 0.0] },
+    { "id": "camera", "time": 0.1, "type": "move_camera", "position": [-900.0, 0.0, 220.0], "rotation": [-10.0, 0.0, 0.0] },
+    { "id": "measure", "time": 0.6, "type": "start_measurement" },
+    { "id": "view_pre", "time": 2.8, "type": "capture_screenshot", "label": "01_pre" },
+    { "id": "probe_pre", "time": 2.8, "type": "capture_probe", "label": "pre", "smokes": ["smoke"] },
+    { "id": "actor", "time": 3.0, "type": "spawn_mover", "entity": "actor", "shape": "capsule", "start": [0.0, -500.0, 100.0], "end": [0.0, 500.0, 100.0], "duration": 1.67, "radius": 45.0, "half_height": 110.0 },
+    { "id": "view_mid", "time": 3.85, "type": "capture_screenshot", "label": "02_mid" },
+    { "id": "view_post", "time": 4.7, "type": "capture_screenshot", "label": "03_post" },
+    { "id": "probe_post", "time": 4.7, "type": "capture_probe", "label": "post", "smokes": ["smoke"] },
+    { "id": "view_wake", "time": 5.35, "type": "capture_screenshot", "label": "04_wake" },
+    { "id": "probe_wake", "time": 5.35, "type": "capture_probe", "label": "wake", "smokes": ["smoke"] },
+    { "id": "stop", "time": 5.55, "type": "stop_measurement" }
+  ],
+  "expectations": {
+    "smokes_spawned": 1,
+    "smokes_registered": 1,
+    "actor_push_events_min": 1,
+    "actor_capsule_push_events_min": 1,
+    "missing_smoke_ids": 0,
+    "probe": {
+      "pre": { "active_density_voxels_min": 1 },
+      "post": { "max_velocity_min": 1, "active_density_voxels_min": 1 },
+      "wake": { "active_density_voxels_min": 1, "density_clamp_violation_voxels_max": 0 }
+    },
+    "pass_executed": ["Events.ActorPush", "Simulation.Advection", "Composite.Raymarch"]
+  }
+}
