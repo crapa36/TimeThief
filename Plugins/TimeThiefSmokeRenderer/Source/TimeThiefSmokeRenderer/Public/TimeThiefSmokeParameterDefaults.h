@@ -161,9 +161,9 @@ namespace TimeThiefSmokeParameterDefaults
 	// 렌더 경계 노이즈 강도. 높을수록 경계가 깨지지만 물결 artifact 위험 증가.
 	constexpr float RenderBoundaryNoiseStrength = 0.16f;
 	// 필라멘트 공간 스케일. 높을수록 필라멘트가 촘촘해짐.
-	constexpr float RenderFilamentScale = 0.01f;
+	constexpr float RenderFilamentScale = 0.012f;
 	// 필라멘트 강도. 높을수록 선형 디테일 증가.
-	constexpr float RenderFilamentStrength = 1.4f;
+	constexpr float RenderFilamentStrength = 1.5f;
 	// 필라멘트 대비. 높을수록 선명도 증가, aliasing 위험 증가.
 	constexpr float RenderFilamentContrast = 1.0f;
 	// 필라멘트 도메인 워프 강도. 높을수록 꼬임 디테일 증가.
@@ -229,23 +229,23 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 wake와 공기 흐름
 
 	// 액터가 지나간 뒤쪽 wake 길이 배율. 높을수록 물리 영향 범위 증가.
-	constexpr float ActorWakeTrailLengthScale = 5.0f;
+	constexpr float ActorWakeTrailLengthScale = 12.0f;
 	// 액터 wake street lane 내부 반경 배율. 낮을수록 얇은 후류 생성.
-	constexpr float ActorWakeStreetLaneInnerRadiusScale = 0.28f;
+	constexpr float ActorWakeStreetLaneInnerRadiusScale = 0.3f;
 	// 액터 표면 회전 힘(cm/s). 높을수록 몸 표면을 타는 연기 회전 증가.
-	constexpr float ActorWakeSurfaceRollForce = 250.0f;
+	constexpr float ActorWakeSurfaceRollForce = 500.0f;
 	// 액터 표면 접선 힘 배율. 높을수록 몸 표면 방향으로 더 끌림.
-	constexpr float ActorWakeSurfaceTangentSpeedScale = 0.35f;
+	constexpr float ActorWakeSurfaceTangentSpeedScale = 0.5f;
 	// 액터 표면 난류 힘(cm/s). 높을수록 표면 근처 잔흔이 거칠어짐.
-	constexpr float ActorWakeSurfaceNoiseForce = 100.0f;
+	constexpr float ActorWakeSurfaceNoiseForce = 150.0f;
 	// 액터 뒤 wake 최소 회전 힘(cm/s). 높을수록 약한 후류의 회전 증가.
-	constexpr float ActorWakeTrailMinRollForce = 120.0f;
+	constexpr float ActorWakeTrailMinRollForce = 250.0f;
 	// 액터 뒤 wake 최대 회전 힘(cm/s). 높을수록 강한 후류의 회전 상한 증가.
-	constexpr float ActorWakeTrailMaxRollForce = 320.0f;
+	constexpr float ActorWakeTrailMaxRollForce = 650.0f;
 	// 액터 뒤 wake street 힘 배율. 높을수록 교번 후류 회전 증가.
-	constexpr float ActorWakeStreetForceScale = 0.4f;
+	constexpr float ActorWakeStreetForceScale = 0.6f;
 	// 액터 전면 밀림 힘 배율. 높을수록 액터 앞쪽 연막 밀림 증가.
-	constexpr float ActorWakeFrontPushScale = 0.1f;
+	constexpr float ActorWakeFrontPushScale = 0.2f;
 	// 공기 상호작용 회전 기본 힘(cm/s). 높을수록 기본 회전 반응 증가.
 	constexpr float AirInteractionRollBaseForce = 120.0f;
 	// 공기 상호작용 접선 속도 힘 배율. 높을수록 접선 방향 흐름 증가.
@@ -267,7 +267,7 @@ namespace TimeThiefSmokeParameterDefaults
 	// 와류 delta 속도 강도 상한 배율(cm/s).
 	constexpr float VorticityDeltaSpeedStrengthScale = 420.0f;
 	// 액터 공기 흐름 전체 강도. 높을수록 액터 후류 영향 증가.
-	constexpr float ActorAirflowStrength = 0.5f;
+	constexpr float ActorAirflowStrength = 1.1f;
 	// 액터 공기 흐름 시작 최소 속도(cm/s). 높을수록 느린 액터 반응 감소.
 	constexpr float ActorAirflowMinSpeed = 10.0f;
 	// 액터 공기 흐름 최대 반응 속도(cm/s). 낮을수록 최대 반응에 빨리 도달.
@@ -279,13 +279,13 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 공기 흐름 최대 반응 속도 최소 간격(cm/s). 높을수록 반응 구간 안정성과 최대 반응 도달 속도 감소.
 	constexpr float ActorAirflowFullSpeedMinGap = 1.0f;
 	// 액터 앞쪽 압축 공기 흐름 강도. 높을수록 전방 밀림 증가.
-	constexpr float ActorAirflowFrontStrength = 1.5f;
+	constexpr float ActorAirflowFrontStrength = 2.2f;
 	// 액터 측면 공기 흐름 강도. 높을수록 측면 벌어짐 증가.
 	constexpr float ActorAirflowSideStrength = 0.3f;
 	// 액터 뒤쪽 후류 강도. 높을수록 뒤쪽 끌림 증가.
-	constexpr float ActorAirflowWakeStrength = 0.6f;
+	constexpr float ActorAirflowWakeStrength = 0.8f;
 	// 액터 이동이 만드는 와류 강도. 높을수록 후류 회전 증가.
-	constexpr float ActorAirflowVortexStrength = 0.25f;
+	constexpr float ActorAirflowVortexStrength = 0.35f;
 
 	// 상호작용 이벤트 한도
 
