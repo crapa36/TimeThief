@@ -11,6 +11,10 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+namespace
+{
+	constexpr float SavePointCooldownSeconds = 60.0f;
+}
 
 void USavePointSkillComponent::OnBeginRespawn()
 {
@@ -86,7 +90,7 @@ void USavePointSkillComponent::ActivateSkill()
 		OwnerCharacter->GetCharacterMovement()->StopMovementImmediately();
 	}
 	
-	StartCooldown(CoolTime);
+	StartCooldown(SavePointCooldownSeconds);
 }
 
 void USavePointSkillComponent::OnFinished(UNiagaraComponent* FinishedComponent)

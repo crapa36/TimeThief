@@ -39,10 +39,8 @@ protected:
 
 	bool bCanActivate = false;
 
-	UPROPERTY(EditDefaultsOnly, Category="Skill")
-	float CoolTime = 0;
-
 	float CooldownEndTimeSeconds = 0.0f;
+	float CooldownDurationSeconds = 0.0f;
 
 	UPROPERTY()
 	TObjectPtr<ATimeThiefCharacterBase> OwnerCharacter;

@@ -2295,6 +2295,17 @@ void UNetworkGameInstanceSubsystem::HandleUseItem(const se::game::N_UseItem& Pkt
 		return;
 	}
 
+	if (bIsLocalPlayer && static_cast<EItemID>(ItemId) == EItemID::SkillBoost)
+	{
+		if (ATimeThiefPlayerCharacter* LocalPlayer = Cast<ATimeThiefPlayerCharacter>(TargetActor))
+		{
+			if (USavePointSkillComponent* SaveSkill = LocalPlayer->GetSavePointSkillComponent())
+			{
+				SaveSkill->ApplyServerCooldownMs(0);
+			}
+		}
+	}
+
 	// TODO: Play visual/audio representation if any.
 }
 
