@@ -273,19 +273,19 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 공기 흐름 최대 반응 속도(cm/s). 낮을수록 최대 반응에 빨리 도달.
 	constexpr float ActorAirflowFullSpeed = 300.0f;
 	// 액터 반경 대비 공기 흐름 반경 배율. 높을수록 영향 범위 증가.
-	constexpr float ActorAirflowRadiusScale = 1.0f;
+	constexpr float ActorAirflowRadiusScale = 5.0f;
 	// 액터 공기 흐름 반경 배율 최소값. 낮을수록 작은 액터 영향 보존.
 	constexpr float ActorAirflowRadiusScaleMin = 0.1f;
 	// 액터 공기 흐름 최대 반응 속도 최소 간격(cm/s). 높을수록 반응 구간 안정성과 최대 반응 도달 속도 감소.
 	constexpr float ActorAirflowFullSpeedMinGap = 1.0f;
 	// 액터 앞쪽 압축 공기 흐름 강도. 높을수록 전방 밀림 증가.
-	constexpr float ActorAirflowFrontStrength = 2.2f;
+	constexpr float ActorAirflowFrontStrength = 4.5f;
 	// 액터 측면 공기 흐름 강도. 높을수록 측면 벌어짐 증가.
-	constexpr float ActorAirflowSideStrength = 0.3f;
+	constexpr float ActorAirflowSideStrength = 0.1f;
 	// 액터 뒤쪽 후류 강도. 높을수록 뒤쪽 끌림 증가.
-	constexpr float ActorAirflowWakeStrength = 0.8f;
+	constexpr float ActorAirflowWakeStrength = 0.4f;
 	// 액터 이동이 만드는 와류 강도. 높을수록 후류 회전 증가.
-	constexpr float ActorAirflowVortexStrength = 0.35f;
+	constexpr float ActorAirflowVortexStrength = 1.5f;
 
 	// 상호작용 이벤트 한도
 
@@ -361,15 +361,15 @@ namespace TimeThiefSmokeParameterDefaults
 	// 액터 상호작용
 
 	// 액터와 연막 상호작용 샘플 빈도(Hz). 높을수록 반응 품질과 비용 증가.
-	constexpr float ActorInteractionHz = 10.0f;
+	constexpr float ActorInteractionHz = 15.0f;
 	// 액터 밀기 이벤트 최소 속도(cm/s). 높을수록 약한 반응 감소.
-	constexpr float ActorPushVelocityThreshold = 10.0f;
+	constexpr float ActorPushVelocityThreshold = 1.0f;
 	// 액터 밀기 반응 시작 속도 배율. 높을수록 반응 시작이 늦어짐.
-	constexpr float ActorPushResponseStartSpeedScale = 0.15f;
+	constexpr float ActorPushResponseStartSpeedScale = 0.1f;
 	// 액터 속도 반응 최대 기준 속도(cm/s). 낮을수록 최대 반응에 빨리 도달.
-	constexpr float ActorPushFullResponseSpeed = 800.0f;
+	constexpr float ActorPushFullResponseSpeed = 500.0f;
 	// 프리미티브 크기 대비 액터 반응 반경 배율. 높을수록 영향 반경 증가.
-	constexpr float ActorPrimitiveRadiusScale = 0.45f;
+	constexpr float ActorPrimitiveRadiusScale = 0.75f;
 
 	// 연막 broadphase
 
