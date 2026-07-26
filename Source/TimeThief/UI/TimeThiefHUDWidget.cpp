@@ -15,6 +15,7 @@
 #include "ItemCommons.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "UI/TimeThiefControlGuideWidget.h"
+#include "Components/Border.h"
 #include "Weapon/Components/TimeThiefWeaponComponentBase.h"
 
 namespace
@@ -531,11 +532,11 @@ void UTimeThiefHUDWidget::UpdateWireCooldownDisplay()
 
 void UTimeThiefHUDWidget::UpdateSkillSlotsDisplay()
 {
-	UpdateSkillSlotDisplay(SkillSlot1Index, SkillSlot1_Icon, SkillSlot1_Cooldown_ProgressBar);
-	UpdateSkillSlotDisplay(SkillSlot2Index, SkillSlot2_Icon, SkillSlot2_Cooldown_ProgressBar);
+	UpdateSkillSlotDisplay(SkillSlot1Index, SkillSlot1_Icon, SkillSlot1_Cooldown_ProgressBar, SkillKey1);
+	UpdateSkillSlotDisplay(SkillSlot2Index, SkillSlot2_Icon, SkillSlot2_Cooldown_ProgressBar, SkillKey2);
 }
 
-void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget)
+void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget, UBorder* SkillKey)
 {
 	FTimeThiefSkillSlotState SlotState;
 	const bool bHasSkill = CachedSkillComponent.IsValid()
@@ -551,6 +552,10 @@ void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconW
 		if (ProgressBarWidget)
 		{
 			ProgressBarWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
+		if (SkillKey)
+		{
+			SkillKey->SetVisibility(ESlateVisibility::Hidden);
 		}
 		return;
 	}
@@ -574,6 +579,11 @@ void UTimeThiefHUDWidget::UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconW
 
 	IconWidget->SetBrushFromTexture(SkillIcon);
 	IconWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	
+	if (SkillKey)
+	{
+		SkillKey->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
 }
 
 void UTimeThiefHUDWidget::UpdateSkillCooldownDisplay()

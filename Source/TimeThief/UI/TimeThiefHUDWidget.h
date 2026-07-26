@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TimeThiefHUDWidget.generated.h"
 
+class UBorder;
 class UProgressBar;
 class UHorizontalBox;
 class UImage;
@@ -71,6 +72,11 @@ class TIMETHIEF_API UTimeThiefHUDWidget : public UUserWidget
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> SavePoint_Cooldown_ProgressBar;
 	
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> SkillKey1;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UBorder> SkillKey2;
 public:
 	UTimeThiefHUDWidget(const FObjectInitializer& ObjectInitializer);
 
@@ -155,7 +161,7 @@ private:
 	void UpdateCrosshairInvalidation();
 	void UpdateWireCooldownDisplay();
 	void UpdateSkillSlotsDisplay();
-	void UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget);
+	void UpdateSkillSlotDisplay(uint32 SlotIndex, UImage* IconWidget, UProgressBar* ProgressBarWidget, UBorder* SkillKey);
 	void UpdateSkillCooldownDisplay();
 	void UpdateSkillCooldownSlotDisplay(uint32 SlotIndex, UProgressBar* CooldownProgressBar, UTextBlock* CooldownText, float& LastCooldownPercent, int32& LastCooldownSeconds);
 	void UpdateSavePointCooldownDisplay();
