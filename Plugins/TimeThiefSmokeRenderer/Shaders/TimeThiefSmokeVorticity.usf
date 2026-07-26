@@ -24,20 +24,7 @@ uint FlattenBrickCoordForEventBins(uint3 CellCoord)
 
 uint4 GetEventBrickMask(uint3 CellCoord)
 {
-	if (bUseEventBrickBins == 0u)
-	{
-		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
-	}
-
 	return EventBrickMasks[FlattenBrickCoordForEventBins(CellCoord)];
-}
-
-bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
-{
-	const uint WordIndex = (uint)EventIndex >> 5u;
-	const uint Bit = 1u << ((uint)EventIndex & 31u);
-	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
-	return (Word & Bit) != 0u;
 }
 
 int3 ClampSmokeCoord(int3 Coord)
@@ -103,14 +90,16 @@ float3 ComputeEventVortexForce(float3 WorldPosition, float3 Velocity, float Dens
 {
 	float3 Force = float3(0.0, 0.0, 0.0);
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
+	uint4 RemainingEventMask = EventBrickMask & TimeThiefSmokeValidEventMask(SafeEventCount);
+	uint EventWordIndex = 0u;
 	[loop]
-	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	for (int CandidateIndex = 0; CandidateIndex < SafeEventCount; ++CandidateIndex)
 	{
-		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		const int EventIndex = TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex);
+		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
-			continue;
+			break;
 		}
-
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		const uint EventType = (uint)round(Event.TypeShapeAgeSeed.x);
 		const float Age = saturate(Event.TypeShapeAgeSeed.z);
@@ -275,11 +264,18 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID)
 	const float3 CurlNoise = TimeThiefSmokeCurlNoise(WorldPosition * 0.012, AgeSeconds * 0.2 * SafeSelfWobbleTimeScale);
 	const float3 ConfinementForce = cross(CurlNormal, Curl) * CellLength * max(VorticityConfinementStrength, 0.0) * DensityMask * VorticityConfinementForceScale * SafeSelfWobbleForceScale;
 	const float TurbulenceBand = lerp(TurbulenceBandMinForce, TurbulenceBandMaxForce, saturate(CurlMagnitude * TurbulenceCurlMagnitudeScale)) * SafeSelfWobbleForceScale;
-	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * DensityMask * TurbulenceBand;
-	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * DensityMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
+	const float Interface = saturate(length(ComputeDensityGradient(Coord)) * CellLength * 3.0) * saturate(Density * 1.35);
+	const float Shear = saturate(CurlMagnitude * TurbulenceCurlMagnitudeScale);
+	const float CoreSuppression = 1.0 - smoothstep(1.20, 2.50, Density);
+	const float TurbulenceMask = Interface * lerp(0.25, 1.0, Shear) * CoreSuppression;
+	const float3 TurbulenceForce = CurlNoise * max(TurbulenceStrength, 0.0) * TurbulenceMask * TurbulenceBand;
+	const float3 AmbientAirForce = CurlNoise * max(AirInteractionStrength, 0.0) * TurbulenceMask * AmbientAirCurlForce * SafeSelfWobbleForceScale;
 	const float3 AirInteractionForce = ComputeAirInteractionForce(Coord, Velocity, Density, CurlNoise, CellLength);
-	const uint4 EventBrickMask = GetEventBrickMask(DispatchThreadId);
-	const float3 EventForce = ComputeEventVortexForce(WorldPosition, Velocity, DensityMask, CurlNoise, CellLength, EventBrickMask);
+	const bool bProcessEvents = EventCount > 0;
+	const uint4 EventBrickMask = bProcessEvents ? GetEventBrickMask(DispatchThreadId) : uint4(0u, 0u, 0u, 0u);
+	const float3 EventForce = bProcessEvents
+		? ComputeEventVortexForce(WorldPosition, Velocity, DensityMask, CurlNoise, CellLength, EventBrickMask)
+		: float3(0.0, 0.0, 0.0);
 	float3 DeltaVelocity = (ConfinementForce + TurbulenceForce + AmbientAirForce + AirInteractionForce + EventForce) * BoundaryDamping * OpenMask * SafeDeltaSeconds;
 	const float MaxDeltaSpeed = max(VorticityDeltaSpeedMin, VorticityDeltaSpeedStrengthScale * (VorticityConfinementStrength + TurbulenceStrength + AirInteractionStrength + EventVortexStrength)) * SafeDeltaSeconds;
 	const float DeltaSpeed = length(DeltaVelocity);

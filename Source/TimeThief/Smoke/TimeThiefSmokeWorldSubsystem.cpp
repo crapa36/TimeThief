@@ -11,6 +11,7 @@
 #include "Stats/Stats.h"
 #include "TimeThiefSmokeParameterDefaults.h"
 #include "TimeThiefSmokeRendererSubsystem.h"
+#include "TimeThiefSmokeTestBridge.h"
 #include "WorldCollision.h"
 
 namespace TimeThiefSmoke
@@ -210,7 +211,7 @@ namespace TimeThiefSmoke
 
 	void BuildSmokeActorOverlapGroups(const TArray<FBox>& SmokeBounds, TArray<FSmokeActorOverlapGroup>& OutGroups)
 	{
-		if (SmokeBounds.Num() <= 8)
+		if (SmokeBounds.Num() <= TimeThiefSmokeParameterDefaults::SmokeBroadphaseLinearScanMaxCount)
 		{
 			BuildSmokeActorOverlapGroupsDense(SmokeBounds, OutGroups);
 			return;
@@ -372,6 +373,18 @@ namespace TimeThiefSmoke
 		}
 	}
 
+	const TCHAR* GetTestInteractionShapeName(ESmokeInteractionShape Shape)
+	{
+		switch (Shape)
+		{
+		case ESmokeInteractionShape::Sphere: return TEXT("sphere");
+		case ESmokeInteractionShape::Capsule: return TEXT("capsule");
+		case ESmokeInteractionShape::Box: return TEXT("box");
+		case ESmokeInteractionShape::LineWake: return TEXT("line_wake");
+		default: return TEXT("unknown");
+		}
+	}
+
 	FTimeThiefSmokeRendererEvent ToRendererEvent(const FTimeThiefSmokeInteractionEvent& Event)
 	{
 		FTimeThiefSmokeRendererEvent RendererEvent;
@@ -425,6 +438,8 @@ void UTimeThiefSmokeWorldSubsystem::Deinitialize()
 	SmokeSpatialQueryStamp = 0;
 	NextSmokeId = 1;
 	RendererSceneKey = 0;
+	bRendererClearFramePending = false;
+	bRendererHasPublishedSmokeState = false;
 	Super::Deinitialize();
 }
 
@@ -467,7 +482,12 @@ void UTimeThiefSmokeWorldSubsystem::Tick(float DeltaTime)
 
 bool UTimeThiefSmokeWorldSubsystem::IsTickable() const
 {
-	return !ActiveSmokeVolumes.IsEmpty() || !ActiveImpulses.IsEmpty() || !PendingRendererEvents.IsEmpty();
+	const UWorld* World = GetWorld();
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return false;
+	}
+	return !ActiveSmokeVolumes.IsEmpty() || !ActiveImpulses.IsEmpty() || !PendingRendererEvents.IsEmpty() || bRendererClearFramePending;
 }
 
 TStatId UTimeThiefSmokeWorldSubsystem::GetStatId() const
@@ -489,15 +509,38 @@ void UTimeThiefSmokeWorldSubsystem::RegisterSmokeVolume(ATimeThiefSmokeVolume* S
 
 	ActiveSmokeVolumes.AddUnique(SmokeVolume);
 	MarkSmokeSpatialIndexDirty();
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("smoke_registered");
+		Event.SmokeId = SmokeVolume->GetSmokeId();
+		Event.Position = SmokeVolume->GetActorLocation();
+		Event.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
 }
 
 void UTimeThiefSmokeWorldSubsystem::UnregisterSmokeVolume(ATimeThiefSmokeVolume* SmokeVolume)
 {
-	ActiveSmokeVolumes.Remove(SmokeVolume);
+	const int32 RemovedCount = ActiveSmokeVolumes.Remove(SmokeVolume);
+	if (RemovedCount > 0 && ActiveSmokeVolumes.IsEmpty() && bRendererHasPublishedSmokeState)
+	{
+		bRendererClearFramePending = true;
+	}
 	if (SmokeVolume)
 	{
 		LastPublishedObstacleFieldRevisions.Remove(SmokeVolume->GetSmokeId());
+		if (FTimeThiefSmokeTestBridge::IsActive())
+		{
+			FTimeThiefSmokeTestEvent Event;
+			Event.Type = TEXT("smoke_removed");
+			Event.SmokeId = SmokeVolume->GetSmokeId();
+			Event.Position = SmokeVolume->GetActorLocation();
+			Event.FrameId = GFrameCounter;
+			FTimeThiefSmokeTestBridge::Emit(Event);
+		}
 	}
+
 	MarkSmokeSpatialIndexDirty();
 
 	for (int32 Index = ActiveImpulses.Num() - 1; Index >= 0; --Index)
@@ -511,6 +554,17 @@ void UTimeThiefSmokeWorldSubsystem::UnregisterSmokeVolume(ATimeThiefSmokeVolume*
 
 void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart, const FVector& TraceEnd, float Strength, int32 Seed)
 {
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("bullet_trace_submitted");
+		Event.Start = TraceStart;
+		Event.End = TraceEnd;
+		Event.Strength = Strength;
+		Event.Seed = Seed;
+		Event.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
 	if (TraceStart.Equals(TraceEnd))
 	{
 		return;
@@ -519,6 +573,18 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 	CompactSmokeVolumes();
 
 	QuerySmokeSpatialIndex(TimeThiefSmoke::MakeTraceQueryBounds(TraceStart, TraceEnd), SmokeSpatialQueryResults);
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("bullet_smoke_candidates");
+		Event.Count = SmokeSpatialQueryResults.Num();
+		Event.FrameId = GFrameCounter;
+		for (const ATimeThiefSmokeVolume* Candidate : SmokeSpatialQueryResults)
+		{
+			if (Candidate) Event.SmokeIds.Add(Candidate->GetSmokeId());
+		}
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
 	for (ATimeThiefSmokeVolume* SmokeVolume : SmokeSpatialQueryResults)
 	{
 		if (!SmokeVolume)
@@ -530,13 +596,45 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 		FVector ExitPoint = FVector::ZeroVector;
 		if (SmokeVolume->IntersectTraceSegment(TraceStart, TraceEnd, EntryPoint, ExitPoint))
 		{
+			if (FTimeThiefSmokeTestBridge::IsActive())
+			{
+				FTimeThiefSmokeTestEvent Event;
+				Event.Type = TEXT("bullet_entered_smoke");
+				Event.SmokeId = SmokeVolume->GetSmokeId();
+				Event.Entry = EntryPoint;
+				Event.Exit = ExitPoint;
+				Event.Seed = Seed;
+				Event.FrameId = GFrameCounter;
+				FTimeThiefSmokeTestBridge::Emit(Event);
+			}
 			int32& TraceCount = BulletTraceCountsThisTick.FindOrAdd(SmokeVolume);
 			if (TraceCount >= TimeThiefSmokeParameterDefaults::MaxBulletTracesPerSmokePerTick)
 			{
+				if (FTimeThiefSmokeTestBridge::IsActive())
+				{
+					FTimeThiefSmokeTestEvent Event;
+					Event.Type = TEXT("bullet_event_rejected");
+					Event.SmokeId = SmokeVolume->GetSmokeId();
+					Event.Count = TraceCount;
+					Event.Seed = Seed;
+					Event.FrameId = GFrameCounter;
+					FTimeThiefSmokeTestBridge::Emit(Event);
+				}
 				continue;
 			}
 
 			++TraceCount;
+			if (FTimeThiefSmokeTestBridge::IsActive())
+			{
+				FTimeThiefSmokeTestEvent Event;
+				Event.Type = TEXT("bullet_event_accepted");
+				Event.SmokeId = SmokeVolume->GetSmokeId();
+				Event.Entry = EntryPoint;
+				Event.Exit = ExitPoint;
+				Event.Seed = Seed;
+				Event.FrameId = GFrameCounter;
+				FTimeThiefSmokeTestBridge::Emit(Event);
+			}
 			SmokeVolume->HandleBulletTrace(EntryPoint, ExitPoint, Strength, Seed);
 		}
 	}
@@ -544,15 +642,51 @@ void UTimeThiefSmokeWorldSubsystem::SubmitBulletTrace(const FVector& TraceStart,
 
 void UTimeThiefSmokeWorldSubsystem::SubmitExplosion(const FVector& Center, float Radius, float Strength, int32 Seed)
 {
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("explosion_submitted");
+		Event.Position = Center;
+		Event.Radius = Radius;
+		Event.Strength = Strength;
+		Event.Seed = Seed;
+		Event.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
 	CompactSmokeVolumes();
 
 	const float SafeRadius = FMath::Max(1.0f, Radius);
 	QuerySmokeSpatialIndex(FBox(Center - FVector(SafeRadius), Center + FVector(SafeRadius)), SmokeSpatialQueryResults);
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("explosion_candidates");
+		Event.Position = Center;
+		Event.Radius = SafeRadius;
+		Event.Count = SmokeSpatialQueryResults.Num();
+		Event.FrameId = GFrameCounter;
+		for (const ATimeThiefSmokeVolume* Candidate : SmokeSpatialQueryResults)
+		{
+			if (Candidate) Event.SmokeIds.Add(Candidate->GetSmokeId());
+		}
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
 	for (ATimeThiefSmokeVolume* SmokeVolume : SmokeSpatialQueryResults)
 	{
 		if (!SmokeVolume || !SmokeVolume->IntersectsExplosion(Center, SafeRadius))
 		{
 			continue;
+		}
+		if (FTimeThiefSmokeTestBridge::IsActive())
+		{
+			FTimeThiefSmokeTestEvent Event;
+			Event.Type = TEXT("explosion_intersected_smoke");
+			Event.SmokeId = SmokeVolume->GetSmokeId();
+			Event.Position = Center;
+			Event.Radius = SafeRadius;
+			Event.Seed = Seed;
+			Event.FrameId = GFrameCounter;
+			FTimeThiefSmokeTestBridge::Emit(Event);
 		}
 
 		SmokeVolume->HandleExplosionShock(Center, SafeRadius, Strength, Seed);
@@ -580,6 +714,29 @@ void UTimeThiefSmokeWorldSubsystem::AddTimedInteractionEvent(ATimeThiefSmokeVolu
 void UTimeThiefSmokeWorldSubsystem::RecordRendererEvent(const FTimeThiefSmokeInteractionEvent& Event)
 {
 	PendingRendererEvents.Add(Event);
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent TestEvent;
+		switch (Event.Type)
+		{
+		case ESmokeInteractionType::BulletWake: TestEvent.Type = TEXT("bullet_event_queued"); break;
+		case ESmokeInteractionType::ExplosionShock: TestEvent.Type = TEXT("explosion_event_queued"); break;
+		case ESmokeInteractionType::ActorPush: TestEvent.Type = TEXT("actor_push_event_queued"); break;
+		}
+		TestEvent.SmokeId = Event.SmokeId;
+		TestEvent.Shape = TimeThiefSmoke::GetTestInteractionShapeName(Event.Shape);
+		TestEvent.Position = Event.Position;
+		TestEvent.PreviousPosition = Event.PreviousPosition;
+		TestEvent.Direction = Event.Direction;
+		TestEvent.Extents = Event.Extents;
+		TestEvent.Radius = Event.Radius;
+		TestEvent.Length = Event.Length;
+		TestEvent.Strength = Event.Strength;
+		TestEvent.Speed = Event.Speed;
+		TestEvent.Seed = Event.Seed;
+		TestEvent.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(TestEvent);
+	}
 }
 
 void UTimeThiefSmokeWorldSubsystem::NotifySmokeVolumeBoundsChanged(ATimeThiefSmokeVolume* SmokeVolume)
@@ -605,6 +762,7 @@ void UTimeThiefSmokeWorldSubsystem::CompactSmokeVolumes()
 	if (bRemovedInvalidVolume)
 	{
 		MarkSmokeSpatialIndexDirty();
+		bRendererClearFramePending |= ActiveSmokeVolumes.IsEmpty() && bRendererHasPublishedSmokeState;
 	}
 
 	if (ActiveSmokeVolumes.IsEmpty())
@@ -786,6 +944,21 @@ void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
 	}
 
 	CompactSmokeVolumes();
+	if (ActiveSmokeVolumes.IsEmpty())
+	{
+		return;
+	}
+
+	ActorInteractionAccumulator += FMath::Max(0.0f, DeltaTime);
+	const float ActorInteractionHz = TimeThiefSmokeParameterDefaults::ActorInteractionHz;
+	if (ActorInteractionHz <= 0.0f || ActorInteractionAccumulator < (1.0f / ActorInteractionHz))
+	{
+		return;
+	}
+
+	const float SampleDeltaTime = ActorInteractionAccumulator;
+	ActorInteractionAccumulator = 0.0f;
+
 	TArray<ATimeThiefSmokeVolume*> ValidSmokeVolumes;
 	TArray<FBox> ValidSmokeBounds;
 	ValidSmokeVolumes.Reserve(ActiveSmokeVolumes.Num());
@@ -812,16 +985,6 @@ void UTimeThiefSmokeWorldSubsystem::GatherActorPushEvents(float DeltaTime)
 	{
 		return;
 	}
-
-	ActorInteractionAccumulator += FMath::Max(0.0f, DeltaTime);
-	const float ActorInteractionHz = 10.0f;
-	if (ActorInteractionAccumulator < (1.0f / ActorInteractionHz))
-	{
-		return;
-	}
-
-	const float SampleDeltaTime = ActorInteractionAccumulator;
-	ActorInteractionAccumulator = 0.0f;
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
@@ -965,6 +1128,8 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 	if (!GEngine)
 	{
 		PendingRendererEvents.Reset();
+		bRendererClearFramePending = false;
+		bRendererHasPublishedSmokeState = false;
 		return;
 	}
 
@@ -972,6 +1137,8 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 	if (!RendererSubsystem)
 	{
 		PendingRendererEvents.Reset();
+		bRendererClearFramePending = false;
+		bRendererHasPublishedSmokeState = false;
 		return;
 	}
 
@@ -998,7 +1165,7 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 
 		FTimeThiefSmokeRendererVolume RendererVolume;
 		RendererVolume.SmokeId = SmokeVolume->GetSmokeId();
-		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetActorTransform());
+		RendererVolume.LocalToWorld = FTransform3f(SmokeVolume->GetSimulationTransform());
 		RendererVolume.NaturalBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeBoundsExtent());
 		RendererVolume.RenderBoundsExtent = FVector3f(SmokeVolume->GetCurrentSmokeRenderBoundsExtent());
 		RendererVolume.SimulationBoundsExtent = FVector3f(
@@ -1030,7 +1197,40 @@ void UTimeThiefSmokeWorldSubsystem::PublishRendererFrame(float DeltaTime)
 	{
 		Frame.Events.Add(TimeThiefSmoke::ToRendererEvent(Event));
 	}
+	if (FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("renderer_frame_submitted");
+		Event.Count = Frame.Events.Num();
+		Event.FrameId = GFrameCounter;
+		for (const FTimeThiefSmokeRendererVolume& Volume : Frame.Volumes)
+		{
+			Event.SmokeIds.Add(Volume.SmokeId);
+			if (Volume.SmokeId == INDEX_NONE)
+			{
+				FTimeThiefSmokeTestEvent Missing;
+				Missing.Type = TEXT("missing_smoke_id");
+				Missing.FrameId = GFrameCounter;
+				FTimeThiefSmokeTestBridge::Emit(Missing);
+			}
+		}
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
 
+	const bool bSubmittedPendingClearFrame = bRendererClearFramePending && Frame.Volumes.IsEmpty();
+	if (bSubmittedPendingClearFrame && FTimeThiefSmokeTestBridge::IsActive())
+	{
+		FTimeThiefSmokeTestEvent Event;
+		Event.Type = TEXT("renderer_clear_frame_submitted");
+		Event.FrameId = GFrameCounter;
+		FTimeThiefSmokeTestBridge::Emit(Event);
+	}
+	const bool bHasSubmittedVolumes = !Frame.Volumes.IsEmpty();
 	RendererSubsystem->SubmitFrame(MoveTemp(Frame));
+	bRendererHasPublishedSmokeState = bHasSubmittedVolumes;
+	if (!bHasSubmittedVolumes)
+	{
+		bRendererClearFramePending = false;
+	}
 	PendingRendererEvents.Reset();
 }

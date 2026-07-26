@@ -60,22 +60,39 @@ uint FlattenBrickCoordForEventBins(int3 BrickCoord)
 
 uint4 GetEventBrickMask(uint3 CellCoord)
 {
-	if (bUseEventBrickBins == 0u)
-	{
-		return uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
-	}
-
 	const int SafeBrickSize = max(SmokeBrickSize, 1);
 	const int3 BrickCoord = clamp(int3(CellCoord) / SafeBrickSize, int3(0, 0, 0), BrickGridResolution - 1);
 	return EventBrickMasks[FlattenBrickCoordForEventBins(BrickCoord)];
 }
 
-bool IsEventEnabledByBrickMask(uint4 Mask, int EventIndex)
+float ResolveExplosionWallBlock(float3 UVW, float OpenMask, float3 RadialWorld)
 {
-	const uint WordIndex = (uint)EventIndex >> 5u;
-	const uint Bit = 1u << ((uint)EventIndex & 31u);
-	const uint Word = WordIndex == 0u ? Mask.x : (WordIndex == 1u ? Mask.y : (WordIndex == 2u ? Mask.z : Mask.w));
-	return (Word & Bit) != 0u;
+	const float3 RadialLocal = mul(float4(RadialWorld, 0.0), WorldToLocal).xyz;
+	const float3 RadialUvDirection = normalize(
+		RadialLocal / max(BoundsExtent, float3(1.0, 1.0, 1.0)) +
+		float3(0.0001, 0.0001, 0.0001));
+	const float3 VoxelUv = 1.0 / max(float3(GridResolution), float3(1.0, 1.0, 1.0));
+	const float3 OutwardUvStep = RadialUvDirection * VoxelUv;
+	const float NearOpen = TimeThiefSmokeObstacleOpen(
+		ObstacleTexture,
+		VolumeSampler,
+		UVW + OutwardUvStep * 1.25,
+		ObstacleSdfSurfaceFeatherCm);
+	const float FarOpen = TimeThiefSmokeObstacleOpen(
+		ObstacleTexture,
+		VolumeSampler,
+		UVW + OutwardUvStep * 2.5,
+		ObstacleSdfSurfaceFeatherCm);
+	const float AheadOpen = min(NearOpen, FarOpen);
+	return saturate((OpenMask - AheadOpen) * 2.5 + (0.55 - AheadOpen) * 1.5);
+}
+
+float ResolveExplosionOuterDistanceFalloff(float Distance, float Radius, float MaxInfluenceRadius)
+{
+	const float InfluenceWidth = max(MaxInfluenceRadius - Radius, 1.0);
+	const float DistanceAlpha = saturate((Distance - Radius) / InfluenceWidth);
+	const float EdgeWeight = exp2(-1.0);
+	return saturate((exp2(-DistanceAlpha) - EdgeWeight) / max(1.0 - EdgeWeight, 0.0001));
 }
 
 [numthreads(4, 4, 4)]
@@ -112,14 +129,16 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 
 	const int SafeEventCount = min(EventCount, MaxShaderEventCount);
 	const uint4 EventBrickMask = GetEventBrickMask(CellCoord);
+	uint4 RemainingEventMask = EventBrickMask & TimeThiefSmokeValidEventMask(SafeEventCount);
+	uint EventWordIndex = 0u;
 	[loop]
-	for (int EventIndex = 0; EventIndex < SafeEventCount; ++EventIndex)
+	for (int CandidateIndex = 0; CandidateIndex < SafeEventCount; ++CandidateIndex)
 	{
-		if (!IsEventEnabledByBrickMask(EventBrickMask, EventIndex))
+		const int EventIndex = TimeThiefSmokePopLowestEventIndex(RemainingEventMask, EventWordIndex);
+		if (EventIndex < 0 || EventIndex >= SafeEventCount)
 		{
-			continue;
+			break;
 		}
-
 		const FTimeThiefSmokeEventShaderData Event = Events[EventIndex];
 		if ((uint)round(Event.TypeShapeAgeSeed.x) != 1u)
 		{
@@ -140,26 +159,66 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 
 		const float Distance = length(ToCell);
 		const float SafeDeltaSeconds = min(max(DeltaSeconds, 0.0), SimulationEventDeltaSecondsMax);
-		const float FrontRadius = Radius * lerp(0.12, 1.08, Age);
-		const float FrontThickness = max(Radius * 0.16, 1.0);
-		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.25, FrontThickness, abs(Distance - FrontRadius));
-		const float EvacuatedCore = (1.0 - smoothstep(max(FrontRadius * 0.35, 1.0), max(FrontRadius * 0.92, 2.0), Distance)) *
-			(1.0 - smoothstep(0.72, 1.0, Age));
-		const float3 Radial = normalize(ToCell + float3(0.0001, 0.0001, 0.0001));
+		const float3 Radial = normalize(float3(ToCell.xy, ToCell.z * 0.35) + float3(0.0001, 0.0001, 0.0001));
 		const float3 Curl = TimeThiefSmokeCurlNoise(WorldPosition * 0.014 + Seed * 0.01, Age * 0.35);
 		const float OutwardStrength = max(Event.ExtentsStrength.x, 1.0);
-		const float PressureWeight = saturate(ShockShell + EvacuatedCore * 0.28);
-		const float ShockFade = 1.0 - smoothstep(0.86, 1.0, Age);
-		// Explosion is a momentum impulse. Density is preserved here and moves through advection.
-		Velocity += Radial * PressureWeight * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.0;
-		Velocity += Curl * (ShockShell + EvacuatedCore * 0.15) * Strength * ShockFade * SafeDeltaSeconds * 280.0;
-		const float DisplacementWeight = saturate(PressureWeight * Strength * ShockFade * SafeDeltaSeconds * 2.0);
+		const float WallBlock = ResolveExplosionWallBlock(UVW, OpenMask, Radial);
+		const float RadialImpulseScale = lerp(1.0, 0.06, WallBlock);
+
+		// The inner blast front reaches smoke progressively, pushes it first, then dissipates it over time.
+		const float CoreMask = 1.0 - smoothstep(Radius * 0.88, Radius * 1.02, Distance);
+		const float CoreFrontProgress = smoothstep(0.0, 0.72, Age);
+		const float CoreFrontRadius = Radius * lerp(0.12, 1.05, CoreFrontProgress);
+		const float CoreFrontThickness = max(Radius * 0.18, 1.0);
+		const float CoreShockShell = 1.0 - smoothstep(
+			CoreFrontThickness * 0.2,
+			CoreFrontThickness,
+			abs(Distance - CoreFrontRadius));
+		const float CoreReached = 1.0 - smoothstep(
+			max(CoreFrontRadius - CoreFrontThickness * 0.35, 0.0),
+			CoreFrontRadius + CoreFrontThickness * 0.35,
+			Distance);
+		const float CorePushFade = 1.0 - smoothstep(0.64, 0.96, Age);
+		const float CorePressure = saturate(
+			(CoreShockShell + CoreReached * 0.42) * CoreMask * CorePushFade);
+
+		// Outside the gameplay radius, strength falls exponentially until the configured influence edge.
+		const float OutsideBlastMask = smoothstep(Radius * 0.94, Radius * 1.04, Distance);
+		const float AirFieldFalloff = ResolveExplosionOuterDistanceFalloff(Distance, Radius, MaxInfluenceRadius);
+		const float SurroundingAir = saturate(OutsideBlastMask * AirFieldFalloff);
+		const float FrontRadius = lerp(Radius * 1.02, MaxInfluenceRadius, Age);
+		const float FrontThickness = max((MaxInfluenceRadius - Radius) * 0.32, Radius * 0.08);
+		const float ShockShell = 1.0 - smoothstep(FrontThickness * 0.2, FrontThickness, abs(Distance - FrontRadius));
+		const float AttenuatedShockShell = ShockShell * AirFieldFalloff;
+		const float ShockFade = 1.0 - smoothstep(0.82, 1.0, Age);
+		const float AirFieldFade = 1.0 - smoothstep(0.48, 0.92, Age);
+		const float OuterPressure = saturate((AttenuatedShockShell + SurroundingAir * 0.72 * AirFieldFade) * OutsideBlastMask);
+		const float PressureWeight = saturate(CorePressure + OuterPressure);
+
+		Velocity *= 1.0 - WallBlock * PressureWeight * ShockFade * 0.65;
+		Velocity += Radial * (CorePressure * 1.18 + OuterPressure) * Strength * ShockFade * OutwardStrength * SafeDeltaSeconds * 4.5 * RadialImpulseScale;
+		Velocity += Curl * (CoreShockShell * 0.18 + AttenuatedShockShell * 0.36 + SurroundingAir * 0.12) * Strength * ShockFade * SafeDeltaSeconds * 110.0 * (1.0 - WallBlock);
+
+		// Move affected smoke into the displaced channel before its inner portion gradually fades out.
+		const float DisplacementWeight = saturate(
+			(CorePressure * 0.68 + SurroundingAir * 0.82 + AttenuatedShockShell * 0.32) *
+			Strength * ShockFade * SafeDeltaSeconds * 2.2);
 		const float ShiftedDensity = min(NaturalDensity * DisplacementWeight, max(SmokeDensityMax - DisplacedDensity, 0.0));
 		NaturalDensity -= ShiftedDensity;
 		DisplacedDensity += ShiftedDensity;
+
+		const float DissolveRamp = smoothstep(0.08, 0.68, Age);
+		const float DissolveRate = lerp(1.4, 7.0, DissolveRamp);
+		const float CoreDissipation = saturate(
+			CoreMask * CoreReached * Strength * SafeDeltaSeconds * DissolveRate);
+		NaturalDensity *= 1.0 - CoreDissipation;
+		DisplacedDensity *= 1.0 - CoreDissipation;
 	}
 
-	OutDensity[CellCoord] = clamp(NaturalDensity * OpenMask, 0.0, SmokeDensityMax);
-	OutDisplacedDensity[CellCoord] = clamp(DisplacedDensity * OpenMask, 0.0, SmokeDensityMax);
+	NaturalDensity *= OpenMask;
+	DisplacedDensity *= OpenMask;
+	TimeThiefSmokeClampDensityChannels(NaturalDensity, DisplacedDensity, SmokeDensityMax);
+	OutDensity[CellCoord] = NaturalDensity;
+	OutDisplacedDensity[CellCoord] = DisplacedDensity;
 	OutVelocity[CellCoord] = float4(Velocity * OpenMask, 0.0);
 }

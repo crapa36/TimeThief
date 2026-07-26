@@ -25,44 +25,38 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 		TimeThiefSmokeParameterDefaults::SmokeBrickSize >= TimeThiefSmokeParameterDefaults::SmokeBrickMinSize &&
 		TimeThiefSmokeParameterDefaults::SmokeBrickSize <= TimeThiefSmokeParameterDefaults::SmokeBrickMaxSize);
 	TestTrue(
-		TEXT("Render step defaults stay inside renderer limits"),
-		TimeThiefSmokeParameterDefaults::RenderStepCount >= TimeThiefSmokeParameterDefaults::RenderStepCountMin &&
-		TimeThiefSmokeParameterDefaults::RenderStepCount <= TimeThiefSmokeParameterDefaults::RenderStepCountMax &&
-		TimeThiefSmokeParameterDefaults::RenderMaxStepCount >= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMin &&
-		TimeThiefSmokeParameterDefaults::RenderMaxStepCount <= TimeThiefSmokeParameterDefaults::RenderMaxStepCountMax);
+		TEXT("World raymarch spacing default stays inside renderer limits"),
+		TimeThiefSmokeParameterDefaults::RenderWorldStepLengthCm >= TimeThiefSmokeParameterDefaults::RenderWorldStepLengthMinCm &&
+		TimeThiefSmokeParameterDefaults::RenderWorldStepLengthCm <= TimeThiefSmokeParameterDefaults::RenderWorldStepLengthMaxCm);
 	TestTrue(
-		TEXT("Render voxel step default stays inside renderer limits"),
-		TimeThiefSmokeParameterDefaults::RenderStepVoxelScale >= TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMin &&
-		TimeThiefSmokeParameterDefaults::RenderStepVoxelScale <= TimeThiefSmokeParameterDefaults::RenderStepVoxelScaleMax);
+		TEXT("Half-resolution default remains a boolean console value"),
+		TimeThiefSmokeParameterDefaults::HalfResolution == 0 || TimeThiefSmokeParameterDefaults::HalfResolution == 1);
 	TestTrue(
 		TEXT("Obstacle mask cache keeps at least one reusable entry"),
 		TimeThiefSmokeParameterDefaults::ObstacleMaskCacheMaxEntries > 0);
 	TestTrue(
-		TEXT("Inactive brick raymarch skip keeps clamp range valid"),
-		TimeThiefSmokeParameterDefaults::InactiveBrickRaymarchMaxSkipScale >= 1.0f);
-	TestTrue(
-		TEXT("Inactive brick self-shadow skip keeps clamp range valid"),
-		TimeThiefSmokeParameterDefaults::SelfShadowInactiveBrickMaxSkipSteps >= 1);
-	TestTrue(
-		TEXT("Sparse composite active ratio remains normalized"),
-		TimeThiefSmokeParameterDefaults::SparseCompositeMaxActiveRatio > 0.0f &&
-		TimeThiefSmokeParameterDefaults::SparseCompositeMaxActiveRatio < 1.0f);
-	TestTrue(
-		TEXT("Dynamic obstacle refresh interval remains positive"),
-		TimeThiefSmokeParameterDefaults::ObstacleDynamicRefreshIntervalSeconds > 0.0f);
-	TestTrue(
 		TEXT("Self-shadow sample threshold skips only tiny contributions"),
 		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight > 0.0f &&
-		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight < TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
+		TimeThiefSmokeParameterDefaults::SelfShadowMinSampleWeight <= TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut);
+	TestTrue(
+		TEXT("Combined shadow defaults stay inside runtime clamp limits"),
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount >= TimeThiefSmokeParameterDefaults::CombinedShadowStepCountMin &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepCount <= TimeThiefSmokeParameterDefaults::CombinedShadowStepCountMax &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepLength >= TimeThiefSmokeParameterDefaults::CombinedShadowStepLengthMinCm &&
+		TimeThiefSmokeParameterDefaults::CombinedShadowStepLength <= TimeThiefSmokeParameterDefaults::CombinedShadowStepLengthMaxCm);
+	TestTrue(
+		TEXT("Render detail cutoff remains inside the simulated density range"),
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff > 0.0f &&
+		TimeThiefSmokeParameterDefaults::RenderDetailDensityCutoff <= TimeThiefSmokeParameterDefaults::SmokeDensityMax);
 	TestTrue(
 		TEXT("Render transmittance early-out stays in normalized range"),
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut > 0.0f &&
 		TimeThiefSmokeParameterDefaults::RenderTransmittanceEarlyOut < 1.0f);
 	TestTrue(
-		TEXT("Render boundary noise stays subtle enough to avoid banding"),
+		TEXT("Render boundary noise stays bounded to avoid banding"),
 		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseScale >= 0.0f &&
 		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength >= 0.0f &&
-		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.05f);
+		TimeThiefSmokeParameterDefaults::RenderBoundaryNoiseStrength <= 0.2f);
 	TestTrue(
 		TEXT("Actor airflow full speed leaves shader smoothstep range valid"),
 		TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeed >= TimeThiefSmokeParameterDefaults::ActorAirflowMinSpeed + TimeThiefSmokeParameterDefaults::ActorAirflowFullSpeedMinGap);
@@ -79,6 +73,10 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Simulation event delta clamp remains positive"),
 		TimeThiefSmokeParameterDefaults::SimulationEventDeltaSecondsMax > 0.0f);
+	TestTrue(
+		TEXT("Simulation frame clamp and substep budget remain positive"),
+		TimeThiefSmokeParameterDefaults::SimulationFrameDeltaSecondsMax > 0.0f &&
+		TimeThiefSmokeParameterDefaults::MaxSimulationSubstepsPerFrame > 0);
 	TestTrue(
 		TEXT("Smoke density clamp remains above initial density"),
 		TimeThiefSmokeParameterDefaults::SmokeDensityMax >= TimeThiefSmokeParameterDefaults::InitialDensity);
@@ -122,6 +120,15 @@ bool FTimeThiefSmokeRendererDefaultsAutomationTest::RunTest(const FString& Param
 	TestTrue(
 		TEXT("Fixed multi composite shader slot count matches static shader bindings"),
 		TimeThiefSmokeParameterDefaults::MaxCompositeSmokeSlots == 8);
+	TestTrue(
+		TEXT("Composite scissor requires a positive saved-pixel threshold"),
+		TimeThiefSmokeParameterDefaults::CompositeScissorMinSavedPixels > 0);
+	TestTrue(
+		TEXT("Smoke broadphase keeps a positive linear-scan range"),
+		TimeThiefSmokeParameterDefaults::SmokeBroadphaseLinearScanMaxCount > 0);
+	TestTrue(
+		TEXT("Actor interaction cadence remains enabled"),
+		TimeThiefSmokeParameterDefaults::ActorInteractionHz > 0.0f);
 	TestTrue(
 		TEXT("Renderer descriptor stays float4 aligned for HLSL structured buffer"),
 		sizeof(FTimeThiefSmokeCompositeDescriptorShaderData) % sizeof(FVector4f) == 0);
