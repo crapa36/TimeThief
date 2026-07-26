@@ -18,7 +18,7 @@ public:
 
 	void SubmitFrame_RenderThread(FTimeThiefSmokeRendererFrame&& Frame);
 	void Clear_RenderThread();
-	void PreAllocateWarmupTextures_RenderThread(FRHICommandListImmediate& RHICmdList);
+	void Warmup_RenderThread(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel);
 
 	virtual void PreRenderViewFamily_RenderThread(FRDGBuilder& GraphBuilder, FSceneViewFamily& InViewFamily) override;
 	virtual void SubscribeToPostProcessingPass(EPostProcessingPass Pass, const FSceneView& InView, FPostProcessingPassDelegateArray& InOutPassCallbacks, bool bIsPassEnabled) override;
@@ -136,6 +136,7 @@ private:
 		bool bAllowOverrideOutput);
 
 	void EnsureResources(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
+	void PreAllocateWarmupTextures_RenderThread(FRHICommandListImmediate& RHICmdList);
 	void WarmupComputePSOs_RenderThread(FRHICommandListImmediate& RHICmdList, ERHIFeatureLevel::Type FeatureLevel);
 	void EnsureObstacleFieldTextures(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);
 	void EnsureVortexParticleBuffers(FRDGBuilder& GraphBuilder, FRenderSmokeState& State);

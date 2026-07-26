@@ -2,6 +2,7 @@
 
 #include "Misc/App.h"
 #include "RenderingThread.h"
+#include "RHI.h"
 #include "TimeThiefSmokeTestBridge.h"
 #include "TimeThiefSmokeViewExtension.h"
 
@@ -21,7 +22,7 @@ void UTimeThiefSmokeRendererSubsystem::Initialize(FSubsystemCollectionBase& Coll
 		ENQUEUE_RENDER_COMMAND(TimeThiefSmokeWarmupCommand)(
 			[Extension](FRHICommandListImmediate& RHICmdList)
 			{
-				Extension->PreAllocateWarmupTextures_RenderThread(RHICmdList);
+				Extension->Warmup_RenderThread(RHICmdList, GMaxRHIFeatureLevel);
 			});
 	}
 }

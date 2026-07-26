@@ -1345,6 +1345,21 @@ void FTimeThiefSmokeViewExtension::PreAllocateWarmupTextures_RenderThread(FRHICo
 	AllocatePooledTexture(BrickOccupancyDesc, OccTarget, TEXT("TimeThiefSmoke.Warmup.BrickOccupancy"));
 }
 
+void FTimeThiefSmokeViewExtension::Warmup_RenderThread(
+	FRHICommandListImmediate& RHICmdList,
+	ERHIFeatureLevel::Type FeatureLevel)
+{
+	check(IsInRenderingThread());
+	if (bShaderPSOWarmupComplete)
+	{
+		return;
+	}
+
+	bShaderPSOWarmupComplete = true;
+	PreAllocateWarmupTextures_RenderThread(RHICmdList);
+	WarmupComputePSOs_RenderThread(RHICmdList, FeatureLevel);
+}
+
 void FTimeThiefSmokeViewExtension::WarmupComputePSOs_RenderThread(
 	FRHICommandListImmediate& RHICmdList,
 	ERHIFeatureLevel::Type FeatureLevel)
@@ -1390,19 +1405,6 @@ void FTimeThiefSmokeViewExtension::PreRenderViewFamily_RenderThread(
 	FRDGBuilder& GraphBuilder,
 	FSceneViewFamily& ViewFamily)
 {
-	if (!bShaderPSOWarmupComplete)
-	{
-		bShaderPSOWarmupComplete = true;
-		const ERHIFeatureLevel::Type FeatureLevel = ViewFamily.GetFeatureLevel();
-		GraphBuilder.AddPass(
-			RDG_EVENT_NAME("TimeThiefSmoke.WarmupComputePSOs"),
-			ERDGPassFlags::NeverCull,
-			[this, FeatureLevel](FRHICommandListImmediate& RHICmdList)
-			{
-				WarmupComputePSOs_RenderThread(RHICmdList, FeatureLevel);
-			});
-	}
-
 	ConsumeSmokeTestProbeReadbacks();
 	SmokeTestGpuProfiler.PollResults_RenderThread();
 	ReleaseReadyRetiredSparseActiveBrickCountReadbacks();
