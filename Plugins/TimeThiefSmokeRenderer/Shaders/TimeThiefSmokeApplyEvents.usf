@@ -212,7 +212,6 @@ void MainCS(uint3 DispatchThreadId : SV_DispatchThreadID, uint3 GroupId : SV_Gro
 		const float CoreDissipation = saturate(
 			CoreMask * CoreReached * Strength * SafeDeltaSeconds * DissolveRate);
 		NaturalDensity *= 1.0 - CoreDissipation;
-		DisplacedDensity *= 1.0 - CoreDissipation;
 	}
 
 	NaturalDensity *= OpenMask;

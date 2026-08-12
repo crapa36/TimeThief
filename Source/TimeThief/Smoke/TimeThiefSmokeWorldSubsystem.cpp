@@ -656,7 +656,8 @@ void UTimeThiefSmokeWorldSubsystem::SubmitExplosion(const FVector& Center, float
 	CompactSmokeVolumes();
 
 	const float SafeRadius = FMath::Max(1.0f, Radius);
-	QuerySmokeSpatialIndex(FBox(Center - FVector(SafeRadius), Center + FVector(SafeRadius)), SmokeSpatialQueryResults);
+	const float InfluenceRadius = SafeRadius * FMath::Max(TimeThiefSmokeParameterDefaults::ExplosionInfluenceRadiusScale, 1.0f);
+	QuerySmokeSpatialIndex(FBox(Center - FVector(InfluenceRadius), Center + FVector(InfluenceRadius)), SmokeSpatialQueryResults);
 	if (FTimeThiefSmokeTestBridge::IsActive())
 	{
 		FTimeThiefSmokeTestEvent Event;
@@ -673,7 +674,7 @@ void UTimeThiefSmokeWorldSubsystem::SubmitExplosion(const FVector& Center, float
 	}
 	for (ATimeThiefSmokeVolume* SmokeVolume : SmokeSpatialQueryResults)
 	{
-		if (!SmokeVolume || !SmokeVolume->IntersectsExplosion(Center, SafeRadius))
+		if (!SmokeVolume || !SmokeVolume->IntersectsExplosion(Center, InfluenceRadius))
 		{
 			continue;
 		}
